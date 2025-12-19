@@ -79,3 +79,15 @@ Admins can create/manage property listings, approve investor access, and receive
 
 ### ERD (Database Diagram)
 - ERD (dbdiagram.io): [ERD](https://dbdiagram.io/d/Megna-Ventures-or-ERD-69399edbe877c63074524e4a)
+
+---
+
+## Rule — Investor Access & Approval (MVP)
+
+- When an investor registers, their account is created with `status = PENDING`.
+- Only investors with `status = APPROVED` can:
+  - view the Investor Portal (deal listings + deal details)
+  - send a “Message to the owner” inquiry
+- The admin can change an investor’s status to `APPROVED` or `REJECTED`.
+- If `status = REJECTED`, access is blocked.
+- These rules are enforced **server-side** (not just in the UI).
