@@ -3,8 +3,6 @@
 A gated web platform for sharing off-market real estate deals with approved investors.  
 Admins can create/manage property listings, approve investor access, and receive investor inquiries via email.
 
-> **Status:** MVP scope (Draft / Active / Closed workflow)
-
 ---
 
 ## Core Goals
