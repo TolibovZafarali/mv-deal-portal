@@ -82,12 +82,24 @@ Admins can create/manage property listings, approve investor access, and receive
 
 ---
 
-## Rule — Investor Access & Approval (MVP)
+## Rule — MVP Access + Publishing Rules
 
+### Investor Access & Approval
 - When an investor registers, their account is created with `status = PENDING`.
 - Only investors with `status = APPROVED` can:
-  - view the Investor Portal (deal listings + deal details)
+  - view deal listings and deal details
   - send a “Message to the owner” inquiry
-- The admin can change an investor’s status to `APPROVED` or `REJECTED`.
+- The admin can set an investor’s status to `APPROVED` or `REJECTED`.
 - If `status = REJECTED`, access is blocked.
 - These rules are enforced **server-side** (not just in the UI).
+
+### Property Draft vs Active
+- Properties can be saved as `DRAFT` with incomplete/nullable fields (to allow partial entry).
+- Only properties with `status = ACTIVE` are visible to approved investors.
+- When the admin sets a property to `ACTIVE`, the backend must validate required fields (reject if missing):
+  - `title`
+  - `street_1`, `city`, `state`, `zip`
+  - `asking_price`
+  - `occupancy_status`, `exit_strategy`, `closing_terms`
+  - at least **1** photo in `property_photos`
+- Properties with `status = CLOSED` are not visible to investors.
