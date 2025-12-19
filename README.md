@@ -75,7 +75,7 @@ Admins can create/manage property listings, approve investor access, and receive
 ## Product Docs
 
 ### Wireframes
-- Wireframe (Figma): `[Figma](https://www.figma.com/design/GpS0eMH9zf3zJcjeeMgNXR/Megna-Ventures-%7C-Wireframe?node-id=0-1&t=SWMRFPR336bN2Ir1-1)`
+- Wireframe (Figma): [Figma](https://www.figma.com/design/GpS0eMH9zf3zJcjeeMgNXR/Megna-Ventures-%7C-Wireframe?node-id=0-1&t=SWMRFPR336bN2Ir1-1)
 
 ### ERD (Database Diagram)
-- ERD (dbdiagram.io / Lucidchart / etc.): `[ERD](https://dbdiagram.io/d/Megna-Ventures-or-ERD-69399edbe877c63074524e4a)`
+- ERD (dbdiagram.io): [ERD](https://dbdiagram.io/d/Megna-Ventures-or-ERD-69399edbe877c63074524e4a)
