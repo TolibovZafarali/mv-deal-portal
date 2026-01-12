@@ -7,3 +7,7 @@ spring:
     password: SpiderMan1133
   jpa:
     show-sql: true
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    enabled: true
