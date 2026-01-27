@@ -29,7 +29,7 @@ public class Property {
     @Column(name = "status", nullable = false, length = 20)
     private PropertyStatus status;
 
-    @Column(name = "title", nullable = false, length = 20)
+    @Column(name = "title", nullable = false, length = 120)
     private String title;
 
     @Column(name = "street_1", length = 120)
