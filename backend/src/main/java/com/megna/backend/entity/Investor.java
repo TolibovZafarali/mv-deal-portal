@@ -2,17 +2,15 @@ package com.megna.backend.entity;
 
 import com.megna.backend.enums.InvestorStatus;
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 import java.time.LocalDateTime;
 
-@Entity
-@Table(name = "investors")
-@NoArgsConstructor
 @Getter
 @Setter
+@NoArgsConstructor
+@Entity
+@Table(name = "investors")
 public class Investor {
 
     @Id
