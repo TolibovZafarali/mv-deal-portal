@@ -6,6 +6,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Getter
@@ -28,6 +29,9 @@ public class PropertySaleComp {
 
     @Column(name = "sold_price", precision = 12, scale = 2)
     private BigDecimal soldPrice;
+
+    @Column(name = "sold_date")
+    private LocalDate soldDate;
 
     @Column(name = "beds")
     private Integer beds;
