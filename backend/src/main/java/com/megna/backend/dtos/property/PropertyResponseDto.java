@@ -3,7 +3,6 @@ package com.megna.backend.dtos.property;
 import com.megna.backend.enums.ExitStrategy;
 import com.megna.backend.enums.OccupancyStatus;
 import com.megna.backend.enums.PropertyStatus;
-import org.springframework.cglib.core.Local;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -39,7 +38,7 @@ public record PropertyResponseDto(
         LocalDateTime createdAt,
         LocalDateTime updatedAt,
 
-        List<PropertyResponseDto> photos,
+        List<PropertyPhotoResponseDto> photos,
         List<PropertySaleCompResponseDto> saleComps
 ) {
 }
