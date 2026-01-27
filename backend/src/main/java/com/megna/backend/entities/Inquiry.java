@@ -21,6 +21,10 @@ public class Inquiry {
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "property_id", nullable = false)
+    private Property property;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "investor_id", nullable = false)
     private Investor investor;
 
     @Column(name = "subject", length = 120)
