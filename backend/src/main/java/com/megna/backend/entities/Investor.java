@@ -24,13 +24,13 @@ public class Investor {
     @Column(name = "last_name", nullable = false, length = 80)
     private String lastName;
 
-    @Column(name = "company_name", length = 120)
+    @Column(name = "company_name", length = 120, nullable = false)
     private String companyName;
 
     @Column(name = "email", nullable = false, length = 255, unique = true)
     private String email;
 
-    @Column(name = "phone", length = 30)
+    @Column(name = "phone", length = 30, nullable = false)
     private String phone;
 
     @Column(name = "password_hash", nullable = false, length = 255)

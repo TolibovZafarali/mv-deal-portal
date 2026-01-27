@@ -3,9 +3,9 @@ CREATE TABLE IF NOT EXISTS investors (
 
     first_name VARCHAR(80) NOT NULL,
     last_name VARCHAR(80) NOT NULL,
-    company_name VARCHAR(120) NULL,
+    company_name VARCHAR(120) NOT NULL,
     email VARCHAR(255) NOT NULL,
-    phone VARCHAR(30) NULL,
+    phone VARCHAR(30) NOT NULL,
 
     password_hash VARCHAR(255) NOT NULL,
 
@@ -80,7 +80,7 @@ CREATE TABLE IF NOT EXISTS inquiries (
 
     contact_name VARCHAR(160) NOT NULL,
     contact_email VARCHAR(255) NOT NULL,
-    contact_phone VARCHAR(30) NULL,
+    contact_phone VARCHAR(30) NOT NULL,
 
     email_status VARCHAR(20) NULL, -- SENT, FAILED (optional)
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
