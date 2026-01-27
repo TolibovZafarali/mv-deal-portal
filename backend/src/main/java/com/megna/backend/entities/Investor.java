@@ -1,4 +1,4 @@
-package com.megna.backend.entity;
+package com.megna.backend.entities;
 
 import com.megna.backend.enums.InvestorStatus;
 import jakarta.persistence.*;

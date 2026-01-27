@@ -1,4 +1,4 @@
-package com.megna.backend.entity;
+package com.megna.backend.entities;
 
 import jakarta.persistence.*;
 import lombok.Getter;
