@@ -41,6 +41,7 @@ public final class InvestorMapper {
         investor.setFirstName(dto.firstName());
         investor.setLastName(dto.lastName());
         investor.setEmail(dto.email());
+        investor.setCompanyName(dto.companyName());
         investor.setPhone(dto.phone());
 
         // Temporary: store the raw password as passwordHash until auth is implemented.
