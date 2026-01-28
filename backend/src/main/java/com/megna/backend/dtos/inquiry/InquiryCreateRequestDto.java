@@ -11,6 +11,7 @@ public record InquiryCreateRequestDto(
         @Size(max = 120) String subject,
         @NotBlank String messageBody,
         @NotBlank @Size(max = 160) String contactName,
+        @NotBlank @Size(max = 160) String companyName,
         @NotBlank @Email @Size(max = 255) String contactEmail,
         @NotBlank @Size(max = 30) String contactPhone
 ) {

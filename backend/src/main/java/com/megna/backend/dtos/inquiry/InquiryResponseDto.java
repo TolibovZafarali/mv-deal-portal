@@ -11,6 +11,7 @@ public record InquiryResponseDto(
         String subject,
         String messageBody,
         String contactName,
+        String companyName,
         String contactEmail,
         String contactPhone,
         EmailStatus emailStatus,

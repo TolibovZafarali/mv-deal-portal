@@ -37,6 +37,9 @@ public class Inquiry {
     @Column(name = "contact_name", nullable = false, length = 160)
     private String contactName;
 
+    @Column(name = "company_name", nullable = false, length = 160)
+    private String companyName;
+
     @Column(name = "contact_email", nullable = false, length = 255)
     private String contactEmail;
 

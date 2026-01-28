@@ -23,6 +23,7 @@ public final class InquiryMapper {
                 entity.getSubject(),
                 entity.getMessageBody(),
                 entity.getContactName(),
+                entity.getCompanyName(),
                 entity.getContactEmail(),
                 entity.getContactPhone(),
                 entity.getEmailStatus(),
@@ -42,6 +43,7 @@ public final class InquiryMapper {
         inquiry.setSubject(dto.subject());
         inquiry.setMessageBody(dto.messageBody());
         inquiry.setContactName(dto.contactName());
+        inquiry.setCompanyName(dto.companyName());
         inquiry.setContactEmail(dto.contactEmail());
         inquiry.setContactPhone(dto.contactPhone());
         // emailStatus gets set by email-sending flow later
