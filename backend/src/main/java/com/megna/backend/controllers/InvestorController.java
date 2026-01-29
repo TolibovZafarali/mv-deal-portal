@@ -49,4 +49,9 @@ public class InvestorController {
     public InvestorResponseDto updateStatus(@PathVariable Long id, @Valid @RequestBody InvestorStatusUpdateRequestDto dto) {
         return investorService.updateStatus(id, dto);
     }
+
+    @GetMapping("/by-email")
+    public InvestorResponseDto getByEmail(@RequestParam String email) {
+        return investorService.getByEmail(email);
+    }
 }

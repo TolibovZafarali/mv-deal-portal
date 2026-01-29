@@ -64,4 +64,10 @@ public class InvestorService {
         Investor saved = investorRepository.save(investor);
         return InvestorMapper.toDto(saved);
     }
+
+    public InvestorResponseDto getByEmail(String email) {
+        Investor investor = investorRepository.findByEmail(email)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Investor not found: " + email));
+        return InvestorMapper.toDto(investor);
+    }
 }
