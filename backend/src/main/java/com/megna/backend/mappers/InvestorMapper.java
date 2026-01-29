@@ -31,9 +31,6 @@ public final class InvestorMapper {
     }
 
 //    Creates a new Investor entity.
-//
-//    TODO: Hash password before storing.
-
     public static Investor toEntity(InvestorCreateRequestDto dto) {
         if (dto == null) return null;
 
@@ -43,8 +40,6 @@ public final class InvestorMapper {
         investor.setEmail(dto.email());
         investor.setCompanyName(dto.companyName());
         investor.setPhone(dto.phone());
-
-        // Temporary: store the raw password as passwordHash until auth is implemented.
         investor.setPasswordHash(dto.password());
 
         investor.setStatus(InvestorStatus.PENDING);
