@@ -4,16 +4,12 @@ import com.megna.backend.dtos.investor.InvestorCreateRequestDto;
 import com.megna.backend.dtos.investor.InvestorResponseDto;
 import com.megna.backend.dtos.investor.InvestorStatusUpdateRequestDto;
 import com.megna.backend.dtos.investor.InvestorUpdateRequestDto;
-import com.megna.backend.entities.Investor;
-import com.megna.backend.mappers.InvestorMapper;
-import com.megna.backend.repositories.InvestorRepository;
 import com.megna.backend.services.InvestorService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
