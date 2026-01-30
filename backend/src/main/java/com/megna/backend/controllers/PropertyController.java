@@ -8,6 +8,10 @@ import com.megna.backend.enums.PropertyStatus;
 import com.megna.backend.services.PropertyService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -50,7 +54,7 @@ public class PropertyController {
     }
 
     @GetMapping("/search")
-    public List<PropertyResponseDto> search(
+    public Page<PropertyResponseDto> search(
             @RequestParam(required = false) PropertyStatus status,
             @RequestParam(required = false) String city,
             @RequestParam(required = false) String state,
@@ -61,14 +65,16 @@ public class PropertyController {
             @RequestParam(required = false) BigDecimal minArv,
             @RequestParam(required = false) BigDecimal maxArv,
             @RequestParam(required = false) OccupancyStatus occupancyStatus,
-            @RequestParam(required = false) ExitStrategy exitStrategy
+            @RequestParam(required = false) ExitStrategy exitStrategy,
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
             ) {
         return propertyService.search(
                 status, city, state,
                 minBeds, maxBeds,
                 minAskingPrice, maxAskingPrice,
                 minArv, maxArv,
-                occupancyStatus, exitStrategy
+                occupancyStatus, exitStrategy,
+                pageable
         );
     }
 }
