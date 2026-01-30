@@ -1,13 +1,14 @@
 package com.megna.backend.services;
 
-import com.megna.backend.config.PasswordConfig;
 import com.megna.backend.dtos.investor.InvestorCreateRequestDto;
 import com.megna.backend.dtos.investor.InvestorResponseDto;
 import com.megna.backend.dtos.investor.InvestorStatusUpdateRequestDto;
 import com.megna.backend.dtos.investor.InvestorUpdateRequestDto;
 import com.megna.backend.entities.Investor;
+import com.megna.backend.enums.InvestorStatus;
 import com.megna.backend.mappers.InvestorMapper;
 import com.megna.backend.repositories.InvestorRepository;
+import com.megna.backend.specifications.InvestorSpecifications;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -70,5 +71,18 @@ public class InvestorService {
         Investor investor = investorRepository.findByEmail(email)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Investor not found: " + email));
         return InvestorMapper.toDto(investor);
+    }
+
+    public Page<InvestorResponseDto> search(
+            InvestorStatus status,
+            String email,
+            String companyName,
+            String name,
+            Pageable pageable
+    ) {
+        var spec = InvestorSpecifications.withFilters(status, email, companyName, name);
+
+        return investorRepository.findAll(spec, pageable)
+                .map(InvestorMapper::toDto);
     }
 }
