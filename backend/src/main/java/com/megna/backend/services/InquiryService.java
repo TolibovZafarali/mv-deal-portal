@@ -55,4 +55,16 @@ public class InquiryService {
         }
         inquiryRepository.deleteById(id);
     }
+
+    public List<InquiryResponseDto> getByPropertyId(Long propertyId) {
+        return inquiryRepository.findByPropertyId(propertyId).stream()
+                .map(InquiryMapper::toDto)
+                .toList();
+    }
+
+    public List<InquiryResponseDto> getByInvestorId(Long investorId) {
+        return inquiryRepository.findByInvestorId(investorId).stream()
+                .map(InquiryMapper::toDto)
+                .toList();
+    }
 }
