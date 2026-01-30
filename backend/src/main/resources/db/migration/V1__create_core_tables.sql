@@ -43,7 +43,7 @@ CREATE TABLE IF NOT EXISTS properties (
     hvac INT NULL,
 
     occupancy_status VARCHAR(20) NULL, -- VACANT, TENANT
-    exit_strategy VARCHAR(20) NULL, -- FLIP, RENTAL
+    exit_strategy VARCHAR(20) NULL, -- FLIP, RENTAL, WHOLESALE
     closing_terms VARCHAR(80) NULL,
 
     description TEXT NULL,
