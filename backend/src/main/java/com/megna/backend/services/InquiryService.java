@@ -10,6 +10,8 @@ import com.megna.backend.repositories.InquiryRepository;
 import com.megna.backend.repositories.InvestorRepository;
 import com.megna.backend.repositories.PropertyRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -43,10 +45,9 @@ public class InquiryService {
         return InquiryMapper.toDto(inquiry);
     }
 
-    public List<InquiryResponseDto> getAll() {
-        return inquiryRepository.findAll().stream()
-                .map(InquiryMapper::toDto)
-                .toList();
+    public Page<InquiryResponseDto> getAll(Pageable pageable) {
+        return inquiryRepository.findAll(pageable)
+                .map(InquiryMapper::toDto);
     }
 
     public void delete(Long id) {
@@ -56,15 +57,13 @@ public class InquiryService {
         inquiryRepository.deleteById(id);
     }
 
-    public List<InquiryResponseDto> getByPropertyId(Long propertyId) {
-        return inquiryRepository.findByPropertyId(propertyId).stream()
-                .map(InquiryMapper::toDto)
-                .toList();
+    public Page<InquiryResponseDto> getByPropertyId(Long propertyId, Pageable pageable) {
+        return inquiryRepository.findByPropertyId(propertyId, pageable)
+                .map(InquiryMapper::toDto);
     }
 
-    public List<InquiryResponseDto> getByInvestorId(Long investorId) {
-        return inquiryRepository.findByInvestorId(investorId).stream()
-                .map(InquiryMapper::toDto)
-                .toList();
+    public Page<InquiryResponseDto> getByInvestorId(Long investorId, Pageable pageable) {
+        return inquiryRepository.findByInvestorId(investorId, pageable)
+                .map(InquiryMapper::toDto);
     }
 }

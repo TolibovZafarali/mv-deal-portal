@@ -2,14 +2,16 @@ package com.megna.backend.repositories;
 
 import com.megna.backend.entities.Inquiry;
 import com.megna.backend.enums.EmailStatus;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
 
 public interface InquiryRepository extends JpaRepository<Inquiry, Long> {
-    List<Inquiry> findByPropertyId(Long propertyId);
+    Page<Inquiry> findByPropertyId(Long propertyId, Pageable pageable);
 
-    List<Inquiry> findByInvestorId(Long investorId);
+    Page<Inquiry> findByInvestorId(Long investorId, Pageable pageable);
 
     List<Inquiry> findByEmailStatus(EmailStatus emailStatus);
 
