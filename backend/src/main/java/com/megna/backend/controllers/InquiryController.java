@@ -2,6 +2,7 @@ package com.megna.backend.controllers;
 
 import com.megna.backend.dtos.inquiry.InquiryCreateRequestDto;
 import com.megna.backend.dtos.inquiry.InquiryResponseDto;
+import com.megna.backend.entities.Inquiry;
 import com.megna.backend.services.InquiryService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -38,5 +39,15 @@ public class InquiryController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@PathVariable Long id) {
         inquiryService.delete(id);
+    }
+
+    @GetMapping("/by-property/{propertyId}")
+    public List<InquiryResponseDto> getByPropertyId(@PathVariable Long propertyId) {
+        return inquiryService.getByPropertyId(propertyId);
+    }
+
+    @GetMapping("/by-investor/{investorId}")
+    public List<InquiryResponseDto> getByInvestorId(@PathVariable Long investorId) {
+        return inquiryService.getByInvestorId(investorId);
     }
 }
