@@ -7,6 +7,10 @@ import com.megna.backend.dtos.investor.InvestorUpdateRequestDto;
 import com.megna.backend.services.InvestorService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -32,8 +36,10 @@ public class InvestorController {
     }
 
     @GetMapping
-    public List<InvestorResponseDto> getAll() {
-        return investorService.getAll();
+    public Page<InvestorResponseDto> getAll(
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
+            ) {
+        return investorService.getAll(pageable);
     }
 
     @PutMapping("/{id}")

@@ -9,6 +9,8 @@ import com.megna.backend.entities.Investor;
 import com.megna.backend.mappers.InvestorMapper;
 import com.megna.backend.repositories.InvestorRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -39,10 +41,9 @@ public class InvestorService {
         return InvestorMapper.toDto(investor);
     }
 
-    public List<InvestorResponseDto> getAll() {
-        return investorRepository.findAll().stream()
-                .map(InvestorMapper::toDto)
-                .toList();
+    public Page<InvestorResponseDto> getAll(Pageable pageable) {
+        return investorRepository.findAll(pageable)
+                .map(InvestorMapper::toDto);
     }
 
     public InvestorResponseDto update(Long id, InvestorUpdateRequestDto dto) {
