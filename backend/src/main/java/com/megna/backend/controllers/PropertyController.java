@@ -17,7 +17,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/properties")
@@ -38,8 +37,10 @@ public class PropertyController {
     }
 
     @GetMapping
-    public List<PropertyResponseDto> getAll() {
-        return propertyService.getAll();
+    public Page<PropertyResponseDto> getAll(
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
+    ) {
+        return propertyService.getAll(pageable);
     }
 
     @PutMapping("/{id}")

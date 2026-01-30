@@ -17,7 +17,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -37,10 +36,9 @@ public class PropertyService {
         return PropertyMapper.toDto(property);
     }
 
-    public List<PropertyResponseDto> getAll() {
-        return propertyRepository.findAll().stream()
-                .map(PropertyMapper::toDto)
-                .toList();
+    public Page<PropertyResponseDto> getAll(Pageable pageable) {
+        return propertyRepository.findAll(pageable)
+                .map(PropertyMapper::toDto);
     }
 
     public PropertyResponseDto update(Long id, PropertyUpsertRequestDto dto) {
