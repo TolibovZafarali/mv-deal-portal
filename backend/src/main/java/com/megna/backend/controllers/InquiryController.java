@@ -6,6 +6,10 @@ import com.megna.backend.entities.Inquiry;
 import com.megna.backend.services.InquiryService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -31,8 +35,10 @@ public class InquiryController {
     }
 
     @GetMapping
-    public List<InquiryResponseDto> getAll() {
-        return inquiryService.getAll();
+    public Page<InquiryResponseDto> getAll(
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
+            ) {
+        return inquiryService.getAll(pageable);
     }
 
     @DeleteMapping("/{id}")
@@ -42,12 +48,18 @@ public class InquiryController {
     }
 
     @GetMapping("/by-property/{propertyId}")
-    public List<InquiryResponseDto> getByPropertyId(@PathVariable Long propertyId) {
-        return inquiryService.getByPropertyId(propertyId);
+    public Page<InquiryResponseDto> getByPropertyId(
+            @PathVariable Long propertyId,
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
+            ) {
+        return inquiryService.getByPropertyId(propertyId, pageable);
     }
 
     @GetMapping("/by-investor/{investorId}")
-    public List<InquiryResponseDto> getByInvestorId(@PathVariable Long investorId) {
-        return inquiryService.getByInvestorId(investorId);
+    public Page<InquiryResponseDto> getByInvestorId(
+            @PathVariable Long investorId,
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
+            ) {
+        return inquiryService.getByInvestorId(investorId, pageable);
     }
 }
