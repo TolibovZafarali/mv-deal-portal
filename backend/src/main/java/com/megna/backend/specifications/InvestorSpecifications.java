@@ -8,6 +8,18 @@ public final class InvestorSpecifications {
 
     private InvestorSpecifications() {}
 
+    public static Specification<Investor> withFilters(
+            InvestorStatus status,
+            String email,
+            String companyName,
+            String name
+    ) {
+        return Specification.where(eqStatus(status))
+                .and(containsIgnoreCase("email", email))
+                .and(containsIgnoreCase("companyName", companyName))
+                .and(nameContainsIgnoreCase(name));
+    }
+
     private static Specification<Investor> eqStatus(InvestorStatus status) {
         return (root, query, cb) -> status == null ? cb.conjunction() : cb.equal(root.get("status"), status);
     }
