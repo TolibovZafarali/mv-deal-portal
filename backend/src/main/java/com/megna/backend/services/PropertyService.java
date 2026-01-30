@@ -10,6 +10,8 @@ import com.megna.backend.mappers.PropertyMapper;
 import com.megna.backend.repositories.PropertyRepository;
 import com.megna.backend.specifications.PropertySpecifications;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -58,7 +60,7 @@ public class PropertyService {
         propertyRepository.deleteById(id);
     }
 
-    public List<PropertyResponseDto> search(
+    public Page<PropertyResponseDto> search(
             PropertyStatus status,
             String city,
             String state,
@@ -69,7 +71,8 @@ public class PropertyService {
             BigDecimal minArv,
             BigDecimal maxArv,
             OccupancyStatus occupancyStatus,
-            ExitStrategy exitStrategy
+            ExitStrategy exitStrategy,
+            Pageable pageable
     ) {
         var spec = PropertySpecifications.withFilters(
                 status,
@@ -85,8 +88,7 @@ public class PropertyService {
                 exitStrategy
         );
 
-        return propertyRepository.findAll(spec).stream()
-                .map(PropertyMapper::toDto)
-                .toList();
+        return propertyRepository.findAll(spec, pageable)
+                .map(PropertyMapper::toDto);
     }
 }
