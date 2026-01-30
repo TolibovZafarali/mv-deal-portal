@@ -4,6 +4,7 @@ import com.megna.backend.dtos.investor.InvestorCreateRequestDto;
 import com.megna.backend.dtos.investor.InvestorResponseDto;
 import com.megna.backend.dtos.investor.InvestorStatusUpdateRequestDto;
 import com.megna.backend.dtos.investor.InvestorUpdateRequestDto;
+import com.megna.backend.enums.InvestorStatus;
 import com.megna.backend.services.InvestorService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -55,5 +56,16 @@ public class InvestorController {
     @GetMapping("/by-email")
     public InvestorResponseDto getByEmail(@RequestParam String email) {
         return investorService.getByEmail(email);
+    }
+
+    @GetMapping("/search")
+    public Page<InvestorResponseDto> search(
+            @RequestParam(required = false) InvestorStatus status,
+            @RequestParam(required = false) String email,
+            @RequestParam(required = false) String companyName,
+            @RequestParam(required = false) String name,
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
+            ) {
+        return investorService.search(status, email, companyName, name, pageable);
     }
 }
