@@ -53,6 +53,12 @@ public class InvestorController {
         return investorService.updateStatus(id, dto);
     }
 
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void delete(@PathVariable Long id) {
+        investorService.delete(id);
+    }
+
     @GetMapping("/by-email")
     public InvestorResponseDto getByEmail(@RequestParam String email) {
         return investorService.getByEmail(email);
