@@ -47,15 +47,18 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             String email = claims.getSubject();
             String role = claims.get("role", String.class); // "INVESTOR"
 
-            // Spring Security expects roles like "ROLE_INVESTOR"
+            // investorId might come back as Integer/Long depending on JSON parsing
+            Number investorIdNum = claims.get("investorId", Number.class);
+            long investorId = (investorIdNum == null) ? 0L : investorIdNum.longValue();
+
+            var principal = new com.megna.backend.security.AuthPrincipal(email, investorId, role);
+
             List<SimpleGrantedAuthority> authorities = List.of(
                     new SimpleGrantedAuthority("ROLE_" + role)
             );
 
-            var authentication = new UsernamePasswordAuthenticationToken(email, null, authorities);
+            var authentication = new UsernamePasswordAuthenticationToken(principal, null, authorities);
             SecurityContextHolder.getContext().setAuthentication(authentication);
-
-            filterChain.doFilter(request, response);
         } catch (Exception ex) {
             SecurityContextHolder.clearContext();
 
