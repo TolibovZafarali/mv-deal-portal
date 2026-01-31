@@ -11,3 +11,8 @@ spring:
       ddl-auto: validate
   flyway:
     enabled: true
+app:
+  jwt:
+    secret: ${JWT_SECRET}
+    issuer: ${JWT_ISSUER:megna-backend}
+    access-token-ttl-minutes: ${JWT_ACCESS_TTL_MINUTES:60}
