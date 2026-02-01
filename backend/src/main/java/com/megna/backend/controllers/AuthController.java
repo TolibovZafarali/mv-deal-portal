@@ -1,8 +1,6 @@
 package com.megna.backend.controllers;
 
-import com.megna.backend.dtos.auth.LoginRequestDto;
-import com.megna.backend.dtos.auth.LoginResponseDto;
-import com.megna.backend.dtos.auth.MeResponseDto;
+import com.megna.backend.dtos.auth.*;
 import com.megna.backend.repositories.InvestorRepository;
 import com.megna.backend.security.SecurityUtils;
 import com.megna.backend.services.AuthService;
@@ -40,5 +38,10 @@ public class AuthController {
                 p.role(),
                 investor.getStatus().name()
         );
+    }
+
+    @PostMapping("/register")
+    public RegisterResponseDto register(@Valid @RequestBody RegisterRequestDto dto) {
+        return authService.registerInvestor(dto);
     }
 }
