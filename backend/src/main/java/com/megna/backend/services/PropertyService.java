@@ -119,8 +119,13 @@ public class PropertyService {
         Investor investor = investorRepository.findById(investorId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Not authenticated"));
 
-        if (investor.getStatus() != InvestorStatus.APPROVED) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Investor is not approved");
+        InvestorStatus status = investor.getStatus();
+
+        if (status != InvestorStatus.APPROVED) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "Access denied: investor status is " + status.name()
+            );
         }
     }
 }
