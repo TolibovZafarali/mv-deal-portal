@@ -2,7 +2,10 @@ package com.megna.backend.services;
 
 import com.megna.backend.dtos.auth.LoginRequestDto;
 import com.megna.backend.dtos.auth.LoginResponseDto;
+import com.megna.backend.dtos.auth.RegisterRequestDto;
+import com.megna.backend.dtos.auth.RegisterResponseDto;
 import com.megna.backend.entities.Investor;
+import com.megna.backend.enums.InvestorStatus;
 import com.megna.backend.repositories.InvestorRepository;
 import com.megna.backend.security.jwt.JwtService;
 import lombok.RequiredArgsConstructor;
@@ -33,6 +36,32 @@ public class AuthService {
                 token,
                 "Bearer",
                 jwtService.getAccessTokenTtlSeconds()
+        );
+    }
+
+    public RegisterResponseDto registerInvestor(RegisterRequestDto dto) {
+
+        if (investorRepository.findByEmail(dto.email()).isPresent()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Email already in use");
+        }
+
+        Investor investor = new Investor();
+        investor.setFirstName(dto.firstName());
+        investor.setLastName(dto.lastName());
+        investor.setCompanyName(dto.companyName());
+        investor.setEmail(dto.email());
+        investor.setPhone(dto.phone());
+
+        investor.setPasswordHash(passwordEncoder.encode(dto.password()));
+
+        investor.setStatus(InvestorStatus.PENDING);
+
+        Investor saved = investorRepository.save(investor);
+
+        return new RegisterResponseDto(
+                saved.getId(),
+                saved.getEmail(),
+                saved.getStatus().name()
         );
     }
 }
