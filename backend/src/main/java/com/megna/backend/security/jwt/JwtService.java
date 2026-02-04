@@ -59,6 +59,6 @@ public class JwtService {
     }
 
     public long getAccessTokenTtlSeconds() {
-        return props.getAccessTokenTtlMinutes() + 60L;
+        return props.getAccessTokenTtlMinutes() * 60L;
     }
 }
