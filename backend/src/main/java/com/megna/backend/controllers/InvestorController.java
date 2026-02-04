@@ -17,20 +17,12 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-
 @RestController
 @RequestMapping("/api/investors")
 @RequiredArgsConstructor
 public class InvestorController {
 
     private final InvestorService investorService;
-
-    @PostMapping
-    public ResponseEntity<InvestorResponseDto> create(@Valid @RequestBody InvestorCreateRequestDto dto) {
-        InvestorResponseDto created = investorService.create(dto);
-        return ResponseEntity.status(HttpStatus.CREATED).body(created);
-    }
 
     @GetMapping("/{id}")
     public InvestorResponseDto getById(@PathVariable Long id) {
