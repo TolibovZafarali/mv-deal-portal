@@ -20,7 +20,7 @@ public class SecurityUtils {
     }
 
     public static long requireInvestorId() {
-        return requirePrincipal().investorId();
+        return requirePrincipal().userId();
     }
 
     public static String requireEmail() {

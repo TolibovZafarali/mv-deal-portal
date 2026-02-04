@@ -58,10 +58,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             String email = claims.getSubject();
             String role = claims.get("role", String.class); // e.g. "INVESTOR" or "ADMIN"
 
-            Number investorIdNum = claims.get("investorId", Number.class);
-            long investorId = (investorIdNum == null) ? 0L : investorIdNum.longValue();
+            Number userIdNum = claims.get("userId", Number.class);
+            long userId = (userIdNum == null) ? 0L : userIdNum.longValue();
 
-            AuthPrincipal principal = new AuthPrincipal(email, investorId, role);
+            AuthPrincipal principal = new AuthPrincipal(email, userId, role);
 
             List<SimpleGrantedAuthority> authorities = List.of(
                     new SimpleGrantedAuthority("ROLE_" + role)

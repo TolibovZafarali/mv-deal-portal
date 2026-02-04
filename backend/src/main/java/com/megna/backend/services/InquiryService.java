@@ -18,8 +18,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.util.List;
-
 @Service
 @RequiredArgsConstructor
 public class InquiryService {
@@ -97,7 +95,7 @@ public class InquiryService {
         if (investorId == null) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Forbidden");
         }
-        if (!isAdmin() && principal().investorId() != investorId) {
+        if (!isAdmin() && principal().userId() != investorId) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Forbidden");
         }
     }

@@ -49,8 +49,7 @@ public class JwtService {
                 .subject(email)
                 .issuedAt(Date.from(now))
                 .expiration(Date.from(exp))
-                // NOTE: keep claim name as investorId for now to avoid refactoring half the app
-                .claim("investorId", id)
+                .claim("userId", id)
                 .claim("role", role)
                 .signWith(key, Jwts.SIG.HS256)
                 .compact();

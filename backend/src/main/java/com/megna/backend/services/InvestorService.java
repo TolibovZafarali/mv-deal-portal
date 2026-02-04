@@ -115,7 +115,7 @@ public class InvestorService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Forbidden");
         }
 
-        if (!isAdmin() && principal().investorId() != investorId.longValue()) {
+        if (!isAdmin() && principal().userId() != investorId.longValue()) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Forbidden");
         }
     }

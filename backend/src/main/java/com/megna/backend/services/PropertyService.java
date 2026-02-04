@@ -114,7 +114,7 @@ public class PropertyService {
     private void requireApprovedInvestor() {
         if (isAdmin()) return;
 
-        long investorId = principal().investorId();
+        long investorId = principal().userId();
 
         Investor investor = investorRepository.findById(investorId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Not authenticated"));

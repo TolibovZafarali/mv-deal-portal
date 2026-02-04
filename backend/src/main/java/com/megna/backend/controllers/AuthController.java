@@ -33,23 +33,23 @@ public class AuthController {
 
         if ("ADMIN".equalsIgnoreCase(p.role())) {
             // Ensure admin still exists
-            adminRepository.findById(p.investorId())
+            adminRepository.findById(p.userId())
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Not authenticated"));
 
             return new MeResponseDto(
                     p.email(),
-                    p.investorId(),
+                    p.userId(),
                     p.role(),
                     null
             );
         }
 
-        var investor = investorRepository.findById(p.investorId())
+        var investor = investorRepository.findById(p.userId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Not authenticated"));
 
         return new MeResponseDto(
                 p.email(),
-                p.investorId(),
+                p.userId(),
                 p.role(),
                 investor.getStatus().name()
         );

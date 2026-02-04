@@ -2,7 +2,7 @@ package com.megna.backend.security;
 
 public record AuthPrincipal(
         String email,
-        long investorId,
+        long userId,
         String role
 ) {
 }
