@@ -1,6 +1,7 @@
 package com.megna.backend.controllers;
 
 import com.megna.backend.dtos.auth.*;
+import com.megna.backend.repositories.AdminRepository;
 import com.megna.backend.repositories.InvestorRepository;
 import com.megna.backend.security.SecurityUtils;
 import com.megna.backend.services.AuthService;
@@ -18,6 +19,7 @@ public class AuthController {
 
     private final AuthService authService;
     private final InvestorRepository investorRepository;
+    private final AdminRepository adminRepository;
 
     @PostMapping("/login")
     public LoginResponseDto login(@Valid @RequestBody LoginRequestDto dto) {
@@ -28,6 +30,19 @@ public class AuthController {
     @GetMapping("/me")
     public MeResponseDto me() {
         var p = SecurityUtils.requirePrincipal();
+
+        if ("ADMIN".equalsIgnoreCase(p.role())) {
+            // Ensure admin still exists
+            adminRepository.findById(p.investorId())
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Not authenticated"));
+
+            return new MeResponseDto(
+                    p.email(),
+                    p.investorId(),
+                    p.role(),
+                    null
+            );
+        }
 
         var investor = investorRepository.findById(p.investorId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Not authenticated"));
