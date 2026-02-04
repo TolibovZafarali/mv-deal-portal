@@ -1,5 +1,6 @@
 package com.megna.backend.security.jwt;
 
+import com.megna.backend.entities.Admin;
 import com.megna.backend.entities.Investor;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
@@ -32,16 +33,25 @@ public class JwtService {
     }
 
     public String generateAccessToken(Investor investor) {
+        return buildToken(investor.getEmail(), investor.getId(), "INVESTOR");
+    }
+
+    public String generateAccessToken(Admin admin) {
+        return buildToken(admin.getEmail(), admin.getId(), "ADMIN");
+    }
+
+    private String buildToken(String email, long id, String role) {
         Instant now = Instant.now();
         Instant exp = now.plus(props.getAccessTokenTtlMinutes(), ChronoUnit.MINUTES);
 
         return Jwts.builder()
                 .issuer(props.getIssuer())
-                .subject(investor.getEmail())
+                .subject(email)
                 .issuedAt(Date.from(now))
                 .expiration(Date.from(exp))
-                .claim("investorId", investor.getId())
-                .claim("role", "INVESTOR")
+                // NOTE: keep claim name as investorId for now to avoid refactoring half the app
+                .claim("investorId", id)
+                .claim("role", role)
                 .signWith(key, Jwts.SIG.HS256)
                 .compact();
     }

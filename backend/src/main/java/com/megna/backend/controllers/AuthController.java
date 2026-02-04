@@ -21,7 +21,7 @@ public class AuthController {
 
     @PostMapping("/login")
     public LoginResponseDto login(@Valid @RequestBody LoginRequestDto dto) {
-        return authService.loginInvestor(dto);
+        return authService.login(dto);
     }
 
     @PreAuthorize("isAuthenticated()")

@@ -6,6 +6,7 @@ import com.megna.backend.dtos.auth.RegisterRequestDto;
 import com.megna.backend.dtos.auth.RegisterResponseDto;
 import com.megna.backend.entities.Investor;
 import com.megna.backend.enums.InvestorStatus;
+import com.megna.backend.repositories.AdminRepository;
 import com.megna.backend.repositories.InvestorRepository;
 import com.megna.backend.security.jwt.JwtService;
 import lombok.RequiredArgsConstructor;
@@ -19,10 +20,22 @@ import org.springframework.web.server.ResponseStatusException;
 public class AuthService {
 
     private final InvestorRepository investorRepository;
+    private final AdminRepository adminRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
 
-    public LoginResponseDto loginInvestor(LoginRequestDto dto) {
+    public LoginResponseDto login(LoginRequestDto dto) {
+        var adminOpt = adminRepository.findByEmail(dto.email());
+        if (adminOpt.isPresent()) {
+            var admin = adminOpt.get();
+            if (!passwordEncoder.matches(dto.password(), admin.getPasswordHash())) {
+                throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials");
+            }
+
+            String token = jwtService.generateAccessToken(admin);
+            return new LoginResponseDto(token, "Bearer", jwtService.getAccessTokenTtlSeconds());
+        }
+
         Investor investor = investorRepository.findByEmail(dto.email())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials"));
 
@@ -31,12 +44,7 @@ public class AuthService {
         }
 
         String token = jwtService.generateAccessToken(investor);
-
-        return new LoginResponseDto(
-                token,
-                "Bearer",
-                jwtService.getAccessTokenTtlSeconds()
-        );
+        return new LoginResponseDto(token, "Bearer", jwtService.getAccessTokenTtlSeconds());
     }
 
     public RegisterResponseDto registerInvestor(RegisterRequestDto dto) {
