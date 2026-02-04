@@ -1,6 +1,5 @@
 package com.megna.backend.services;
 
-import com.megna.backend.dtos.investor.InvestorCreateRequestDto;
 import com.megna.backend.dtos.investor.InvestorResponseDto;
 import com.megna.backend.dtos.investor.InvestorStatusUpdateRequestDto;
 import com.megna.backend.dtos.investor.InvestorUpdateRequestDto;
@@ -15,7 +14,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -24,17 +22,6 @@ import org.springframework.web.server.ResponseStatusException;
 public class InvestorService {
 
     private final InvestorRepository investorRepository;
-    private final PasswordEncoder passwordEncoder;
-
-    public InvestorResponseDto create(InvestorCreateRequestDto dto) {
-        Investor investor = InvestorMapper.toEntity(dto);
-
-        // Hash the raw password before saving
-        investor.setPasswordHash(passwordEncoder.encode(dto.password()));
-
-        Investor saved = investorRepository.save(investor);
-        return InvestorMapper.toDto(saved);
-    }
 
     public InvestorResponseDto getById(Long id) {
         requireSelf(id);

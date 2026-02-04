@@ -1,6 +1,5 @@
 package com.megna.backend.mappers;
 
-import com.megna.backend.dtos.investor.InvestorCreateRequestDto;
 import com.megna.backend.dtos.investor.InvestorResponseDto;
 import com.megna.backend.dtos.investor.InvestorStatusUpdateRequestDto;
 import com.megna.backend.dtos.investor.InvestorUpdateRequestDto;
@@ -28,22 +27,6 @@ public final class InvestorMapper {
                 entity.getCreatedAt(),
                 entity.getUpdatedAt()
         );
-    }
-
-//    Creates a new Investor entity.
-    public static Investor toEntity(InvestorCreateRequestDto dto) {
-        if (dto == null) return null;
-
-        Investor investor = new Investor();
-        investor.setFirstName(dto.firstName());
-        investor.setLastName(dto.lastName());
-        investor.setEmail(dto.email());
-        investor.setCompanyName(dto.companyName());
-        investor.setPhone(dto.phone());
-        investor.setPasswordHash(dto.password());
-
-        investor.setStatus(InvestorStatus.PENDING);
-        return investor;
     }
 
     public static void applyUpdate(InvestorUpdateRequestDto dto, Investor entity) {
