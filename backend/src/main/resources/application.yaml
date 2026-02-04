@@ -16,3 +16,8 @@ app:
     secret: ${JWT_SECRET}
     issuer: ${JWT_ISSUER:megna-backend}
     access-token-ttl-minutes: ${JWT_ACCESS_TTL_MINUTES:60}
+
+  admin:
+    bootstrap:
+      email: ${ADMIN_EMAIL:}
+      password: ${ADMIN_PASSWORD:}
