@@ -23,6 +23,7 @@ public final class InvestorMapper {
                 entity.getEmail(),
                 entity.getPhone(),
                 entity.getStatus(),
+                entity.getRejectionReason(),
                 entity.getApprovedAt(),
                 entity.getCreatedAt(),
                 entity.getUpdatedAt()

@@ -12,6 +12,7 @@ public record InvestorResponseDto(
         String email,
         String phone,
         InvestorStatus status,
+        String rejectionReason,
         LocalDateTime approvedAt,
         LocalDateTime createdAt,
         LocalDateTime updatedAt
