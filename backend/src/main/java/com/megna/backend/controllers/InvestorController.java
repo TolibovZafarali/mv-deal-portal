@@ -1,6 +1,5 @@
 package com.megna.backend.controllers;
 
-import com.megna.backend.dtos.investor.InvestorCreateRequestDto;
 import com.megna.backend.dtos.investor.InvestorResponseDto;
 import com.megna.backend.dtos.investor.InvestorStatusUpdateRequestDto;
 import com.megna.backend.dtos.investor.InvestorUpdateRequestDto;
@@ -13,10 +12,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/investors")
@@ -25,17 +22,12 @@ public class InvestorController {
 
     private final InvestorService investorService;
 
-    @PostMapping
-    public ResponseEntity<InvestorResponseDto> create(@Valid @RequestBody InvestorCreateRequestDto dto) {
-        InvestorResponseDto created = investorService.create(dto);
-        return ResponseEntity.status(HttpStatus.CREATED).body(created);
-    }
-
     @GetMapping("/{id}")
     public InvestorResponseDto getById(@PathVariable Long id) {
         return investorService.getById(id);
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping
     public Page<InvestorResponseDto> getAll(
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
@@ -48,16 +40,25 @@ public class InvestorController {
         return investorService.update(id, dto);
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @PatchMapping("/{id}/status")
     public InvestorResponseDto updateStatus(@PathVariable Long id, @Valid @RequestBody InvestorStatusUpdateRequestDto dto) {
         return investorService.updateStatus(id, dto);
     }
 
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void delete(@PathVariable Long id) {
+        investorService.delete(id);
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/by-email")
     public InvestorResponseDto getByEmail(@RequestParam String email) {
         return investorService.getByEmail(email);
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/search")
     public Page<InvestorResponseDto> search(
             @RequestParam(required = false) InvestorStatus status,

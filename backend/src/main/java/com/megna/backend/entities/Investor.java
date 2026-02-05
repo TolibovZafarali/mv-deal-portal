@@ -40,6 +40,9 @@ public class Investor {
     @Column(name = "status", nullable = false, length = 20)
     private InvestorStatus status;
 
+    @Column(name = "rejection_reason", length = 500)
+    private String rejectionReason;
+
     @Column(name = "approved_at")
     private LocalDateTime approvedAt;
 
