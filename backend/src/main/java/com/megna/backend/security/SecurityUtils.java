@@ -19,7 +19,7 @@ public class SecurityUtils {
         return principal;
     }
 
-    public static long requireInvestorId() {
+    public static long requireUserId() {
         return requirePrincipal().userId();
     }
 
