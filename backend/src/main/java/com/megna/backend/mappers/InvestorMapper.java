@@ -46,6 +46,7 @@ public final class InvestorMapper {
         entity.setStatus(dto.status());
         if (dto.status() == InvestorStatus.APPROVED) {
             entity.setApprovedAt(LocalDateTime.now());
+            entity.setRejectionReason(null);
         } else {
             entity.setApprovedAt(null);
         }
