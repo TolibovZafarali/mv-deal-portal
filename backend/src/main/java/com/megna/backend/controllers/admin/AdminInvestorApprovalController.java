@@ -41,4 +41,18 @@ public class AdminInvestorApprovalController {
     public InvestorResponseDto getOne(@PathVariable Long id) {
         return investorService.getById(id);
     }
+
+    @GetMapping("/approved")
+    public Page<InvestorResponseDto> getApproved(
+            @PageableDefault(size = 20, sort = "approvedAt", direction = Sort.Direction.DESC) Pageable pageable
+    ) {
+        return investorService.search(InvestorStatus.APPROVED, null, null, null, pageable);
+    }
+
+    @GetMapping("/rejected")
+    public Page<InvestorResponseDto> getRejected(
+            @PageableDefault(size = 20, sort = "updatedAt", direction = Sort.Direction.DESC) Pageable pageable
+    ) {
+        return investorService.search(InvestorStatus.REJECTED, null, null, null, pageable);
+    }
 }
