@@ -36,4 +36,9 @@ public class AdminInvestorApprovalController {
     public InvestorResponseDto reject(@PathVariable Long id) {
         return investorService.updateStatus(id, new InvestorStatusUpdateRequestDto(InvestorStatus.REJECTED));
     }
+
+    @GetMapping("/{id}")
+    public InvestorResponseDto getOne(@PathVariable Long id) {
+        return investorService.getById(id);
+    }
 }
