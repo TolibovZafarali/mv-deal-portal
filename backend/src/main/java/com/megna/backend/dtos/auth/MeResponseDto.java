@@ -2,7 +2,8 @@ package com.megna.backend.dtos.auth;
 
 public record MeResponseDto(
         String email,
-        long investorId,
+        long userId,
+        Long investorId,
         String role,
         String status
 ) {

@@ -39,6 +39,7 @@ public class AuthController {
             return new MeResponseDto(
                     p.email(),
                     p.userId(),
+                    null,
                     p.role(),
                     null
             );
@@ -49,6 +50,7 @@ public class AuthController {
 
         return new MeResponseDto(
                 p.email(),
+                p.userId(),
                 p.userId(),
                 p.role(),
                 investor.getStatus().name()
