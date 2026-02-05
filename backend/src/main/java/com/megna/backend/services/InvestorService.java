@@ -54,8 +54,32 @@ public class InvestorService {
     public InvestorResponseDto updateStatus(Long id, InvestorStatusUpdateRequestDto dto) {
         requireAdmin();
 
+        if (dto == null || dto.status() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Status is required");
+        }
+
         Investor investor = investorRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Investor not found: " + id));
+
+        InvestorStatus current = investor.getStatus();
+        InvestorStatus requested = dto.status();
+
+        // Idempotent: approving an already-approved investor (or rejecting an already-rejected one) should not change timestamps.
+        if (current == requested) {
+            return InvestorMapper.toDto(investor);
+        }
+
+        // Only allow PENDING -> APPROVED/REJECTED
+        if (current != InvestorStatus.PENDING) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Cannot change investor status from " + current + " to " + requested
+            );
+        }
+
+        if (requested == InvestorStatus.PENDING) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cannot set status back to PENDING");
+        }
 
         InvestorMapper.applyStatusUpdate(dto, investor);
 
