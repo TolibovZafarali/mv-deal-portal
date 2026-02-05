@@ -1,9 +1,11 @@
 package com.megna.backend.controllers.admin;
 
+import com.megna.backend.dtos.investor.InvestorRejectionRequestDto;
 import com.megna.backend.dtos.investor.InvestorResponseDto;
 import com.megna.backend.dtos.investor.InvestorStatusUpdateRequestDto;
 import com.megna.backend.enums.InvestorStatus;
 import com.megna.backend.services.InvestorService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -33,8 +35,8 @@ public class AdminInvestorApprovalController {
     }
 
     @PatchMapping("/{id}/reject")
-    public InvestorResponseDto reject(@PathVariable Long id) {
-        return investorService.updateStatus(id, new InvestorStatusUpdateRequestDto(InvestorStatus.REJECTED));
+    public InvestorResponseDto reject(@PathVariable Long id, @Valid @RequestBody InvestorRejectionRequestDto dto) {
+        return investorService.reject(id, dto);
     }
 
     @GetMapping("/{id}")

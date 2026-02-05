@@ -1,5 +1,6 @@
 package com.megna.backend.services;
 
+import com.megna.backend.dtos.investor.InvestorRejectionRequestDto;
 import com.megna.backend.dtos.investor.InvestorResponseDto;
 import com.megna.backend.dtos.investor.InvestorStatusUpdateRequestDto;
 import com.megna.backend.dtos.investor.InvestorUpdateRequestDto;
@@ -81,7 +82,34 @@ public class InvestorService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cannot set status back to PENDING");
         }
 
+        if (requested == InvestorStatus.APPROVED) {
+            investor.setRejectionReason(null);
+        }
+
         InvestorMapper.applyStatusUpdate(dto, investor);
+
+        Investor saved = investorRepository.save(investor);
+        return InvestorMapper.toDto(saved);
+    }
+
+    public InvestorResponseDto reject(Long id, InvestorRejectionRequestDto dto) {
+        requireAdmin();
+
+        Investor investor = investorRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Investor not found: " + id));
+
+        if (investor.getStatus() != InvestorStatus.PENDING) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Cannot change investor status from " + investor.getStatus() + " to REJECTED"
+            );
+        }
+
+        String reason = dto.rejectionReason().trim();
+
+        investor.setStatus(InvestorStatus.REJECTED);
+        investor.setRejectionReason(reason);
+        investor.setApprovedAt(null);
 
         Investor saved = investorRepository.save(investor);
         return InvestorMapper.toDto(saved);
