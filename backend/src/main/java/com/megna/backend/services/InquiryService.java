@@ -5,6 +5,8 @@ import com.megna.backend.dtos.inquiry.InquiryResponseDto;
 import com.megna.backend.entities.Inquiry;
 import com.megna.backend.entities.Investor;
 import com.megna.backend.entities.Property;
+import com.megna.backend.enums.InvestorStatus;
+import com.megna.backend.enums.PropertyStatus;
 import com.megna.backend.mappers.InquiryMapper;
 import com.megna.backend.repositories.InquiryRepository;
 import com.megna.backend.repositories.InvestorRepository;
@@ -28,9 +30,14 @@ public class InquiryService {
 
     public InquiryResponseDto create(InquiryCreateRequestDto dto) {
         requireSelf(dto.investorId());
+        requireApprovedInvestor(dto.investorId());
 
         Property property = propertyRepository.findById(dto.propertyId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Property not found: " + dto.propertyId()));
+
+        if (property.getStatus() != PropertyStatus.ACTIVE) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Property not found: " + dto.propertyId());
+        }
 
         Investor investor = investorRepository.findById(dto.investorId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Investor not found: " + dto.investorId()));
@@ -97,6 +104,18 @@ public class InquiryService {
         }
         if (!isAdmin() && principal().userId() != investorId) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Forbidden");
+        }
+    }
+
+    private void requireApprovedInvestor(Long investorId) {
+        Investor investor = investorRepository.findById(investorId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Investor not found: " + investorId));
+
+        if (investor.getStatus() != InvestorStatus.APPROVED) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "Access denied: investor status is " + investor.getStatus().name()
+            );
         }
     }
 }
