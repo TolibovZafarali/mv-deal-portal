@@ -1,6 +1,8 @@
 spring:
   application:
     name: backend
+  config:
+    import: optional:file:./app.env
   datasource:
     url: jdbc:mysql://localhost:3306/megnarealestate?createDatabaseIfNotExist=true
     username: ${DB_USERNAME:root}
