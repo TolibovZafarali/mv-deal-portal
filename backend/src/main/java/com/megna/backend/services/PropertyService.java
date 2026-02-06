@@ -23,6 +23,8 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
 
+import static com.megna.backend.enums.PropertyStatus.ACTIVE;
+
 @Service
 @RequiredArgsConstructor
 public class PropertyService {
@@ -37,16 +39,25 @@ public class PropertyService {
     }
 
     public PropertyResponseDto getById(Long id) {
-        requireApprovedInvestor();
+        boolean admin = requireApprovedInvestorOrAdmin();
 
         Property property = propertyRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Property not found: " + id));
 
+        requireVisibleToPrincipal(property, admin);
         return PropertyMapper.toDto(property);
     }
 
     public Page<PropertyResponseDto> getAll(Pageable pageable) {
-        requireApprovedInvestor();
+        boolean admin = requireApprovedInvestorOrAdmin();
+
+        if (!admin) {
+            return propertyRepository.findAll(
+                    PropertySpecifications.withFilters(ACTIVE, null, null, null, null, null, null, null, null, null, null),
+                    pageable
+            )
+                    .map(PropertyMapper::toDto);
+        }
 
         return propertyRepository.findAll(pageable)
                 .map(PropertyMapper::toDto);
@@ -83,10 +94,12 @@ public class PropertyService {
             ExitStrategy exitStrategy,
             Pageable pageable
     ) {
-        requireApprovedInvestor();
+        boolean admin = requireApprovedInvestorOrAdmin();
+
+        PropertyStatus effectiveStatus = admin ? status : ACTIVE;
 
         var spec = PropertySpecifications.withFilters(
-                status,
+                effectiveStatus,
                 city,
                 state,
                 minBeds,
@@ -111,8 +124,8 @@ public class PropertyService {
         return "ADMIN".equalsIgnoreCase(principal().role());
     }
 
-    private void requireApprovedInvestor() {
-        if (isAdmin()) return;
+    private boolean requireApprovedInvestorOrAdmin() {
+        if (isAdmin()) return true;
 
         long investorId = principal().userId();
 
@@ -126,6 +139,14 @@ public class PropertyService {
                     HttpStatus.FORBIDDEN,
                     "Access denied: investor status is " + status.name()
             );
+        }
+
+        return false;
+    }
+
+    private void requireVisibleToPrincipal(Property property, boolean admin) {
+        if (!admin && property.getStatus() != ACTIVE) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Property not found: " + property.getId());
         }
     }
 }
