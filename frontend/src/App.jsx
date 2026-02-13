@@ -1,6 +1,6 @@
 import { Link, Navigate, Route, Routes, useLocation } from "react-router-dom"
 import ApiSmokeTest from "./pages/ApiSmokeTest"
-import { ProtectedRoute } from "./auth";
+import { ProtectedRoute, useAuth } from "./auth";
 import LoginModal from "./modals/LoginModal";
 import AdminLayout from "./layouts/AdminLayout";
 import AdminPropertiesPage from "./pages/admin/AdminPropertiesPage";
@@ -13,7 +13,18 @@ import AppRedirect from "./pages/AppRedirect";
 
 function Home() {
   const location = useLocation();
+  const { isAuthed, bootstrapping } = useAuth();
   
+  // Don't flash homepage while the app is still checking the token
+  if (bootstrapping) {
+    return <div style={{ padding: "28px 18px "}}>Loading...</div>;
+  }
+
+  // If token is valid, go straight to the app redirect (which sends to dashboard)
+  if (isAuthed) {
+    return <Navigate to="/app" replace />;
+  }
+
   return (
     <div style={{ padding: "28px 18px" }}>
       <h1>Megna Real Estate</h1>
