@@ -9,6 +9,7 @@ import AdminInquiriesPage from "./pages/admin/AdminInquiriesPage";
 import InvestorLayout from "./layouts/InvestorLayout";
 import InvestorDashboard from "./pages/investor/InvestorDashboard";
 import InvestorPending from "./pages/investor/InvestorPending";
+import AppRedirect from "./pages/AppRedirect";
 
 function Home() {
   const location = useLocation();
@@ -45,6 +46,7 @@ export default function App() {
         <Route path="/login" element={<LoginModal />} />
 
         <Route element={<ProtectedRoute />}>
+          <Route path="/app" element={<AppRedirect />} />
           <Route path="/_dev/api" element={<ApiSmokeTest />} />
         </Route>
 

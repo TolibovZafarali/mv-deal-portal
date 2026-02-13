@@ -9,7 +9,7 @@ export default function AppRedirect() {
     if (user.role === "ADMIN") return <Navigate to="/admin" replace />;
 
     if (user.role === "INVESTOR") {
-        if (user.investorStatus === "APPROVED") return <Navigate to="/investor" replace />;
+        if (user.status === "APPROVED") return <Navigate to="/investor" replace />;
         return <Navigate to="/investor/pending" replace />;
     }
 
