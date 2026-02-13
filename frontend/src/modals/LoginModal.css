@@ -32,25 +32,20 @@
 }
 
 .loginModal__close {
-    border: 1px solid var(--border);
-    background: transparent;
-    color: var(--text);
-    width: 38px;
-    height: 38px;
     cursor: pointer;
-    transition: background 180ms ease, color 180ms ease, border-color 180ms ease;
+    width: 32px;
+    height: 32px;
+    display: grid;
+    place-items: center;
+    font-size: 22px;
+    line-height: 1;
+    color: var(--text);
 }
 
-.loginModal__close:hover {
-    background: var(--text);
-    color: var(--bg);
-    border-color: var(--text);
-}
-
-/* form is 75% width inside modal */
+/* form is 92% width inside modal */
 .loginModal__form {
-    width: 75%;
-    margin-top: 22px;
+    width: 92%;
+    margin: 26px auto 0;
     display: flex;
     flex-direction: column;
     gap: 18px;

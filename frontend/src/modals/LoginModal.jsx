@@ -5,7 +5,7 @@ import "./LoginModal.css"
 
 export default function LoginModal() {
     const { signIn } = useAuth();
-    const navigate = useNavigate;
+    const navigate = useNavigate();
     const location = useLocation();
 
     const hasBackground = !!location.state?.backgroundLocation;
@@ -56,14 +56,18 @@ export default function LoginModal() {
                 <div className="loginModal__header">
                     <h2 className="loginModal__title">Login</h2>
 
-                    <button
-                        type="button"
+                    <div
                         className="loginModal__close"
                         onClick={close}
+                        role="button"
+                        tabIndex={0}
                         aria-label="Close login"
+                        onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === " ") close();
+                        }}
                     >
                         ✕
-                    </button>
+                    </div>
                 </div>
 
                 <form className="loginModal__form" onSubmit={handleSubmit}>
