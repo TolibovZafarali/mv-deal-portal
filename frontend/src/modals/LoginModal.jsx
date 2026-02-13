@@ -7,6 +7,7 @@ export default function LoginModal() {
     const { signIn } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
+    const forcedMessage = location.state?.forcedMessage || "";
     const forceHomeOnClose = !!location.state?.forceHomeOnClose;
 
     const hasBackground = !!location.state?.backgroundLocation;
@@ -42,6 +43,10 @@ export default function LoginModal() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [hasBackground]);
 
+    useEffect(() => {
+        if (forcedMessage) setError(forcedMessage);
+    }, [forcedMessage]);
+
     async function handleSubmit(e) {
         e.preventDefault();
         setError("");
@@ -51,6 +56,25 @@ export default function LoginModal() {
             await signIn(email, password);
             navigate(from, { replace: true });
         } catch (err) {
+            if (err?.code === "ACCOUNT_PENDING") {
+                const msg = "Your account is in review. Please wait for the Megna team to reach out.";
+
+                // Force the login modal to be show over the homepage
+                navigate("/login", {
+                    replace: true,
+                    state: {
+                        modal: true,
+                        backgroundLocation: { pathname: "/" },
+                        from: "/app",
+                        forceHomeOnClose: true,
+                        forcedMessage: msg,
+                    },
+                });
+
+                setError(msg);
+                return;
+            }
+
             setError(err?.message || "Login failed");
         } finally {
             setLoading(false);

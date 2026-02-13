@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
-import { clearAccessToken, getAccessToken, login, logout, me, setAccessToken } from "../api";
+import { getAccessToken, login, logout, me } from "../api";
 import { useLocation, useNavigate } from "react-router-dom";
 
 const AuthContext = createContext(null);
@@ -71,31 +71,20 @@ export function AuthProvider({ children }) {
     }, [openLoginOnHome]);
 
     async function signIn(email, password) {
-        const loginRes = await login({ email, password });
-        const token = loginRes?.accessToken;
+        await login({ email, password });
 
-        if (!token) {
-            const err = new Error("Login failed (no access token returned).");
-            err.code = "NO_TOKEN";
+        const profile = await me();
+
+        // Block pending investors (no dashboard access, no token persistence)
+        if (profile?.role === "INVESTOR" && profile?.status === "PENDING") {
+            logout(); // clears localStorage token
+            setUser(null);
+
+            const err = new Error("Your account is in review. Please wait for our team to reach out.");
+            err.code = "ACCOUNT_PENDING";
             throw err;
         }
 
-        const profile = await me(token);
-
-        if (profile?.role === "INVESTOR" && profile?.status !== "APPROVED") {
-            clearAccessToken();
-            setUser(null);
-
-            const code = profile?.status === "PENDING" ? "PENDING" : "REJECTED";
-            const message = 
-                code === "PENDING"
-                ? "Your account is in review. Please wait for the Megna team to approve you."
-                : "Your account is not approved. Please contact the Megna team.";
-            
-            throw { code, message, profile };
-        }
-
-        setAccessToken(token);
         setUser(profile);
         return profile;
     }
