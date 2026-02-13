@@ -33,6 +33,15 @@ export default function SignUpModal() {
     const [error, setError] = useState("");
     const [result, setResult] = useState(null);
 
+    const [direction, setDirection] = useState("forward"); // "forward" | "back"
+    const [animKey, setAnimKey] = useState(0);
+
+    function goStep(nextStep) {
+        setDirection(nextStep > step ? "forward" : "back");
+        setStep(nextStep);
+        setAnimKey((k) => k + 1);
+    }
+
     function close() {
         if (forceHomeOnClose) {
             navigate("/", { replace: true });
@@ -55,15 +64,15 @@ export default function SignUpModal() {
         return (
             form.firstName.trim() && 
             form.lastName.trim() &&
-            form.companyName.trim &&
+            form.companyName.trim() &&
             form.email.trim() &&
             form.phone.trim()
         );
     }, [form]);
 
     const passwordValid = useMemo(() => {
-        // backend requires minLength 8 for password :contentReference[oaicite:1]{index=1}
-        return form.password.length >= 8 && form.password == confirmPassword;
+        // backend requires minLength 8 for password
+        return form.password.length >= 8 && form.password === confirmPassword;
     }, [form.password, confirmPassword]);
 
     function updateField(key) {
@@ -79,7 +88,7 @@ export default function SignUpModal() {
                 setError("Fill out all fields to continue.");
                 return;
             }
-            setStep(STEP_PASSWORD);
+            goStep(STEP_PASSWORD);
             return;
         }
 
@@ -106,7 +115,7 @@ export default function SignUpModal() {
                 });
 
                 setResult(res);
-                setStep(STEP_DONE);
+                goStep(STEP_DONE);
             } catch (err) {
                 setError(err?.response?.data?.message || err?.message || "Sign up failed");
             } finally {
@@ -125,7 +134,7 @@ export default function SignUpModal() {
                 <div className="signupModal__header">
                     <div className="signupModal__headerLeft">
                         <h2 className="signupModal__title">
-                            {step === STEP_DONE ? "Thank you" : "Sign Up"}
+                            {step === STEP_PASSWORD ? "Set password" : step === STEP_DONE ? "Thank you" : "Sign Up"}
                         </h2>
 
                         {step !== STEP_DONE && (
@@ -151,178 +160,184 @@ export default function SignUpModal() {
 
 
                 <form className="signupModal__form" onSubmit={handleSubmit}>
-                    {step === STEP_INFO && (
-                        <>
-                            <div className="field">
-                                <input
-                                    className="field__input"
-                                    value={form.firstName}
-                                    onChange={updateField("firstName")}
-                                    placeholder=" "
-                                    autoComplete="given-name"
-                                />
-                                <label className="field__label">First name</label>
-                            </div>
-
-                            <div className="field">
-                                <input
-                                    className="field__input"
-                                    value={form.lastName}
-                                    onChange={updateField("lastName")}
-                                    placeholder=" "
-                                    autoComplete="family-name"
-                                />
-                                <label className="field__label">Last name</label>
-                            </div>
-
-                            <div className="field">
-                                <input
-                                    className="field__input"
-                                    value={form.companyName}
-                                    onChange={updateField("companyName")}
-                                    placeholder=" "
-                                    autoComplete="organization"
-                                />
-                                <label className="field__label">Company name</label>
-                            </div>
-
-                            <div className="field">
-                                <input
-                                    className="field__input"
-                                    value={form.email}
-                                    onChange={updateField("email")}
-                                    placeholder=" "
-                                    type="email"
-                                    autoComplete="email"
-                                />
-                                <label className="field__label">Email</label>
-                            </div>
-
-                            <div className="field">
-                                <input
-                                    className="field__input"
-                                    value={form.phone}
-                                    onChange={updateField("phone")}
-                                    placeholder=" "
-                                    autoComplete="tel"
-                                />
-                                <label className="field__label">Phone</label>
-                            </div>
-
+                    <div className="signupModal__contentWrap">
+                        <div
+                            key={animKey}
+                            className={`signupModal__content signupModal__content--${direction}`}>
                             {step === STEP_INFO && (
-                                <div className="signupModal__hint">
-                                    Please fill out the information above.
+                                <>
+                                    <div className="field">
+                                        <input
+                                            className="field__input"
+                                            value={form.firstName}
+                                            onChange={updateField("firstName")}
+                                            placeholder=" "
+                                            autoComplete="given-name"
+                                        />
+                                        <label className="field__label">First name</label>
+                                    </div>
+
+                                    <div className="field">
+                                        <input
+                                            className="field__input"
+                                            value={form.lastName}
+                                            onChange={updateField("lastName")}
+                                            placeholder=" "
+                                            autoComplete="family-name"
+                                        />
+                                        <label className="field__label">Last name</label>
+                                    </div>
+
+                                    <div className="field">
+                                        <input
+                                            className="field__input"
+                                            value={form.companyName}
+                                            onChange={updateField("companyName")}
+                                            placeholder=" "
+                                            autoComplete="organization"
+                                        />
+                                        <label className="field__label">Company name</label>
+                                    </div>
+
+                                    <div className="field">
+                                        <input
+                                            className="field__input"
+                                            value={form.email}
+                                            onChange={updateField("email")}
+                                            placeholder=" "
+                                            type="email"
+                                            autoComplete="email"
+                                        />
+                                        <label className="field__label">Email</label>
+                                    </div>
+
+                                    <div className="field">
+                                        <input
+                                            className="field__input"
+                                            value={form.phone}
+                                            onChange={updateField("phone")}
+                                            placeholder=" "
+                                            autoComplete="tel"
+                                        />
+                                        <label className="field__label">Phone</label>
+                                    </div>
+
+                                    {step === STEP_INFO && (
+                                        <div className="signupModal__hint">
+                                            Please fill out the information above.
+                                        </div>
+                                    )}
+                                </>
+                            )}
+
+                            {step === STEP_PASSWORD && (
+                                <>
+                                    <div className="field field--password">
+                                        <input
+                                            className="field__input"
+                                            value={form.password}
+                                            onChange={updateField("password")}
+                                            placeholder=" "
+                                            type={showPassword ? "text" : "password"}
+                                            autoComplete="new-password"
+                                        />
+                                        <label className="field__label">Password</label>
+
+                                        <button
+                                            type="button"
+                                            className="field__toggle"
+                                            tabIndex={-1}
+                                            onClick={() => setShowPassword((v) => !v)}
+                                            aria-label={showPassword ? "Hide password" : "Show password"}
+                                        >
+                                            <span className="material-symbols-outlined">
+                                                {showPassword ? "visibility" : "visibility_off"}
+                                            </span>
+                                        </button>
+                                    </div>
+
+                                    <div className="field field--password">
+                                        <input
+                                            className="field__input"
+                                            value={confirmPassword}
+                                            onChange={(e) => setConfirmPassword(e.target.value)}
+                                            placeholder=" "
+                                            type={showConfirm ? "text" : "password"}
+                                            autoComplete="new-password"
+                                        />
+                                        <label className="field__label">Confirm password</label>
+
+                                        <button
+                                            type="button"
+                                            className="field__toggle"
+                                            tabIndex={-1}
+                                            onClick={() => setShowConfirm((v) => !v)}
+                                            aria-label={showConfirm ? "Hide password" : "Show password"}
+                                        >
+                                            <span className="material-symbols-outlined">
+                                                {showConfirm ? "visibility" : "visibility_off"}
+                                            </span>
+                                        </button>
+                                    </div>
+                                </>
+                            )}
+
+                            {step === STEP_DONE && (
+                                <div className="signupModal__done">
+                                    <p>
+                                        Your request has been received. Please wait until the Megna team reaches out to you.
+                                    </p>
+
+                                    {result?.email && (
+                                        <p className="signupModal__doneMeta">
+                                            {result.email} {result.status ? `• ${result.status}` : ""}
+                                        </p>
+                                    )}
+
+                                    <button className="signupModal__btn" type="submit">
+                                        Close
+                                    </button>
                                 </div>
                             )}
-                        </>
-                    )}
+                            {error && <div className="signupModal__error">{error}</div>}
 
-                    {step === STEP_PASSWORD && (
-                        <>
-                            <div className="field field--password">
-                                <input
-                                    className="field__input"
-                                    value={form.password}
-                                    onChange={updateField("password")}
-                                    placeholder=" "
-                                    type={showPassword ? "text" : "password"}
-                                    autoComplete="new-password"
-                                />
-                                <label className="field__label">Password</label>
-
-                                <button
-                                    type="button"
-                                    className="field__toggle"
-                                    tabIndex={-1}
-                                    onClick={() => setShowPassword((v) => !v)}
-                                    aria-label={showPassword ? "Hide password" : "Show password"}
-                                >
-                                    <span className="material-symbols-outlined">
-                                        {showPassword ? "visibility" : "visibility_off"}
-                                    </span>
-                                </button>
-                            </div>
-
-                            <div className="field field--password">
-                                <input
-                                    className="field__input"
-                                    value={confirmPassword}
-                                    onChange={(e) => setConfirmPassword(e.target.value)}
-                                    placeholder=" "
-                                    type={showConfirm ? "text" : "password"}
-                                    autoComplete="new-password"
-                                />
-                                <label className="field__label">Confirm password</label>
-
-                                <button
-                                    type="button"
-                                    className="field__toggle"
-                                    tabIndex={-1}
-                                    onClick={() => setShowConfirm((v) => !v)}
-                                    aria-label={showConfirm ? "Hide password" : "Show password"}
-                                >
-                                    <span className="material-symbols-outlined">
-                                        {showConfirm ? "visibility" : "visibility_off"}
-                                    </span>
-                                </button>
-                            </div>
-                        </>
-                    )}
-
-                    {step === STEP_DONE && (
-                        <div className="signupModal__done">
-                            <p>
-                                Your request has been received. Please wait until the Megna team reaches out to you.
-                            </p>
-
-                            {result?.email && (
-                                <p className="signupModal__doneMeta">
-                                    {result.email} {result.status ? `• ${result.status}` : ""}
-                                </p>
+                            {step === STEP_INFO && (
+                                <div className="signupModal__actions signupModal__actions--single">
+                                    <button
+                                        className="signupModal__btn"
+                                        type="submit"
+                                        disabled={loading || !infoValid}
+                                    >
+                                        {loading ? "Submitting..." : "Continue"}
+                                    </button>
+                                </div>
                             )}
 
-                            <button className="signupModal__btn" type="submit">
-                                Close
-                            </button>
-                        </div>
-                    )}
-                    {error && <div className="signupModal__error">{error}</div>}
+                            {step === STEP_PASSWORD && (
+                                <div className="signupModal__actions">
+                                    <button
+                                        type="button"
+                                        className="signupModal__btn signupModal__btn--secondary"
+                                        onClick={() => {
+                                            setError("");
+                                            goStep(STEP_INFO);
+                                        }}
+                                        disabled={loading}
+                                    >
+                                        Back
+                                    </button>
 
-                    {step === STEP_INFO && (
-                        <div className="signupModal__actions signupModal__actions--single">
-                            <button
-                                className="signupModal__btn"
-                                type="submit"
-                                disabled={loading || !infoValid}
-                            >
-                                {loading ? "Submitting..." : "Continue"}
-                            </button>
+                                    <button
+                                        className="signupModal__btn"
+                                        type="submit"
+                                        disabled={loading || !passwordValid}
+                                    >
+                                        {loading ? "Submitting..." : "Get Started"}
+                                    </button>
+                                </div>
+                            )}
                         </div>
-                    )}
-
-                    {step === STEP_PASSWORD && (
-                        <div className="signupModal__actions">
-                            <button
-                                type="button"
-                                className="signupModal__btn signupModal__btn--secondary"
-                                onClick={() => {
-                                    setError("");
-                                    setStep(STEP_INFO);
-                                }}
-                                disabled={loading}
-                            >
-                                Back
-                            </button>
-
-                            <button
-                                className="signupModal__btn"
-                                type="submit"
-                                disabled={loading || !passwordValid}
-                            >
-                                {loading ? "Submitting..." : "Get Started"}
-                            </button>
-                        </div>
-                    )}
+                    </div>
                 </form>
             </div>
         </div>
