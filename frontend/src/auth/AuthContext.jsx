@@ -33,6 +33,15 @@ export function AuthProvider({ children }) {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
+    useEffect(() => {
+        function onExpired() {
+            setUser(null);
+        }
+
+        window.addEventListener("mv:auth:expired", onExpired);
+        return () => window.removeEventListener("mv:auth:expired", onExpired);
+    }, []);
+
     async function signIn(email, password) {
         await login({ email, password });
         const profile = await me();
@@ -60,6 +69,7 @@ export function AuthProvider({ children }) {
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useAuth() {
     const ctx = useContext(AuthContext);
     if (!ctx) throw new Error("useAuth must be used inside <AuthProfile />");

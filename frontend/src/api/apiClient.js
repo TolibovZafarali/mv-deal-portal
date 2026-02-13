@@ -1,5 +1,5 @@
 import axios from "axios";
-import { getAccessToken } from "./tokenStorage";
+import { clearAccessToken, getAccessToken } from "./tokenStorage";
 
 // In dev, Vite proxy already forwards /api -> http://localhost:8080
 // In prod, set VITE_API_BASE_URL to the backend domain
@@ -52,6 +52,12 @@ apiClient.interceptors.response.use(
     (error) => {
         const status = error?.response?.status ?? null;
         const data = error?.response?.data ?? null;
+
+        // If token is bad/expired, force logout
+        if (status === 401) {
+            clearAccessToken();
+            window.dispatchEvent(new CustomEvent("mv:auth:expired"));
+        }
 
         const message = 
             data?.message || 
