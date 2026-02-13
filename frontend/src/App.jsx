@@ -29,24 +29,21 @@ function Home() {
 export default function App() {
   const location = useLocation();
   const backgroundLocation = location.state?.backgroundLocation;
-
-  const isLogin = location.pathname === "/login"
-  const routesLocation = backgroundLocation || (isLogin ? { pathname: "/"} : location);
   
   return (
     <>
-      <Routes location={routesLocation}>
+      <Routes location={backgroundLocation || location}>
         <Route path="/" element={<Home />} />
-
 
         <Route element={<ProtectedRoute />}>
           <Route path="/_dev/api" element={<ApiSmokeTest />} />
         </Route>
       </Routes>
 
-      <Routes>
-        <Route path="/login" element={<LoginModal />} />
-      </Routes>
+      {backgroundLocation && (
+        <Routes>
+          <Route path="/login" element={<LoginModal />} />
+        </Routes>)}
     </>
   );
 }

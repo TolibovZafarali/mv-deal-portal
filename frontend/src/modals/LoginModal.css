@@ -13,13 +13,20 @@
 /* the modal panel */
 .loginModal {
     width: min(720px, 92vw);
-    border: 1px solid var(--border);
     background: rgba(16, 16, 16, 0.96);
     padding: 12px;
+    min-height: 300px;
+
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
 }
 
 /* header: title left, X right */
 .loginModal__header {
+    width: 92%;
+    margin: 0 auto;
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
@@ -40,15 +47,19 @@
     font-size: 22px;
     line-height: 1;
     color: var(--text);
+
+    position: absolute;
+    top: 15px;
+    right: 15px;
 }
 
 /* form is 92% width inside modal */
 .loginModal__form {
     width: 92%;
-    margin: 26px auto 0;
+    margin: 12px auto 0;
     display: flex;
     flex-direction: column;
-    gap: 18px;
+    gap: 10px;
 }
 
 /* floating label field */
@@ -92,6 +103,47 @@
     transform: none;
     font-size: 12px;
     color: var(--text);
+}
+
+/* password eye toggle */
+.field--password {
+    position: relative;
+}
+
+.field--password .field__input {
+    padding-right: 46px;
+}
+
+.field__toggle {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 2;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    background: transparent;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    
+    color: var(--text);
+    opacity: 0.85;
+
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+.field__toggle:hover {
+    opacity: 1;
+}
+
+.field__toggle .material-symbols-outlined {
+    font-size: 16px;
+    color: inherit;
 }
 
 .loginModal__error {

@@ -16,6 +16,7 @@ export default function LoginModal() {
 
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
+    const [showPassword, setShowPassword] = useState(false);
 
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
@@ -82,16 +83,27 @@ export default function LoginModal() {
                         <label className="field__label">Email</label>
                     </div>
 
-                    <div className="field">
+                    <div className="field field--password">
                         <input
                             className="field__input"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             placeholder=" "
-                            type="password"
+                            type={showPassword ? "text" : "password"}
                             autoComplete="current-password"
                         />
                         <label className="field__label">Password</label>
+
+                        <button
+                            type="button"
+                            className="field__toggle"
+                            onClick={() => setShowPassword((v) => !v)}
+                            aria-label={showPassword ? "Hide password" : "Show password"}
+                        >
+                            <span className="material-symbols-outlined">
+                                {showPassword ? "visibility" : "visibility_off"}
+                            </span>
+                        </button>
                     </div>
 
                     {error && <div className="loginModal__error">{error}</div>}
