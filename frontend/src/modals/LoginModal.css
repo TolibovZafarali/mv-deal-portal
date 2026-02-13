@@ -1,0 +1,126 @@
+/* full screen overlay with blur */
+.loginOverlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(10px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+}
+
+/* the modal panel */
+.loginModal {
+    width: min(720px, 92vw);
+    border: 1px solid var(--border);
+    background: rgba(16, 16, 16, 0.96);
+    padding: 12px;
+}
+
+/* header: title left, X right */
+.loginModal__header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+}
+
+.loginModal__title {
+    margin: 0;
+    font-size: 40px;
+    letter-spacing: 0.2px;
+}
+
+.loginModal__close {
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text);
+    width: 38px;
+    height: 38px;
+    cursor: pointer;
+    transition: background 180ms ease, color 180ms ease, border-color 180ms ease;
+}
+
+.loginModal__close:hover {
+    background: var(--text);
+    color: var(--bg);
+    border-color: var(--text);
+}
+
+/* form is 75% width inside modal */
+.loginModal__form {
+    width: 75%;
+    margin-top: 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+/* floating label field */
+.field {
+    position: relative;
+    width: 100%;
+}
+
+.field__input {
+    width: 100%;
+    border: 1px solid var(--border-muted);
+    background: transparent;
+    color: var(--text);
+    padding: 14px 12px 12px;
+    outline: none;
+    transition: border-color 180ms ease;
+}
+
+.field__input:focus {
+    border-color: var(--text);
+}
+
+/* label starts "inside" like a placeholder */
+.field__label {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--muted);
+    pointer-events: none;
+    transition: all 180ms ease;
+    padding: 0 6px;
+    background: rgba(16, 16, 16, 0.96);
+}
+
+/* when focused or has value -> label moves to top-left corner */
+.field__input:focus + .field__label,
+.field__input:not(:placeholder-shown) + .field__label {
+    top: -8px;
+    left: 10px;
+    transform: none;
+    font-size: 12px;
+    color: var(--text);
+}
+
+.loginModal__error {
+    border: 1px solid #9a4b4b;
+    padding: 10px 12px;
+    color: #ffb3b3;
+}
+
+.loginModal__btn {
+    border: 1px solid var(--text);
+    background: transparent;
+    color: var(--text);
+    padding: 12px 18px;
+    cursor: pointer;
+    transition: background 180ms ease, color 180ms ease, border-color 180ms ease;
+}
+
+.loginModal__btn:hover {
+    background: var(--text);
+    color: var(--bg);
+    border-color: var(--text);
+}
+
+.loginModal__btn:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
