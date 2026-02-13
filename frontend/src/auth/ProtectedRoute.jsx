@@ -15,7 +15,7 @@ export default function ProtectedRoute({ roles }) {
             <Navigate
                 to="/login"
                 replace
-                state={{ from: location.pathname, backgroundLocation: location }}
+                state={{ from: location.pathname, backgroundLocation: location, modal: true }}
             />
         );
     }

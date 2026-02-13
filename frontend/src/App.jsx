@@ -11,14 +11,14 @@ function Home() {
       <h1>Megna Real Estate</h1>
 
       <p>
-        <Link to="/login" state={{ backgroundLocation: location }}>
+        <Link to="/login" state={{ backgroundLocation: location, modal: true }}>
           Login
         </Link>
       </p>
 
       <p>
         Dev tools: {" "}
-        <Link to="/_dev/api" state={{ backgroundLocation: location }}>
+        <Link to="/_dev/api">
           API Smoke Test
         </Link>
       </p>
@@ -28,12 +28,14 @@ function Home() {
 
 export default function App() {
   const location = useLocation();
-  const backgroundLocation = location.state?.backgroundLocation;
+  const backgroundLocation =
+    location.state?.modal ? location.state.backgroundLocation : null;
   
   return (
     <>
       <Routes location={backgroundLocation || location}>
         <Route path="/" element={<Home />} />
+        <Route path="/login" element={<LoginModal />} />
 
         <Route element={<ProtectedRoute />}>
           <Route path="/_dev/api" element={<ApiSmokeTest />} />
