@@ -5,3 +5,4 @@ export * from "./params";
 export * from "./propertyApi";
 export * from "./investorApi";
 export * from "./inquiryApi";
+export * from "./adminInvestorApi";
