@@ -1,7 +1,14 @@
-import { Link, Route, Routes, useLocation } from "react-router-dom"
+import { Link, Navigate, Route, Routes, useLocation } from "react-router-dom"
 import ApiSmokeTest from "./pages/ApiSmokeTest"
 import { ProtectedRoute } from "./auth";
 import LoginModal from "./modals/LoginModal";
+import AdminLayout from "./layouts/AdminLayout";
+import AdminPropertiesPage from "./pages/admin/AdminPropertiesPage";
+import AdminInvestorsPage from "./pages/admin/AdminInvestorPage";
+import AdminInquiriesPage from "./pages/admin/AdminInquiriesPage";
+import InvestorLayout from "./layouts/InvestorLayout";
+import InvestorDashboard from "./pages/investor/InvestorDashboard";
+import InvestorPending from "./pages/investor/InvestorPending";
 
 function Home() {
   const location = useLocation();
@@ -40,6 +47,24 @@ export default function App() {
         <Route element={<ProtectedRoute />}>
           <Route path="/_dev/api" element={<ApiSmokeTest />} />
         </Route>
+
+        <Route element={<ProtectedRoute roles={["ADMIN"]} />}>
+          <Route path="/admin" element={<AdminLayout />}>
+            <Route index element={<Navigate to="properties" replace />} />
+            <Route path="properties" element={<AdminPropertiesPage />} />
+            <Route path="investors" element={<AdminInvestorsPage />} />
+            <Route path="inquiries" element={<AdminInquiriesPage />} />
+          </Route>
+        </Route>
+
+        <Route element={<ProtectedRoute roles={["INVESTOR"]} />}>
+          <Route path="/investor" element={<InvestorLayout />}>
+            <Route index element={<InvestorDashboard />} />
+            <Route path="pending" element={<InvestorPending />} />
+          </Route>
+        </Route>
+
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
 
       {backgroundLocation && (

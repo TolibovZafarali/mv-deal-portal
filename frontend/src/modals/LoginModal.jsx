@@ -12,7 +12,7 @@ export default function LoginModal() {
     const from =
         location.state?.from ||
         location.state?.backgroundLocation?.pathname ||
-        "/";
+        "/app";
 
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
