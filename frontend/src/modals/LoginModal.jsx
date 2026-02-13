@@ -7,6 +7,7 @@ export default function LoginModal() {
     const { signIn } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
+    const forceHomeOnClose = !!location.state?.forceHomeOnClose;
 
     const hasBackground = !!location.state?.backgroundLocation;
     const from =
@@ -22,6 +23,11 @@ export default function LoginModal() {
     const [error, setError] = useState("");
 
     function close() {
+        if (forceHomeOnClose) {
+            navigate("/", { replace: true });
+            return;
+        }
+        
         // If we came from inside the app, go back. If direct URL /login, go home.
         if (hasBackground) navigate(-1);
         else navigate("/", { replace: true });

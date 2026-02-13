@@ -1,11 +1,37 @@
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { clearAccessToken, getAccessToken, login, logout, me, setAccessToken } from "../api";
+import { useLocation, useNavigate } from "react-router-dom";
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
     const [user, setUser] = useState(null);
     const [bootstrapping, setBootstrapping] = useState(true);
+
+    const navigate = useNavigate();
+    const location = useLocation();
+
+    const openLoginOnHome = useCallback(() => {
+        if (location.pathname === "/login") return;
+
+        const homeBg = {
+            pathname: "/",
+            search: "",
+            hash: "",
+            state: null,
+            key: "home-bg",
+        };
+
+        navigate("/login", {
+            replace: true,
+            state: {
+                modal: true,
+                backgroundLocation: homeBg,
+                from: "/app",               // after login -> dashboard redirect
+                forceHomeOnClose: true,     // so X/outside click returns home
+            },
+        });
+    }, [navigate, location.pathname]);
 
     async function bootstrap() {
         const token = getAccessToken();
@@ -23,6 +49,7 @@ export function AuthProvider({ children }) {
             // token is probably invalid/expired
             logout();
             setUser(null);
+            openLoginOnHome();
         } finally {
             setBootstrapping(false);
         }
@@ -36,11 +63,12 @@ export function AuthProvider({ children }) {
     useEffect(() => {
         function onExpired() {
             setUser(null);
+            openLoginOnHome();
         }
 
         window.addEventListener("mv:auth:expired", onExpired);
         return () => window.removeEventListener("mv:auth:expired", onExpired);
-    }, []);
+    }, [openLoginOnHome]);
 
     async function signIn(email, password) {
         const loginRes = await login({ email, password });
