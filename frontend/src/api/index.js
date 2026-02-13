@@ -4,3 +4,4 @@ export * from "./authApi";
 export * from "./params";
 export * from "./propertyApi";
 export * from "./investorApi";
+export * from "./inquiryApi";
