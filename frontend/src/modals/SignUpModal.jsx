@@ -123,9 +123,17 @@ export default function SignUpModal() {
         <div className="signupOverlay" onMouseDown={close}>
             <div className="signupModal" onMouseDown={(e) => e.stopPropagation()}>
                 <div className="signupModal__header">
-                    <h2 className="signupModal__title">
-                        {step === STEP_DONE ? "Thank you" : "Sign Up"}
-                    </h2>
+                    <div className="signupModal__headerLeft">
+                        <h2 className="signupModal__title">
+                            {step === STEP_DONE ? "Thank you" : "Sign Up"}
+                        </h2>
+
+                        {step !== STEP_DONE && (
+                            <div className="signupModal__step">
+                                Step {step + 1} of 2
+                            </div>
+                        )}
+                    </div>
 
                     <div
                         className="signupModal__close"
@@ -141,11 +149,6 @@ export default function SignUpModal() {
                     </div>
                 </div>
 
-                {step !== STEP_DONE && (
-                    <div className="signupModal__step">
-                        Step {step + 1} of 2
-                    </div>
-                )}
 
                 <form className="signupModal__form" onSubmit={handleSubmit}>
                     {step === STEP_INFO && (
@@ -205,6 +208,12 @@ export default function SignUpModal() {
                                 />
                                 <label className="field__label">Phone</label>
                             </div>
+
+                            {step === STEP_INFO && (
+                                <div className="signupModal__hint">
+                                    Please fill out the information above.
+                                </div>
+                            )}
                         </>
                     )}
 
@@ -224,6 +233,7 @@ export default function SignUpModal() {
                                 <button
                                     type="button"
                                     className="field__toggle"
+                                    tabIndex={-1}
                                     onClick={() => setShowPassword((v) => !v)}
                                     aria-label={showPassword ? "Hide password" : "Show password"}
                                 >
@@ -247,26 +257,13 @@ export default function SignUpModal() {
                                 <button
                                     type="button"
                                     className="field__toggle"
+                                    tabIndex={-1}
                                     onClick={() => setShowConfirm((v) => !v)}
                                     aria-label={showConfirm ? "Hide password" : "Show password"}
                                 >
                                     <span className="material-symbols-outlined">
                                         {showConfirm ? "visibility" : "visibility_off"}
                                     </span>
-                                </button>
-                            </div>
-
-                            <div className="signupModal__row">
-                                <button
-                                    type="button"
-                                    className="signupModal__btn signupModal__btn--secondary"
-                                    onClick={() => {
-                                        setError("");
-                                        setStep(STEP_INFO);
-                                    }}
-                                    disabled={loading}
-                                >
-                                    Back
                                 </button>
                             </div>
                         </>
@@ -291,17 +288,40 @@ export default function SignUpModal() {
                     )}
                     {error && <div className="signupModal__error">{error}</div>}
 
-                    {step !== STEP_DONE && (
-                        <button
-                            className="signupModal__btn"
-                            disabled={loading || (step === STEP_INFO? !infoValid : !passwordValid)}
-                        >
-                            {loading
-                                ? "Submitting..."
-                                : step === STEP_INFO
-                                ? "Continue"
-                                : "Get Started"}
-                        </button>
+                    {step === STEP_INFO && (
+                        <div className="signupModal__actions signupModal__actions--single">
+                            <button
+                                className="signupModal__btn"
+                                type="submit"
+                                disabled={loading || !infoValid}
+                            >
+                                {loading ? "Submitting..." : "Continue"}
+                            </button>
+                        </div>
+                    )}
+
+                    {step === STEP_PASSWORD && (
+                        <div className="signupModal__actions">
+                            <button
+                                type="button"
+                                className="signupModal__btn signupModal__btn--secondary"
+                                onClick={() => {
+                                    setError("");
+                                    setStep(STEP_INFO);
+                                }}
+                                disabled={loading}
+                            >
+                                Back
+                            </button>
+
+                            <button
+                                className="signupModal__btn"
+                                type="submit"
+                                disabled={loading || !passwordValid}
+                            >
+                                {loading ? "Submitting..." : "Get Started"}
+                            </button>
+                        </div>
                     )}
                 </form>
             </div>

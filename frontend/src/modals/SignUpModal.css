@@ -29,6 +29,12 @@
   justify-content: space-between;
 }
 
+.signupModal__headerLeft {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
 .signupModal__title {
   margin-top: 15px;
   font-size: 40px;
@@ -51,8 +57,7 @@
 }
 
 .signupModal__step {
-  width: 92%;
-  margin: 4px auto 0;
+  margin: 0;
   color: var(--muted);
   font-size: 13px;
 }
@@ -200,4 +205,35 @@
 .signupModal__doneMeta {
   color: var(--text);
   font-size: 13px;
+}
+
+.signupModal__hint {
+  margin-top: 6px;     /* close to fields */
+  margin-bottom: 14px; /* creates space before buttons */
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.signupModal__actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 8px; /* nudges buttons down a bit */
+}
+
+.signupModal__actions .signupModal__btn {
+  flex: 1; /* makes Back and Get Started equal size */
+}
+
+.signupModal__actions--single .signupModal__btn {
+  width: 100%;
+}
+
+.field__input:-webkit-autofill,
+.field__input:-webkit-autofill:hover,
+.field__input:-webkit-autofill:focus,
+.field__input:-webkit-autofill:active {
+  -webkit-text-fill-color: var(--text);
+  caret-color: var(--text);
+  box-shadow: 0 0 0px 1000px rgba(16, 16, 16, 0.96) inset;
+  transition: background-color 9999s ease-in-out 0s;
 }
