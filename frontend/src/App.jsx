@@ -10,6 +10,7 @@ import InvestorLayout from "./layouts/InvestorLayout";
 import InvestorDashboard from "./pages/investor/InvestorDashboard";
 import InvestorPending from "./pages/investor/InvestorPending";
 import AppRedirect from "./pages/AppRedirect";
+import SignUpModal from "./modals/SignUpModal";
 
 function Home() {
   const location = useLocation();
@@ -36,12 +37,18 @@ function Home() {
       </p>
 
       <p>
+        <Link to="/signup" state={{ backgroundLocation: location, modal: true }}>
+          Sign Up
+        </Link>
+      </p>
+
+      <p>
         Dev tools: {" "}
         <Link to="/_dev/api">
           API Smoke Test
         </Link>
       </p>
-    </div>    
+    </div>
   )
 }
 
@@ -55,6 +62,7 @@ export default function App() {
       <Routes location={backgroundLocation || location}>
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<LoginModal />} />
+        <Route path="/signup" element={<SignUpModal />} />
 
         <Route element={<ProtectedRoute />}>
           <Route path="/app" element={<AppRedirect />} />
@@ -83,6 +91,7 @@ export default function App() {
       {backgroundLocation && (
         <Routes>
           <Route path="/login" element={<LoginModal />} />
+          <Route path="/signup" element={<SignUpModal />} />
         </Routes>)}
     </>
   );
