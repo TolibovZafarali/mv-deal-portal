@@ -19,11 +19,6 @@ export async function updateInvestor(id, investorUpdateDto) {
     return data;
 }
 
-export async function updateInvestorStatus(id, statusUpdateDto) {
-    const { data } = await apiClient.patch(`${BASE}/${id}/status`, statusUpdateDto);
-    return data;
-}
-
 export async function deleteInvestor(id) {
     await apiClient.delete(`${BASE}/${id}`);
     return true;
