@@ -300,7 +300,7 @@ export default function SignUpModal() {
                                             state={{ modal: true, backgroundLocation: bg }}
                                         >
                                             <span className="signupModal__altLinkInner">
-                                                Login <span className="signupModal__altArrow">↗</span>
+                                                Login
                                             </span>
                                         </Link>
                                     </div>
