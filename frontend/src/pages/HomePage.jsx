@@ -69,7 +69,8 @@ export default function HomePage({ location, isAuthed, bootstrapping }) {
                             className="homeHero__cta"
                             state={{ backgroundLocation: location, modal: true }}
                         >
-                            Get started
+                            <span className="homeHero__ctaText">Get started</span>
+                            <span className="homeHero__ctaArrow" aria-hidden="true"></span>
                         </Link>
                     </div>
                 </section>
