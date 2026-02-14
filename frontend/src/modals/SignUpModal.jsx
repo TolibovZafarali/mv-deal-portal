@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { register } from "../api";
 import "./SignUpModal.css"
 
@@ -35,6 +35,9 @@ export default function SignUpModal() {
 
     const [direction, setDirection] = useState("forward"); // "forward" | "back"
     const [animKey, setAnimKey] = useState(0);
+
+    const bg = location.state?.backgroundLocation || { pathname: "/" };
+    const phoneRef = useRef(null);
 
     function goStep(nextStep) {
         setDirection(nextStep > step ? "forward" : "back");
@@ -77,6 +80,61 @@ export default function SignUpModal() {
 
     function updateField(key) {
         return (e) => setForm((p) => ({ ...p, [key]: e.target.value }));
+    }
+
+    function formatPhoneDigits(digits) {
+        if (!digits) return "";
+
+        // allow up to 11 digits, but only show +1 if it's exactly 11 and starts with 1
+        const raw = digits.slice(0, 11);
+
+        let prefix = "";
+        let d = raw;
+
+        if (raw.length === 11 && raw.startsWith("1")) {
+            prefix = "+1 ";
+            d = raw.slice(1); // now 10 digits
+        } else {
+            d = raw.slice(0, 10);
+        }
+
+        const a = d.slice(0, 3);
+        const b = d.slice(3, 6);
+        const c = d.slice(6, 10);
+
+        if (d.length <= 3) return `(${a}`;
+        if (d.length <= 6) return `${prefix}(${a}) ${b}`;
+        return `${prefix}(${a}) ${b}-${c}`;
+    }
+
+    function cursorPosFromDigitCount(formatted, digitCount) {
+        if (digitCount <= 0) return 0;
+        let count = 0;
+
+        for (let i = 0; i < formatted.length; i++) {
+            if (/\d/.test(formatted[i])) count++;
+            if (count === digitCount) return i + 1;
+        }
+        return formatted.length;
+    }
+
+    function handlePhoneChange(e) {
+        const inputValue = e.target.value;
+        const cursor = e.target.selectionStart ?? inputValue.length;
+
+        const digits = inputValue.replace(/\D/g, "").slice(0, 11);
+        const digitsBeforeCursor = (inputValue.slice(0, cursor).match(/\d/g) || []).length;
+
+        const formatted = formatPhoneDigits(digits);
+
+        setForm((p) => ({ ...p, phone: formatted }));
+
+        window.requestAnimatedFrame(() => {
+            const el = phoneRef.current;
+            if (!el) return;
+            const newPos = cursorPosFromDigitCount(formatted, digitsBeforeCursor);
+            el.setSelectionRange(newPos, newPos);
+        });
     }
 
     async function handleSubmit(e) {
@@ -128,13 +186,16 @@ export default function SignUpModal() {
         close();
     }
 
+    const modalTitle =
+      step === STEP_PASSWORD ? "Set password" : step === STEP_DONE ? "Thank you" : "Sign Up";
+
     return (
         <div className="signupOverlay" onMouseDown={close}>
             <div className="signupModal" onMouseDown={(e) => e.stopPropagation()}>
                 <div className="signupModal__header">
                     <div className="signupModal__headerLeft">
                         <h2 className="signupModal__title">
-                            {step === STEP_PASSWORD ? "Set password" : step === STEP_DONE ? "Thank you" : "Sign Up"}
+                            {modalTitle}
                         </h2>
 
                         {step !== STEP_DONE && (
@@ -213,10 +274,13 @@ export default function SignUpModal() {
 
                                     <div className="field">
                                         <input
+                                            ref={phoneRef}
                                             className="field__input"
                                             value={form.phone}
-                                            onChange={updateField("phone")}
+                                            onChange={handlePhoneChange}
                                             placeholder=" "
+                                            type="tel"
+                                            inputMode="tel"
                                             autoComplete="tel"
                                         />
                                         <label className="field__label">Phone</label>
@@ -227,6 +291,19 @@ export default function SignUpModal() {
                                             Please fill out the information above.
                                         </div>
                                     )}
+                                    <div className="signupModal__alt">
+                                        Already have an account?{" "}
+                                        <Link
+                                            className="signupModal__altlink"
+                                            to="/login"
+                                            replace
+                                            state={{ modal: true, backgroundLocation: bg }}
+                                        >
+                                            <span className="signupModal__altLinkInner">
+                                                Login <span className="signupModal__altArrow">↗</span>
+                                            </span>
+                                        </Link>
+                                    </div>
                                 </>
                             )}
 
