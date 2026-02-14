@@ -299,25 +299,11 @@
   color: var(--text);
   cursor: pointer;
 
-  text-decoration: none;          
-  border-bottom: 1px solid currentColor;
-  padding-bottom: 2px;
-
-  display: inline-flex;               
-  align-items: center;
-}
-
-.signupModal__altLinkInner {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
 }
 
 .signupModal__altLink:hover {
-    opacity: 0.9;
-}
-
-
-.signupModal__altArrow {
-  display: inline-block;
+  opacity: 0.9;
 }

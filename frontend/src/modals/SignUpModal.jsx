@@ -294,7 +294,7 @@ export default function SignUpModal() {
                                     <div className="signupModal__alt">
                                         Already have an account?{" "}
                                         <Link
-                                            className="signupModal__altlink"
+                                            className="signupModal__altLink"
                                             to="/login"
                                             replace
                                             state={{ modal: true, backgroundLocation: bg }}
