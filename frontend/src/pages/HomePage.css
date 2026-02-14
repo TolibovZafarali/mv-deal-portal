@@ -12,9 +12,9 @@ body.homeNoScroll {
   left: 0;
   right: 0;
 
-  background: rgba(16, 16, 16, 0.55); /* dark translucent */
+  background: rgba(16, 16, 16, 0.40);
   backdrop-filter: blur(3px);
-  -webkit-backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(3px);
 
   z-index: 50;
   box-shadow: 0 1px 10px rgba(0, 0, 0, 0.18); /* barely-there shadow */
@@ -99,9 +99,9 @@ body.homeNoScroll {
   inset: 0;
   background: linear-gradient(
     0deg,
-    rgba(0, 0, 0, 0.52) 0%,
-    rgba(0, 0, 0, 0.28) 55%,
-    rgba(0, 0, 0, 0.45) 100%
+    rgba(0, 0, 0, 0.40) 0%,
+    rgba(0, 0, 0, 0.10) 55%,
+    rgba(0, 0, 0, 0.40) 100%
   );
 }
 
@@ -110,8 +110,8 @@ body.homeNoScroll {
   position: relative;
   z-index: 1;
 
-  width: min(900px, 92vw);
-  padding: 0 22px 200px;
+  width: min(970px, 92vw);
+  padding: 0 22px 400px;
 
   display: flex;
   flex-direction: column;
@@ -160,8 +160,7 @@ body.homeNoScroll {
   height: 54px;
   transform: translateY(-50%);
 
-  background: rgba(0, 0, 0, 0.28);
-  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.30);
+
   z-index: -1;
 }
 
@@ -220,9 +219,9 @@ body.homeNoScroll {
   right: 0;
   bottom: 0;
 
-  background: rgba(16, 16, 16, 0.55);
+  background: rgba(16, 16, 16, 0.40);
   backdrop-filter: blur(3px);
-  -webkit-backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(3px);
 
   padding: 16px 18px;
 }
