@@ -11,44 +11,18 @@ import InvestorDashboard from "./pages/investor/InvestorDashboard";
 import InvestorPending from "./pages/investor/InvestorPending";
 import AppRedirect from "./pages/AppRedirect";
 import SignUpModal from "./modals/SignUpModal";
+import HomePage from "./pages/HomePage";
 
 function Home() {
   const location = useLocation();
   const { isAuthed, bootstrapping } = useAuth();
-  
-  // Don't flash homepage while the app is still checking the token
-  if (bootstrapping) {
-    return <div style={{ padding: "28px 18px "}}>Loading...</div>;
-  }
-
-  // If token is valid, go straight to the app redirect (which sends to dashboard)
-  if (isAuthed) {
-    return <Navigate to="/app" replace />;
-  }
 
   return (
-    <div style={{ padding: "28px 18px" }}>
-      <h1>Megna Real Estate</h1>
-
-      <p>
-        <Link to="/login" state={{ backgroundLocation: location, modal: true }}>
-          Login
-        </Link>
-      </p>
-
-      <p>
-        <Link to="/signup" state={{ backgroundLocation: location, modal: true }}>
-          Sign Up
-        </Link>
-      </p>
-
-      <p>
-        Dev tools: {" "}
-        <Link to="/_dev/api">
-          API Smoke Test
-        </Link>
-      </p>
-    </div>
+    <HomePage
+      location={location}
+      isAuthed={isAuthed}
+      bootstrapping={bootstrapping}
+    />
   )
 }
 

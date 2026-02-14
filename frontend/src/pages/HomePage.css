@@ -1,0 +1,161 @@
+.home {
+  min-height: 100%;
+}
+
+.homeHeader {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: var(--bg);
+  z-index: 50;
+  box-shadow: 0 1px 10px rgba(0, 0, 0, 0.22);
+}
+
+.homeHeader__inner {
+  height: 64px;
+  padding: 0 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.homeHeader__logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.homeHeader__logoImg {
+  width: 30px;
+  height: 30px;
+  display: block;
+}
+
+.homeHeader__nav {
+  display: inline-flex;
+  align-items: center;
+  gap: 18px;
+}
+
+/* Text-link underline that grows from the center out */
+.homeHeader__link {
+  position: relative;
+  padding: 8px 2px;
+  font-size: 14px;
+  letter-spacing: 0.02em;
+  outline: none;
+}
+
+.homeHeader__link::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 3px;
+  height: 1px;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: center;
+  transition: transform 220ms ease;
+}
+
+.homeHeader__link:hover::after,
+.homeHeader__link:focus-visible::after {
+  transform: scaleX(1);
+}
+
+.homeHeader__link:active {
+  opacity: 0.65;
+}
+
+.homeMain {
+  min-height: 100vh;
+}
+
+.homeHero {
+  position: relative;
+  min-height: 100vh;
+  background-image: url("/hero.jpg");
+  background-size: cover;
+  background-position: center;
+  display: grid;
+  place-items: center;
+}
+
+.homeHero__overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    0deg,
+    rgba(0, 0, 0, 0.62) 0%,
+    rgba(0, 0, 0, 0.38) 55%,
+    rgba(0, 0, 0, 0.55) 100%
+  );
+}
+
+.homeHero__content {
+  position: relative;
+  z-index: 1;
+  width: min(980px, 92vw);
+  padding: 86px 18px 40px;
+  text-align: left;
+}
+
+.homeHero__title {
+  margin: 0;
+  font-size: clamp(34px, 5vw, 58px);
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+}
+
+.homeHero__subtitle {
+  margin: 14px 0 0;
+  color: rgba(242, 242, 242, 0.85);
+  font-size: clamp(14px, 1.8vw, 18px);
+  line-height: 1.5;
+}
+
+/* CTA underline that draws left-to-right */
+.homeHero__cta {
+  margin-top: 18px;
+  display: inline-block;
+  position: relative;
+  padding: 10px 2px;
+  font-size: 15px;
+  letter-spacing: 0.02em;
+}
+
+.homeHero__cta::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 4px;
+  height: 1px;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 260ms ease;
+}
+
+.homeHero__cta:hover::after,
+.homeHero__cta:focus-visible::after {
+  transform: scaleX(1);
+}
+
+.homeHero__cta:active {
+  opacity: 0.65;
+}
+
+.homeFooter {
+  background: var(--bg);
+  padding: 18px;
+}
+
+.homeFooter__inner {
+  text-align: center;
+  color: rgba(242, 242, 242, 0.75);
+  font-size: 12px;
+  letter-spacing: 0.02em;
+}
