@@ -2,19 +2,28 @@
   min-height: 100%;
 }
 
+body.homeNoScroll {
+  overflow: hidden;
+}
+
 .homeHeader {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
-  background: var(--bg);
+
+  background: rgba(16, 16, 16, 0.55); /* dark translucent */
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(14px);
+
   z-index: 50;
-  box-shadow: 0 1px 10px rgba(0, 0, 0, 0.22);
+  box-shadow: 0 1px 10px rgba(0, 0, 0, 0.18); /* barely-there shadow */
 }
 
+
 .homeHeader__inner {
-  height: 64px;
-  padding: 0 18px;
+  height: 76px;
+  padding: 0 22px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -27,22 +36,22 @@
 }
 
 .homeHeader__logoImg {
-  width: 30px;
-  height: 30px;
+  width: 40px;
+  height: 40px;
   display: block;
 }
 
 .homeHeader__nav {
   display: inline-flex;
   align-items: center;
-  gap: 18px;
+  gap: 24px;
 }
 
 /* Text-link underline that grows from the center out */
 .homeHeader__link {
   position: relative;
   padding: 8px 2px;
-  font-size: 14px;
+  font-size: 16px;
   letter-spacing: 0.02em;
   outline: none;
 }
@@ -75,12 +84,14 @@
 
 .homeHero {
   position: relative;
-  min-height: 100vh;
-  background-image: url("/hero.jpg");
+  height: 100vh;
+  background-image: url("/hero1.jpg");
   background-size: cover;
   background-position: center;
-  display: grid;
-  place-items: center;
+
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-start;
 }
 
 .homeHero__overlay {
@@ -94,11 +105,13 @@
   );
 }
 
+
 .homeHero__content {
   position: relative;
   z-index: 1;
-  width: min(980px, 92vw);
-  padding: 86px 18px 40px;
+
+  width: min(900px, 92vw);
+  padding: 0 22px 200px; /* bottom-left placement + space above footer */
   text-align: left;
 }
 
@@ -149,9 +162,18 @@
 }
 
 .homeFooter {
-  background: var(--bg);
-  padding: 18px;
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+
+  background: rgba(16, 16, 16, 0.55);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(14px);
+
+  padding: 16px 18px;
 }
+
 
 .homeFooter__inner {
   text-align: center;

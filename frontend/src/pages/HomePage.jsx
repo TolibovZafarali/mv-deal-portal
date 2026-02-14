@@ -1,7 +1,13 @@
 import { Link, Navigate } from "react-router-dom";
 import "./HomePage.css"
+import { useEffect } from "react";
 
 export default function HomePage({ location, isAuthed, bootstrapping }) {
+    useEffect(() => {
+        document.body.classList.add("homeNoScroll");
+        return () => document.body.classList.remove("homeNoScroll");
+    }, []);
+    
     // Don't flash homepage while the app is still checking the token
     if (bootstrapping) {
         return <div style={{ padding: "28px 18px" }}>Loading...</div>;
