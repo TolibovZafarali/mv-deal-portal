@@ -50,10 +50,12 @@ function numOrEmpty(v) {
 
 export default function PropertyUpsertModal({
   open,
-  mode = "add", // "add" | "edit"
+  mode = "add",
   initialValue = null,
   onClose,
-  onSubmit, // Step 6 will wire API
+  onSubmit,
+  submitting = false,
+  submitError = "",
 }) {
   const isEdit = mode === "edit";
 
@@ -119,6 +121,7 @@ export default function PropertyUpsertModal({
 
   function handleSubmit(e) {
     e.preventDefault();
+    if (submitting) return;
     onSubmit?.(form);
   }
 
@@ -444,14 +447,20 @@ export default function PropertyUpsertModal({
             </div>
           </div>
 
+          {submitError ? <div className="propModal__error">{submitError}</div> : null}
+
           {/* Actions */}
           <div className="propActions">
             <button type="button" className="propBtn" onClick={onClose}>
               Cancel
             </button>
 
-            <button type="submit" className="propBtn propBtn--primary" disabled={!form.title.trim()}>
-              {isEdit ? "Save" : "Add"}
+            <button 
+                type="submit" 
+                className="propBtn propBtn--primary" 
+                disabled={!form.title.trim()}
+            >
+              {submitting ? (isEdit ? "Saving..." : "Adding...") : isEdit ? "Save" : "Add"}
             </button>
           </div>
         </form>

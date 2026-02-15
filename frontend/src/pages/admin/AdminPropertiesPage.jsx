@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { searchProperties } from "../../api/propertyApi";
+import { createProperty, searchProperties } from "../../api/propertyApi";
 import "./AdminPropertiesPage.css";
 import PropertyUpsertModal from "../../modals/PropertyUpsertModal";
 
@@ -140,7 +140,11 @@ export default function AdminPropertiesPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  const [refreshKey, setRefreshKey] = useState(0);
+
   const [addOpen, setAddOpen] = useState(false);
+  const [addSubmitting, setAddSubmitting] = useState(false);
+  const [addError, setAddError] = useState("");
 
   function updateFilter(key, value) {
     setFilters((prev) => ({ ...prev, [key]: value }));
@@ -179,7 +183,7 @@ export default function AdminPropertiesPage() {
     return () => {
       alive = false;
     };
-  }, [filters, page]);
+  }, [filters, page, refreshKey]);
 
   const hasRows = rows.length > 0;
 
@@ -189,6 +193,74 @@ export default function AdminPropertiesPage() {
     if (!hasRows) return "No properties found.";
     return `${pageMeta.totalElements.toLocaleString("en-US")} total properties`;
   }, [loading, error, hasRows, pageMeta.totalElements]);
+
+  function cleanStr(v) {
+    const s = String(v ?? "").trim();
+    return s.length ? s : null;
+  }
+  
+  function parseNum(v) {
+    const raw = String(v ?? "").trim();
+    if (!raw) return null;
+    const normalized = raw.replaceAll(",", "").replaceAll("$", "");
+    const n = Number(normalized);
+    return Number.isFinite(n) ? n : null;
+  }
+  
+  function parseIntNum(v) {
+    const n = parseNum(v);
+    if (n === null) return null;
+    const i = Number.parseInt(String(n), 10);
+    return Number.isFinite(i) ? i : null;
+  }
+  
+  async function handleAddSubmit(form) {
+    setAddSubmitting(true);
+    setAddError("");
+  
+    try {
+      const dto = {
+        status: form.status,
+        title: cleanStr(form.title), // required
+        street1: cleanStr(form.street1),
+        street2: cleanStr(form.street2),
+        city: cleanStr(form.city),
+        state: cleanStr(form.state),
+        zip: cleanStr(form.zip),
+  
+        askingPrice: parseNum(form.askingPrice),
+        arv: parseNum(form.arv),
+        estRepairs: parseNum(form.estRepairs),
+  
+        beds: parseIntNum(form.beds),
+        baths: parseNum(form.baths),
+        livingAreaSqft: parseIntNum(form.livingAreaSqft),
+        yearBuilt: parseIntNum(form.yearBuilt),
+        roofAge: parseIntNum(form.roofAge),
+        hvac: parseIntNum(form.hvac),
+  
+        occupancyStatus: cleanStr(form.occupancyStatus),
+        exitStrategy: cleanStr(form.exitStrategy),
+        closingTerms: cleanStr(form.closingTerms),
+  
+        description: cleanStr(form.description),
+  
+        // leave these null for MVP
+        photos: null,
+        saleComps: null,
+      };
+  
+      await createProperty(dto);
+  
+      setAddOpen(false);
+      setPage(0);
+      setRefreshKey((k) => k + 1); // forces reload even if already on page 0
+    } catch (e) {
+      setAddError(e?.message || "Failed to create property.");
+    } finally {
+      setAddSubmitting(false);
+    }
+  }  
 
   return (
     <section className="adminProps">
@@ -345,7 +417,12 @@ export default function AdminPropertiesPage() {
       <PropertyUpsertModal
         open={addOpen}
         mode="add"
-        onClose={() => setAddOpen(false)}
+        onClose={() => {
+            if (!addSubmitting) setAddOpen(false);
+        }}
+        onSubmit={handleAddSubmit}
+        submitting={addSubmitting}
+        submitError={addError}
       />
     </section>
   );
