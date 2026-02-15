@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { createProperty, searchProperties } from "../../api/propertyApi";
+import { createProperty, getPropertyId, searchProperties, updateProperty } from "../../api/propertyApi";
 import "./AdminPropertiesPage.css";
 import PropertyUpsertModal from "../../modals/PropertyUpsertModal";
 
@@ -146,6 +146,13 @@ export default function AdminPropertiesPage() {
   const [addSubmitting, setAddSubmitting] = useState(false);
   const [addError, setAddError] = useState("");
 
+  const [editOpen, setEditOpen] = useState(false);
+  const [editId, setEditId] = useState(null);
+  const [editInitial, setEditInitial] = useState(null);
+  const [editSubmitting, setEditSubmitting] = useState(false);
+  const [editError, setEditError] = useState("");
+  const [editLoadError, setEditLoadError] = useState("");
+
   function updateFilter(key, value) {
     setFilters((prev) => ({ ...prev, [key]: value }));
     setPage(0);
@@ -261,6 +268,77 @@ export default function AdminPropertiesPage() {
       setAddSubmitting(false);
     }
   }  
+
+  function formToUpsertDto(form) {
+    return {
+      status: form.status,
+      title: cleanStr(form.title), // required
+      street1: cleanStr(form.street1),
+      street2: cleanStr(form.street2),
+      city: cleanStr(form.city),
+      state: cleanStr(form.state),
+      zip: cleanStr(form.zip),
+  
+      askingPrice: parseNum(form.askingPrice),
+      arv: parseNum(form.arv),
+      estRepairs: parseNum(form.estRepairs),
+  
+      beds: parseIntNum(form.beds),
+      baths: parseNum(form.baths),
+      livingAreaSqft: parseIntNum(form.livingAreaSqft),
+      yearBuilt: parseIntNum(form.yearBuilt),
+      roofAge: parseIntNum(form.roofAge),
+      hvac: parseIntNum(form.hvac),
+  
+      occupancyStatus: cleanStr(form.occupancyStatus),
+      exitStrategy: cleanStr(form.exitStrategy),
+      closingTerms: cleanStr(form.closingTerms),
+  
+      description: cleanStr(form.description),
+  
+      photos: null,
+      saleComps: null,
+    };
+  }
+
+  async function openEditModal(id) {
+    setEditLoadError("");
+    setEditError("");
+    setEditSubmitting(false);
+  
+    try {
+      const full = await getPropertyId(id);
+      setEditId(id);
+      setEditInitial(full);
+      setEditOpen(true);
+    } catch (e) {
+      setEditLoadError(e?.message || "Failed to load property details.");
+    }
+  }
+  
+  async function handleEditSubmit(form) {
+    if (!editId) return;
+  
+    setEditSubmitting(true);
+    setEditError("");
+  
+    try {
+      const dto = formToUpsertDto(form);
+      await updateProperty(editId, dto);
+  
+      setEditOpen(false);
+      setEditId(null);
+      setEditInitial(null);
+  
+      setRefreshKey((k) => k + 1); // refresh list, keep same page
+    } catch (e) {
+      setEditError(e?.message || "Failed to update property.");
+    } finally {
+      setEditSubmitting(false);
+    }
+  }
+  
+  
 
   return (
     <section className="adminProps">
@@ -395,10 +473,7 @@ export default function AdminPropertiesPage() {
                           type="button"
                           title="Edit"
                           aria-label={`Edit property ${p.id}`}
-                          onClick={() => {
-                            // Step 6: open Edit modal prefilled with property
-                            console.log("Edit property:", p.id);
-                          }}
+                          onClick={() => openEditModal(p.id)}
                         >
                           <span className="material-symbols-outlined">edit</span>
                         </button>
@@ -424,6 +499,26 @@ export default function AdminPropertiesPage() {
         submitting={addSubmitting}
         submitError={addError}
       />
+
+        {editLoadError ? (
+        <div className="adminProps__notice adminProps__notice--error">{editLoadError}</div>
+        ) : null}
+
+        <PropertyUpsertModal
+        open={editOpen}
+        mode="edit"
+        initialValue={editInitial}
+        onClose={() => {
+            if (editSubmitting) return;
+            setEditOpen(false);
+            setEditId(null);
+            setEditInitial(null);
+            setEditError("");
+        }}
+        onSubmit={handleEditSubmit}
+        submitting={editSubmitting}
+        submitError={editError}
+        />
     </section>
   );
 }
