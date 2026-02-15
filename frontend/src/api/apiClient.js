@@ -13,7 +13,7 @@ function serializeParams(params) {
 
         if (Array.isArray(value)) {
             value.forEach((v) => {
-                if (v === undefined || value === null || value === "") return;
+                if (v === undefined || v === null || v === "") return;
                 usp.append(key, String(v));
             });
         } else {

@@ -1,5 +1,5 @@
 import { apiClient } from "./apiClient";
-import { clearAccessToken } from "./tokenStorage";
+import { clearAccessToken, setAccessToken } from "./tokenStorage";
 
 const AUTH_BASE = "/api/auth";
 
@@ -10,6 +10,9 @@ export async function register(registerDto) {
 
 export async function login(credentials) {
     const { data } = await apiClient.post(`${AUTH_BASE}/login`, credentials);
+
+    if (data?.accessToken) setAccessToken(data.accessToken);
+
     return data; // { accessToken, tokenType, expiresInSeconds }
 }
 

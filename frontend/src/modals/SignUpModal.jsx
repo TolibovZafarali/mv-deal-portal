@@ -129,7 +129,7 @@ export default function SignUpModal() {
 
         setForm((p) => ({ ...p, phone: formatted }));
 
-        window.requestAnimatedFrame(() => {
+        window.requestAnimationFrame(() => {
             const el = phoneRef.current;
             if (!el) return;
             const newPos = cursorPosFromDigitCount(formatted, digitsBeforeCursor);
@@ -175,7 +175,7 @@ export default function SignUpModal() {
                 setResult(res);
                 goStep(STEP_DONE);
             } catch (err) {
-                setError(err?.response?.data?.message || err?.message || "Sign up failed");
+                setError(err?.data?.message || err?.message || "Sign up failed");
             } finally {
                 setLoading(false);
             }
