@@ -98,3 +98,167 @@
     width: 100%;
   }
 }
+
+.adminProps__below {
+  border: 1px solid var(--admin-border);
+  border-top: none;
+  background: rgba(255, 255, 255, 0.55);
+}
+
+/* table */
+.adminProps__tableWrap {
+  overflow: auto;
+}
+
+.adminProps__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.adminProps__table thead th {
+  text-align: left;
+  font-size: 12px;
+  color: var(--admin-muted);
+  font-weight: 400;
+  padding: 12px 10px;
+  border-bottom: 1px solid var(--admin-border);
+  white-space: nowrap;
+}
+
+.adminProps__thRight {
+  text-align: right !important;
+}
+
+.adminProps__thCenter {
+  text-align: center !important;
+}
+
+.adminProps__thIcon {
+  width: 54px;
+}
+
+.adminProps__table tbody td {
+  padding: 12px 10px;
+  border-bottom: 1px solid rgba(16, 16, 16, 0.12);
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.adminProps__table tbody tr:hover {
+  background: rgba(16, 16, 16, 0.04);
+}
+
+.adminProps__tdAddress {
+  min-width: 320px;
+  white-space: normal;
+}
+
+.adminProps__addrMain {
+  font-size: 13px;
+}
+
+.adminProps__addrSub {
+  font-size: 12px;
+  color: var(--admin-muted);
+  margin-top: 2px;
+}
+
+.adminProps__tdRight {
+  text-align: right;
+}
+
+.adminProps__tdCenter {
+  text-align: center;
+}
+
+.adminProps__tdIcon {
+  text-align: right;
+}
+
+.adminProps__editBtn {
+  height: 34px;
+  width: 42px;
+  border: 1px solid var(--admin-ink);
+  background: transparent;
+  color: var(--admin-ink);
+  cursor: pointer;
+  display: inline-grid;
+  place-items: center;
+  transition: background 180ms ease, color 180ms ease, border-color 180ms ease;
+}
+
+.adminProps__editBtn:hover {
+  background: var(--admin-ink);
+  color: var(--admin-bg);
+}
+
+.adminProps__editBtn .material-symbols-outlined {
+  font-size: 18px;
+}
+
+/* pagination */
+.adminProps__pagination {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 10px;
+}
+
+.adminProps__pageNums {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.adminProps__pageBtn {
+  border: 1px solid var(--admin-ink);
+  background: transparent;
+  color: var(--admin-ink);
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: background 180ms ease, color 180ms ease, border-color 180ms ease;
+}
+
+.adminProps__pageBtn:hover {
+  background: var(--admin-ink);
+  color: var(--admin-bg);
+}
+
+.adminProps__pageBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.adminProps__pageBtn--num {
+  padding: 8px 10px;
+  min-width: 40px;
+}
+
+.adminProps__pageBtn--active {
+  background: var(--admin-ink);
+  color: var(--admin-bg);
+}
+
+.adminProps__dots {
+  color: var(--admin-muted);
+  padding: 0 6px;
+}
+
+.adminProps__pageMeta {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--admin-muted);
+  white-space: nowrap;
+}
+
+.adminProps__pageMetaNum {
+  color: var(--admin-ink);
+}
+
+/* keep your existing empty state */
+.adminProps__empty {
+  padding: 16px 12px;
+}
