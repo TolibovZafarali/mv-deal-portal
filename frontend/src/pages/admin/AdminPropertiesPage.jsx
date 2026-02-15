@@ -171,8 +171,7 @@ export default function AdminPropertiesPage() {
         setPageMeta({ totalPages: 0, totalElements: 0 });
         setError(e?.message || "Failed to load properties.");
       } finally {
-        if (!alive) return;
-        setLoading(false);
+        if (alive) setLoading(false);
       }
     }
 
