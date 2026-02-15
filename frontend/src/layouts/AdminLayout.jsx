@@ -1,19 +1,62 @@
-import { NavLink, Outlet } from "react-router-dom";
+import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import { useAuth } from "../auth";
+import "./AdminLayout.css";
 
 export default function AdminLayout() {
-  return (
-    <div style={{ display: "grid", gridTemplateColumns: "240px 1fr", height: "100%" }}>
-      <aside style={{ borderRight: "1px solid var(--border-muted)", padding: 16 }}>
-        <h3 style={{ marginTop: 0 }}>Admin</h3>
+  const { signOut } = useAuth();
+  const navigate = useNavigate();
 
-        <nav style={{ display: "grid", gap: 10 }}>
-          <NavLink to="properties">Properties</NavLink>
-          <NavLink to="investors">Investors</NavLink>
-          <NavLink to="inquiries">Inquiries</NavLink>
+  function handleLogout() {
+    signOut();
+    navigate("/", { replace: true });
+  }
+
+  return (
+    <div className="adminShell">
+      <aside className="adminSidebar">
+        <div className="adminBrand">
+          <img
+            src="/favicon.svg"
+            alt="Megna"
+            className="adminBrand__logo"
+          />
+        </div>
+
+        <nav className="adminNav" aria-label="Admin navigation">
+          <NavLink
+            to="properties"
+            className={({ isActive }) =>
+              `adminNav__link ${isActive ? "adminNav__link--active" : ""}`
+            }
+          >
+            Properties
+          </NavLink>
+          <NavLink
+            to="investors"
+            className={({ isActive }) =>
+              `adminNav__link ${isActive ? "adminNav__link--active" : ""}`
+            }
+          >
+            Investors
+          </NavLink>
+          <NavLink
+            to="inquiries"
+            className={({ isActive }) =>
+              `adminNav__link ${isActive ? "adminNav__link--active" : ""}`
+            }
+          >
+            Inquiries
+          </NavLink>
         </nav>
+
+        <div className="adminSidebar__spacer" />
+
+        <button className="adminLogout" type="button" onClick={handleLogout}>
+          Log Out
+        </button>
       </aside>
 
-      <main style={{ padding: 16 }}>
+      <main className="adminMain">
         <Outlet />
       </main>
     </div>
