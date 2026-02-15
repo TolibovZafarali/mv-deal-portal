@@ -1,21 +1,21 @@
-import { Link, Navigate, Route, Routes, useLocation } from "react-router-dom"
+import { Navigate, Route, Routes, useLocation } from "react-router-dom"
+import { ProtectedRoute, useAuth } from "./auth"
+import AdminLayout from "./layouts/AdminLayout"
+import InvestorLayout from "./layouts/InvestorLayout"
+import LoginModal from "./modals/LoginModal"
+import SignUpModal from "./modals/SignUpModal"
 import ApiSmokeTest from "./pages/ApiSmokeTest"
-import { ProtectedRoute, useAuth } from "./auth";
-import LoginModal from "./modals/LoginModal";
-import AdminLayout from "./layouts/AdminLayout";
-import AdminPropertiesPage from "./pages/admin/AdminPropertiesPage";
-import AdminInvestorsPage from "./pages/admin/AdminInvestorPage";
-import AdminInquiriesPage from "./pages/admin/AdminInquiriesPage";
-import InvestorLayout from "./layouts/InvestorLayout";
-import InvestorDashboard from "./pages/investor/InvestorDashboard";
-import InvestorPending from "./pages/investor/InvestorPending";
-import AppRedirect from "./pages/AppRedirect";
-import SignUpModal from "./modals/SignUpModal";
-import HomePage from "./pages/HomePage";
+import AppRedirect from "./pages/AppRedirect"
+import HomePage from "./pages/HomePage"
+import AdminInquiriesPage from "./pages/admin/AdminInquiriesPage"
+import AdminInvestorsPage from "./pages/admin/AdminInvestorPage"
+import AdminPropertiesPage from "./pages/admin/AdminPropertiesPage"
+import InvestorDashboard from "./pages/investor/InvestorDashboard"
+import InvestorPending from "./pages/investor/InvestorPending"
 
 function Home() {
-  const location = useLocation();
-  const { isAuthed, bootstrapping } = useAuth();
+  const location = useLocation()
+  const { isAuthed, bootstrapping } = useAuth()
 
   return (
     <HomePage
@@ -27,10 +27,11 @@ function Home() {
 }
 
 export default function App() {
-  const location = useLocation();
-  const backgroundLocation =
-    location.state?.modal ? location.state.backgroundLocation : null;
-  
+  const location = useLocation()
+  const backgroundLocation = location.state?.modal
+    ? location.state.backgroundLocation
+    : null
+
   return (
     <>
       <Routes location={backgroundLocation || location}>
@@ -66,7 +67,8 @@ export default function App() {
         <Routes>
           <Route path="/login" element={<LoginModal />} />
           <Route path="/signup" element={<SignUpModal />} />
-        </Routes>)}
+        </Routes>
+      )}
     </>
-  );
+  )
 }
