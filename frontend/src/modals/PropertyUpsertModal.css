@@ -304,3 +304,28 @@
   color: #fff;
   border-color: rgba(170, 38, 38, 0.95);
 }
+
+.propDeleteConfirm {
+  grid-column: 1 / -1;
+  border: 1px solid rgba(242, 242, 242, 0.22);
+  background: rgba(242, 242, 242, 0.06);
+  padding: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.propDeleteConfirm__text {
+  font-size: 12px;
+  color: var(--text);
+}
+
+.propDeleteConfirm__sub {
+  color: var(--muted);
+}
+
+.propDeleteConfirm__actions {
+  display: flex;
+  gap: 10px;
+}

@@ -63,6 +63,15 @@ export default function PropertyUpsertModal({
   const isEdit = mode === "edit";
 
   const [form, setForm] = useState(DEFAULT_FORM);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  useEffect(() => {
+    if (!open) setShowDeleteConfirm(false);
+  }, [open]);
+
+  useEffect(() => {
+    if (mode !== "edit") setShowDeleteConfirm(false);
+  }, [mode]);
 
   // hydrate for edit mode (later)
   useEffect(() => {
@@ -97,7 +106,7 @@ export default function PropertyUpsertModal({
       description: initialValue.description ?? "",
     });
   }, [open, initialValue]);
-
+  
   // esc + scroll lock
   useEffect(() => {
     if (!open) return;
@@ -129,6 +138,7 @@ export default function PropertyUpsertModal({
   }
 
   if (!open) return null;
+
 
   return (
     <div className="propModalOverlay" onMouseDown={onClose} role="dialog" aria-modal="true">
@@ -455,45 +465,66 @@ export default function PropertyUpsertModal({
           {deleteError ? <div className="propModal__error">{deleteError}</div> : null}
 
           {/* Actions */}
-          <div className="propActions">
-            {mode === "edit" ? (
-                <>
+        <div className="propActions">
+        {mode === "edit" ? (
+            showDeleteConfirm ? (
+            <div className="propDeleteConfirm">
+                <div className="propDeleteConfirm__text">
+                Delete this property? <span className="propDeleteConfirm__sub">(This cannot be undone)</span>
+                </div>
+
+                <div className="propDeleteConfirm__actions">
+                <button
+                    type="button"
+                    className="propBtn"
+                    disabled={submitting || deleting}
+                    onClick={() => setShowDeleteConfirm(false)}
+                >
+                    Cancel
+                </button>
+
                 <button
                     type="button"
                     className="propBtn propBtn--danger"
                     disabled={submitting || deleting}
-                    onClick={() => {
-                    if (!onDelete) return;
-
-                    const ok = window.confirm("Delete this property? This cannot be undone.");
-                    if (!ok) return;
-
-                    onDelete();
-                    }}
+                    onClick={() => onDelete?.()}
                 >
-                    {deleting ? "Deleting..." : "Delete"}
+                    {deleting ? "Deleting..." : "Yes, Delete"}
+                </button>
+                </div>
+            </div>
+            ) : (
+            <>
+                <button
+                type="button"
+                className="propBtn propBtn--danger"
+                disabled={submitting || deleting}
+                onClick={() => setShowDeleteConfirm(true)}
+                >
+                Delete
                 </button>
 
                 <button
-                    type="submit"
-                    className="propBtn propBtn--primary"
-                    disabled={!form.title.trim() || submitting || deleting}
+                type="submit"
+                className="propBtn propBtn--primary"
+                disabled={!form.title.trim() || submitting || deleting}
                 >
-                    {submitting ? "Saving..." : "Save"}
+                {submitting ? "Saving..." : "Save"}
                 </button>
-                </>
-            ) : (
-                <>
-                <button type="button" className="propBtn" onClick={onClose} disabled={submitting}>
-                    Cancel
-                </button>
+            </>
+            )
+        ) : (
+            <>
+            <button type="button" className="propBtn" onClick={onClose} disabled={submitting}>
+                Cancel
+            </button>
 
-                <button type="submit" className="propBtn propBtn--primary" disabled={!form.title.trim() || submitting}>
-                    {submitting ? "Adding..." : "Add"}
-                </button>
-                </>
-            )}
-            </div>
+            <button type="submit" className="propBtn propBtn--primary" disabled={!form.title.trim() || submitting}>
+                {submitting ? "Adding..." : "Add"}
+            </button>
+            </>
+        )}
+        </div>
         </form>
       </div>
     </div>
