@@ -292,3 +292,15 @@
   font-size: 12px;
   background: rgba(170, 38, 38, 0.08);
 }
+
+.propBtn--danger {
+  border: 1px solid rgba(170, 38, 38, 0.95);
+  color: rgba(170, 38, 38, 0.95);
+  background: transparent;
+}
+
+.propBtn--danger:hover {
+  background: rgba(170, 38, 38, 0.95);
+  color: #fff;
+  border-color: rgba(170, 38, 38, 0.95);
+}

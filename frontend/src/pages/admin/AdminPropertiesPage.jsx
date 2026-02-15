@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { createProperty, getPropertyId, searchProperties, updateProperty } from "../../api/propertyApi";
+import { createProperty, deleteProperty, getPropertyId, searchProperties, updateProperty } from "../../api/propertyApi";
 import "./AdminPropertiesPage.css";
 import PropertyUpsertModal from "../../modals/PropertyUpsertModal";
 
@@ -152,6 +152,9 @@ export default function AdminPropertiesPage() {
   const [editSubmitting, setEditSubmitting] = useState(false);
   const [editError, setEditError] = useState("");
   const [editLoadError, setEditLoadError] = useState("");
+
+  const [editDeleting, setEditDeleting] = useState(false);
+  const [editDeleteError, setEditDeleteError] = useState("");
 
   function updateFilter(key, value) {
     setFilters((prev) => ({ ...prev, [key]: value }));
@@ -337,8 +340,30 @@ export default function AdminPropertiesPage() {
       setEditSubmitting(false);
     }
   }
+
+  async function handleEditDelete() {
+    if (!editId) return;
   
+    setEditDeleting(true);
+    setEditDeleteError("");
   
+    try {
+      await deleteProperty(editId);
+  
+      setEditOpen(false);
+      setEditId(null);
+      setEditInitial(null);
+      setEditError("");
+      setEditLoadError("");
+  
+      setPage(0);
+      setRefreshKey((k) => k + 1);
+    } catch (e) {
+      setEditDeleteError(e?.message || "Failed to delete property.");
+    } finally {
+      setEditDeleting(false);
+    }
+  }  
 
   return (
     <section className="adminProps">
@@ -509,15 +534,19 @@ export default function AdminPropertiesPage() {
         mode="edit"
         initialValue={editInitial}
         onClose={() => {
-            if (editSubmitting) return;
+            if (editSubmitting || editDeleting) return;
             setEditOpen(false);
             setEditId(null);
             setEditInitial(null);
             setEditError("");
+            setEditDeleteError("");
         }}
         onSubmit={handleEditSubmit}
         submitting={editSubmitting}
         submitError={editError}
+        onDelete={handleEditDelete}
+        deleting={editDeleting}
+        deleteError={editDeleteError}
         />
     </section>
   );

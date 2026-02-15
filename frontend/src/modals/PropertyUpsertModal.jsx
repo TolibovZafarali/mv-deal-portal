@@ -54,8 +54,11 @@ export default function PropertyUpsertModal({
   initialValue = null,
   onClose,
   onSubmit,
+  onDelete,
   submitting = false,
   submitError = "",
+  deleting = false,
+  deleteError = "",
 }) {
   const isEdit = mode === "edit";
 
@@ -447,22 +450,50 @@ export default function PropertyUpsertModal({
             </div>
           </div>
 
+          {/* errors */}
           {submitError ? <div className="propModal__error">{submitError}</div> : null}
+          {deleteError ? <div className="propModal__error">{deleteError}</div> : null}
 
           {/* Actions */}
           <div className="propActions">
-            <button type="button" className="propBtn" onClick={onClose}>
-              Cancel
-            </button>
+            {mode === "edit" ? (
+                <>
+                <button
+                    type="button"
+                    className="propBtn propBtn--danger"
+                    disabled={submitting || deleting}
+                    onClick={() => {
+                    if (!onDelete) return;
 
-            <button 
-                type="submit" 
-                className="propBtn propBtn--primary" 
-                disabled={!form.title.trim()}
-            >
-              {submitting ? (isEdit ? "Saving..." : "Adding...") : isEdit ? "Save" : "Add"}
-            </button>
-          </div>
+                    const ok = window.confirm("Delete this property? This cannot be undone.");
+                    if (!ok) return;
+
+                    onDelete();
+                    }}
+                >
+                    {deleting ? "Deleting..." : "Delete"}
+                </button>
+
+                <button
+                    type="submit"
+                    className="propBtn propBtn--primary"
+                    disabled={!form.title.trim() || submitting || deleting}
+                >
+                    {submitting ? "Saving..." : "Save"}
+                </button>
+                </>
+            ) : (
+                <>
+                <button type="button" className="propBtn" onClick={onClose} disabled={submitting}>
+                    Cancel
+                </button>
+
+                <button type="submit" className="propBtn propBtn--primary" disabled={!form.title.trim() || submitting}>
+                    {submitting ? "Adding..." : "Add"}
+                </button>
+                </>
+            )}
+            </div>
         </form>
       </div>
     </div>
