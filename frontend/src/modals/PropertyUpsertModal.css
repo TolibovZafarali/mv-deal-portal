@@ -226,7 +226,10 @@
   color: var(--text);
   padding: 10px 12px;
   cursor: pointer;
-  transition: background 180ms ease, color 180ms ease, border-color 180ms ease;
+  transition:
+    background 180ms ease,
+    color 180ms ease,
+    border-color 180ms ease;
 }
 
 .propStatus__btn:hover {
@@ -253,7 +256,10 @@
   color: var(--text);
   padding: 12px 14px;
   cursor: pointer;
-  transition: background 180ms ease, color 180ms ease, border-color 180ms ease;
+  transition:
+    background 180ms ease,
+    color 180ms ease,
+    border-color 180ms ease;
 }
 
 .propBtn:hover {

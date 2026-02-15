@@ -1,5 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
-import { createProperty, deleteProperty, getPropertyId, searchProperties, updateProperty } from "../../api/propertyApi";
+import {
+  createProperty,
+  deleteProperty,
+  getPropertyId,
+  searchProperties,
+  updateProperty,
+} from "../../api/propertyApi";
 import "./AdminPropertiesPage.css";
 import PropertyUpsertModal from "../../modals/PropertyUpsertModal";
 
@@ -58,8 +64,18 @@ function prettyEnum(v) {
 function buildPages(current, total) {
   if (total <= 7) return Array.from({ length: total }, (_, i) => i);
 
-  const pages = new Set([0, 1, total - 2, total - 1, current - 1, current, current + 1]);
-  const sorted = [...pages].filter((p) => p >= 0 && p < total).sort((a, b) => a - b);
+  const pages = new Set([
+    0,
+    1,
+    total - 2,
+    total - 1,
+    current - 1,
+    current,
+    current + 1,
+  ]);
+  const sorted = [...pages]
+    .filter((p) => p >= 0 && p < total)
+    .sort((a, b) => a - b);
 
   const out = [];
   for (let i = 0; i < sorted.length; i++) {
@@ -104,7 +120,7 @@ function Pagination({ page, totalPages, onPageChange }) {
             >
               {it + 1}
             </button>
-          )
+          ),
         )}
       </div>
 
@@ -208,7 +224,7 @@ export default function AdminPropertiesPage() {
     const s = String(v ?? "").trim();
     return s.length ? s : null;
   }
-  
+
   function parseNum(v) {
     const raw = String(v ?? "").trim();
     if (!raw) return null;
@@ -216,18 +232,18 @@ export default function AdminPropertiesPage() {
     const n = Number(normalized);
     return Number.isFinite(n) ? n : null;
   }
-  
+
   function parseIntNum(v) {
     const n = parseNum(v);
     if (n === null) return null;
     const i = Number.parseInt(String(n), 10);
     return Number.isFinite(i) ? i : null;
   }
-  
+
   async function handleAddSubmit(form) {
     setAddSubmitting(true);
     setAddError("");
-  
+
     try {
       const dto = {
         status: form.status,
@@ -237,31 +253,31 @@ export default function AdminPropertiesPage() {
         city: cleanStr(form.city),
         state: cleanStr(form.state),
         zip: cleanStr(form.zip),
-  
+
         askingPrice: parseNum(form.askingPrice),
         arv: parseNum(form.arv),
         estRepairs: parseNum(form.estRepairs),
-  
+
         beds: parseIntNum(form.beds),
         baths: parseNum(form.baths),
         livingAreaSqft: parseIntNum(form.livingAreaSqft),
         yearBuilt: parseIntNum(form.yearBuilt),
         roofAge: parseIntNum(form.roofAge),
         hvac: parseIntNum(form.hvac),
-  
+
         occupancyStatus: cleanStr(form.occupancyStatus),
         exitStrategy: cleanStr(form.exitStrategy),
         closingTerms: cleanStr(form.closingTerms),
-  
+
         description: cleanStr(form.description),
-  
+
         // leave these null for MVP
         photos: null,
         saleComps: null,
       };
-  
+
       await createProperty(dto);
-  
+
       setAddOpen(false);
       setPage(0);
       setRefreshKey((k) => k + 1); // forces reload even if already on page 0
@@ -270,7 +286,7 @@ export default function AdminPropertiesPage() {
     } finally {
       setAddSubmitting(false);
     }
-  }  
+  }
 
   function formToUpsertDto(form) {
     return {
@@ -281,24 +297,24 @@ export default function AdminPropertiesPage() {
       city: cleanStr(form.city),
       state: cleanStr(form.state),
       zip: cleanStr(form.zip),
-  
+
       askingPrice: parseNum(form.askingPrice),
       arv: parseNum(form.arv),
       estRepairs: parseNum(form.estRepairs),
-  
+
       beds: parseIntNum(form.beds),
       baths: parseNum(form.baths),
       livingAreaSqft: parseIntNum(form.livingAreaSqft),
       yearBuilt: parseIntNum(form.yearBuilt),
       roofAge: parseIntNum(form.roofAge),
       hvac: parseIntNum(form.hvac),
-  
+
       occupancyStatus: cleanStr(form.occupancyStatus),
       exitStrategy: cleanStr(form.exitStrategy),
       closingTerms: cleanStr(form.closingTerms),
-  
+
       description: cleanStr(form.description),
-  
+
       photos: null,
       saleComps: null,
     };
@@ -308,7 +324,7 @@ export default function AdminPropertiesPage() {
     setEditLoadError("");
     setEditError("");
     setEditSubmitting(false);
-  
+
     try {
       const full = await getPropertyId(id);
       setEditId(id);
@@ -318,21 +334,21 @@ export default function AdminPropertiesPage() {
       setEditLoadError(e?.message || "Failed to load property details.");
     }
   }
-  
+
   async function handleEditSubmit(form) {
     if (!editId) return;
-  
+
     setEditSubmitting(true);
     setEditError("");
-  
+
     try {
       const dto = formToUpsertDto(form);
       await updateProperty(editId, dto);
-  
+
       setEditOpen(false);
       setEditId(null);
       setEditInitial(null);
-  
+
       setRefreshKey((k) => k + 1); // refresh list, keep same page
     } catch (e) {
       setEditError(e?.message || "Failed to update property.");
@@ -343,19 +359,19 @@ export default function AdminPropertiesPage() {
 
   async function handleEditDelete() {
     if (!editId) return;
-  
+
     setEditDeleting(true);
     setEditDeleteError("");
-  
+
     try {
       await deleteProperty(editId);
-  
+
       setEditOpen(false);
       setEditId(null);
       setEditInitial(null);
       setEditError("");
       setEditLoadError("");
-  
+
       setPage(0);
       setRefreshKey((k) => k + 1);
     } catch (e) {
@@ -363,7 +379,7 @@ export default function AdminPropertiesPage() {
     } finally {
       setEditDeleting(false);
     }
-  }  
+  }
 
   return (
     <section className="adminProps">
@@ -371,7 +387,10 @@ export default function AdminPropertiesPage() {
         <h1 className="adminProps__title">Properties</h1>
       </header>
 
-      <form className="adminProps__filters" onSubmit={(e) => e.preventDefault()}>
+      <form
+        className="adminProps__filters"
+        onSubmit={(e) => e.preventDefault()}
+      >
         <div className="adminProps__filterRow">
           <label className="adminProps__filter">
             <span className="adminProps__label">Occupancy Status</span>
@@ -439,7 +458,7 @@ export default function AdminPropertiesPage() {
             title="Add Property"
             aria-label="Add Property"
             onClick={() => {
-              setAddOpen(true)
+              setAddOpen(true);
             }}
           >
             <span className="material-symbols-outlined">add_home_work</span>
@@ -449,7 +468,9 @@ export default function AdminPropertiesPage() {
 
       <div className="adminProps__below">
         {!hasRows ? (
-          <div className={`adminProps__notice ${error ? "adminProps__notice--error" : ""}`}>
+          <div
+            className={`adminProps__notice ${error ? "adminProps__notice--error" : ""}`}
+          >
             {tableCaption}
           </div>
         ) : (
@@ -477,20 +498,32 @@ export default function AdminPropertiesPage() {
                     <tr key={p.id}>
                       <td className="adminProps__tdAddress">
                         <div className="adminProps__addrMain">{p.street1}</div>
-                        <div className="adminProps__addrSub">{fullAddress(p)}</div>
+                        <div className="adminProps__addrSub">
+                          {fullAddress(p)}
+                        </div>
                       </td>
 
-                      <td className="adminProps__tdRight">{money(p.askingPrice)}</td>
+                      <td className="adminProps__tdRight">
+                        {money(p.askingPrice)}
+                      </td>
                       <td className="adminProps__tdRight">{money(p.arv)}</td>
-                      <td className="adminProps__tdRight">{money(p.estRepairs)}</td>
-                      <td className="adminProps__tdCenter">{prettyEnum(p.exitStrategy)}</td>
+                      <td className="adminProps__tdRight">
+                        {money(p.estRepairs)}
+                      </td>
+                      <td className="adminProps__tdCenter">
+                        {prettyEnum(p.exitStrategy)}
+                      </td>
                       <td className="adminProps__tdRight">
                         {p.livingAreaSqft?.toLocaleString("en-US") ?? "—"}
                       </td>
                       <td className="adminProps__tdCenter">{p.beds ?? "—"}</td>
                       <td className="adminProps__tdCenter">{p.baths ?? "—"}</td>
-                      <td className="adminProps__tdCenter">{p.yearBuilt ?? "—"}</td>
-                      <td className="adminProps__tdCenter">{prettyEnum(p.status)}</td>
+                      <td className="adminProps__tdCenter">
+                        {p.yearBuilt ?? "—"}
+                      </td>
+                      <td className="adminProps__tdCenter">
+                        {prettyEnum(p.status)}
+                      </td>
 
                       <td className="adminProps__tdIcon">
                         <button
@@ -500,7 +533,9 @@ export default function AdminPropertiesPage() {
                           aria-label={`Edit property ${p.id}`}
                           onClick={() => openEditModal(p.id)}
                         >
-                          <span className="material-symbols-outlined">edit</span>
+                          <span className="material-symbols-outlined">
+                            edit
+                          </span>
                         </button>
                       </td>
                     </tr>
@@ -509,7 +544,11 @@ export default function AdminPropertiesPage() {
               </table>
             </div>
 
-            <Pagination page={page} totalPages={pageMeta.totalPages} onPageChange={setPage} />
+            <Pagination
+              page={page}
+              totalPages={pageMeta.totalPages}
+              onPageChange={setPage}
+            />
           </>
         )}
       </div>
@@ -518,28 +557,30 @@ export default function AdminPropertiesPage() {
         open={addOpen}
         mode="add"
         onClose={() => {
-            if (!addSubmitting) setAddOpen(false);
+          if (!addSubmitting) setAddOpen(false);
         }}
         onSubmit={handleAddSubmit}
         submitting={addSubmitting}
         submitError={addError}
       />
 
-        {editLoadError ? (
-        <div className="adminProps__notice adminProps__notice--error">{editLoadError}</div>
-        ) : null}
+      {editLoadError ? (
+        <div className="adminProps__notice adminProps__notice--error">
+          {editLoadError}
+        </div>
+      ) : null}
 
-        <PropertyUpsertModal
+      <PropertyUpsertModal
         open={editOpen}
         mode="edit"
         initialValue={editInitial}
         onClose={() => {
-            if (editSubmitting || editDeleting) return;
-            setEditOpen(false);
-            setEditId(null);
-            setEditInitial(null);
-            setEditError("");
-            setEditDeleteError("");
+          if (editSubmitting || editDeleting) return;
+          setEditOpen(false);
+          setEditId(null);
+          setEditInitial(null);
+          setEditError("");
+          setEditDeleteError("");
         }}
         onSubmit={handleEditSubmit}
         submitting={editSubmitting}
@@ -547,7 +588,7 @@ export default function AdminPropertiesPage() {
         onDelete={handleEditDelete}
         deleting={editDeleting}
         deleteError={editDeleteError}
-        />
+      />
     </section>
   );
 }

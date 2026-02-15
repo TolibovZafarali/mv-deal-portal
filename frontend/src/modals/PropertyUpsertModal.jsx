@@ -106,7 +106,7 @@ export default function PropertyUpsertModal({
       description: initialValue.description ?? "",
     });
   }, [open, initialValue]);
-  
+
   // esc + scroll lock
   useEffect(() => {
     if (!open) return;
@@ -125,7 +125,10 @@ export default function PropertyUpsertModal({
     };
   }, [open, onClose]);
 
-  const titleText = useMemo(() => (isEdit ? "Edit Property" : "Add Property"), [isEdit]);
+  const titleText = useMemo(
+    () => (isEdit ? "Edit Property" : "Add Property"),
+    [isEdit],
+  );
 
   function setField(key, value) {
     setForm((p) => ({ ...p, [key]: value }));
@@ -139,9 +142,13 @@ export default function PropertyUpsertModal({
 
   if (!open) return null;
 
-
   return (
-    <div className="propModalOverlay" onMouseDown={onClose} role="dialog" aria-modal="true">
+    <div
+      className="propModalOverlay"
+      onMouseDown={onClose}
+      role="dialog"
+      aria-modal="true"
+    >
       <div className="propModal" onMouseDown={(e) => e.stopPropagation()}>
         <div className="propModal__header">
           <h2 className="propModal__title">{titleText}</h2>
@@ -190,7 +197,9 @@ export default function PropertyUpsertModal({
               </div>
 
               <div className="propField">
-                <div className="propField__label">Apt, suite, etc (optional)</div>
+                <div className="propField__label">
+                  Apt, suite, etc (optional)
+                </div>
                 <input
                   className="propField__input"
                   value={form.street2}
@@ -461,70 +470,86 @@ export default function PropertyUpsertModal({
           </div>
 
           {/* errors */}
-          {submitError ? <div className="propModal__error">{submitError}</div> : null}
-          {deleteError ? <div className="propModal__error">{deleteError}</div> : null}
+          {submitError ? (
+            <div className="propModal__error">{submitError}</div>
+          ) : null}
+          {deleteError ? (
+            <div className="propModal__error">{deleteError}</div>
+          ) : null}
 
           {/* Actions */}
-        <div className="propActions">
-        {mode === "edit" ? (
-            showDeleteConfirm ? (
-            <div className="propDeleteConfirm">
-                <div className="propDeleteConfirm__text">
-                Delete this property? <span className="propDeleteConfirm__sub">(This cannot be undone)</span>
+          <div className="propActions">
+            {mode === "edit" ? (
+              showDeleteConfirm ? (
+                <div className="propDeleteConfirm">
+                  <div className="propDeleteConfirm__text">
+                    Delete this property?{" "}
+                    <span className="propDeleteConfirm__sub">
+                      (This cannot be undone)
+                    </span>
+                  </div>
+
+                  <div className="propDeleteConfirm__actions">
+                    <button
+                      type="button"
+                      className="propBtn"
+                      disabled={submitting || deleting}
+                      onClick={() => setShowDeleteConfirm(false)}
+                    >
+                      Cancel
+                    </button>
+
+                    <button
+                      type="button"
+                      className="propBtn propBtn--danger"
+                      disabled={submitting || deleting}
+                      onClick={() => onDelete?.()}
+                    >
+                      {deleting ? "Deleting..." : "Yes, Delete"}
+                    </button>
+                  </div>
                 </div>
-
-                <div className="propDeleteConfirm__actions">
-                <button
-                    type="button"
-                    className="propBtn"
-                    disabled={submitting || deleting}
-                    onClick={() => setShowDeleteConfirm(false)}
-                >
-                    Cancel
-                </button>
-
-                <button
+              ) : (
+                <>
+                  <button
                     type="button"
                     className="propBtn propBtn--danger"
                     disabled={submitting || deleting}
-                    onClick={() => onDelete?.()}
-                >
-                    {deleting ? "Deleting..." : "Yes, Delete"}
-                </button>
-                </div>
-            </div>
+                    onClick={() => setShowDeleteConfirm(true)}
+                  >
+                    Delete
+                  </button>
+
+                  <button
+                    type="submit"
+                    className="propBtn propBtn--primary"
+                    disabled={!form.title.trim() || submitting || deleting}
+                  >
+                    {submitting ? "Saving..." : "Save"}
+                  </button>
+                </>
+              )
             ) : (
-            <>
+              <>
                 <button
-                type="button"
-                className="propBtn propBtn--danger"
-                disabled={submitting || deleting}
-                onClick={() => setShowDeleteConfirm(true)}
+                  type="button"
+                  className="propBtn"
+                  onClick={onClose}
+                  disabled={submitting}
                 >
-                Delete
+                  Cancel
                 </button>
 
                 <button
-                type="submit"
-                className="propBtn propBtn--primary"
-                disabled={!form.title.trim() || submitting || deleting}
+                  type="submit"
+                  className="propBtn propBtn--primary"
+                  disabled={!form.title.trim() || submitting}
                 >
-                {submitting ? "Saving..." : "Save"}
+                  {submitting ? "Adding..." : "Add"}
                 </button>
-            </>
-            )
-        ) : (
-            <>
-            <button type="button" className="propBtn" onClick={onClose} disabled={submitting}>
-                Cancel
-            </button>
-
-            <button type="submit" className="propBtn propBtn--primary" disabled={!form.title.trim() || submitting}>
-                {submitting ? "Adding..." : "Add"}
-            </button>
-            </>
-        )}
-        </div>
+              </>
+            )}
+          </div>
         </form>
       </div>
     </div>
