@@ -1,0 +1,266 @@
+.propModalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(10px);
+  display: grid;
+  place-items: center;
+  z-index: 9999;
+  padding: 16px;
+}
+
+.propModal {
+  width: min(980px, 94vw);
+  max-height: 90vh;
+  overflow: auto;
+
+  background: rgba(16, 16, 16, 0.96);
+  border: 1px solid var(--border-muted);
+  box-shadow: 0 20px 80px rgba(0, 0, 0, 0.55);
+}
+
+.propModal__header {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: rgba(16, 16, 16, 0.96);
+  border-bottom: 1px solid var(--border-muted);
+
+  padding: 14px 14px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.propModal__title {
+  margin: 0;
+  font-size: 18px;
+  letter-spacing: 0.2px;
+}
+
+.propModal__close {
+  cursor: pointer;
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  font-size: 20px;
+  line-height: 1;
+  color: var(--text);
+}
+
+.propModal__body {
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* sections */
+.propSection {
+  border-top: 1px solid var(--border-muted);
+  padding-top: 12px;
+}
+
+.propSection__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.propSection__head--row {
+  margin-bottom: 8px;
+}
+
+.propSection__title {
+  font-size: 14px;
+  color: var(--text);
+  letter-spacing: 0.2px;
+}
+
+/* fields */
+.propField {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.propField__label {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.propField__input {
+  border: 1px solid var(--border-muted);
+  background: transparent;
+  color: var(--text);
+  padding: 10px 10px;
+  outline: none;
+  font-family: inherit;
+}
+
+.propField__input:focus {
+  border-color: var(--text);
+}
+
+.propGrid {
+  display: grid;
+  gap: 10px;
+}
+
+.propGrid--2 {
+  grid-template-columns: 1fr 1fr;
+}
+
+.propGrid--3 {
+  grid-template-columns: 1fr 1fr 1fr;
+}
+
+.propGrid--4 {
+  grid-template-columns: 1fr 1fr 1fr 1fr;
+}
+
+.propGrid--tightTop {
+  margin-top: 10px;
+}
+
+/* link-like small button on right (Add Photo/Add Comp) */
+.propLinkBtn {
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 0;
+  font-size: 12px;
+}
+
+.propLinkBtn:hover {
+  color: var(--text);
+}
+
+/* photos */
+.propPhotos {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 10px;
+}
+
+.propPhotoSlot {
+  height: 70px;
+  border: 1px solid var(--border-muted);
+  background: rgba(242, 242, 242, 0.08);
+}
+
+/* comps table */
+.propCompsTableWrap {
+  overflow: auto;
+  border: 1px solid var(--border-muted);
+}
+
+.propCompsTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.propCompsTable thead th {
+  text-align: left;
+  color: var(--muted);
+  font-weight: 400;
+  padding: 10px 10px;
+  border-bottom: 1px solid var(--border-muted);
+  white-space: nowrap;
+}
+
+.propCompsTable tbody td {
+  padding: 10px 10px;
+  border-bottom: 1px solid rgba(242, 242, 242, 0.12);
+  white-space: nowrap;
+}
+
+.propCompsEmpty {
+  color: var(--muted);
+  text-align: center;
+}
+
+.tRight {
+  text-align: right !important;
+}
+
+.tIcon {
+  width: 44px;
+}
+
+/* status */
+.propStatus {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 10px;
+}
+
+.propStatus__btn {
+  border: 1px solid var(--border-muted);
+  background: transparent;
+  color: var(--text);
+  padding: 10px 12px;
+  cursor: pointer;
+  transition: background 180ms ease, color 180ms ease, border-color 180ms ease;
+}
+
+.propStatus__btn:hover {
+  border-color: var(--text);
+}
+
+.propStatus__btn--active {
+  background: var(--text);
+  color: var(--bg);
+  border-color: var(--text);
+}
+
+/* actions */
+.propActions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.propBtn {
+  border: 1px solid var(--text);
+  background: transparent;
+  color: var(--text);
+  padding: 12px 14px;
+  cursor: pointer;
+  transition: background 180ms ease, color 180ms ease, border-color 180ms ease;
+}
+
+.propBtn:hover {
+  background: var(--text);
+  color: var(--bg);
+}
+
+.propBtn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.propBtn--primary {
+  /* same style, but keep class for future if you want it */
+}
+
+/* responsive */
+@media (max-width: 1000px) {
+  .propGrid--4 {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .propGrid--3 {
+    grid-template-columns: 1fr;
+  }
+
+  .propPhotos {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}

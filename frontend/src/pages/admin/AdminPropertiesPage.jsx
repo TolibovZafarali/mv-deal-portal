@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { searchProperties } from "../../api/propertyApi";
 import "./AdminPropertiesPage.css";
+import PropertyUpsertModal from "../../modals/PropertyUpsertModal";
 
 const PAGE_SIZE = 20;
 
@@ -139,6 +140,8 @@ export default function AdminPropertiesPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  const [addOpen, setAddOpen] = useState(false);
+
   function updateFilter(key, value) {
     setFilters((prev) => ({ ...prev, [key]: value }));
     setPage(0);
@@ -262,7 +265,7 @@ export default function AdminPropertiesPage() {
             title="Add Property"
             aria-label="Add Property"
             onClick={() => {
-              // Step 5: open Add Property modal
+              setAddOpen(true)
             }}
           >
             <span className="material-symbols-outlined">add_home_work</span>
@@ -339,6 +342,12 @@ export default function AdminPropertiesPage() {
           </>
         )}
       </div>
+
+      <PropertyUpsertModal
+        open={addOpen}
+        mode="add"
+        onClose={() => setAddOpen(false)}
+      />
     </section>
   );
 }
