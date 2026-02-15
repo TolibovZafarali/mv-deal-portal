@@ -1,39 +1,44 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { searchProperties } from "../../api/propertyApi";
 import "./AdminPropertiesPage.css";
-
-const EXIT_STRATEGIES = ["All", "Rental", "Fix & Flip", "Wholesale", "Wholetail"];
-const CLOSING_TERMS = ["All", "Cash Only", "Hard Money", "Conventional", "Seller Finance"];
-const STATUSES = ["All", "Draft", "Active", "Closed"];
 
 const PAGE_SIZE = 20;
 
-// DEV-only demo rows so you can see the table/pagination immediately.
-// Step 4 will replace this with backend data (searchProperties/getProperties).
-const DEMO_PROPERTIES = Array.from({ length: 47 }, (_, i) => {
-  const n = i + 1;
-  return {
-    id: n,
-    status: n % 3 === 0 ? "Active" : n % 3 === 1 ? "Draft" : "Closed",
-    title: `House #${n}`,
-    street1: `${120 + (n % 60)} Main St`,
-    street2: n % 5 === 0 ? `Apt ${n % 12}` : "",
-    city: "Saint Louis",
-    state: "Missouri",
-    zip: `631${10 + (n % 20)}`,
-    askingPrice: 215000 + n * 900,
-    arv: 330000 + n * 1200,
-    estRepairs: 42000 + n * 250,
-    beds: 2 + (n % 4),
-    baths: 1 + (n % 3) * 0.5,
-    livingAreaSqft: 980 + n * 9,
-    yearBuilt: 1950 + (n % 60),
-    exitStrategy: n % 2 === 0 ? "Rental" : "Fix & Flip",
-  };
-});
+const OCCUPANCY = [
+  { label: "All", value: "" },
+  { label: "Vacant", value: "VACANT" },
+  { label: "Tenant", value: "TENANT" },
+];
+
+const EXIT_STRATEGIES = [
+  { label: "All", value: "" },
+  { label: "Flip", value: "FLIP" },
+  { label: "Rental", value: "RENTAL" },
+  { label: "Wholesale", value: "WHOLESALE" },
+];
+
+const CLOSING_TERMS = [
+  { label: "All", value: "" },
+  { label: "Cash Only", value: "Cash Only" },
+  { label: "Hard Money", value: "Hard Money" },
+  { label: "Conventional", value: "Conventional" },
+  { label: "Seller Finance", value: "Seller Finance" },
+];
+
+const STATUSES = [
+  { label: "All", value: "" },
+  { label: "Draft", value: "DRAFT" },
+  { label: "Active", value: "ACTIVE" },
+  { label: "Closed", value: "CLOSED" },
+];
 
 function money(v) {
   if (v === null || v === undefined || Number.isNaN(Number(v))) return "—";
-  return Number(v).toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
+  return Number(v).toLocaleString("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
+  });
 }
 
 function fullAddress(p) {
@@ -41,8 +46,15 @@ function fullAddress(p) {
   return `${line1}, ${p.city}, ${p.state} ${p.zip}`;
 }
 
+function prettyEnum(v) {
+  if (!v) return "—";
+  return String(v)
+    .toLowerCase()
+    .replaceAll("_", " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 function buildPages(current, total) {
-  // Keeps it clean: show first, last, and a window around current with ellipses.
   if (total <= 7) return Array.from({ length: total }, (_, i) => i);
 
   const pages = new Set([0, 1, total - 2, total - 1, current - 1, current, current + 1]);
@@ -114,36 +126,67 @@ function Pagination({ page, totalPages, onPageChange }) {
 
 export default function AdminPropertiesPage() {
   const [filters, setFilters] = useState({
-    address: "",
-    exitStrategy: "All",
-    closingTerms: "All",
-    status: "All",
+    occupancyStatus: "",
+    exitStrategy: "",
+    closingTerms: "",
+    status: "",
   });
-
-  // DEV: show table before backend wiring
-  const [properties] = useState(() => (import.meta.env.DEV ? DEMO_PROPERTIES : []));
 
   const [page, setPage] = useState(0);
 
+  const [rows, setRows] = useState([]);
+  const [pageMeta, setPageMeta] = useState({ totalPages: 0, totalElements: 0 });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
   function updateFilter(key, value) {
     setFilters((prev) => ({ ...prev, [key]: value }));
-    setPage(0); // UX: if filters change, reset to first page
+    setPage(0);
   }
 
-  function onSubmit(e) {
-    e.preventDefault();
-    // Step 4: wire this up to backend requests + pagination.
-  }
+  useEffect(() => {
+    let alive = true;
 
-  const totalPages = useMemo(() => {
-    if (!properties.length) return 0;
-    return Math.ceil(properties.length / PAGE_SIZE);
-  }, [properties.length]);
+    async function load() {
+      setLoading(true);
+      setError("");
 
-  const visibleRows = useMemo(() => {
-    const start = page * PAGE_SIZE;
-    return properties.slice(start, start + PAGE_SIZE);
-  }, [properties, page]);
+      try {
+        const data = await searchProperties(filters, { page, size: PAGE_SIZE });
+
+        if (!alive) return;
+
+        setRows(data?.content ?? []);
+        setPageMeta({
+          totalPages: data?.totalPages ?? 0,
+          totalElements: data?.totalElements ?? 0,
+        });
+      } catch (e) {
+        if (!alive) return;
+
+        setRows([]);
+        setPageMeta({ totalPages: 0, totalElements: 0 });
+        setError(e?.message || "Failed to load properties.");
+      } finally {
+        if (!alive) return;
+        setLoading(false);
+      }
+    }
+
+    load();
+    return () => {
+      alive = false;
+    };
+  }, [filters, page]);
+
+  const hasRows = rows.length > 0;
+
+  const tableCaption = useMemo(() => {
+    if (loading) return "Loading properties…";
+    if (error) return error;
+    if (!hasRows) return "No properties found.";
+    return `${pageMeta.totalElements.toLocaleString("en-US")} total properties`;
+  }, [loading, error, hasRows, pageMeta.totalElements]);
 
   return (
     <section className="adminProps">
@@ -151,16 +194,21 @@ export default function AdminPropertiesPage() {
         <h1 className="adminProps__title">Properties</h1>
       </header>
 
-      <form className="adminProps__filters" onSubmit={onSubmit}>
+      <form className="adminProps__filters" onSubmit={(e) => e.preventDefault()}>
         <div className="adminProps__filterRow">
           <label className="adminProps__filter">
-            <span className="adminProps__label">Address</span>
-            <input
+            <span className="adminProps__label">Occupancy Status</span>
+            <select
               className="adminProps__input"
-              value={filters.address}
-              onChange={(e) => updateFilter("address", e.target.value)}
-              placeholder="Search address"
-            />
+              value={filters.occupancyStatus}
+              onChange={(e) => updateFilter("occupancyStatus", e.target.value)}
+            >
+              {OCCUPANCY.map((o) => (
+                <option key={o.label} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
           </label>
 
           <label className="adminProps__filter">
@@ -170,9 +218,9 @@ export default function AdminPropertiesPage() {
               value={filters.exitStrategy}
               onChange={(e) => updateFilter("exitStrategy", e.target.value)}
             >
-              {EXIT_STRATEGIES.map((s) => (
-                <option key={s} value={s}>
-                  {s}
+              {EXIT_STRATEGIES.map((o) => (
+                <option key={o.label} value={o.value}>
+                  {o.label}
                 </option>
               ))}
             </select>
@@ -185,9 +233,9 @@ export default function AdminPropertiesPage() {
               value={filters.closingTerms}
               onChange={(e) => updateFilter("closingTerms", e.target.value)}
             >
-              {CLOSING_TERMS.map((s) => (
-                <option key={s} value={s}>
-                  {s}
+              {CLOSING_TERMS.map((o) => (
+                <option key={o.label} value={o.value}>
+                  {o.label}
                 </option>
               ))}
             </select>
@@ -200,9 +248,9 @@ export default function AdminPropertiesPage() {
               value={filters.status}
               onChange={(e) => updateFilter("status", e.target.value)}
             >
-              {STATUSES.map((s) => (
-                <option key={s} value={s}>
-                  {s}
+              {STATUSES.map((o) => (
+                <option key={o.label} value={o.value}>
+                  {o.label}
                 </option>
               ))}
             </select>
@@ -214,7 +262,7 @@ export default function AdminPropertiesPage() {
             title="Add Property"
             aria-label="Add Property"
             onClick={() => {
-              // Step 4/5: open Add Property modal
+              // Step 5: open Add Property modal
             }}
           >
             <span className="material-symbols-outlined">add_home_work</span>
@@ -223,8 +271,10 @@ export default function AdminPropertiesPage() {
       </form>
 
       <div className="adminProps__below">
-        {properties.length === 0 ? (
-          <div className="adminProps__empty">No properties loaded yet.</div>
+        {!hasRows ? (
+          <div className={`adminProps__notice ${error ? "adminProps__notice--error" : ""}`}>
+            {tableCaption}
+          </div>
         ) : (
           <>
             <div className="adminProps__tableWrap">
@@ -246,7 +296,7 @@ export default function AdminPropertiesPage() {
                 </thead>
 
                 <tbody>
-                  {visibleRows.map((p) => (
+                  {rows.map((p) => (
                     <tr key={p.id}>
                       <td className="adminProps__tdAddress">
                         <div className="adminProps__addrMain">{p.street1}</div>
@@ -256,12 +306,14 @@ export default function AdminPropertiesPage() {
                       <td className="adminProps__tdRight">{money(p.askingPrice)}</td>
                       <td className="adminProps__tdRight">{money(p.arv)}</td>
                       <td className="adminProps__tdRight">{money(p.estRepairs)}</td>
-                      <td className="adminProps__tdCenter">{p.exitStrategy}</td>
-                      <td className="adminProps__tdRight">{p.livingAreaSqft?.toLocaleString("en-US")}</td>
-                      <td className="adminProps__tdCenter">{p.beds}</td>
-                      <td className="adminProps__tdCenter">{p.baths}</td>
-                      <td className="adminProps__tdCenter">{p.yearBuilt}</td>
-                      <td className="adminProps__tdCenter">{p.status}</td>
+                      <td className="adminProps__tdCenter">{prettyEnum(p.exitStrategy)}</td>
+                      <td className="adminProps__tdRight">
+                        {p.livingAreaSqft?.toLocaleString("en-US") ?? "—"}
+                      </td>
+                      <td className="adminProps__tdCenter">{p.beds ?? "—"}</td>
+                      <td className="adminProps__tdCenter">{p.baths ?? "—"}</td>
+                      <td className="adminProps__tdCenter">{p.yearBuilt ?? "—"}</td>
+                      <td className="adminProps__tdCenter">{prettyEnum(p.status)}</td>
 
                       <td className="adminProps__tdIcon">
                         <button
@@ -270,7 +322,7 @@ export default function AdminPropertiesPage() {
                           title="Edit"
                           aria-label={`Edit property ${p.id}`}
                           onClick={() => {
-                            // Step 5: open Edit modal (prefill with property)
+                            // Step 6: open Edit modal prefilled with property
                             console.log("Edit property:", p.id);
                           }}
                         >
@@ -283,7 +335,7 @@ export default function AdminPropertiesPage() {
               </table>
             </div>
 
-            <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
+            <Pagination page={page} totalPages={pageMeta.totalPages} onPageChange={setPage} />
           </>
         )}
       </div>

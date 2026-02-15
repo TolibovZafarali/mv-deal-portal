@@ -262,3 +262,13 @@
 .adminProps__empty {
   padding: 16px 12px;
 }
+
+.adminProps__notice {
+  padding: 16px 12px;
+  color: var(--admin-muted);
+  font-size: 13px;
+}
+
+.adminProps__notice--error {
+  color: rgba(170, 38, 38, 0.95);
+}
