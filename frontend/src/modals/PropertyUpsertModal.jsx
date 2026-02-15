@@ -20,6 +20,29 @@ const EXIT = [
   { label: "Wholesale", value: "WHOLESALE" },
 ];
 
+const DEFAULT_FORM = {
+  status: "DRAFT",
+  title: "",
+  street1: "",
+  street2: "",
+  city: "",
+  state: "",
+  zip: "",
+  askingPrice: "",
+  arv: "",
+  estRepairs: "",
+  beds: "",
+  baths: "",
+  livingAreaSqft: "",
+  yearBuilt: "",
+  roofAge: "",
+  hvac: "",
+  occupancyStatus: "",
+  exitStrategy: "",
+  closingTerms: "",
+  description: "",
+};
+
 function numOrEmpty(v) {
   if (v === "" || v === null || v === undefined) return "";
   return String(v);
@@ -34,35 +57,15 @@ export default function PropertyUpsertModal({
 }) {
   const isEdit = mode === "edit";
 
-  const [form, setForm] = useState({
-    status: "DRAFT",
-    title: "",
-    street1: "",
-    street2: "",
-    city: "",
-    state: "",
-    zip: "",
-    askingPrice: "",
-    arv: "",
-    estRepairs: "",
-    beds: "",
-    baths: "",
-    livingAreaSqft: "",
-    yearBuilt: "",
-    roofAge: "",
-    hvac: "",
-    occupancyStatus: "",
-    exitStrategy: "",
-    closingTerms: "",
-    description: "",
-  });
+  const [form, setForm] = useState(DEFAULT_FORM);
 
   // hydrate for edit mode (later)
   useEffect(() => {
     if (!open) return;
 
     if (!initialValue) {
-      setForm((prev) => ({ ...prev, status: "DRAFT" }));
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setForm(DEFAULT_FORM);
       return;
     }
 
