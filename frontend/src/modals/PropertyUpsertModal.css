@@ -272,10 +272,6 @@
   cursor: not-allowed;
 }
 
-.propBtn--primary {
-  /* same style, but keep class for future if you want it */
-}
-
 /* responsive */
 @media (max-width: 1000px) {
   .propGrid--4 {

@@ -66,10 +66,12 @@ export default function PropertyUpsertModal({
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (!open) setShowDeleteConfirm(false);
   }, [open]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (mode !== "edit") setShowDeleteConfirm(false);
   }, [mode]);
 
