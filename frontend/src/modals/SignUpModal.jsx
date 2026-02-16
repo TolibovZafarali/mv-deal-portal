@@ -50,8 +50,13 @@ export default function SignUpModal() {
       navigate("/", { replace: true });
       return;
     }
-    if (hasBackground) navigate(-1);
-    else navigate("/", { replace: true });
+
+    if (hasBackground) {
+      navigate(bg, { replace: true });
+      return;
+    }
+
+    navigate("/", { replace: true });
   }
 
   useEffect(() => {

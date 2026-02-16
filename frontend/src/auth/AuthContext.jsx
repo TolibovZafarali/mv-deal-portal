@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react"
-import { useLocation, useNavigate } from "react-router-dom"
+import { useNavigate } from "react-router-dom"
 import { getAccessToken, login, logout, me } from "../api"
 
 const AuthContext = createContext(null)
@@ -9,11 +9,8 @@ export function AuthProvider({ children }) {
   const [bootstrapping, setBootstrapping] = useState(true)
 
   const navigate = useNavigate()
-  const location = useLocation()
 
   const openLoginOnHome = useCallback(() => {
-    if (location.pathname === "/login") return
-
     const homeBg = {
       pathname: "/",
       search: "",
@@ -31,7 +28,7 @@ export function AuthProvider({ children }) {
         forceHomeOnClose: true,
       },
     })
-  }, [location.pathname, navigate])
+  }, [navigate])
 
   const bootstrap = useCallback(async () => {
     const token = getAccessToken()
