@@ -11,12 +11,14 @@ export default function ProtectedRoute({ roles }) {
   }
 
   if (!isAuthed) {
+    const redirectTo = `${location.pathname}${location.search}${location.hash}`
+
     return (
       <Navigate
         to="/login"
         replace
         state={{
-          from: location.pathname,
+          from: redirectTo,
           backgroundLocation: location,
           modal: true,
         }}
