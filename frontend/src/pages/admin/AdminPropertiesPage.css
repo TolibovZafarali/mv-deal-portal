@@ -7,19 +7,6 @@
   color: var(--admin-ink);
 }
 
-.adminProps__header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  margin-bottom: 12px;
-}
-
-.adminProps__title {
-  margin: 0;
-  font-size: 28px;
-  letter-spacing: 0.2px;
-}
-
 .adminProps__filters {
   border: 1px solid var(--admin-border);
   padding: 12px;
@@ -81,9 +68,12 @@
   font-size: 20px;
 }
 
+.adminProps__tableSection {
+  margin-top: 14px;
+}
+
 .adminProps__below {
   border: 1px solid var(--admin-border);
-  border-top: none;
   padding: 16px 12px;
 }
 
@@ -103,8 +93,6 @@
 }
 
 .adminProps__below {
-  border: 1px solid var(--admin-border);
-  border-top: none;
   background: rgba(255, 255, 255, 0.55);
 }
 

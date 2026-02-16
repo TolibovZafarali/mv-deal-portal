@@ -383,10 +383,6 @@ export default function AdminPropertiesPage() {
 
   return (
     <section className="adminProps">
-      <header className="adminProps__header">
-        <h1 className="adminProps__title">Properties</h1>
-      </header>
-
       <form
         className="adminProps__filters"
         onSubmit={(e) => e.preventDefault()}
@@ -466,91 +462,99 @@ export default function AdminPropertiesPage() {
         </div>
       </form>
 
-      <div className="adminProps__below">
-        {!hasRows ? (
-          <div
-            className={`adminProps__notice ${error ? "adminProps__notice--error" : ""}`}
-          >
-            {tableCaption}
-          </div>
-        ) : (
-          <>
-            <div className="adminProps__tableWrap">
-              <table className="adminProps__table">
-                <thead>
-                  <tr>
-                    <th>Address</th>
-                    <th className="adminProps__thRight">Asking</th>
-                    <th className="adminProps__thRight">ARV</th>
-                    <th className="adminProps__thRight">Repairs</th>
-                    <th className="adminProps__thCenter">Exit</th>
-                    <th className="adminProps__thRight">SqFt</th>
-                    <th className="adminProps__thCenter">Bed</th>
-                    <th className="adminProps__thCenter">Bath</th>
-                    <th className="adminProps__thCenter">Year</th>
-                    <th className="adminProps__thCenter">Status</th>
-                    <th className="adminProps__thIcon"></th>
-                  </tr>
-                </thead>
-
-                <tbody>
-                  {rows.map((p) => (
-                    <tr key={p.id}>
-                      <td className="adminProps__tdAddress">
-                        <div className="adminProps__addrMain">{p.street1}</div>
-                        <div className="adminProps__addrSub">
-                          {fullAddress(p)}
-                        </div>
-                      </td>
-
-                      <td className="adminProps__tdRight">
-                        {money(p.askingPrice)}
-                      </td>
-                      <td className="adminProps__tdRight">{money(p.arv)}</td>
-                      <td className="adminProps__tdRight">
-                        {money(p.estRepairs)}
-                      </td>
-                      <td className="adminProps__tdCenter">
-                        {prettyEnum(p.exitStrategy)}
-                      </td>
-                      <td className="adminProps__tdRight">
-                        {p.livingAreaSqft?.toLocaleString("en-US") ?? "—"}
-                      </td>
-                      <td className="adminProps__tdCenter">{p.beds ?? "—"}</td>
-                      <td className="adminProps__tdCenter">{p.baths ?? "—"}</td>
-                      <td className="adminProps__tdCenter">
-                        {p.yearBuilt ?? "—"}
-                      </td>
-                      <td className="adminProps__tdCenter">
-                        {prettyEnum(p.status)}
-                      </td>
-
-                      <td className="adminProps__tdIcon">
-                        <button
-                          className="adminProps__editBtn"
-                          type="button"
-                          title="Edit"
-                          aria-label={`Edit property ${p.id}`}
-                          onClick={() => openEditModal(p.id)}
-                        >
-                          <span className="material-symbols-outlined">
-                            edit
-                          </span>
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+      <div className="adminProps__tableSection">
+        <div className="adminProps__below">
+          {!hasRows ? (
+            <div
+              className={`adminProps__notice ${error ? "adminProps__notice--error" : ""}`}
+            >
+              {tableCaption}
             </div>
+          ) : (
+            <>
+              <div className="adminProps__tableWrap">
+                <table className="adminProps__table">
+                  <thead>
+                    <tr>
+                      <th>Address</th>
+                      <th className="adminProps__thRight">Asking</th>
+                      <th className="adminProps__thRight">ARV</th>
+                      <th className="adminProps__thRight">Repairs</th>
+                      <th className="adminProps__thCenter">Exit</th>
+                      <th className="adminProps__thRight">SqFt</th>
+                      <th className="adminProps__thCenter">Bed</th>
+                      <th className="adminProps__thCenter">Bath</th>
+                      <th className="adminProps__thCenter">Year</th>
+                      <th className="adminProps__thCenter">Status</th>
+                      <th className="adminProps__thIcon"></th>
+                    </tr>
+                  </thead>
 
-            <Pagination
-              page={page}
-              totalPages={pageMeta.totalPages}
-              onPageChange={setPage}
-            />
-          </>
-        )}
+                  <tbody>
+                    {rows.map((p) => (
+                      <tr key={p.id}>
+                        <td className="adminProps__tdAddress">
+                          <div className="adminProps__addrMain">
+                            {p.street1}
+                          </div>
+                          <div className="adminProps__addrSub">
+                            {fullAddress(p)}
+                          </div>
+                        </td>
+
+                        <td className="adminProps__tdRight">
+                          {money(p.askingPrice)}
+                        </td>
+                        <td className="adminProps__tdRight">{money(p.arv)}</td>
+                        <td className="adminProps__tdRight">
+                          {money(p.estRepairs)}
+                        </td>
+                        <td className="adminProps__tdCenter">
+                          {prettyEnum(p.exitStrategy)}
+                        </td>
+                        <td className="adminProps__tdRight">
+                          {p.livingAreaSqft?.toLocaleString("en-US") ?? "—"}
+                        </td>
+                        <td className="adminProps__tdCenter">
+                          {p.beds ?? "—"}
+                        </td>
+                        <td className="adminProps__tdCenter">
+                          {p.baths ?? "—"}
+                        </td>
+                        <td className="adminProps__tdCenter">
+                          {p.yearBuilt ?? "—"}
+                        </td>
+                        <td className="adminProps__tdCenter">
+                          {prettyEnum(p.status)}
+                        </td>
+
+                        <td className="adminProps__tdIcon">
+                          <button
+                            className="adminProps__editBtn"
+                            type="button"
+                            title="Edit"
+                            aria-label={`Edit property ${p.id}`}
+                            onClick={() => openEditModal(p.id)}
+                          >
+                            <span className="material-symbols-outlined">
+                              edit
+                            </span>
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <Pagination
+                page={page}
+                totalPages={pageMeta.totalPages}
+                onPageChange={setPage}
+              />
+            </>
+          )}
+        </div>
       </div>
 
       <PropertyUpsertModal
