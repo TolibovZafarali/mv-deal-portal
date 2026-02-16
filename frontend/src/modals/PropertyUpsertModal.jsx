@@ -20,6 +20,15 @@ const EXIT = [
   { label: "Wholesale", value: "WHOLESALE" },
 ];
 
+const CLOSING_TERMS = [
+  { label: "—", value: "" },
+  { label: "Cash Only", value: "CASH_ONLY" },
+  { label: "Hard Money", value: "HARD_MONEY" },
+  { label: "Conventional", value: "CONVENTIONAL" },
+  { label: "Seller Finance", value: "SELLER_FINANCE" },
+];
+
+
 const DEFAULT_FORM = {
   status: "DRAFT",
   title: "",
@@ -381,11 +390,17 @@ export default function PropertyUpsertModal({
             <div className="propGrid propGrid--2 propGrid--tightTop">
               <div className="propField">
                 <div className="propField__label">Closing Terms</div>
-                <input
+                <select
                   className="propField__input"
                   value={form.closingTerms}
                   onChange={(e) => setField("closingTerms", e.target.value)}
-                />
+                >
+                  {CLOSING_TERMS.map((o) => (
+                    <option key={o.label} value={o.value}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div className="propField">

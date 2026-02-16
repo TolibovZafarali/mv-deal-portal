@@ -1,6 +1,7 @@
 package com.megna.backend.specifications;
 
 import com.megna.backend.entities.Property;
+import com.megna.backend.enums.ClosingTerms;
 import com.megna.backend.enums.ExitStrategy;
 import com.megna.backend.enums.OccupancyStatus;
 import com.megna.backend.enums.PropertyStatus;
@@ -23,7 +24,8 @@ public final class PropertySpecifications {
             BigDecimal minArv,
             BigDecimal maxArv,
             OccupancyStatus occupancyStatus,
-            ExitStrategy exitStrategy
+            ExitStrategy exitStrategy,
+            ClosingTerms closingTerms
     ) {
         return Specification.where(eqStatus(status))
                 .and(containsIgnoreCase("city", city))
@@ -35,7 +37,8 @@ public final class PropertySpecifications {
                 .and(gteDecimal("arv", minArv))
                 .and(lteDecimal("arv", maxArv))
                 .and(eqOccupancy(occupancyStatus))
-                .and(eqExitStrategy(exitStrategy));
+                .and(eqExitStrategy(exitStrategy))
+                .and(eqClosingTerms(closingTerms));
     }
 
     private static Specification<Property> eqStatus(PropertyStatus status) {
@@ -48,6 +51,10 @@ public final class PropertySpecifications {
 
     private static Specification<Property> eqExitStrategy(ExitStrategy exitStrategy) {
         return (root, query, cb) -> exitStrategy == null ? cb.conjunction() : cb.equal(root.get("exitStrategy"), exitStrategy);
+    }
+
+    private static Specification<Property> eqClosingTerms(ClosingTerms closingTerms) {
+        return (root, query, cb) -> closingTerms == null ? cb.conjunction() : cb.equal(root.get("closingTerms"), closingTerms);
     }
 
     private static Specification<Property> containsIgnoreCase(String field, String value) {
