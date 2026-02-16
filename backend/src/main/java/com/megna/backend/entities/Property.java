@@ -3,6 +3,7 @@ package com.megna.backend.entities;
 import com.megna.backend.enums.ExitStrategy;
 import com.megna.backend.enums.OccupancyStatus;
 import com.megna.backend.enums.PropertyStatus;
+import com.megna.backend.enums.ClosingTerms;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -82,8 +83,9 @@ public class Property {
     @Column(name = "exit_strategy", length = 20)
     private ExitStrategy exitStrategy;
 
-    @Column(name = "closing_terms", length = 80)
-    private String closingTerms;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "closing_terms", length = 30)
+    private ClosingTerms closingTerms;
 
     @Lob
     @Column(name = "description", columnDefinition = "TEXT")

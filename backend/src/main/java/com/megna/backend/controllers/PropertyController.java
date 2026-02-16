@@ -2,6 +2,7 @@ package com.megna.backend.controllers;
 
 import com.megna.backend.dtos.property.PropertyResponseDto;
 import com.megna.backend.dtos.property.PropertyUpsertRequestDto;
+import com.megna.backend.enums.ClosingTerms;
 import com.megna.backend.enums.ExitStrategy;
 import com.megna.backend.enums.OccupancyStatus;
 import com.megna.backend.enums.PropertyStatus;
@@ -71,6 +72,7 @@ public class PropertyController {
             @RequestParam(required = false) BigDecimal maxArv,
             @RequestParam(required = false) OccupancyStatus occupancyStatus,
             @RequestParam(required = false) ExitStrategy exitStrategy,
+            @RequestParam(required = false) ClosingTerms closingTerms,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
             ) {
         return propertyService.search(
@@ -78,7 +80,7 @@ public class PropertyController {
                 minBeds, maxBeds,
                 minAskingPrice, maxAskingPrice,
                 minArv, maxArv,
-                occupancyStatus, exitStrategy,
+                occupancyStatus, exitStrategy, closingTerms,
                 pageable
         );
     }

@@ -4,6 +4,7 @@ import com.megna.backend.dtos.property.PropertyResponseDto;
 import com.megna.backend.dtos.property.PropertyUpsertRequestDto;
 import com.megna.backend.entities.Investor;
 import com.megna.backend.entities.Property;
+import com.megna.backend.enums.ClosingTerms;
 import com.megna.backend.enums.ExitStrategy;
 import com.megna.backend.enums.InvestorStatus;
 import com.megna.backend.enums.OccupancyStatus;
@@ -53,7 +54,7 @@ public class PropertyService {
 
         if (!admin) {
             return propertyRepository.findAll(
-                    PropertySpecifications.withFilters(ACTIVE, null, null, null, null, null, null, null, null, null, null),
+                    PropertySpecifications.withFilters(ACTIVE, null, null, null, null, null, null, null, null, null, null, null),
                     pageable
             )
                     .map(PropertyMapper::toDto);
@@ -92,6 +93,7 @@ public class PropertyService {
             BigDecimal maxArv,
             OccupancyStatus occupancyStatus,
             ExitStrategy exitStrategy,
+            ClosingTerms closingTerms,
             Pageable pageable
     ) {
         boolean admin = requireApprovedInvestorOrAdmin();
@@ -109,7 +111,8 @@ public class PropertyService {
                 minArv,
                 maxArv,
                 occupancyStatus,
-                exitStrategy
+                exitStrategy,
+                closingTerms
         );
 
         return propertyRepository.findAll(spec, pageable)

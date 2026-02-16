@@ -26,10 +26,10 @@ const EXIT_STRATEGIES = [
 
 const CLOSING_TERMS = [
   { label: "All", value: "" },
-  { label: "Cash Only", value: "Cash Only" },
-  { label: "Hard Money", value: "Hard Money" },
-  { label: "Conventional", value: "Conventional" },
-  { label: "Seller Finance", value: "Seller Finance" },
+  { label: "Cash Only", value: "CASH_ONLY" },
+  { label: "Hard Money", value: "HARD_MONEY" },
+  { label: "Conventional", value: "CONVENTIONAL" },
+  { label: "Seller Finance", value: "SELLER_FINANCE" },
 ];
 
 const STATUSES = [

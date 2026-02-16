@@ -1,5 +1,6 @@
 package com.megna.backend.dtos.property;
 
+import com.megna.backend.enums.ClosingTerms;
 import com.megna.backend.enums.ExitStrategy;
 import com.megna.backend.enums.OccupancyStatus;
 import com.megna.backend.enums.PropertyStatus;
@@ -32,7 +33,7 @@ public record PropertyResponseDto(
 
         OccupancyStatus occupancyStatus,
         ExitStrategy exitStrategy,
-        String closingTerms,
+        ClosingTerms closingTerms,
         String description,
 
         LocalDateTime createdAt,
