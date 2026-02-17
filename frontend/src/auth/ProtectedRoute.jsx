@@ -11,9 +11,7 @@ export default function ProtectedRoute({ roles }) {
   }
 
   if (!isAuthed) {
-    const isAdminLogout = window.sessionStorage.getItem("mv:admin:logged-out") === "1"
-    if (isAdminLogout) {
-      window.sessionStorage.removeItem("mv:admin:logged-out")
+    if (location.pathname.startsWith("/admin")) {
       return <Navigate to="/" replace />
     }
     
