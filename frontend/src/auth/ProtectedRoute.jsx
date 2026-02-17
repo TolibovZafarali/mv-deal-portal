@@ -11,6 +11,12 @@ export default function ProtectedRoute({ roles }) {
   }
 
   if (!isAuthed) {
+    const isAdminLogout = window.sessionStorage.getItem("mv:admin:logged-out") === "1"
+    if (isAdminLogout) {
+      window.sessionStorage.removeItem("mv:admin:logged-out")
+      return <Navigate to="/" replace />
+    }
+    
     const redirectTo = `${location.pathname}${location.search}${location.hash}`
 
     return (

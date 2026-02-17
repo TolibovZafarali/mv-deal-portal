@@ -1,13 +1,12 @@
-import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import { NavLink, Outlet } from "react-router-dom";
 import { useAuth } from "../auth";
 import "./AdminLayout.css";
 
 export default function AdminLayout() {
   const { signOut } = useAuth();
-  const navigate = useNavigate();
 
   function handleLogout() {
-    navigate("/", { replace: true });
+    window.sessionStorage.setItem("mv:admin:logged-out", "1");
     signOut();
   }
 
