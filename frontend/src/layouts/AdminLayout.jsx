@@ -7,8 +7,8 @@ export default function AdminLayout() {
   const navigate = useNavigate();
 
   function handleLogout() {
-    signOut();
     navigate("/", { replace: true });
+    signOut();
   }
 
   return (
