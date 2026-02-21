@@ -14,6 +14,7 @@
 }
 
 .adminProps__filterRow {
+  position: relative;
   display: grid;
   grid-template-columns: 2.2fr 1fr 1.4fr auto auto;
   gap: 10px;
@@ -58,6 +59,23 @@
   gap: 8px;
 }
 
+.adminProps__moneyWrap {
+  position: relative;
+}
+
+.adminProps__moneyPrefix {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--admin-muted);
+  pointer-events: none;
+}
+
+.adminProps__input--money {
+  padding-left: 24px;
+}
+
 .adminProps__moreMenu {
   position: relative;
 }
@@ -80,6 +98,7 @@
 
 .adminProps__moreBody {
   position: absolute;
+  left: 0;
   right: 0;
   top: calc(100% + 8px);
   z-index: 2;

@@ -8,6 +8,7 @@ import {
 } from "../../api/propertyApi";
 import "./AdminPropertiesPage.css";
 import PropertyUpsertModal from "../../modals/PropertyUpsertModal";
+import { formatPriceInput } from "../../utils/priceFormatting";
 
 const PAGE_SIZE = 20;
 
@@ -171,6 +172,10 @@ export default function AdminPropertiesPage() {
   function updateFilter(key, value) {
     setFilters((prev) => ({ ...prev, [key]: value }));
     setPage(0);
+  }
+
+  function updatePriceFilter(key, value) {
+    updateFilter(key, formatPriceInput(value));
   }
 
   useEffect(() => {
@@ -413,22 +418,32 @@ export default function AdminPropertiesPage() {
           <label className="adminProps__filter">
             <span className="adminProps__label">Asking Price</span>
             <div className="adminProps__rangeInputs">
-              <input
-                className="adminProps__input adminProps__input--text"
-                type="text"
-                inputMode="numeric"
-                placeholder="Min"
-                value={filters.minAskingPrice}
-                onChange={(e) => updateFilter("minAskingPrice", e.target.value)}
-              />
-              <input
-                className="adminProps__input adminProps__input--text"
-                type="text"
-                inputMode="numeric"
-                placeholder="Max"
-                value={filters.maxAskingPrice}
-                onChange={(e) => updateFilter("maxAskingPrice", e.target.value)}
-              />
+            <div className="adminProps__moneyWrap">
+                <span className="adminProps__moneyPrefix">$</span>
+                <input
+                  className="adminProps__input adminProps__input--text adminProps__input--money"
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="Min"
+                  value={filters.minAskingPrice}
+                  onChange={(e) =>
+                    updatePriceFilter("minAskingPrice", e.target.value)
+                  }
+                />
+              </div>
+              <div className="adminProps__moneyWrap">
+                <span className="adminProps__moneyPrefix">$</span>
+                <input
+                  className="adminProps__input adminProps__input--text adminProps__input--money"
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="Max"
+                  value={filters.maxAskingPrice}
+                  onChange={(e) =>
+                    updatePriceFilter("maxAskingPrice", e.target.value)
+                  }
+                />
+              </div>
             </div>
           </label>
 
