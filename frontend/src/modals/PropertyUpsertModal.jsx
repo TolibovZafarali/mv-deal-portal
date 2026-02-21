@@ -183,7 +183,7 @@ export default function PropertyUpsertModal({
           <div className="propField">
             <div className="propField__label">Title</div>
             <input
-              className="propField__input"
+              className="propField__input propField__input--title"
               value={form.title}
               onChange={(e) => setField("title", e.target.value)}
               placeholder="House on the Main Street owned by John Doe"

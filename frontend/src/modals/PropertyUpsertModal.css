@@ -131,6 +131,11 @@ select.propField__input {
   background-position: right 12px center;
 }
 
+.propField__input--title {
+  font-size: 15px;
+  padding: 12px 12px;
+}
+
 .propField__input:focus {
   border-color: var(--text);
 }
