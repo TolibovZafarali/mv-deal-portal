@@ -277,6 +277,9 @@ export default function PropertyUpsertModal({
                 />
               </div>
 
+            </div>
+
+            <div className="propGrid propGrid--addressCityRow propGrid--tightTop">
               <div className="propField">
                 <div className="propField__label">City</div>
                 <input
@@ -372,7 +375,7 @@ export default function PropertyUpsertModal({
               <div className="propSection__title">Property Information</div>
             </div>
 
-            <div className="propGrid propGrid--4">
+            <div className="propGrid propGrid--3">
               <div className="propField">
                 <div className="propField__label">Beds</div>
                 <input
@@ -461,10 +464,8 @@ export default function PropertyUpsertModal({
                     </option>
                   ))}
                 </select>
-              </div>
             </div>
 
-            <div className="propGrid propGrid--2 propGrid--tightTop">
               <div className="propField">
                 <div className="propField__label">Closing Terms</div>
                 <select

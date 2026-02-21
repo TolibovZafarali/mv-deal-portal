@@ -170,6 +170,10 @@ select.propField__input {
   grid-template-columns: 1fr 1fr 1fr;
 }
 
+.propGrid--addressCityRow {
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr);
+}
+
 .propGrid--4 {
   grid-template-columns: 1fr 1fr 1fr 1fr;
 }
@@ -312,11 +316,24 @@ select.propField__input {
   }
 
   .propGrid--3 {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .propGrid--addressCityRow {
+    grid-template-columns: 1fr 1fr;
   }
 
   .propPhotos {
     grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .propGrid--2,
+  .propGrid--3,
+  .propGrid--4,
+  .propGrid--addressCityRow {
+    grid-template-columns: 1fr;
   }
 }
 
