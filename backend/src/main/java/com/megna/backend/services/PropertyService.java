@@ -54,7 +54,7 @@ public class PropertyService {
 
         if (!admin) {
             return propertyRepository.findAll(
-                    PropertySpecifications.withFilters(ACTIVE, null, null, null, null, null, null, null, null, null, null, null),
+                    PropertySpecifications.withFilters(ACTIVE, null, null, null, null, null, null, null, null, null, null, null, null, null),
                     pageable
             )
                     .map(PropertyMapper::toDto);
@@ -83,10 +83,12 @@ public class PropertyService {
 
     public Page<PropertyResponseDto> search(
             PropertyStatus status,
+            String query,
             String city,
             String state,
             Integer minBeds,
             Integer maxBeds,
+            BigDecimal minBaths,
             BigDecimal minAskingPrice,
             BigDecimal maxAskingPrice,
             BigDecimal minArv,
@@ -102,10 +104,12 @@ public class PropertyService {
 
         var spec = PropertySpecifications.withFilters(
                 effectiveStatus,
+                query,
                 city,
                 state,
                 minBeds,
                 maxBeds,
+                minBaths,
                 minAskingPrice,
                 maxAskingPrice,
                 minArv,

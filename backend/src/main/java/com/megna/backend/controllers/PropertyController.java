@@ -62,10 +62,12 @@ public class PropertyController {
     @GetMapping("/search")
     public Page<PropertyResponseDto> search(
             @RequestParam(required = false) PropertyStatus status,
+            @RequestParam(required = false, name = "q") String query,
             @RequestParam(required = false) String city,
             @RequestParam(required = false) String state,
             @RequestParam(required = false) Integer minBeds,
             @RequestParam(required = false) Integer maxBeds,
+            @RequestParam(required = false) BigDecimal minBaths,
             @RequestParam(required = false) BigDecimal minAskingPrice,
             @RequestParam(required = false) BigDecimal maxAskingPrice,
             @RequestParam(required = false) BigDecimal minArv,
@@ -76,8 +78,8 @@ public class PropertyController {
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
             ) {
         return propertyService.search(
-                status, city, state,
-                minBeds, maxBeds,
+                status, query, city, state,
+                minBeds, maxBeds, minBaths,
                 minAskingPrice, maxAskingPrice,
                 minArv, maxArv,
                 occupancyStatus, exitStrategy, closingTerms,
