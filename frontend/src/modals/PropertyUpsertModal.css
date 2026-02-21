@@ -155,6 +155,8 @@ select.propField__input {
 
 .propField__input--money {
   padding-left: 24px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .propGrid {
