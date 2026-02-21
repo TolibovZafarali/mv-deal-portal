@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import "./PropertyUpsertModal.css";
+import { formatPriceInput } from "../utils/priceFormatting";
+import { numOrEmpty } from "../utils/formValue";
 
 const STATUS = [
   { label: "Draft", value: "DRAFT" },
@@ -52,11 +54,6 @@ const DEFAULT_FORM = {
   description: "",
 };
 
-function numOrEmpty(v) {
-  if (v === "" || v === null || v === undefined) return "";
-  return String(v);
-}
-
 export default function PropertyUpsertModal({
   open,
   mode = "add",
@@ -102,9 +99,9 @@ export default function PropertyUpsertModal({
       city: initialValue.city ?? "",
       state: initialValue.state ?? "",
       zip: initialValue.zip ?? "",
-      askingPrice: numOrEmpty(initialValue.askingPrice),
-      arv: numOrEmpty(initialValue.arv),
-      estRepairs: numOrEmpty(initialValue.estRepairs),
+      askingPrice: formatPriceInput(numOrEmpty(initialValue.askingPrice)),
+      arv: formatPriceInput(numOrEmpty(initialValue.arv)),
+      estRepairs: (formatPriceInput(numOrEmpty(initialValue.estRepairs))),
       beds: numOrEmpty(initialValue.beds),
       baths: numOrEmpty(initialValue.baths),
       livingAreaSqft: numOrEmpty(initialValue.livingAreaSqft),
@@ -143,6 +140,10 @@ export default function PropertyUpsertModal({
 
   function setField(key, value) {
     setForm((p) => ({ ...p, [key]: value }));
+  }
+
+  function setPriceField(key, value) {
+    setForm((p) => ({ ...p, [key]: formatPriceInput(value) }));
   }
 
   function handleSubmit(e) {
@@ -262,7 +263,7 @@ export default function PropertyUpsertModal({
                 <input
                   className="propField__input"
                   value={form.askingPrice}
-                  onChange={(e) => setField("askingPrice", e.target.value)}
+                  onChange={(e) => setPriceField("askingPrice", e.target.value)}
                   inputMode="numeric"
                 />
               </div>
@@ -272,7 +273,7 @@ export default function PropertyUpsertModal({
                 <input
                   className="propField__input"
                   value={form.arv}
-                  onChange={(e) => setField("arv", e.target.value)}
+                  onChange={(e) => setPriceField("arv", e.target.value)}
                   inputMode="numeric"
                 />
               </div>
@@ -282,7 +283,7 @@ export default function PropertyUpsertModal({
                 <input
                   className="propField__input"
                   value={form.estRepairs}
-                  onChange={(e) => setField("estRepairs", e.target.value)}
+                  onChange={(e) => setPriceField("estRepairs", e.target.value)}
                   inputMode="numeric"
                 />
               </div>
