@@ -15,7 +15,7 @@
 
 .adminProps__filterRow {
   display: grid;
-  grid-template-columns: 2.2fr 1fr 1fr 0.9fr auto;
+  grid-template-columns: 2.2fr 1fr 1.4fr auto auto;
   gap: 10px;
   align-items: end;
 }
@@ -45,6 +45,51 @@
   color: var(--admin-ink);
   outline: none;
   font-family: inherit;
+}
+
+.adminProps__input--text {
+  background-image: none;
+  padding-right: 10px;
+}
+
+.adminProps__rangeInputs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.adminProps__moreMenu {
+  position: relative;
+}
+
+.adminProps__moreSummary {
+  list-style: none;
+  height: 41px;
+  min-width: 88px;
+  border: 1px solid var(--admin-border);
+  padding: 0 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.adminProps__moreSummary::-webkit-details-marker {
+  display: none;
+}
+
+.adminProps__moreBody {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  z-index: 2;
+  width: min(360px, 82vw);
+  border: 1px solid var(--admin-border);
+  background: #fff;
+  padding: 12px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
 }
 
 .adminProps__input:focus {
@@ -92,6 +137,12 @@
 @media (max-width: 1100px) {
   .adminProps__filterRow {
     grid-template-columns: 1fr 1fr;
+  }
+
+  .adminProps__moreBody {
+    position: static;
+    margin-top: 8px;
+    width: 100%;
   }
 
   .adminProps__iconBtn {

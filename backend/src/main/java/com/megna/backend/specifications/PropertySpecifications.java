@@ -15,10 +15,12 @@ public final class PropertySpecifications {
 
     public static Specification<Property> withFilters(
             PropertyStatus status,
+            String query,
             String city,
             String state,
             Integer minBeds,
             Integer maxBeds,
+            BigDecimal minBaths,
             BigDecimal minAskingPrice,
             BigDecimal maxAskingPrice,
             BigDecimal minArv,
@@ -28,10 +30,12 @@ public final class PropertySpecifications {
             ClosingTerms closingTerms
     ) {
         return Specification.where(eqStatus(status))
+                .and(matchesSearchTerm(query))
                 .and(containsIgnoreCase("city", city))
                 .and(containsIgnoreCase("state", state))
                 .and(gteInt("beds", minBeds))
                 .and(lteInt("beds", maxBeds))
+                .and(gteDecimal("baths", minBaths))
                 .and(gteDecimal("askingPrice", minAskingPrice))
                 .and(lteDecimal("askingPrice", maxAskingPrice))
                 .and(gteDecimal("arv", minArv))
@@ -41,6 +45,22 @@ public final class PropertySpecifications {
                 .and(eqClosingTerms(closingTerms));
     }
 
+
+    private static Specification<Property> matchesSearchTerm(String query) {
+        return (root, criteriaQuery, cb) -> {
+            if (query == null || query.isBlank()) return cb.conjunction();
+
+            String normalized = "%" + query.toLowerCase() + "%";
+            return cb.or(
+                    cb.like(cb.lower(root.get("title")), normalized),
+                    cb.like(cb.lower(root.get("street1")), normalized),
+                    cb.like(cb.lower(root.get("street2")), normalized),
+                    cb.like(cb.lower(root.get("city")), normalized),
+                    cb.like(cb.lower(root.get("state")), normalized),
+                    cb.like(cb.lower(root.get("zip")), normalized)
+            );
+        };
+    }
     private static Specification<Property> eqStatus(PropertyStatus status) {
         return (root, query, cb) -> status == null ? cb.conjunction() : cb.equal(root.get("status"), status);
     }

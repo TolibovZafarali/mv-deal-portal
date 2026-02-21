@@ -24,14 +24,6 @@ const EXIT_STRATEGIES = [
   { label: "Wholesale", value: "WHOLESALE" },
 ];
 
-const CLOSING_TERMS = [
-  { label: "All", value: "" },
-  { label: "Cash Only", value: "CASH_ONLY" },
-  { label: "Hard Money", value: "HARD_MONEY" },
-  { label: "Conventional", value: "CONVENTIONAL" },
-  { label: "Seller Finance", value: "SELLER_FINANCE" },
-];
-
 const STATUSES = [
   { label: "All", value: "" },
   { label: "Draft", value: "DRAFT" },
@@ -143,9 +135,13 @@ function Pagination({ page, totalPages, onPageChange }) {
 
 export default function AdminPropertiesPage() {
   const [filters, setFilters] = useState({
+    q: "",
+    minAskingPrice: "",
+    maxAskingPrice: "",
+    minBeds: "",
+    minBaths: "",
     occupancyStatus: "",
     exitStrategy: "",
-    closingTerms: "",
     status: "",
   });
 
@@ -389,48 +385,14 @@ export default function AdminPropertiesPage() {
       >
         <div className="adminProps__filterRow">
           <label className="adminProps__filter">
-            <span className="adminProps__label">Occupancy Status</span>
-            <select
-              className="adminProps__input"
-              value={filters.occupancyStatus}
-              onChange={(e) => updateFilter("occupancyStatus", e.target.value)}
-            >
-              {OCCUPANCY.map((o) => (
-                <option key={o.label} value={o.value}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label className="adminProps__filter">
-            <span className="adminProps__label">Exit Strategy</span>
-            <select
-              className="adminProps__input"
-              value={filters.exitStrategy}
-              onChange={(e) => updateFilter("exitStrategy", e.target.value)}
-            >
-              {EXIT_STRATEGIES.map((o) => (
-                <option key={o.label} value={o.value}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label className="adminProps__filter">
-            <span className="adminProps__label">Closing Terms</span>
-            <select
-              className="adminProps__input"
-              value={filters.closingTerms}
-              onChange={(e) => updateFilter("closingTerms", e.target.value)}
-            >
-              {CLOSING_TERMS.map((o) => (
-                <option key={o.label} value={o.value}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
+            <span className="adminProps__label">Search</span>
+            <input
+              className="adminProps__input adminProps__input--text"
+              type="search"
+              placeholder="Address or title"
+              value={filters.q}
+              onChange={(e) => updateFilter("q", e.target.value)}
+            />
           </label>
 
           <label className="adminProps__filter">
@@ -447,6 +409,91 @@ export default function AdminPropertiesPage() {
               ))}
             </select>
           </label>
+
+          <label className="adminProps__filter">
+            <span className="adminProps__label">Asking Price</span>
+            <div className="adminProps__rangeInputs">
+              <input
+                className="adminProps__input adminProps__input--text"
+                type="text"
+                inputMode="numeric"
+                placeholder="Min"
+                value={filters.minAskingPrice}
+                onChange={(e) => updateFilter("minAskingPrice", e.target.value)}
+              />
+              <input
+                className="adminProps__input adminProps__input--text"
+                type="text"
+                inputMode="numeric"
+                placeholder="Max"
+                value={filters.maxAskingPrice}
+                onChange={(e) => updateFilter("maxAskingPrice", e.target.value)}
+              />
+            </div>
+          </label>
+
+          <details className="adminProps__moreMenu">
+            <summary className="adminProps__moreSummary">More</summary>
+
+            <div className="adminProps__moreBody">
+              <label className="adminProps__filter">
+                <span className="adminProps__label">Beds (Min)</span>
+                <input
+                  className="adminProps__input adminProps__input--text"
+                  type="number"
+                  min="0"
+                  placeholder="Any"
+                  value={filters.minBeds}
+                  onChange={(e) => updateFilter("minBeds", e.target.value)}
+                />
+              </label>
+
+              <label className="adminProps__filter">
+                <span className="adminProps__label">Baths (Min)</span>
+                <input
+                  className="adminProps__input adminProps__input--text"
+                  type="number"
+                  min="0"
+                  step="0.5"
+                  placeholder="Any"
+                  value={filters.minBaths}
+                  onChange={(e) => updateFilter("minBaths", e.target.value)}
+                />
+              </label>
+
+              <label className="adminProps__filter">
+                <span className="adminProps__label">Occupancy Status</span>
+                <select
+                  className="adminProps__input"
+                  value={filters.occupancyStatus}
+                  onChange={(e) =>
+                    updateFilter("occupancyStatus", e.target.value)
+                  }
+                >
+                  {OCCUPANCY.map((o) => (
+                    <option key={o.label} value={o.value}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="adminProps__filter">
+                <span className="adminProps__label">Exit Strategy</span>
+                <select
+                  className="adminProps__input"
+                  value={filters.exitStrategy}
+                  onChange={(e) => updateFilter("exitStrategy", e.target.value)}
+                >
+                  {EXIT_STRATEGIES.map((o) => (
+                    <option key={o.label} value={o.value}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+          </details>
 
           <button
             className="adminProps__iconBtn"
