@@ -221,6 +221,20 @@ export default function AdminPropertiesPage() {
     return `${pageMeta.totalElements.toLocaleString("en-US")} total properties`;
   }, [loading, error, hasRows, pageMeta.totalElements]);
 
+  const hasMoreFiltersSelected = useMemo(() => {
+    return [
+      filters.minBeds,
+      filters.minBaths,
+      filters.occupancyStatus,
+      filters.exitStrategy,
+    ].some((value) => String(value ?? "").trim().length > 0);
+  }, [
+    filters.minBeds,
+    filters.minBaths,
+    filters.occupancyStatus,
+    filters.exitStrategy,
+  ]);
+  
   function cleanStr(v) {
     const s = String(v ?? "").trim();
     return s.length ? s : null;
@@ -448,7 +462,11 @@ export default function AdminPropertiesPage() {
           </label>
 
           <details className="adminProps__moreMenu">
-            <summary className="adminProps__moreSummary">More</summary>
+            <summary
+              className={`adminProps__moreSummary ${hasMoreFiltersSelected ? "adminProps__moreSummary--active" : ""}`}
+            >
+              More
+            </summary>
 
             <div className="adminProps__moreBody">
               <label className="adminProps__filter">

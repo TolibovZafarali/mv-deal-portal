@@ -85,11 +85,17 @@
   height: 41px;
   min-width: 88px;
   border: 1px solid var(--admin-border);
+  background: transparent;
+  color: var(--admin-ink);
   padding: 0 12px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
+  transition:
+  background 180ms ease,
+  color 180ms ease,
+  border-color 180ms ease;
 }
 
 .adminProps__moreSummary::-webkit-details-marker {
@@ -98,7 +104,6 @@
 
 .adminProps__moreBody {
   position: absolute;
-  left: 0;
   right: 0;
   top: calc(100% + 8px);
   z-index: 2;
@@ -109,6 +114,21 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px;
+}
+
+.adminProps__moreMenu[open] .adminProps__moreSummary,
+.adminProps__moreSummary--active {
+  background: var(--admin-ink);
+  border-color: var(--admin-ink);
+  color: var(--admin-bg);
+}
+
+.adminProps__moreBody .adminProps__filter {
+  min-width: 0;
+}
+
+.adminProps__moreBody .adminProps__input {
+  width: 100%;
 }
 
 .adminProps__input:focus {
