@@ -140,6 +140,23 @@ select.propField__input {
   border-color: var(--text);
 }
 
+.propField__moneyWrap {
+  position: relative;
+}
+
+.propField__moneyPrefix {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--muted);
+  pointer-events: none;
+}
+
+.propField__input--money {
+  padding-left: 24px;
+}
+
 .propGrid {
   display: grid;
   gap: 10px;

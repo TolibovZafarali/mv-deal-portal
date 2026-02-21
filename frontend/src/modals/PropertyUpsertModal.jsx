@@ -323,32 +323,45 @@ export default function PropertyUpsertModal({
             <div className="propGrid propGrid--3">
               <div className="propField">
                 <div className="propField__label">Asking Price</div>
-                <input
-                  className="propField__input"
-                  value={form.askingPrice}
-                  onChange={(e) => setPriceField("askingPrice", e.target.value)}
-                  inputMode="numeric"
-                />
+                <div className="propField__moneyWrap">
+                  <span className="propField__moneyPrefix">$</span>
+                  <input
+                    className="propField__input propField__input--money"
+                    value={form.askingPrice}
+                    onChange={(e) =>
+                      setPriceField("askingPrice", e.target.value)
+                    }
+                    inputMode="numeric"
+                  />
+                </div>
               </div>
 
               <div className="propField">
                 <div className="propField__label">ARV</div>
-                <input
-                  className="propField__input"
-                  value={form.arv}
-                  onChange={(e) => setPriceField("arv", e.target.value)}
-                  inputMode="numeric"
-                />
+                <div className="propField__moneyWrap">
+                  <span className="propField__moneyPrefix">$</span>
+                  <input
+                    className="propField__input propField__input--money"
+                    value={form.arv}
+                    onChange={(e) => setPriceField("arv", e.target.value)}
+                    inputMode="numeric"
+                  />
+                </div>
               </div>
 
               <div className="propField">
                 <div className="propField__label">Estimated Repairs</div>
-                <input
-                  className="propField__input"
-                  value={form.estRepairs}
-                  onChange={(e) => setPriceField("estRepairs", e.target.value)}
-                  inputMode="numeric"
-                />
+                <div className="propField__moneyWrap">
+                  <span className="propField__moneyPrefix">$</span>
+                  <input
+                    className="propField__input propField__input--money"
+                    value={form.estRepairs}
+                    onChange={(e) =>
+                      setPriceField("estRepairs", e.target.value)
+                    }
+                    inputMode="numeric"
+                  />
+                </div>
               </div>
             </div>
           </div>
@@ -465,15 +478,6 @@ export default function PropertyUpsertModal({
                     </option>
                   ))}
                 </select>
-              </div>
-
-              <div className="propField">
-                <div className="propField__label">Description</div>
-                <input
-                  className="propField__input"
-                  value={form.description}
-                  onChange={(e) => setField("description", e.target.value)}
-                />
               </div>
             </div>
           </div>
