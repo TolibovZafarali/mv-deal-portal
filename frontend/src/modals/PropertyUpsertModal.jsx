@@ -147,7 +147,7 @@ export default function PropertyUpsertModal({
       return;
     }
 
-    const normalizedState = String(initialValue ?? "").toUpperCase();
+    const normalizedState = String(initialValue.state ?? "").toUpperCase();
 
     setForm({
       status: initialValue.status ?? "DRAFT",
