@@ -4,20 +4,27 @@ import com.megna.backend.entities.Investor;
 import com.megna.backend.enums.InvestorStatus;
 import org.springframework.data.jpa.domain.Specification;
 
+import java.time.LocalDateTime;
+
 public final class InvestorSpecifications {
 
     private InvestorSpecifications() {}
 
     public static Specification<Investor> withFilters(
             InvestorStatus status,
-            String email,
-            String companyName,
-            String name
+            String q,
+            LocalDateTime createdFrom,
+            LocalDateTime createdTo,
+            LocalDateTime updatedFrom,
+            LocalDateTime updatedTo,
+            LocalDateTime approvedFrom,
+            LocalDateTime approvedTo
     ) {
         return Specification.where(eqStatus(status))
-                .and(containsIgnoreCase("email", email))
-                .and(containsIgnoreCase("companyName", companyName))
-                .and(nameContainsIgnoreCase(name));
+                .and(matchesQuery(q))
+                .and(dateBetween("createdAt", createdFrom, createdTo))
+                .and(dateBetween("updatedAt", updatedFrom, updatedTo))
+                .and(dateBetween("approvedAt", approvedFrom, approvedTo));
     }
 
     private static Specification<Investor> eqStatus(InvestorStatus status) {
@@ -31,14 +38,26 @@ public final class InvestorSpecifications {
         };
     }
 
-    private static Specification<Investor> nameContainsIgnoreCase(String name) {
+    private static Specification<Investor> matchesQuery(String q) {
         return (root, query, cb) -> {
-            if (name == null || name.isBlank()) return cb.conjunction();
-            String like = "%" + name.toLowerCase() + "%";
+            if (q == null || q.isBlank()) return cb.conjunction();
+            String like = "%" + q.toLowerCase() + "%";
             return cb.or(
                     cb.like(cb.lower(root.get("firstName")), like),
-                    cb.like(cb.lower(root.get("lastName")), like)
+                    cb.like(cb.lower(root.get("lastName")), like),
+                    containsIgnoreCase("companyName", q).toPredicate(root, query, cb),
+                    containsIgnoreCase("email", q).toPredicate(root, query, cb),
+                    containsIgnoreCase("phone", q).toPredicate(root, query, cb)
             );
+        };
+    }
+
+    private static Specification<Investor> dateBetween(String field, LocalDateTime from, LocalDateTime to) {
+        return (root, query, cb) -> {
+            if (from == null && to == null) return cb.conjunction();
+            if (from != null && to != null) return cb.between(root.get(field), from, to);
+            if (from != null) return cb.greaterThanOrEqualTo(root.get(field), from);
+            return cb.lessThanOrEqualTo(root.get(field), to);
         };
     }
 }
