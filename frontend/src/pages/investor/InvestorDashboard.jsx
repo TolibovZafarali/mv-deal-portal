@@ -1,6 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { searchProperties } from "../../api/propertyApi";
+import { createInquiry } from "../../api/inquiryApi";
+import { getInvestorById } from "../../api/investorApi";
+import { useAuth } from "../../auth";
 import InvestorPropertyMap from "../../components/InvestorPropertyMap";
+import InvestorPropertyDetailsModal from "../../modals/InvestorPropertyDetailsModal";
 import "./InvestorDashboard.css";
 
 const OCCUPANCY_OPTIONS = [
@@ -25,6 +29,7 @@ const CLOSING_TERMS_OPTIONS = [
 ];
 
 const FAVORITES_STORAGE_KEY = "investor.favoritePropertyIds";
+const DEFAULT_INQUIRY_MESSAGE = "Hi, I'm interested in this property. Can you provide more details?";
 
 function money(value) {
   const numeric = Number(value);
@@ -77,6 +82,7 @@ function loadFavoritePropertyIds() {
 }
 
 export default function InvestorDashboard() {
+  const { user } = useAuth();
   const [filters, setFilters] = useState({
     q: "",
     occupancyStatus: "",
@@ -91,8 +97,15 @@ export default function InvestorDashboard() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [selectedPropertyId, setSelectedPropertyId] = useState(null);
+  const [detailPropertyId, setDetailPropertyId] = useState(null);
   const [favoritePropertyIds, setFavoritePropertyIds] = useState(loadFavoritePropertyIds);
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
+  const [investorProfile, setInvestorProfile] = useState(null);
+  const [investorProfileError, setInvestorProfileError] = useState("");
+  const [inquiryMessageBody, setInquiryMessageBody] = useState(DEFAULT_INQUIRY_MESSAGE);
+  const [inquirySending, setInquirySending] = useState(false);
+  const [inquiryError, setInquiryError] = useState("");
+  const [inquirySuccess, setInquirySuccess] = useState("");
 
   const favoritePropertyIdSet = useMemo(() => {
     return new Set(favoritePropertyIds);
@@ -102,6 +115,11 @@ export default function InvestorDashboard() {
     if (!showFavoritesOnly) return rows;
     return rows.filter((row) => favoritePropertyIdSet.has(String(row.id)));
   }, [favoritePropertyIdSet, rows, showFavoritesOnly]);
+
+  const detailProperty = useMemo(() => {
+    if (detailPropertyId === null) return null;
+    return rows.find((row) => row.id === detailPropertyId) || null;
+  }, [detailPropertyId, rows]);
 
   useEffect(() => {
     let alive = true;
@@ -156,9 +174,39 @@ export default function InvestorDashboard() {
   }, [visibleRows, selectedPropertyId]);
 
   useEffect(() => {
+    if (!detailProperty && detailPropertyId !== null) {
+      setDetailPropertyId(null);
+    }
+  }, [detailProperty, detailPropertyId]);
+
+  useEffect(() => {
     if (typeof window === "undefined") return;
     window.localStorage.setItem(FAVORITES_STORAGE_KEY, JSON.stringify(favoritePropertyIds));
   }, [favoritePropertyIds]);
+
+  useEffect(() => {
+    const investorId = user?.investorId;
+    if (detailPropertyId === null || !investorId) return undefined;
+
+    let alive = true;
+    setInvestorProfileError("");
+
+    (async () => {
+      try {
+        const profile = await getInvestorById(investorId);
+        if (!alive) return;
+        setInvestorProfile(profile);
+      } catch (nextError) {
+        if (!alive) return;
+        setInvestorProfile(null);
+        setInvestorProfileError(nextError?.message || "Failed to load your profile.");
+      }
+    })();
+
+    return () => {
+      alive = false;
+    };
+  }, [detailPropertyId, user?.investorId]);
 
   const hasMoreFiltersSelected = useMemo(() => {
     return [
@@ -181,6 +229,84 @@ export default function InvestorDashboard() {
       }
       return [...prev, propertyIdKey];
     });
+  }
+
+  function handleCardClick(property) {
+    if (selectedPropertyId === property.id) {
+      setDetailPropertyId(property.id);
+      setInquiryMessageBody(DEFAULT_INQUIRY_MESSAGE);
+      setInquiryError("");
+      setInquirySuccess("");
+      return;
+    }
+
+    setSelectedPropertyId(property.id);
+  }
+
+  function closePropertyDetails() {
+    setDetailPropertyId(null);
+    setInquiryError("");
+    setInquirySuccess("");
+  }
+
+  async function handleSendInquiry() {
+    if (!detailProperty) return;
+
+    const investorId = user?.investorId;
+    if (!investorId) {
+      setInquiryError("Missing investor identity. Please log out and log in again.");
+      setInquirySuccess("");
+      return;
+    }
+
+    if (!investorProfile) {
+      setInquiryError(investorProfileError || "Unable to load your profile. Try again.");
+      setInquirySuccess("");
+      return;
+    }
+
+    const contactName = cleanString(
+      [investorProfile.firstName, investorProfile.lastName].filter(Boolean).join(" "),
+    );
+    const companyName = cleanString(investorProfile.companyName);
+    const contactEmail = cleanString(investorProfile.email);
+    const contactPhone = cleanString(investorProfile.phone);
+    const messageBody = cleanString(inquiryMessageBody);
+
+    if (!messageBody) {
+      setInquiryError("Message is required.");
+      setInquirySuccess("");
+      return;
+    }
+
+    if (!contactName || !companyName || !contactEmail || !contactPhone) {
+      setInquiryError("Complete your profile in Account Center before sending inquiries.");
+      setInquirySuccess("");
+      return;
+    }
+
+    setInquirySending(true);
+    setInquiryError("");
+    setInquirySuccess("");
+
+    try {
+      const subjectAddress = fullAddress(detailProperty) || `Property #${detailProperty.id}`;
+      await createInquiry({
+        propertyId: detailProperty.id,
+        investorId,
+        subject: `Property inquiry: ${subjectAddress}`,
+        messageBody,
+        contactName,
+        companyName,
+        contactEmail,
+        contactPhone,
+      });
+      setInquirySuccess("Inquiry sent.");
+    } catch (nextError) {
+      setInquiryError(nextError?.message || "Failed to send inquiry.");
+    } finally {
+      setInquirySending(false);
+    }
   }
 
   const emptyMessage = showFavoritesOnly ? "No favorite properties found." : "No properties found.";
@@ -362,7 +488,7 @@ export default function InvestorDashboard() {
                     <button
                       type="button"
                       className="invDash__cardFocus"
-                      onClick={() => setSelectedPropertyId(property.id)}
+                      onClick={() => handleCardClick(property)}
                     >
                       {leadPhoto ? (
                         <img
@@ -394,6 +520,8 @@ export default function InvestorDashboard() {
                           <span>{property.baths ?? "—"} ba</span>
                           <span>{property.livingAreaSqft?.toLocaleString("en-US") ?? "—"} sqft</span>
                         </div>
+
+                        {isActive ? <p className="invDash__cardHint">Click again for details</p> : null}
                       </div>
                     </button>
                   </article>
@@ -403,6 +531,23 @@ export default function InvestorDashboard() {
           ) : null}
         </div>
       </div>
+
+      <InvestorPropertyDetailsModal
+        open={detailProperty !== null}
+        property={detailProperty}
+        messageBody={inquiryMessageBody}
+        onMessageBodyChange={(value) => {
+          setInquiryMessageBody(value);
+          if (inquiryError) setInquiryError("");
+          if (inquirySuccess) setInquirySuccess("");
+        }}
+        onSubmitInquiry={handleSendInquiry}
+        inquirySending={inquirySending}
+        inquiryError={inquiryError}
+        inquirySuccess={inquirySuccess}
+        profileError={investorProfileError}
+        onClose={closePropertyDetails}
+      />
     </section>
   );
 }

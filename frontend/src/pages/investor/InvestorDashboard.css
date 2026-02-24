@@ -245,11 +245,11 @@
 }
 
 .invDash__favoriteToggle--active {
-  color: #101010;
+  color: #ffffff;
 }
 
 .invDash__favoriteToggle--active .invDash__favoriteIcon path {
-  fill: #101010;
+  fill: #ffffff;
   stroke: #ffffff;
   stroke-width: 1.3;
 }
@@ -325,6 +325,12 @@
   color: rgba(16, 16, 16, 0.76);
   display: flex;
   gap: 10px;
+}
+
+.invDash__cardHint {
+  margin: 8px 0 0;
+  font-size: 11px;
+  color: rgba(16, 16, 16, 0.56);
 }
 
 .invDash__notice {
