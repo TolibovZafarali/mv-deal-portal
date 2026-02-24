@@ -177,112 +177,114 @@ export default function InvestorDashboard() {
   return (
     <section className="invDash">
       <form className="invDash__filters" onSubmit={(event) => event.preventDefault()}>
-        <div className="invDash__searchWrap">
-          <input
-            className="invDash__search"
-            type="search"
-            placeholder="Address, neighborhood, city, zip"
-            value={filters.q}
-            onChange={(event) => updateFilter("q", event.target.value)}
-          />
-          <span className="material-symbols-outlined invDash__searchIcon">search</span>
-        </div>
+        <div className="invDash__filterRow">
+          <div className="invDash__searchWrap">
+            <input
+              className="invDash__search"
+              type="search"
+              placeholder="Address, neighborhood, city, zip"
+              value={filters.q}
+              onChange={(event) => updateFilter("q", event.target.value)}
+            />
+            <span className="material-symbols-outlined invDash__searchIcon">search</span>
+          </div>
 
-        <div className="invDash__filtersRight">
-          <select
-            className="invDash__select"
-            value={filters.occupancyStatus}
-            onChange={(event) => updateFilter("occupancyStatus", event.target.value)}
-          >
-            {OCCUPANCY_OPTIONS.map((option) => (
-              <option key={option.label} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-
-          <select
-            className="invDash__select"
-            value={filters.exitStrategy}
-            onChange={(event) => updateFilter("exitStrategy", event.target.value)}
-          >
-            {EXIT_STRATEGY_OPTIONS.map((option) => (
-              <option key={option.label} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-
-          <select
-            className="invDash__select"
-            value={filters.closingTerms}
-            onChange={(event) => updateFilter("closingTerms", event.target.value)}
-          >
-            {CLOSING_TERMS_OPTIONS.map((option) => (
-              <option key={option.label} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-
-          <details className="invDash__moreMenu">
-            <summary
-              className={`invDash__moreSummary ${
-                hasMoreFiltersSelected ? "invDash__moreSummary--active" : ""
-              }`}
+          <div className="invDash__controlGroup">
+            <select
+              className="invDash__select"
+              value={filters.occupancyStatus}
+              onChange={(event) => updateFilter("occupancyStatus", event.target.value)}
             >
-              More
-            </summary>
+              {OCCUPANCY_OPTIONS.map((option) => (
+                <option key={option.label} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
 
-            <div className="invDash__moreBody">
-              <label className="invDash__moreField">
-                <span className="invDash__moreLabel">Min Beds</span>
-                <input
-                  className="invDash__moreInput"
-                  type="number"
-                  min="0"
-                  value={filters.minBeds}
-                  onChange={(event) => updateFilter("minBeds", event.target.value)}
-                />
-              </label>
+            <select
+              className="invDash__select"
+              value={filters.exitStrategy}
+              onChange={(event) => updateFilter("exitStrategy", event.target.value)}
+            >
+              {EXIT_STRATEGY_OPTIONS.map((option) => (
+                <option key={option.label} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
 
-              <label className="invDash__moreField">
-                <span className="invDash__moreLabel">Min Baths</span>
-                <input
-                  className="invDash__moreInput"
-                  type="number"
-                  min="0"
-                  step="0.5"
-                  value={filters.minBaths}
-                  onChange={(event) => updateFilter("minBaths", event.target.value)}
-                />
-              </label>
+            <select
+              className="invDash__select"
+              value={filters.closingTerms}
+              onChange={(event) => updateFilter("closingTerms", event.target.value)}
+            >
+              {CLOSING_TERMS_OPTIONS.map((option) => (
+                <option key={option.label} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
 
-              <label className="invDash__moreField">
-                <span className="invDash__moreLabel">Min Asking</span>
-                <input
-                  className="invDash__moreInput"
-                  type="text"
-                  inputMode="numeric"
-                  placeholder="$"
-                  value={filters.minAskingPrice}
-                  onChange={(event) => updateFilter("minAskingPrice", event.target.value)}
-                />
-              </label>
+            <details className="invDash__moreMenu">
+              <summary
+                className={`invDash__moreSummary ${
+                  hasMoreFiltersSelected ? "invDash__moreSummary--active" : ""
+                }`}
+              >
+                More
+              </summary>
 
-              <label className="invDash__moreField">
-                <span className="invDash__moreLabel">Max Asking</span>
-                <input
-                  className="invDash__moreInput"
-                  type="text"
-                  inputMode="numeric"
-                  placeholder="$"
-                  value={filters.maxAskingPrice}
-                  onChange={(event) => updateFilter("maxAskingPrice", event.target.value)}
-                />
-              </label>
-            </div>
-          </details>
+              <div className="invDash__moreBody">
+                <label className="invDash__moreField">
+                  <span className="invDash__moreLabel">Min Beds</span>
+                  <input
+                    className="invDash__moreInput"
+                    type="number"
+                    min="0"
+                    value={filters.minBeds}
+                    onChange={(event) => updateFilter("minBeds", event.target.value)}
+                  />
+                </label>
+
+                <label className="invDash__moreField">
+                  <span className="invDash__moreLabel">Min Baths</span>
+                  <input
+                    className="invDash__moreInput"
+                    type="number"
+                    min="0"
+                    step="0.5"
+                    value={filters.minBaths}
+                    onChange={(event) => updateFilter("minBaths", event.target.value)}
+                  />
+                </label>
+
+                <label className="invDash__moreField">
+                  <span className="invDash__moreLabel">Min Asking</span>
+                  <input
+                    className="invDash__moreInput"
+                    type="text"
+                    inputMode="numeric"
+                    placeholder="$"
+                    value={filters.minAskingPrice}
+                    onChange={(event) => updateFilter("minAskingPrice", event.target.value)}
+                  />
+                </label>
+
+                <label className="invDash__moreField">
+                  <span className="invDash__moreLabel">Max Asking</span>
+                  <input
+                    className="invDash__moreInput"
+                    type="text"
+                    inputMode="numeric"
+                    placeholder="$"
+                    value={filters.maxAskingPrice}
+                    onChange={(event) => updateFilter("maxAskingPrice", event.target.value)}
+                  />
+                </label>
+              </div>
+            </details>
+          </div>
         </div>
       </form>
 

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, Outlet } from "react-router-dom";
+import { Link, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth";
 import InvestorAccountCenterModal from "../modals/InvestorAccountCenterModal";
 import "./InvestorLayout.css";
@@ -8,13 +8,20 @@ const PROFILE_TAB = "profile";
 const INQUIRIES_TAB = "inquiries";
 
 export default function InvestorLayout() {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
   const [accountOpen, setAccountOpen] = useState(false);
   const [activeTab, setActiveTab] = useState(PROFILE_TAB);
 
   function openAccount(tab) {
     setActiveTab(tab);
     setAccountOpen(true);
+  }
+
+  function handleLogout() {
+    signOut();
+    setAccountOpen(false);
+    navigate("/", { replace: true });
   }
 
   return (
@@ -51,6 +58,7 @@ export default function InvestorLayout() {
         activeTab={activeTab}
         onTabChange={setActiveTab}
         onClose={() => setAccountOpen(false)}
+        onLogout={handleLogout}
         investorId={user?.investorId}
       />
     </div>

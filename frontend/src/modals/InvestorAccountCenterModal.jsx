@@ -50,6 +50,7 @@ export default function InvestorAccountCenterModal({
   activeTab,
   onTabChange,
   onClose,
+  onLogout,
   investorId,
 }) {
   const [profile, setProfile] = useState({
@@ -254,6 +255,12 @@ export default function InvestorAccountCenterModal({
               onClick={() => onTabChange(INQUIRIES_TAB)}
             >
               Inquiries
+            </button>
+          </div>
+
+          <div className="invAccountModal__leftBottom">
+            <button type="button" className="invAccountModal__logout" onClick={onLogout}>
+              Log Out
             </button>
           </div>
         </div>
