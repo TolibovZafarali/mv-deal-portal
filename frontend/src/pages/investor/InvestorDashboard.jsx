@@ -24,6 +24,8 @@ const CLOSING_TERMS_OPTIONS = [
   { label: "Seller Finance", value: "SELLER_FINANCE" },
 ];
 
+const FAVORITES_STORAGE_KEY = "investor.favoritePropertyIds";
+
 function money(value) {
   const numeric = Number(value);
   if (!Number.isFinite(numeric)) return "—";
@@ -59,6 +61,21 @@ function fullAddress(property) {
   return [line1, property.city, property.state, property.zip].filter(Boolean).join(", ");
 }
 
+function loadFavoritePropertyIds() {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(FAVORITES_STORAGE_KEY);
+    if (!raw) return [];
+
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+
+    return Array.from(new Set(parsed.map((value) => String(value)).filter(Boolean)));
+  } catch {
+    return [];
+  }
+}
+
 export default function InvestorDashboard() {
   const [filters, setFilters] = useState({
     q: "",
@@ -74,6 +91,17 @@ export default function InvestorDashboard() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [selectedPropertyId, setSelectedPropertyId] = useState(null);
+  const [favoritePropertyIds, setFavoritePropertyIds] = useState(loadFavoritePropertyIds);
+  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
+
+  const favoritePropertyIdSet = useMemo(() => {
+    return new Set(favoritePropertyIds);
+  }, [favoritePropertyIds]);
+
+  const visibleRows = useMemo(() => {
+    if (!showFavoritesOnly) return rows;
+    return rows.filter((row) => favoritePropertyIdSet.has(String(row.id)));
+  }, [favoritePropertyIdSet, rows, showFavoritesOnly]);
 
   useEffect(() => {
     let alive = true;
@@ -116,16 +144,21 @@ export default function InvestorDashboard() {
   }, [filters]);
 
   useEffect(() => {
-    if (!rows.length) {
+    if (!visibleRows.length) {
       setSelectedPropertyId(null);
       return;
     }
 
-    const selectedStillVisible = rows.some((row) => row.id === selectedPropertyId);
-    if (!selectedStillVisible) {
-      setSelectedPropertyId(rows[0].id);
+    const selectedStillVisible = visibleRows.some((row) => row.id === selectedPropertyId);
+    if (!selectedStillVisible && selectedPropertyId !== null) {
+      setSelectedPropertyId(null);
     }
-  }, [rows, selectedPropertyId]);
+  }, [visibleRows, selectedPropertyId]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(FAVORITES_STORAGE_KEY, JSON.stringify(favoritePropertyIds));
+  }, [favoritePropertyIds]);
 
   const hasMoreFiltersSelected = useMemo(() => {
     return [
@@ -139,6 +172,18 @@ export default function InvestorDashboard() {
   function updateFilter(key, value) {
     setFilters((prev) => ({ ...prev, [key]: value }));
   }
+
+  function toggleFavoriteProperty(propertyId) {
+    const propertyIdKey = String(propertyId);
+    setFavoritePropertyIds((prev) => {
+      if (prev.includes(propertyIdKey)) {
+        return prev.filter((id) => id !== propertyIdKey);
+      }
+      return [...prev, propertyIdKey];
+    });
+  }
+
+  const emptyMessage = showFavoritesOnly ? "No favorite properties found." : "No properties found.";
 
   return (
     <section className="invDash">
@@ -156,6 +201,17 @@ export default function InvestorDashboard() {
           </div>
 
           <div className="invDash__controlGroup">
+            <button
+              type="button"
+              className={`invDash__favoritesFilter ${
+                showFavoritesOnly ? "invDash__favoritesFilter--active" : ""
+              }`}
+              onClick={() => setShowFavoritesOnly((prev) => !prev)}
+              aria-pressed={showFavoritesOnly}
+            >
+              Favorites
+            </button>
+
             <select
               className="invDash__select"
               value={filters.occupancyStatus}
@@ -257,7 +313,7 @@ export default function InvestorDashboard() {
       <div className="invDash__content">
         <div className="invDash__mapPane">
           <InvestorPropertyMap
-            properties={rows}
+            properties={visibleRows}
             selectedPropertyId={selectedPropertyId}
             onSelectProperty={setSelectedPropertyId}
             loading={loading}
@@ -267,21 +323,42 @@ export default function InvestorDashboard() {
         <div className="invDash__listPane">
           {loading ? <div className="invDash__notice">Loading properties...</div> : null}
           {!loading && error ? <div className="invDash__notice invDash__notice--error">{error}</div> : null}
-          {!loading && !error && rows.length === 0 ? (
-            <div className="invDash__notice">No properties found.</div>
-          ) : null}
+          {!loading && !error && visibleRows.length === 0 ? <div className="invDash__notice">{emptyMessage}</div> : null}
 
-          {!loading && !error && rows.length > 0 ? (
+          {!loading && !error && visibleRows.length > 0 ? (
             <div className="invDash__cards">
-              {rows.map((property) => {
+              {visibleRows.map((property) => {
                 const leadPhoto = property.photos?.[0]?.url || "";
                 const isActive = selectedPropertyId === property.id;
+                const isFavorite = favoritePropertyIdSet.has(String(property.id));
 
                 return (
                   <article
                     key={property.id}
                     className={`invDash__card ${isActive ? "invDash__card--active" : ""}`}
                   >
+                    <button
+                      type="button"
+                      className={`invDash__favoriteToggle ${
+                        isFavorite ? "invDash__favoriteToggle--active" : ""
+                      }`}
+                      onClick={(event) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        toggleFavoriteProperty(property.id);
+                      }}
+                      aria-label={isFavorite ? "Remove bookmark" : "Save bookmark"}
+                      aria-pressed={isFavorite}
+                    >
+                      <svg
+                        className="invDash__favoriteIcon"
+                        viewBox="0 0 24 24"
+                        aria-hidden="true"
+                      >
+                        <path d="M6 3h12a1 1 0 0 1 1 1v17l-7-3-7 3V4a1 1 0 0 1 1-1z" />
+                      </svg>
+                    </button>
+
                     <button
                       type="button"
                       className="invDash__cardFocus"
