@@ -163,68 +163,6 @@
   background: transparent;
 }
 
-.invDash__mapCanvas {
-  position: relative;
-  height: 100%;
-  min-height: 420px;
-  border-radius: 14px;
-  background:
-    radial-gradient(circle at 18% 17%, rgba(16, 16, 16, 0.08), transparent 33%),
-    radial-gradient(circle at 80% 76%, rgba(16, 16, 16, 0.09), transparent 35%),
-    linear-gradient(140deg, rgba(255, 255, 255, 0.9), rgba(227, 227, 227, 0.78));
-  overflow: hidden;
-}
-
-.invDash__mapCanvas::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background-image:
-    linear-gradient(rgba(16, 16, 16, 0.06) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(16, 16, 16, 0.06) 1px, transparent 1px);
-  background-size: 38px 38px;
-}
-
-.invDash__mapEmpty {
-  position: absolute;
-  inset: 0;
-  z-index: 2;
-  display: grid;
-  place-content: center;
-  text-align: center;
-  color: rgba(16, 16, 16, 0.65);
-  gap: 6px;
-}
-
-.invDash__mapEmpty .material-symbols-outlined {
-  font-size: 42px;
-}
-
-.invDash__mapEmpty p {
-  margin: 0;
-  font-size: 14px;
-}
-
-.invDash__pin {
-  position: absolute;
-  z-index: 3;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  border: 1px solid rgba(16, 16, 16, 0.55);
-  background: rgba(255, 255, 255, 0.92);
-  box-shadow: 0 2px 9px rgba(0, 0, 0, 0.2);
-  transform: translate(-50%, -50%);
-  cursor: pointer;
-}
-
-.invDash__pin--active {
-  width: 22px;
-  height: 22px;
-  background: #101010;
-  border-color: #101010;
-}
-
 .invDash__listPane {
   overflow: auto;
   padding-right: 2px;

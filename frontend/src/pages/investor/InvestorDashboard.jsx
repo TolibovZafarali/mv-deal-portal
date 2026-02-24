@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { searchProperties } from "../../api/propertyApi";
+import InvestorPropertyMap from "../../components/InvestorPropertyMap";
 import "./InvestorDashboard.css";
 
 const OCCUPANCY_OPTIONS = [
@@ -56,39 +57,6 @@ function parseInteger(value) {
 function fullAddress(property) {
   const line1 = [property.street1, property.street2].filter(Boolean).join(", ");
   return [line1, property.city, property.state, property.zip].filter(Boolean).join(", ");
-}
-
-function toCoordinate(value) {
-  if (value === null || value === undefined || value === "") return null;
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : null;
-}
-
-function toMapPoints(properties) {
-  const points = properties
-    .map((property) => ({
-      id: property.id,
-      lat: toCoordinate(property.latitude),
-      lng: toCoordinate(property.longitude),
-    }))
-    .filter((point) => point.lat !== null && point.lng !== null);
-
-  if (!points.length) return [];
-
-  const lats = points.map((point) => point.lat);
-  const lngs = points.map((point) => point.lng);
-  const minLat = Math.min(...lats);
-  const maxLat = Math.max(...lats);
-  const minLng = Math.min(...lngs);
-  const maxLng = Math.max(...lngs);
-  const latRange = maxLat - minLat || 1;
-  const lngRange = maxLng - minLng || 1;
-
-  return points.map((point) => {
-    const x = 8 + ((point.lng - minLng) / lngRange) * 84;
-    const y = 10 + (1 - (point.lat - minLat) / latRange) * 76;
-    return { ...point, x, y };
-  });
 }
 
 export default function InvestorDashboard() {
@@ -158,8 +126,6 @@ export default function InvestorDashboard() {
       setSelectedPropertyId(rows[0].id);
     }
   }, [rows, selectedPropertyId]);
-
-  const mapPoints = useMemo(() => toMapPoints(rows), [rows]);
 
   const hasMoreFiltersSelected = useMemo(() => {
     return [
@@ -289,36 +255,13 @@ export default function InvestorDashboard() {
       </form>
 
       <div className="invDash__content">
-        <div className="invDash__mapPane" aria-label="Property map">
-          <div className="invDash__mapCanvas">
-            {!loading && !rows.length ? (
-              <div className="invDash__mapEmpty">
-                <span className="material-symbols-outlined">map</span>
-                <p>No properties to display on map.</p>
-              </div>
-            ) : null}
-
-            {rows.length > 0 && mapPoints.length === 0 ? (
-              <div className="invDash__mapEmpty">
-                <span className="material-symbols-outlined">location_off</span>
-                <p>Properties loaded, but map coordinates are unavailable.</p>
-              </div>
-            ) : null}
-
-            {mapPoints.map((point) => (
-              <button
-                key={point.id}
-                type="button"
-                className={`invDash__pin ${
-                  selectedPropertyId === point.id ? "invDash__pin--active" : ""
-                }`}
-                style={{ left: `${point.x}%`, top: `${point.y}%` }}
-                onClick={() => setSelectedPropertyId(point.id)}
-                aria-label={`Property ${point.id}`}
-                title={`Property ${point.id}`}
-              />
-            ))}
-          </div>
+        <div className="invDash__mapPane">
+          <InvestorPropertyMap
+            properties={rows}
+            selectedPropertyId={selectedPropertyId}
+            onSelectProperty={setSelectedPropertyId}
+            loading={loading}
+          />
         </div>
 
         <div className="invDash__listPane">
