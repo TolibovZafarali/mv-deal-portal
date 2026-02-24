@@ -23,6 +23,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
 
 import static com.megna.backend.enums.PropertyStatus.ACTIVE;
 
@@ -154,6 +156,47 @@ public class PropertyService {
     private void requireVisibleToPrincipal(Property property, boolean admin) {
         if (!admin && property.getStatus() != ACTIVE) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Property not found: " + property.getId());
+        }
+    }
+
+    private void validateForActiveStatus(PropertyUpsertRequestDto dto) {
+        if (dto.status() != ACTIVE) return;
+
+        List<String> missingFields = new ArrayList<>();
+
+        requireNotBlank(dto.street1(), "street1", missingFields);
+        requireNotBlank(dto.city(), "city", missingFields);
+        requireNotBlank(dto.state(), "state", missingFields);
+        requireNotBlank(dto.zip(), "zip", missingFields);
+        requireNotNull(dto.askingPrice(), "askingPrice", missingFields);
+        requireNotNull(dto.arv(), "arv", missingFields);
+        requireNotNull(dto.estRepairs(), "estRepairs", missingFields);
+        requireNotNull(dto.beds(), "beds", missingFields);
+        requireNotNull(dto.baths(), "baths", missingFields);
+        requireNotNull(dto.livingAreaSqft(), "livingAreaSqft", missingFields);
+        requireNotNull(dto.yearBuilt(), "yearBuilt", missingFields);
+        requireNotNull(dto.occupancyStatus(), "occupancyStatus", missingFields);
+        requireNotNull(dto.exitStrategy(), "exitStrategy", missingFields);
+        requireNotNull(dto.closingTerms(), "closingTerms", missingFields);
+        requireNotBlank(dto.description(), "description", missingFields);
+
+        if (!missingFields.isEmpty()) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Cannot set status to ACTIVE while required fields are missing: " + String.join(", ", missingFields)
+            );
+        }
+    }
+
+    private static void requireNotBlank(String value, String fieldName, List<String> missingFields) {
+        if (value == null || value.isBlank()) {
+            missingFields.add(fieldName);
+        }
+    }
+
+    private static void requireNotNull(Object value, String fieldName, List<String> missingFields) {
+        if (value == null) {
+            missingFields.add(fieldName);
         }
     }
 }

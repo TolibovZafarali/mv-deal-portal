@@ -196,6 +196,50 @@ export default function PropertyUpsertModal({
     [isEdit],
   );
 
+  const activeMissingRequiredFields = useMemo(() => {
+    const missing = [];
+    const requiredTextFields = [
+      ["street1", "Street Address"],
+      ["city", "City"],
+      ["state", "State"],
+      ["zip", "ZIP / postcode"],
+      ["occupancyStatus", "Occupancy Status"],
+      ["exitStrategy", "Exit Strategy"],
+      ["closingTerms", "Closing Terms"],
+      ["description", "Description"],
+    ];
+
+    requiredTextFields.forEach(([key, label]) => {
+      if (!String(form[key] ?? "").trim()) {
+        missing.push(label);
+      }
+    });
+
+    const requiredNumericFields = [
+      ["askingPrice", "Asking Price"],
+      ["arv", "ARV"],
+      ["estRepairs", "Estimated Repairs"],
+      ["beds", "Beds"],
+      ["baths", "Baths"],
+      ["livingAreaSqft", "Living Area (sqft)"],
+      ["yearBuilt", "Year Built"],
+    ];
+
+    requiredNumericFields.forEach(([key, label]) => {
+      if (form[key] === "" || form[key] === null || form[key] === undefined) {
+        missing.push(label);
+      }
+    });
+
+    return missing;
+  }, [form]);
+
+  const isActiveWithMissingRequired =
+    form.status === "ACTIVE" && activeMissingRequiredFields.length > 0;
+
+  const isSubmitDisabled =
+    !form.title.trim() || submitting || deleting || isActiveWithMissingRequired;
+
   function setField(key, value) {
     setForm((p) => ({ ...p, [key]: value }));
   }
@@ -553,6 +597,11 @@ export default function PropertyUpsertModal({
           </div>
 
           {/* errors */}
+          {isActiveWithMissingRequired ? (
+            <div className="propModal__error">
+              Active properties require all required fields. Missing: {activeMissingRequiredFields.join(", ")}
+            </div>
+          ) : null}
           {submitError ? (
             <div className="propModal__error">{submitError}</div>
           ) : null}
@@ -606,7 +655,7 @@ export default function PropertyUpsertModal({
                   <button
                     type="submit"
                     className="propBtn propBtn--primary"
-                    disabled={!form.title.trim() || submitting || deleting}
+                    disabled={isSubmitDisabled}
                   >
                     {submitting ? "Saving..." : "Save"}
                   </button>
@@ -626,7 +675,7 @@ export default function PropertyUpsertModal({
                 <button
                   type="submit"
                   className="propBtn propBtn--primary"
-                  disabled={!form.title.trim() || submitting}
+                  disabled={isSubmitDisabled}
                 >
                   {submitting ? "Adding..." : "Add"}
                 </button>
