@@ -1,12 +1,14 @@
 package com.megna.backend.controllers;
 
 import com.megna.backend.dtos.property.PropertyPhotoUploadResponseDto;
+import com.megna.backend.dtos.property.PropertyAddressSuggestionResponseDto;
 import com.megna.backend.dtos.property.PropertyResponseDto;
 import com.megna.backend.dtos.property.PropertyUpsertRequestDto;
 import com.megna.backend.enums.ClosingTerms;
 import com.megna.backend.enums.ExitStrategy;
 import com.megna.backend.enums.OccupancyStatus;
 import com.megna.backend.enums.PropertyStatus;
+import com.megna.backend.services.PropertyAddressAutocompleteService;
 import com.megna.backend.services.PropertyPhotoStorageService;
 import com.megna.backend.services.PropertyService;
 import jakarta.validation.Valid;
@@ -23,6 +25,7 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/properties")
@@ -31,6 +34,7 @@ public class PropertyController {
 
     private final PropertyService propertyService;
     private final PropertyPhotoStorageService propertyPhotoStorageService;
+    private final PropertyAddressAutocompleteService propertyAddressAutocompleteService;
 
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
@@ -69,6 +73,15 @@ public class PropertyController {
     public ResponseEntity<PropertyPhotoUploadResponseDto> uploadPhoto(@RequestPart("file") MultipartFile file) {
         PropertyPhotoUploadResponseDto uploaded = propertyPhotoStorageService.store(file);
         return ResponseEntity.status(HttpStatus.CREATED).body(uploaded);
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/address-suggestions")
+    public List<PropertyAddressSuggestionResponseDto> addressSuggestions(
+            @RequestParam(name = "q") String query,
+            @RequestParam(required = false) Integer limit
+    ) {
+        return propertyAddressAutocompleteService.search(query, limit);
     }
 
     @GetMapping("/search")

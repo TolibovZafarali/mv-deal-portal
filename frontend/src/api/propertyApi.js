@@ -48,3 +48,14 @@ export async function searchProperties(filters = {}, pageOpts = {}) {
     const { data } = await apiClient.get(`${BASE}/search`, { params });
     return data;
 }
+
+export async function getAddressSuggestions(query, opts = {}) {
+    const { limit = 6 } = opts;
+    const params = cleanParams({
+        q: String(query ?? "").trim(),
+        limit,
+    });
+
+    const { data } = await apiClient.get(`${BASE}/address-suggestions`, { params });
+    return Array.isArray(data) ? data : [];
+}
