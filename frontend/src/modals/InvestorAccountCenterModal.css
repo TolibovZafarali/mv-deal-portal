@@ -1,0 +1,226 @@
+.invAccountBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  background: rgba(0, 0, 0, 0.48);
+  backdrop-filter: blur(7px);
+  padding: 16px;
+}
+
+.invAccountModal {
+  width: min(1120px, 96vw);
+  max-height: min(740px, 92vh);
+  background: #252628;
+  color: #f2f2f2;
+  border: 1px solid rgba(242, 242, 242, 0.26);
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  overflow: hidden;
+}
+
+.invAccountModal__left {
+  background: #f2f2f2;
+  color: #101010;
+  border-right: 1px solid rgba(16, 16, 16, 0.18);
+  padding: 18px 16px;
+}
+
+.invAccountModal__title {
+  margin: 0;
+  font-size: 34px;
+  font-weight: 500;
+  line-height: 1;
+}
+
+.invAccountModal__tabs {
+  margin-top: 24px;
+  display: grid;
+  gap: 8px;
+}
+
+.invAccountModal__tab {
+  height: 36px;
+  border: 1px solid rgba(16, 16, 16, 0.36);
+  background: transparent;
+  color: #101010;
+  cursor: pointer;
+}
+
+.invAccountModal__tab--active {
+  background: #101010;
+  color: #f2f2f2;
+  border-color: #101010;
+}
+
+.invAccountModal__right {
+  min-width: 0;
+  position: relative;
+  padding: 16px 18px 18px;
+  overflow: auto;
+}
+
+.invAccountModal__close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 30px;
+  height: 30px;
+  border: none;
+  background: transparent;
+  color: #f2f2f2;
+  cursor: pointer;
+}
+
+.invAccountModal__panel {
+  margin-top: 10px;
+}
+
+.invAccountModal__panelTitle {
+  margin: 0 0 14px;
+  font-size: 30px;
+  font-weight: 500;
+  line-height: 1;
+}
+
+.invAccountModal__notice {
+  border: 1px solid rgba(242, 242, 242, 0.25);
+  padding: 10px 12px;
+  font-size: 14px;
+}
+
+.invAccountModal__notice--error {
+  border-color: rgba(187, 79, 79, 0.75);
+  color: #f1b6b6;
+}
+
+.invAccountModal__profileForm {
+  display: grid;
+  gap: 10px;
+}
+
+.invAccountModal__field {
+  display: grid;
+  gap: 6px;
+}
+
+.invAccountModal__field span {
+  font-size: 12px;
+  color: rgba(242, 242, 242, 0.72);
+}
+
+.invAccountModal__field input {
+  border: 1px solid rgba(242, 242, 242, 0.3);
+  background: transparent;
+  color: #f2f2f2;
+  padding: 9px 10px;
+  outline: none;
+}
+
+.invAccountModal__field input:disabled {
+  color: rgba(242, 242, 242, 0.65);
+}
+
+.invAccountModal__field input:focus {
+  border-color: rgba(242, 242, 242, 0.62);
+}
+
+.invAccountModal__formMsg {
+  font-size: 13px;
+}
+
+.invAccountModal__formMsg--error {
+  color: #f1b6b6;
+}
+
+.invAccountModal__formMsg--ok {
+  color: #a6e4b9;
+}
+
+.invAccountModal__save {
+  margin-top: 6px;
+  border: 1px solid rgba(242, 242, 242, 0.45);
+  background: transparent;
+  color: #f2f2f2;
+  height: 38px;
+  cursor: pointer;
+}
+
+.invAccountModal__save:disabled {
+  cursor: default;
+  opacity: 0.7;
+}
+
+.invAccountModal__inquiries {
+  display: grid;
+  gap: 20px;
+}
+
+.invAccountModal__group h4 {
+  margin: 0 0 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(242, 242, 242, 0.3);
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.invAccountModal__rows {
+  display: grid;
+  gap: 6px;
+}
+
+.invAccountModal__row {
+  display: grid;
+  grid-template-columns: 2fr 1fr 2fr auto;
+  gap: 10px;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.invAccountModal__row span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.invAccountModal__row--head {
+  color: rgba(242, 242, 242, 0.68);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.invAccountModal__empty {
+  font-size: 13px;
+  color: rgba(242, 242, 242, 0.68);
+}
+
+@media (max-width: 920px) {
+  .invAccountModal {
+    grid-template-columns: 1fr;
+  }
+
+  .invAccountModal__left {
+    border-right: none;
+    border-bottom: 1px solid rgba(16, 16, 16, 0.2);
+  }
+}
+
+@media (max-width: 740px) {
+  .invAccountModal__row {
+    grid-template-columns: 1fr;
+    gap: 4px;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(242, 242, 242, 0.14);
+  }
+
+  .invAccountModal__row--head {
+    display: none;
+  }
+
+  .invAccountModal__row span {
+    white-space: normal;
+  }
+}

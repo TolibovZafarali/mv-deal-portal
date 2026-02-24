@@ -1,29 +1,58 @@
-import { Outlet } from "react-router-dom"
+import { useState } from "react";
+import { Link, Outlet } from "react-router-dom";
+import { useAuth } from "../auth";
+import InvestorAccountCenterModal from "../modals/InvestorAccountCenterModal";
+import "./InvestorLayout.css";
 
-const shellStyle = { height: "100%", display: "grid", gridTemplateRows: "60px 1fr" }
-const headerStyle = {
-  borderBottom: "1px solid var(--border-muted)",
-  padding: "0 16px",
-  display: "flex",
-  alignItems: "center",
-}
-const actionsStyle = { marginLeft: "auto", display: "flex", gap: 12 }
-const mainStyle = { padding: 16 }
+const PROFILE_TAB = "profile";
+const INQUIRIES_TAB = "inquiries";
 
 export default function InvestorLayout() {
+  const { user } = useAuth();
+  const [accountOpen, setAccountOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState(PROFILE_TAB);
+
+  function openAccount(tab) {
+    setActiveTab(tab);
+    setAccountOpen(true);
+  }
+
   return (
-    <div style={shellStyle}>
-      <header style={headerStyle}>
-        <b>Megna</b>
-        <div style={actionsStyle}>
-          <button>Profile</button>
-          <button>Inquiries</button>
+    <div className="investorShell">
+      <header className="investorHeader">
+        <Link to="/investor" className="investorBrand" aria-label="Megna Investor Dashboard">
+          <img src="/favicon.svg" alt="Megna" className="investorBrand__logo" />
+        </Link>
+
+        <div className="investorHeader__actions">
+          <button
+            className="investorHeader__actionBtn"
+            type="button"
+            onClick={() => openAccount(INQUIRIES_TAB)}
+          >
+            Inquiries
+          </button>
+          <button
+            className="investorHeader__actionBtn"
+            type="button"
+            onClick={() => openAccount(PROFILE_TAB)}
+          >
+            Profile
+          </button>
         </div>
       </header>
 
-      <main style={mainStyle}>
+      <main className="investorMain">
         <Outlet />
       </main>
+
+      <InvestorAccountCenterModal
+        open={accountOpen}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        onClose={() => setAccountOpen(false)}
+        investorId={user?.investorId}
+      />
     </div>
-  )
+  );
 }
