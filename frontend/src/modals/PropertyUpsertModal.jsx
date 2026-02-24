@@ -141,6 +141,8 @@ export default function PropertyUpsertModal({
   const [photoUploading, setPhotoUploading] = useState(false);
   const [photoUploadError, setPhotoUploadError] = useState("");
   const photoInputRef = useRef(null);
+  const photoWheelRafRef = useRef(null);
+  const photoWheelTargetRef = useRef(0);
 
   useEffect(() => {
     if (!open) setShowDeleteConfirm(false);
@@ -208,6 +210,25 @@ export default function PropertyUpsertModal({
       document.body.style.overflow = prev;
     };
   }, [open, onClose]);
+
+  useEffect(() => {
+    return () => {
+      if (photoWheelRafRef.current) {
+        cancelAnimationFrame(photoWheelRafRef.current);
+        photoWheelRafRef.current = null;
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (open) return;
+
+    if (photoWheelRafRef.current) {
+      cancelAnimationFrame(photoWheelRafRef.current);
+      photoWheelRafRef.current = null;
+    }
+    photoWheelTargetRef.current = 0;
+  }, [open]);
 
   const titleText = useMemo(
     () => (isEdit ? "Edit Property" : "Add Property"),
@@ -283,6 +304,55 @@ export default function PropertyUpsertModal({
   function openPhotoPicker() {
     if (submitting || deleting || photoUploading) return;
     photoInputRef.current?.click();
+  }
+
+  function handlePhotoStripWheel(event) {
+    const strip = event.currentTarget;
+    const canScrollHorizontally = strip.scrollWidth > strip.clientWidth + 1;
+    if (!canScrollHorizontally) return;
+
+    const deltaX = event.deltaMode === 1 ? event.deltaX * 16 : event.deltaX;
+    const deltaY = event.deltaMode === 1 ? event.deltaY * 16 : event.deltaY;
+    const rawDelta = Math.abs(deltaX) > Math.abs(deltaY) ? deltaX : deltaY;
+    if (Math.abs(rawDelta) < 0.5) return;
+
+    const maxScrollLeft = Math.max(strip.scrollWidth - strip.clientWidth, 0);
+    const atLeft = strip.scrollLeft <= 0.5;
+    const atRight = strip.scrollLeft >= maxScrollLeft - 0.5;
+    const movingLeft = rawDelta < 0;
+    const movingRight = rawDelta > 0;
+
+    if ((movingLeft && atLeft) || (movingRight && atRight)) return;
+
+    event.preventDefault();
+
+    if (!photoWheelRafRef.current) {
+      photoWheelTargetRef.current = strip.scrollLeft;
+    }
+
+    photoWheelTargetRef.current = Math.min(
+      Math.max(photoWheelTargetRef.current + rawDelta * 1.2, 0),
+      maxScrollLeft,
+    );
+
+    if (photoWheelRafRef.current) return;
+
+    const animate = () => {
+      const target = photoWheelTargetRef.current;
+      const current = strip.scrollLeft;
+      const diff = target - current;
+
+      if (Math.abs(diff) <= 0.6) {
+        strip.scrollLeft = target;
+        photoWheelRafRef.current = null;
+        return;
+      }
+
+      strip.scrollLeft = current + diff * 0.22;
+      photoWheelRafRef.current = requestAnimationFrame(animate);
+    };
+
+    photoWheelRafRef.current = requestAnimationFrame(animate);
   }
 
   async function handlePhotoFileSelection(event) {
@@ -620,32 +690,37 @@ export default function PropertyUpsertModal({
               onChange={handlePhotoFileSelection}
             />
 
-            <div className="propPhotos">
-              {form.photos.length === 0 ? (
-                <div className="propPhotos__empty">
-                  No photos yet. Upload at least one photo before activating the property.
+            {form.photos.length === 0 ? (
+              <div className="propPhotos__empty">
+                No photos yet. Upload at least one photo before activating the property.
+              </div>
+            ) : (
+              <>
+                <div
+                  className="propPhotos"
+                  onWheel={handlePhotoStripWheel}
+                >
+                  {form.photos.map((photoUrl, index) => (
+                    <div key={`photo-${index}`} className="propPhotoCard">
+                      <img
+                        className="propPhotoCard__image"
+                        src={photoUrl}
+                        alt={`Property photo ${index + 1}`}
+                        loading="lazy"
+                      />
+                      <button
+                        type="button"
+                        className="propPhotoCard__remove"
+                        onClick={() => removePhoto(index)}
+                        disabled={photoUploading || submitting || deleting}
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))}
                 </div>
-              ) : (
-                form.photos.map((photoUrl, index) => (
-                  <div key={`photo-${index}`} className="propPhotoCard">
-                    <img
-                      className="propPhotoCard__image"
-                      src={photoUrl}
-                      alt={`Property photo ${index + 1}`}
-                      loading="lazy"
-                    />
-                    <button
-                      type="button"
-                      className="propPhotoCard__remove"
-                      onClick={() => removePhoto(index)}
-                      disabled={photoUploading || submitting || deleting}
-                    >
-                      Remove
-                    </button>
-                  </div>
-                ))
-              )}
-            </div>
+              </>
+            )}
           </div>
 
           {/* Sale Comps (UI only for now) */}
