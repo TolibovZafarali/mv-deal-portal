@@ -37,8 +37,6 @@ public record PropertyUpsertRequestDto(
         ExitStrategy exitStrategy,
         ClosingTerms closingTerms,
 
-        String description,
-
         @Valid List<PropertyPhotoRequestDto> photos,
         @Valid List<PropertySaleCompRequestDto> saleComps
         ) {

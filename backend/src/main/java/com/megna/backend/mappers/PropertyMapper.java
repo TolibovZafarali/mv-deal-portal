@@ -51,7 +51,6 @@ public final class PropertyMapper {
                 entity.getOccupancyStatus(),
                 entity.getExitStrategy(),
                 entity.getClosingTerms(),
-                entity.getDescription(),
 
                 entity.getCreatedAt(),
                 entity.getUpdatedAt(),
@@ -105,8 +104,6 @@ public final class PropertyMapper {
         entity.setOccupancyStatus(dto.occupancyStatus());
         entity.setExitStrategy(dto.exitStrategy());
         entity.setClosingTerms(dto.closingTerms());
-
-        entity.setDescription(dto.description());
 
         if (dto.photos() != null) {
             if (entity.getPhotos() == null) entity.setPhotos(new ArrayList<>());

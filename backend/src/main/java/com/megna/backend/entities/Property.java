@@ -87,10 +87,6 @@ public class Property {
     @Column(name = "closing_terms", length = 30)
     private ClosingTerms closingTerms;
 
-    @Lob
-    @Column(name = "description", columnDefinition = "TEXT")
-    private String description;
-
     // DB-managed timestamps
     @Column(name = "created_at", nullable = false, insertable = false, updatable = false)
     private LocalDateTime createdAt;

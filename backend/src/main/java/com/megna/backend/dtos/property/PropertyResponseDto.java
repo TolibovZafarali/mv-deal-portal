@@ -34,7 +34,6 @@ public record PropertyResponseDto(
         OccupancyStatus occupancyStatus,
         ExitStrategy exitStrategy,
         ClosingTerms closingTerms,
-        String description,
 
         LocalDateTime createdAt,
         LocalDateTime updatedAt,

@@ -178,7 +178,6 @@ public class PropertyService {
         requireNotNull(dto.occupancyStatus(), "occupancyStatus", missingFields);
         requireNotNull(dto.exitStrategy(), "exitStrategy", missingFields);
         requireNotNull(dto.closingTerms(), "closingTerms", missingFields);
-        requireNotBlank(dto.description(), "description", missingFields);
 
         if (!missingFields.isEmpty()) {
             throw new ResponseStatusException(
