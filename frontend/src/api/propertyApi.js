@@ -24,6 +24,16 @@ export async function updateProperty(id, propertyUpsertDto) {
     return data;
 }
 
+export async function uploadPropertyPhoto(file) {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const { data } = await apiClient.post(`${BASE}/photos/upload`, formData, {
+        timeout: 30000,
+    });
+    return data;
+}
+
 export async function deleteProperty(id) {
     await apiClient.delete(`${BASE}/${id}`);
     return true;

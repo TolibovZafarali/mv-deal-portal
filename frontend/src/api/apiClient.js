@@ -27,9 +27,6 @@ function serializeParams(params) {
 export const apiClient = axios.create({
     baseURL,
     timeout: 15000,
-    headers: {
-        "Content-Type": "application/json",
-    },
     paramsSerializer: {
         serialize: serializeParams,
     },

@@ -4,6 +4,7 @@ import {
   deleteProperty,
   getPropertyId,
   searchProperties,
+  uploadPropertyPhoto,
   updateProperty,
 } from "../../api/propertyApi";
 import "./AdminPropertiesPage.css";
@@ -266,6 +267,11 @@ export default function AdminPropertiesPage() {
         sortOrder: idx,
         caption: null,
       }));
+  }
+
+  async function handlePhotoUpload(file) {
+    const uploaded = await uploadPropertyPhoto(file);
+    return uploaded?.url ?? "";
   }
 
   async function handleAddSubmit(form) {
@@ -652,6 +658,7 @@ export default function AdminPropertiesPage() {
           if (!addSubmitting) setAddOpen(false);
         }}
         onSubmit={handleAddSubmit}
+        onUploadPhoto={handlePhotoUpload}
         submitting={addSubmitting}
         submitError={addError}
       />
@@ -675,6 +682,7 @@ export default function AdminPropertiesPage() {
           setEditDeleteError("");
         }}
         onSubmit={handleEditSubmit}
+        onUploadPhoto={handlePhotoUpload}
         submitting={editSubmitting}
         submitError={editError}
         onDelete={handleEditDelete}

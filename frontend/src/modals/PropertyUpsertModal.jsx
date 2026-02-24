@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import "./PropertyUpsertModal.css";
 import { formatPriceInput } from "../utils/priceFormatting";
 import { numOrEmpty } from "../utils/formValue";
@@ -127,6 +127,7 @@ export default function PropertyUpsertModal({
   initialValue = null,
   onClose,
   onSubmit,
+  onUploadPhoto,
   onDelete,
   submitting = false,
   submitError = "",
@@ -137,14 +138,16 @@ export default function PropertyUpsertModal({
 
   const [form, setForm] = useState(DEFAULT_FORM);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [photoUploading, setPhotoUploading] = useState(false);
+  const [photoUploadError, setPhotoUploadError] = useState("");
+  const photoInputRef = useRef(null);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (!open) setShowDeleteConfirm(false);
+    if (!open) setPhotoUploadError("");
   }, [open]);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (mode !== "edit") setShowDeleteConfirm(false);
   }, [mode]);
 
@@ -153,7 +156,6 @@ export default function PropertyUpsertModal({
     if (!open) return;
 
     if (!initialValue) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setForm(DEFAULT_FORM);
       return;
     }
@@ -257,7 +259,11 @@ export default function PropertyUpsertModal({
     form.status === "ACTIVE" && activeMissingRequiredFields.length > 0;
 
   const isSubmitDisabled =
-    !form.title.trim() || submitting || deleting || isActiveWithMissingRequired;
+    !form.title.trim() ||
+    submitting ||
+    deleting ||
+    photoUploading ||
+    isActiveWithMissingRequired;
 
   function setField(key, value) {
     setForm((p) => ({ ...p, [key]: value }));
@@ -267,22 +273,6 @@ export default function PropertyUpsertModal({
     setForm((p) => ({ ...p, [key]: formatPriceInput(value) }));
   }
 
-  function addPhoto() {
-    setForm((prev) => ({
-      ...prev,
-      photos: [...(prev.photos ?? []), ""],
-    }));
-  }
-
-  function setPhotoUrl(index, value) {
-    setForm((prev) => ({
-      ...prev,
-      photos: (prev.photos ?? []).map((photoUrl, i) =>
-        i === index ? value : photoUrl,
-      ),
-    }));
-  }
-
   function removePhoto(index) {
     setForm((prev) => ({
       ...prev,
@@ -290,9 +280,51 @@ export default function PropertyUpsertModal({
     }));
   }
 
+  function openPhotoPicker() {
+    if (submitting || deleting || photoUploading) return;
+    photoInputRef.current?.click();
+  }
+
+  async function handlePhotoFileSelection(event) {
+    const files = Array.from(event.target.files ?? []);
+    event.target.value = "";
+
+    if (files.length === 0) return;
+
+    if (!onUploadPhoto) {
+      setPhotoUploadError("Photo upload is not configured.");
+      return;
+    }
+
+    setPhotoUploadError("");
+    setPhotoUploading(true);
+
+    try {
+      const uploadedUrls = [];
+
+      for (const file of files) {
+        const uploadedUrl = await onUploadPhoto(file);
+        const normalized = String(uploadedUrl ?? "").trim();
+        if (!normalized) {
+          throw new Error("Upload failed to return a photo URL.");
+        }
+        uploadedUrls.push(normalized);
+      }
+
+      setForm((prev) => ({
+        ...prev,
+        photos: [...(prev.photos ?? []), ...uploadedUrls],
+      }));
+    } catch (error) {
+      setPhotoUploadError(error?.message || "Failed to upload photo.");
+    } finally {
+      setPhotoUploading(false);
+    }
+  }
+
   function handleSubmit(e) {
     e.preventDefault();
-    if (submitting) return;
+    if (submitting || photoUploading) return;
     onSubmit?.(form);
   }
 
@@ -570,30 +602,43 @@ export default function PropertyUpsertModal({
           <div className="propSection">
             <div className="propSection__head propSection__head--row">
               <div className="propSection__title">Photos</div>
-              <button type="button" className="propLinkBtn" onClick={addPhoto}>
-                Add Photo +
+              <button
+                type="button"
+                className="propLinkBtn"
+                onClick={openPhotoPicker}
+                disabled={submitting || deleting || photoUploading}
+              >
+                {photoUploading ? "Uploading..." : "Upload Photo +"}
               </button>
             </div>
+            <input
+              ref={photoInputRef}
+              className="propFileInput"
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={handlePhotoFileSelection}
+            />
 
             <div className="propPhotos">
               {form.photos.length === 0 ? (
                 <div className="propPhotos__empty">
-                  No photos yet. Add at least one photo URL before activating the property.
+                  No photos yet. Upload at least one photo before activating the property.
                 </div>
               ) : (
                 form.photos.map((photoUrl, index) => (
-                  <div key={`photo-${index}`} className="propPhotoRow">
-                    <div className="propPhotoRow__index">{index + 1}</div>
-                    <input
-                      className="propField__input"
-                      value={photoUrl}
-                      onChange={(e) => setPhotoUrl(index, e.target.value)}
-                      placeholder="https://..."
+                  <div key={`photo-${index}`} className="propPhotoCard">
+                    <img
+                      className="propPhotoCard__image"
+                      src={photoUrl}
+                      alt={`Property photo ${index + 1}`}
+                      loading="lazy"
                     />
                     <button
                       type="button"
-                      className="propPhotoRow__remove"
+                      className="propPhotoCard__remove"
                       onClick={() => removePhoto(index)}
+                      disabled={photoUploading || submitting || deleting}
                     >
                       Remove
                     </button>
@@ -667,6 +712,9 @@ export default function PropertyUpsertModal({
           ) : null}
           {submitError ? (
             <div className="propModal__error">{submitError}</div>
+          ) : null}
+          {photoUploadError ? (
+            <div className="propModal__error">{photoUploadError}</div>
           ) : null}
           {deleteError ? (
             <div className="propModal__error">{deleteError}</div>

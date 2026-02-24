@@ -13,6 +13,10 @@ spring:
       ddl-auto: validate
   flyway:
     enabled: true
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 30MB
 app:
   jwt:
     secret: ${JWT_SECRET}
@@ -23,3 +27,7 @@ app:
     bootstrap:
       email: ${ADMIN_EMAIL:}
       password: ${ADMIN_PASSWORD:}
+  uploads:
+    property-photos-dir: ${PROPERTY_PHOTOS_DIR:uploads/property-photos}
+    property-photos-url-prefix: ${PROPERTY_PHOTOS_URL_PREFIX:/uploads/property-photos}
+    max-file-size-bytes: ${PROPERTY_PHOTO_MAX_FILE_SIZE_BYTES:10485760}
