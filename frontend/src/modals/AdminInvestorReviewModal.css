@@ -1,0 +1,97 @@
+.invModal {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  color: #f2f2f2;
+}
+
+.invModal__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  font-size: 13px;
+}
+
+.invModal__grid span {
+  color: rgba(242, 242, 242, 0.7);
+}
+
+.invModal__statusSection {
+  border-top: 1px solid rgba(242, 242, 242, 0.18);
+  padding-top: 12px;
+}
+
+.invModal__label {
+  font-size: 12px;
+  color: rgba(242, 242, 242, 0.7);
+  margin-bottom: 8px;
+}
+
+.invModal__statuses {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.invModal__statusBtn {
+  border: 1px solid rgba(242, 242, 242, 0.24);
+  background: transparent;
+  color: #f2f2f2;
+  padding: 10px 12px;
+  cursor: pointer;
+}
+
+.invModal__statusBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.invModal__statusBtn--danger.invModal__statusBtn--active {
+  background: #7f1d1d;
+  border-color: #7f1d1d;
+}
+
+.invModal__statusBtn--success.invModal__statusBtn--active {
+  background: #14532d;
+  border-color: #14532d;
+}
+
+.invModal__reasonWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 10px;
+  font-size: 12px;
+  color: rgba(242, 242, 242, 0.7);
+}
+
+.invModal__reasonWrap textarea {
+  border: 1px solid rgba(242, 242, 242, 0.24);
+  background: transparent;
+  color: #f2f2f2;
+  padding: 10px;
+  font-family: inherit;
+}
+
+.invModal__actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.invModal__btn {
+  border: 1px solid rgba(242, 242, 242, 0.6);
+  background: transparent;
+  color: #f2f2f2;
+  padding: 10px 12px;
+  cursor: pointer;
+}
+
+.invModal__btn--primary {
+  border-color: #f2f2f2;
+}
+
+.invModal__error {
+  color: #fca5a5;
+  font-size: 12px;
+}

@@ -18,6 +18,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.LocalDateTime;
+
 @Service
 @RequiredArgsConstructor
 public class InvestorService {
@@ -135,17 +137,49 @@ public class InvestorService {
 
     public Page<InvestorResponseDto> search(
             InvestorStatus status,
-            String email,
-            String companyName,
-            String name,
+            String q,
+            LocalDateTime createdFrom,
+            LocalDateTime createdTo,
+            LocalDateTime updatedFrom,
+            LocalDateTime updatedTo,
+            LocalDateTime approvedFrom,
+            LocalDateTime approvedTo,
             Pageable pageable
     ) {
         requireAdmin();
 
-        var spec = InvestorSpecifications.withFilters(status, email, companyName, name);
+        var spec = InvestorSpecifications.withFilters(
+                status,
+                q,
+                createdFrom,
+                createdTo,
+                updatedFrom,
+                updatedTo,
+                approvedFrom,
+                approvedTo
+        );
 
         return investorRepository.findAll(spec, pageable)
                 .map(InvestorMapper::toDto);
+    }
+
+    public InvestorResponseDto updateRejectionReason(Long id, InvestorRejectionRequestDto dto) {
+        requireAdmin();
+
+        Investor investor = investorRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Investor not found: " + id));
+
+        if (investor.getStatus() != InvestorStatus.REJECTED) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Can only update rejection reason for REJECTED investors"
+            );
+        }
+
+        investor.setRejectionReason(dto.rejectionReason().trim());
+
+        Investor saved = investorRepository.save(investor);
+        return InvestorMapper.toDto(saved);
     }
 
     private AuthPrincipal principal() {
