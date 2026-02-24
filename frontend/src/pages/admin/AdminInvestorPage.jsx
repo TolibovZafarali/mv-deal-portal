@@ -216,7 +216,7 @@ export default function AdminInvestorsPage() {
                     {filters.status === "REJECTED" ? <th>Rejection Reason</th> : null}
                     <th>Created</th>
                     <th>Updated</th>
-                    <th></th>
+                    <th className="adminInv__thAction"></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -230,7 +230,7 @@ export default function AdminInvestorsPage() {
                       {filters.status === "REJECTED" ? <td>{investor.rejectionReason || "—"}</td> : null}
                       <td>{prettyDate(investor.createdAt)}</td>
                       <td>{prettyDate(investor.updatedAt)}</td>
-                      <td>
+                      <td className="adminInv__tdAction">
                         <button type="button" className="adminInv__actionBtn" onClick={() => openModal(investor.id)}>
                           {investor.status === "PENDING" ? "Review" : "View"}
                         </button>
