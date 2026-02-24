@@ -48,6 +48,12 @@ public class Property {
     @Column(name = "zip", length = 15)
     private String zip;
 
+    @Column(name = "latitude", precision = 10, scale = 7)
+    private BigDecimal latitude;
+
+    @Column(name = "longitude", precision = 10, scale = 7)
+    private BigDecimal longitude;
+
     @Column(name = "asking_price", precision = 12, scale = 2)
     private BigDecimal askingPrice;
 

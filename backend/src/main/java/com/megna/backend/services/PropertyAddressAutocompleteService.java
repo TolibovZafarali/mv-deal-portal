@@ -14,9 +14,13 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.math.BigDecimal;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -34,6 +38,8 @@ public class PropertyAddressAutocompleteService {
     private final int defaultLimit;
     private final int maxLimit;
     private final Duration timeout;
+
+    public record Coordinates(BigDecimal latitude, BigDecimal longitude) {}
 
     public PropertyAddressAutocompleteService(
             ObjectMapper objectMapper,
@@ -90,6 +96,41 @@ public class PropertyAddressAutocompleteService {
         }
     }
 
+    public Optional<Coordinates> geocode(String street1, String city, String state, String zip) {
+        String query = buildGeocodeQuery(street1, city, state, zip);
+        if (query.length() < 3) return Optional.empty();
+
+        String requestUrl = buildRequestUrl(query, 1);
+
+        HttpRequest request = HttpRequest.newBuilder(URI.create(requestUrl))
+                .header("Accept", "application/json")
+                .header("User-Agent", userAgent)
+                .timeout(timeout)
+                .GET()
+                .build();
+
+        try {
+            HttpResponse<String> response = httpClient.send(
+                    request,
+                    HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8)
+            );
+
+            if (response.statusCode() < 200 || response.statusCode() >= 300) {
+                log.warn("Address geocoding provider error. status={}", response.statusCode());
+                return Optional.empty();
+            }
+
+            return parseCoordinates(response.body());
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.warn("Address geocoding request interrupted");
+            return Optional.empty();
+        } catch (IOException | RuntimeException e) {
+            log.warn("Address geocoding request failed: {}", e.getMessage());
+            return Optional.empty();
+        }
+    }
+
     private String buildRequestUrl(String query, int limit) {
         String encodedQuery = URLEncoder.encode(query, StandardCharsets.UTF_8);
         String encodedCountryCodes = URLEncoder.encode(countryCodes, StandardCharsets.UTF_8);
@@ -143,6 +184,37 @@ public class PropertyAddressAutocompleteService {
         }
 
         return out;
+    }
+
+    private Optional<Coordinates> parseCoordinates(String json) throws IOException {
+        JsonNode root = objectMapper.readTree(json);
+        if (!root.isArray() || root.size() == 0) return Optional.empty();
+
+        JsonNode first = root.get(0);
+        BigDecimal latitude = parseDecimal(asText(first, "lat"));
+        BigDecimal longitude = parseDecimal(asText(first, "lon"));
+
+        if (latitude == null || longitude == null) {
+            return Optional.empty();
+        }
+
+        return Optional.of(new Coordinates(latitude, longitude));
+    }
+
+    private static BigDecimal parseDecimal(String value) {
+        if (value == null || value.isBlank()) return null;
+        try {
+            return new BigDecimal(value);
+        } catch (NumberFormatException ignored) {
+            return null;
+        }
+    }
+
+    private static String buildGeocodeQuery(String street1, String city, String state, String zip) {
+        return Stream.of(street1, city, state, zip)
+                .map(value -> value == null ? "" : value.trim())
+                .filter(value -> !value.isBlank())
+                .collect(Collectors.joining(", "));
     }
 
     private static String buildStreetLine1(JsonNode item, JsonNode address) {

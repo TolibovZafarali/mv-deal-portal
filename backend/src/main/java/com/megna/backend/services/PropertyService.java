@@ -25,6 +25,8 @@ import org.springframework.web.server.ResponseStatusException;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
+import java.util.Objects;
 
 import static com.megna.backend.enums.PropertyStatus.ACTIVE;
 
@@ -34,9 +36,11 @@ public class PropertyService {
 
     private final PropertyRepository propertyRepository;
     private final InvestorRepository investorRepository;
+    private final PropertyAddressAutocompleteService propertyAddressAutocompleteService;
 
     public PropertyResponseDto create(PropertyUpsertRequestDto dto) {
         Property property = PropertyMapper.toEntity(dto);
+        refreshCoordinates(property, true);
         validateForActiveStatus(property);
         Property saved = propertyRepository.save(property);
         return PropertyMapper.toDto(saved);
@@ -71,7 +75,13 @@ public class PropertyService {
         Property property = propertyRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Property not found: " + id));
 
+        String originalAddressFingerprint = addressFingerprint(property);
         PropertyMapper.applyUpsert(dto, property);
+        boolean addressChanged = !Objects.equals(originalAddressFingerprint, addressFingerprint(property));
+        boolean coordinatesMissing = property.getLatitude() == null || property.getLongitude() == null;
+        if (addressChanged || coordinatesMissing) {
+            refreshCoordinates(property, true);
+        }
         validateForActiveStatus(property);
 
         Property saved = propertyRepository.save(property);
@@ -205,5 +215,52 @@ public class PropertyService {
         if (value == null) {
             missingFields.add(fieldName);
         }
+    }
+
+    private void refreshCoordinates(Property property, boolean clearWhenUnavailable) {
+        if (property == null) return;
+
+        String street1 = normalizeAddressPart(property.getStreet1());
+        String city = normalizeAddressPart(property.getCity());
+        String state = normalizeAddressPart(property.getState());
+        String zip = normalizeAddressPart(property.getZip());
+
+        boolean hasAddress = !street1.isBlank() || !city.isBlank() || !state.isBlank() || !zip.isBlank();
+        if (!hasAddress) {
+            if (clearWhenUnavailable) {
+                property.setLatitude(null);
+                property.setLongitude(null);
+            }
+            return;
+        }
+
+        propertyAddressAutocompleteService.geocode(street1, city, state, zip)
+                .ifPresentOrElse(
+                        coordinates -> {
+                            property.setLatitude(coordinates.latitude());
+                            property.setLongitude(coordinates.longitude());
+                        },
+                        () -> {
+                            if (clearWhenUnavailable) {
+                                property.setLatitude(null);
+                                property.setLongitude(null);
+                            }
+                        }
+                );
+    }
+
+    private static String addressFingerprint(Property property) {
+        if (property == null) return "";
+
+        return String.join("|",
+                normalizeAddressPart(property.getStreet1()).toLowerCase(Locale.US),
+                normalizeAddressPart(property.getCity()).toLowerCase(Locale.US),
+                normalizeAddressPart(property.getState()).toLowerCase(Locale.US),
+                normalizeAddressPart(property.getZip()).toLowerCase(Locale.US)
+        );
+    }
+
+    private static String normalizeAddressPart(String value) {
+        return value == null ? "" : value.trim();
     }
 }

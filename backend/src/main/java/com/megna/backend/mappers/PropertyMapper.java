@@ -36,6 +36,8 @@ public final class PropertyMapper {
                 entity.getCity(),
                 entity.getState(),
                 entity.getZip(),
+                entity.getLatitude(),
+                entity.getLongitude(),
 
                 entity.getAskingPrice(),
                 entity.getArv(),

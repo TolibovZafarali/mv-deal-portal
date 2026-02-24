@@ -19,6 +19,8 @@ public record PropertyResponseDto(
         String city,
         String state,
         String zip,
+        BigDecimal latitude,
+        BigDecimal longitude,
 
         BigDecimal askingPrice,
         BigDecimal arv,
