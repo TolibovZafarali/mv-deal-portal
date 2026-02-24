@@ -255,6 +255,19 @@ export default function AdminPropertiesPage() {
     return Number.isFinite(i) ? i : null;
   }
 
+  function mapPhotosForUpsert(photos) {
+    if (!Array.isArray(photos)) return [];
+
+    return photos
+      .map((url) => cleanStr(url))
+      .filter(Boolean)
+      .map((url, idx) => ({
+        url,
+        sortOrder: idx,
+        caption: null,
+      }));
+  }
+
   async function handleAddSubmit(form) {
     setAddSubmitting(true);
     setAddError("");
@@ -284,10 +297,7 @@ export default function AdminPropertiesPage() {
         exitStrategy: cleanStr(form.exitStrategy),
         closingTerms: cleanStr(form.closingTerms),
 
-        description: cleanStr(form.description),
-
-        // leave these null for MVP
-        photos: null,
+        photos: mapPhotosForUpsert(form.photos),
         saleComps: null,
       };
 
@@ -328,9 +338,7 @@ export default function AdminPropertiesPage() {
       exitStrategy: cleanStr(form.exitStrategy),
       closingTerms: cleanStr(form.closingTerms),
 
-      description: cleanStr(form.description),
-
-      photos: null,
+      photos: mapPhotosForUpsert(form.photos),
       saleComps: null,
     };
   }

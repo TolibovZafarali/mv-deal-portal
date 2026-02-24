@@ -37,6 +37,7 @@ public class PropertyService {
 
     public PropertyResponseDto create(PropertyUpsertRequestDto dto) {
         Property property = PropertyMapper.toEntity(dto);
+        validateForActiveStatus(property);
         Property saved = propertyRepository.save(property);
         return PropertyMapper.toDto(saved);
     }
@@ -71,6 +72,7 @@ public class PropertyService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Property not found: " + id));
 
         PropertyMapper.applyUpsert(dto, property);
+        validateForActiveStatus(property);
 
         Property saved = propertyRepository.save(property);
         return PropertyMapper.toDto(saved);
@@ -159,25 +161,31 @@ public class PropertyService {
         }
     }
 
-    private void validateForActiveStatus(PropertyUpsertRequestDto dto) {
-        if (dto.status() != ACTIVE) return;
+    private void validateForActiveStatus(Property property) {
+        if (property.getStatus() != ACTIVE) return;
 
         List<String> missingFields = new ArrayList<>();
 
-        requireNotBlank(dto.street1(), "street1", missingFields);
-        requireNotBlank(dto.city(), "city", missingFields);
-        requireNotBlank(dto.state(), "state", missingFields);
-        requireNotBlank(dto.zip(), "zip", missingFields);
-        requireNotNull(dto.askingPrice(), "askingPrice", missingFields);
-        requireNotNull(dto.arv(), "arv", missingFields);
-        requireNotNull(dto.estRepairs(), "estRepairs", missingFields);
-        requireNotNull(dto.beds(), "beds", missingFields);
-        requireNotNull(dto.baths(), "baths", missingFields);
-        requireNotNull(dto.livingAreaSqft(), "livingAreaSqft", missingFields);
-        requireNotNull(dto.yearBuilt(), "yearBuilt", missingFields);
-        requireNotNull(dto.occupancyStatus(), "occupancyStatus", missingFields);
-        requireNotNull(dto.exitStrategy(), "exitStrategy", missingFields);
-        requireNotNull(dto.closingTerms(), "closingTerms", missingFields);
+        requireNotBlank(property.getStreet1(), "street1", missingFields);
+        requireNotBlank(property.getCity(), "city", missingFields);
+        requireNotBlank(property.getState(), "state", missingFields);
+        requireNotBlank(property.getZip(), "zip", missingFields);
+        requireNotNull(property.getAskingPrice(), "askingPrice", missingFields);
+        requireNotNull(property.getArv(), "arv", missingFields);
+        requireNotNull(property.getEstRepairs(), "estRepairs", missingFields);
+        requireNotNull(property.getBeds(), "beds", missingFields);
+        requireNotNull(property.getBaths(), "baths", missingFields);
+        requireNotNull(property.getLivingAreaSqft(), "livingAreaSqft", missingFields);
+        requireNotNull(property.getYearBuilt(), "yearBuilt", missingFields);
+        requireNotNull(property.getOccupancyStatus(), "occupancyStatus", missingFields);
+        requireNotNull(property.getExitStrategy(), "exitStrategy", missingFields);
+        requireNotNull(property.getClosingTerms(), "closingTerms", missingFields);
+
+        boolean hasAtLeastOnePhoto = property.getPhotos() != null
+                && property.getPhotos().stream().anyMatch(photo -> photo != null && photo.getUrl() != null && !photo.getUrl().isBlank());
+        if (!hasAtLeastOnePhoto) {
+            missingFields.add("photos (at least one)");
+        }
 
         if (!missingFields.isEmpty()) {
             throw new ResponseStatusException(

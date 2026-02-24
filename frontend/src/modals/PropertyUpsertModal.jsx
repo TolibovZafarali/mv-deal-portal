@@ -87,6 +87,17 @@ const US_STATE_OPTIONS = [
 
 const US_STATE_VALUES = new Set(US_STATE_OPTIONS.map((option) => option.value));
 
+function normalizePhotoUrls(photos) {
+  if (!Array.isArray(photos)) return [];
+
+  return photos
+    .map((photo) => {
+      const rawUrl = typeof photo === "string" ? photo : photo?.url;
+      return String(rawUrl ?? "").trim();
+    })
+    .filter((url) => url.length > 0);
+}
+
 const DEFAULT_FORM = {
   status: "DRAFT",
   title: "",
@@ -107,7 +118,7 @@ const DEFAULT_FORM = {
   occupancyStatus: "",
   exitStrategy: "",
   closingTerms: "",
-  description: "",
+  photos: [],
 };
 
 export default function PropertyUpsertModal({
@@ -148,6 +159,11 @@ export default function PropertyUpsertModal({
     }
 
     const normalizedState = String(initialValue.state ?? "").toUpperCase();
+    const normalizedPhotos = normalizePhotoUrls(
+      [...(initialValue.photos ?? [])].sort(
+        (a, b) => (a?.sortOrder ?? 0) - (b?.sortOrder ?? 0),
+      ),
+    );
 
     setForm({
       status: initialValue.status ?? "DRAFT",
@@ -169,7 +185,7 @@ export default function PropertyUpsertModal({
       occupancyStatus: initialValue.occupancyStatus ?? "",
       exitStrategy: initialValue.exitStrategy ?? "",
       closingTerms: initialValue.closingTerms ?? "",
-      description: initialValue.description ?? "",
+      photos: normalizedPhotos,
     });
   }, [open, initialValue]);
 
@@ -206,7 +222,6 @@ export default function PropertyUpsertModal({
       ["occupancyStatus", "Occupancy Status"],
       ["exitStrategy", "Exit Strategy"],
       ["closingTerms", "Closing Terms"],
-      ["description", "Description"],
     ];
 
     requiredTextFields.forEach(([key, label]) => {
@@ -231,6 +246,10 @@ export default function PropertyUpsertModal({
       }
     });
 
+    if (normalizePhotoUrls(form.photos).length === 0) {
+      missing.push("At least 1 Photo");
+    }
+
     return missing;
   }, [form]);
 
@@ -246,6 +265,29 @@ export default function PropertyUpsertModal({
 
   function setPriceField(key, value) {
     setForm((p) => ({ ...p, [key]: formatPriceInput(value) }));
+  }
+
+  function addPhoto() {
+    setForm((prev) => ({
+      ...prev,
+      photos: [...(prev.photos ?? []), ""],
+    }));
+  }
+
+  function setPhotoUrl(index, value) {
+    setForm((prev) => ({
+      ...prev,
+      photos: (prev.photos ?? []).map((photoUrl, i) =>
+        i === index ? value : photoUrl,
+      ),
+    }));
+  }
+
+  function removePhoto(index) {
+    setForm((prev) => ({
+      ...prev,
+      photos: (prev.photos ?? []).filter((_, i) => i !== index),
+    }));
   }
 
   function handleSubmit(e) {
@@ -524,19 +566,40 @@ export default function PropertyUpsertModal({
             </div>
           </div>
 
-          {/* Photos (UI only for now) */}
+          {/* Photos */}
           <div className="propSection">
             <div className="propSection__head propSection__head--row">
               <div className="propSection__title">Photos</div>
-              <button type="button" className="propLinkBtn" onClick={() => {}}>
+              <button type="button" className="propLinkBtn" onClick={addPhoto}>
                 Add Photo +
               </button>
             </div>
 
             <div className="propPhotos">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="propPhotoSlot" />
-              ))}
+              {form.photos.length === 0 ? (
+                <div className="propPhotos__empty">
+                  No photos yet. Add at least one photo URL before activating the property.
+                </div>
+              ) : (
+                form.photos.map((photoUrl, index) => (
+                  <div key={`photo-${index}`} className="propPhotoRow">
+                    <div className="propPhotoRow__index">{index + 1}</div>
+                    <input
+                      className="propField__input"
+                      value={photoUrl}
+                      onChange={(e) => setPhotoUrl(index, e.target.value)}
+                      placeholder="https://..."
+                    />
+                    <button
+                      type="button"
+                      className="propPhotoRow__remove"
+                      onClick={() => removePhoto(index)}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ))
+              )}
             </div>
           </div>
 

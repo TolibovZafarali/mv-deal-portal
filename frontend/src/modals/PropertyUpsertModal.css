@@ -210,15 +210,48 @@ select.propField__input {
 
 /* photos */
 .propPhotos {
-  display: grid;
-  grid-template-columns: repeat(6, 1fr);
+  display: flex;
+  flex-direction: column;
   gap: 10px;
 }
 
-.propPhotoSlot {
-  height: 70px;
+.propPhotos__empty {
+  border: 1px dashed var(--border-muted);
+  color: var(--muted);
+  font-size: 12px;
+  padding: 12px;
+}
+
+.propPhotoRow {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.propPhotoRow__index {
+  width: 36px;
+  height: 36px;
   border: 1px solid var(--border-muted);
-  background: rgba(242, 242, 242, 0.08);
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+}
+
+.propPhotoRow__remove {
+  border: 1px solid var(--border-muted);
+  background: transparent;
+  color: var(--muted);
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.propPhotoRow__remove:hover {
+  color: var(--text);
+  border-color: var(--text);
 }
 
 /* comps table */
@@ -340,8 +373,8 @@ select.propField__input {
     grid-column: span 1;
   }
 
-  .propPhotos {
-    grid-template-columns: repeat(3, 1fr);
+  .propPhotoRow {
+    grid-template-columns: 32px minmax(0, 1fr) auto;
   }
 }
 
@@ -360,6 +393,10 @@ select.propField__input {
   .propField--addressState,
   .propField--addressZip {
     grid-column: span 1;
+  }
+
+  .propPhotoRow {
+    grid-template-columns: 1fr;
   }
 }
 
