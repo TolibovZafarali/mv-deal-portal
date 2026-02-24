@@ -120,6 +120,10 @@
   font-family: inherit;
 }
 
+input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+}
+
 select.propField__input {
   padding-right: 34px;
   appearance: none;
@@ -142,6 +146,7 @@ select.propField__input {
 
 .propAddressAutocomplete {
   position: relative;
+  z-index: 40;
 }
 
 .propAddressAutocomplete > .propField__input {
@@ -340,21 +345,69 @@ select.propField__input {
 }
 
 /* comps table */
+.propCompEditor {
+  border: 1px dashed var(--border-muted);
+  background: rgba(242, 242, 242, 0.04);
+  padding: 10px;
+  margin-bottom: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.propCompGrid {
+  display: grid;
+  gap: 8px;
+}
+
+.propCompGrid--top,
+.propCompGrid--bottom {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+
+.propCompField--address {
+  grid-column: span 3;
+}
+
+.propCompField--notes {
+  grid-column: span 3;
+}
+
+.propCompActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.propCompActions .propBtn {
+  padding: 9px 12px;
+  font-size: 12px;
+}
+
+.propCompEditor__error {
+  border: 1px solid rgba(170, 38, 38, 0.6);
+  color: rgba(255, 120, 120, 0.95);
+  padding: 8px 10px;
+  font-size: 12px;
+  background: rgba(170, 38, 38, 0.08);
+}
+
 .propCompsTableWrap {
-  overflow: auto;
+  overflow: hidden;
   border: 1px solid var(--border-muted);
 }
 
 .propCompsTable {
   width: 100%;
   border-collapse: collapse;
+  table-layout: fixed;
   font-size: 12px;
   font-variant-numeric: tabular-nums;
 }
 
 .propCompsTable thead th {
   text-align: left;
-  color: var(--muted);
+  color: var(--text);
   font-weight: 400;
   padding: 10px 10px;
   border-bottom: 1px solid var(--border-muted);
@@ -362,14 +415,36 @@ select.propField__input {
 }
 
 .propCompsTable tbody td {
+  color: var(--text);
   padding: 10px 10px;
   border-bottom: 1px solid rgba(242, 242, 242, 0.12);
-  white-space: nowrap;
 }
 
 .propCompsEmpty {
-  color: var(--muted);
+  color: var(--text);
   text-align: center;
+}
+
+.propCompsTable__address {
+  overflow-wrap: anywhere;
+}
+
+.propCompsTable__removeBtn {
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.propCompsTable__removeBtn:hover {
+  color: var(--text);
+}
+
+.propCompsTable__removeBtn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
 .tRight {
@@ -377,7 +452,12 @@ select.propField__input {
 }
 
 .tIcon {
-  width: 44px;
+  width: 36px;
+  text-align: center !important;
+}
+
+.tNowrap {
+  white-space: nowrap;
 }
 
 /* status */
@@ -461,6 +541,16 @@ select.propField__input {
   .propPhotos {
     grid-auto-columns: minmax(220px, 250px);
   }
+
+  .propCompGrid--top,
+  .propCompGrid--bottom {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .propCompField--address,
+  .propCompField--notes {
+    grid-column: span 2;
+  }
 }
 
 @media (max-width: 640px) {
@@ -482,6 +572,10 @@ select.propField__input {
 
   .propPhotos {
     grid-auto-columns: minmax(190px, 84vw);
+  }
+
+  .propCompActions {
+    flex-direction: column;
   }
 }
 

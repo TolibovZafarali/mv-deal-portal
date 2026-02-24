@@ -90,6 +90,19 @@ const US_STATE_VALUES = new Set(US_STATE_OPTIONS.map((option) => option.value));
 const ADDRESS_SUGGESTION_MIN_CHARS = 3;
 const ADDRESS_SUGGESTION_DEBOUNCE_MS = 280;
 
+function createEmptyCompForm() {
+  return {
+    address: "",
+    soldDate: "",
+    soldPrice: "",
+    beds: "",
+    baths: "",
+    livingAreaSqft: "",
+    distanceMiles: "",
+    notes: "",
+  };
+}
+
 function normalizePhotoUrls(photos) {
   if (!Array.isArray(photos)) return [];
 
@@ -131,6 +144,102 @@ function normalizeAddressSuggestions(rawSuggestions) {
     );
 }
 
+function buildSuggestionAddressLine(suggestion) {
+  const fallback = String(suggestion?.display ?? "").trim();
+  const streetLine = String(suggestion?.street1 ?? "").trim();
+  const city = String(suggestion?.city ?? "").trim();
+  const state = String(suggestion?.state ?? "").trim();
+  const zip = String(suggestion?.zip ?? "").trim();
+
+  if (!streetLine) return fallback;
+
+  const location = [city, state, zip].filter(Boolean).join(", ");
+  return location ? `${streetLine}, ${location}` : streetLine;
+}
+
+function normalizeSaleComps(rawSaleComps) {
+  return [...(Array.isArray(rawSaleComps) ? rawSaleComps : [])]
+    .sort((a, b) => (a?.sortOrder ?? 0) - (b?.sortOrder ?? 0))
+    .map((comp, idx) => ({
+      id: comp?.id ?? null,
+      address: String(comp?.address ?? "").trim(),
+      soldDate: String(comp?.soldDate ?? "").trim(),
+      soldPrice: formatPriceInput(numOrEmpty(comp?.soldPrice)),
+      beds: numOrEmpty(comp?.beds),
+      baths: numOrEmpty(comp?.baths),
+      livingAreaSqft: numOrEmpty(comp?.livingAreaSqft),
+      distanceMiles: numOrEmpty(comp?.distanceMiles),
+      notes: String(comp?.notes ?? "").trim(),
+      sortOrder: Number.isFinite(Number(comp?.sortOrder))
+        ? Number(comp.sortOrder)
+        : idx,
+    }));
+}
+
+function parseNumericValue(value) {
+  const raw = String(value ?? "").trim();
+  if (!raw) return null;
+  const normalized = raw.replaceAll(",", "").replaceAll("$", "");
+  const n = Number(normalized);
+  return Number.isFinite(n) ? n : null;
+}
+
+function formatCompDate(value) {
+  const raw = String(value ?? "").trim();
+  if (!raw) return "—";
+  const date = new Date(`${raw}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return raw;
+
+  return date.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+function formatCompMoney(value) {
+  const n = parseNumericValue(value);
+  if (n === null) return "—";
+  return n.toLocaleString("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
+  });
+}
+
+function formatCompBeds(value) {
+  const n = parseNumericValue(value);
+  if (n === null) return "—";
+  return Math.round(n).toLocaleString("en-US");
+}
+
+function formatCompBaths(value) {
+  const n = parseNumericValue(value);
+  if (n === null) return "—";
+  return n.toLocaleString("en-US", { maximumFractionDigits: 1 });
+}
+
+function formatCompSqft(value) {
+  const n = parseNumericValue(value);
+  if (n === null) return "—";
+  return Math.round(n).toLocaleString("en-US");
+}
+
+function formatCompDistance(value) {
+  const n = parseNumericValue(value);
+  if (n === null) return "—";
+  return `${n.toLocaleString("en-US", { maximumFractionDigits: 2 })} mi`;
+}
+
+function formatCompPricePerSqft(comp) {
+  const soldPrice = parseNumericValue(comp?.soldPrice);
+  const sqft = parseNumericValue(comp?.livingAreaSqft);
+  if (soldPrice === null || sqft === null || sqft <= 0) return "—";
+
+  const pricePerSqft = soldPrice / sqft;
+  return `$${pricePerSqft.toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
+}
+
 const DEFAULT_FORM = {
   status: "DRAFT",
   title: "",
@@ -152,6 +261,7 @@ const DEFAULT_FORM = {
   exitStrategy: "",
   closingTerms: "",
   photos: [],
+  saleComps: [],
 };
 
 export default function PropertyUpsertModal({
@@ -179,13 +289,26 @@ export default function PropertyUpsertModal({
   const [addressSuggestHasSearched, setAddressSuggestHasSearched] =
     useState(false);
   const [addressSuggestOpen, setAddressSuggestOpen] = useState(false);
+  const [compEditorOpen, setCompEditorOpen] = useState(false);
+  const [compDraft, setCompDraft] = useState(() => createEmptyCompForm());
+  const [compError, setCompError] = useState("");
+  const [compAddressSuggestions, setCompAddressSuggestions] = useState([]);
+  const [compAddressSuggesting, setCompAddressSuggesting] = useState(false);
+  const [compAddressSuggestError, setCompAddressSuggestError] = useState("");
+  const [compAddressSuggestHasSearched, setCompAddressSuggestHasSearched] =
+    useState(false);
+  const [compAddressSuggestOpen, setCompAddressSuggestOpen] = useState(false);
   const photoInputRef = useRef(null);
   const addressInputRef = useRef(null);
+  const compAddressInputRef = useRef(null);
   const photoWheelRafRef = useRef(null);
   const photoWheelTargetRef = useRef(0);
   const addressBlurTimeoutRef = useRef(null);
   const addressLookupRequestSeqRef = useRef(0);
   const suppressAddressLookupRef = useRef(false);
+  const compAddressBlurTimeoutRef = useRef(null);
+  const compAddressLookupRequestSeqRef = useRef(0);
+  const suppressCompAddressLookupRef = useRef(false);
 
   useEffect(() => {
     if (!open) setShowDeleteConfirm(false);
@@ -198,9 +321,23 @@ export default function PropertyUpsertModal({
       setAddressSuggestOpen(false);
       suppressAddressLookupRef.current = false;
       addressLookupRequestSeqRef.current += 1;
+      setCompEditorOpen(false);
+      setCompDraft(createEmptyCompForm());
+      setCompError("");
+      setCompAddressSuggestions([]);
+      setCompAddressSuggesting(false);
+      setCompAddressSuggestError("");
+      setCompAddressSuggestHasSearched(false);
+      setCompAddressSuggestOpen(false);
+      suppressCompAddressLookupRef.current = false;
+      compAddressLookupRequestSeqRef.current += 1;
       if (addressBlurTimeoutRef.current) {
         clearTimeout(addressBlurTimeoutRef.current);
         addressBlurTimeoutRef.current = null;
+      }
+      if (compAddressBlurTimeoutRef.current) {
+        clearTimeout(compAddressBlurTimeoutRef.current);
+        compAddressBlurTimeoutRef.current = null;
       }
     }
   }, [open]);
@@ -224,6 +361,7 @@ export default function PropertyUpsertModal({
         (a, b) => (a?.sortOrder ?? 0) - (b?.sortOrder ?? 0),
       ),
     );
+    const normalizedSaleComps = normalizeSaleComps(initialValue.saleComps);
 
     setForm({
       status: initialValue.status ?? "DRAFT",
@@ -246,6 +384,7 @@ export default function PropertyUpsertModal({
       exitStrategy: initialValue.exitStrategy ?? "",
       closingTerms: initialValue.closingTerms ?? "",
       photos: normalizedPhotos,
+      saleComps: normalizedSaleComps,
     });
   }, [open, initialValue]);
 
@@ -276,6 +415,10 @@ export default function PropertyUpsertModal({
       if (addressBlurTimeoutRef.current) {
         clearTimeout(addressBlurTimeoutRef.current);
         addressBlurTimeoutRef.current = null;
+      }
+      if (compAddressBlurTimeoutRef.current) {
+        clearTimeout(compAddressBlurTimeoutRef.current);
+        compAddressBlurTimeoutRef.current = null;
       }
     };
   }, []);
@@ -353,6 +496,14 @@ export default function PropertyUpsertModal({
       addressSuggestions.length > 0 ||
       addressSuggestError ||
       addressSuggestHasSearched);
+  const shouldShowCompAddressSuggestions =
+    compAddressSuggestOpen &&
+    String(compDraft.address ?? "").trim().length >=
+      ADDRESS_SUGGESTION_MIN_CHARS &&
+    (compAddressSuggesting ||
+      compAddressSuggestions.length > 0 ||
+      compAddressSuggestError ||
+      compAddressSuggestHasSearched);
 
   function setField(key, value) {
     setForm((p) => ({ ...p, [key]: value }));
@@ -360,6 +511,34 @@ export default function PropertyUpsertModal({
 
   function setPriceField(key, value) {
     setForm((p) => ({ ...p, [key]: formatPriceInput(value) }));
+  }
+
+  function setCompField(key, value) {
+    setCompDraft((prev) => ({ ...prev, [key]: value }));
+  }
+
+  function setCompPriceField(key, value) {
+    setCompDraft((prev) => ({ ...prev, [key]: formatPriceInput(value) }));
+  }
+
+  function clearCompEditorAddressState() {
+    setCompAddressSuggestions([]);
+    setCompAddressSuggesting(false);
+    setCompAddressSuggestError("");
+    setCompAddressSuggestHasSearched(false);
+    setCompAddressSuggestOpen(false);
+    suppressCompAddressLookupRef.current = false;
+    compAddressLookupRequestSeqRef.current += 1;
+    if (compAddressBlurTimeoutRef.current) {
+      clearTimeout(compAddressBlurTimeoutRef.current);
+      compAddressBlurTimeoutRef.current = null;
+    }
+  }
+
+  function resetCompEditor() {
+    setCompDraft(createEmptyCompForm());
+    setCompError("");
+    clearCompEditorAddressState();
   }
 
   function clearAddressBlurTimer() {
@@ -426,6 +605,122 @@ export default function PropertyUpsertModal({
     }));
 
     addressInputRef.current?.focus();
+  }
+
+  function clearCompAddressBlurTimer() {
+    if (compAddressBlurTimeoutRef.current) {
+      clearTimeout(compAddressBlurTimeoutRef.current);
+      compAddressBlurTimeoutRef.current = null;
+    }
+  }
+
+  function handleCompAddressFocus() {
+    clearCompAddressBlurTimer();
+    if (
+      String(compDraft.address ?? "").trim().length >=
+      ADDRESS_SUGGESTION_MIN_CHARS
+    ) {
+      setCompAddressSuggestOpen(true);
+    }
+  }
+
+  function handleCompAddressBlur() {
+    clearCompAddressBlurTimer();
+    compAddressBlurTimeoutRef.current = setTimeout(() => {
+      setCompAddressSuggestOpen(false);
+      compAddressBlurTimeoutRef.current = null;
+    }, 120);
+  }
+
+  function handleCompAddressChange(nextValue) {
+    setCompField("address", nextValue);
+
+    if (String(nextValue ?? "").trim().length < ADDRESS_SUGGESTION_MIN_CHARS) {
+      clearCompEditorAddressState();
+      return;
+    }
+
+    setCompAddressSuggestError("");
+    setCompAddressSuggestHasSearched(false);
+    setCompAddressSuggestOpen(true);
+  }
+
+  function applyCompAddressSuggestion(suggestion) {
+    suppressCompAddressLookupRef.current = true;
+    clearCompAddressBlurTimer();
+    setCompAddressSuggestOpen(false);
+    setCompAddressSuggestError("");
+    setCompAddressSuggestions([]);
+    setCompAddressSuggestHasSearched(false);
+
+    const selectedAddress = buildSuggestionAddressLine(suggestion);
+    setCompDraft((prev) => ({
+      ...prev,
+      address: selectedAddress || prev.address,
+    }));
+
+    compAddressInputRef.current?.focus();
+  }
+
+  function toggleCompEditor() {
+    if (compEditorOpen) {
+      setCompEditorOpen(false);
+      resetCompEditor();
+      return;
+    }
+
+    setCompEditorOpen(true);
+    setCompError("");
+  }
+
+  function cancelCompEditor() {
+    setCompEditorOpen(false);
+    resetCompEditor();
+  }
+
+  function addSaleComp() {
+    const address = String(compDraft.address ?? "").trim();
+    if (!address) {
+      setCompError("Comp address is required.");
+      return;
+    }
+
+    setCompError("");
+    setForm((prev) => {
+      const existingComps = Array.isArray(prev.saleComps) ? prev.saleComps : [];
+      return {
+        ...prev,
+        saleComps: [
+          ...existingComps,
+          {
+            address,
+            soldDate: String(compDraft.soldDate ?? "").trim(),
+            soldPrice: formatPriceInput(compDraft.soldPrice),
+            beds: String(compDraft.beds ?? "").trim(),
+            baths: String(compDraft.baths ?? "").trim(),
+            livingAreaSqft: String(compDraft.livingAreaSqft ?? "").trim(),
+            distanceMiles: String(compDraft.distanceMiles ?? "").trim(),
+            notes: String(compDraft.notes ?? "").trim(),
+            sortOrder: existingComps.length,
+          },
+        ],
+      };
+    });
+
+    setCompEditorOpen(false);
+    resetCompEditor();
+  }
+
+  function removeSaleComp(index) {
+    setForm((prev) => ({
+      ...prev,
+      saleComps: (prev.saleComps ?? [])
+        .filter((_, compIdx) => compIdx !== index)
+        .map((comp, compIdx) => ({
+          ...comp,
+          sortOrder: compIdx,
+        })),
+    }));
   }
 
   function removePhoto(index) {
@@ -578,6 +873,56 @@ export default function PropertyUpsertModal({
       clearTimeout(timer);
     };
   }, [form.street1, open]);
+
+  useEffect(() => {
+    if (!open || !compEditorOpen) return;
+
+    if (suppressCompAddressLookupRef.current) {
+      suppressCompAddressLookupRef.current = false;
+      return;
+    }
+
+    const query = String(compDraft.address ?? "").trim();
+    if (query.length < ADDRESS_SUGGESTION_MIN_CHARS) return;
+
+    const requestSeq = compAddressLookupRequestSeqRef.current + 1;
+    compAddressLookupRequestSeqRef.current = requestSeq;
+
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      setCompAddressSuggesting(true);
+      setCompAddressSuggestError("");
+
+      try {
+        const suggestions = await getAddressSuggestions(query, { limit: 6 });
+        if (cancelled || requestSeq !== compAddressLookupRequestSeqRef.current)
+          return;
+
+        setCompAddressSuggestions(normalizeAddressSuggestions(suggestions));
+        setCompAddressSuggestHasSearched(true);
+      } catch (error) {
+        if (cancelled || requestSeq !== compAddressLookupRequestSeqRef.current)
+          return;
+        setCompAddressSuggestions([]);
+        setCompAddressSuggestHasSearched(true);
+        setCompAddressSuggestError(
+          error?.message || "Failed to load address suggestions.",
+        );
+      } finally {
+        if (
+          !cancelled &&
+          requestSeq === compAddressLookupRequestSeqRef.current
+        ) {
+          setCompAddressSuggesting(false);
+        }
+      }
+    }, ADDRESS_SUGGESTION_DEBOUNCE_MS);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [compDraft.address, compEditorOpen, open]);
 
   if (!open) return null;
 
@@ -968,37 +1313,283 @@ export default function PropertyUpsertModal({
             )}
           </div>
 
-          {/* Sale Comps (UI only for now) */}
+          {/* Sale Comps */}
           <div className="propSection">
             <div className="propSection__head propSection__head--row">
               <div className="propSection__title">Sale Comps</div>
-              <button type="button" className="propLinkBtn" onClick={() => {}}>
-                Add Comp +
+              <button
+                type="button"
+                className="propLinkBtn"
+                disabled={submitting || deleting || photoUploading}
+                onClick={toggleCompEditor}
+              >
+                {compEditorOpen ? "Close" : "Add Comp +"}
               </button>
             </div>
 
+            {compEditorOpen ? (
+              <div className="propCompEditor">
+                <div className="propCompGrid propCompGrid--top">
+                  <div className="propField propCompField--address">
+                    <div className="propField__label">Comp Address</div>
+                    <div className="propAddressAutocomplete">
+                      <input
+                        ref={compAddressInputRef}
+                        className="propField__input"
+                        value={compDraft.address}
+                        onChange={(event) =>
+                          handleCompAddressChange(event.target.value)
+                        }
+                        onFocus={handleCompAddressFocus}
+                        onBlur={handleCompAddressBlur}
+                        placeholder="123 Main St, City, ST ZIP"
+                        autoComplete="off"
+                      />
+
+                      {shouldShowCompAddressSuggestions ? (
+                        <div className="propAddressSuggest" role="listbox">
+                          {compAddressSuggesting ? (
+                            <div className="propAddressSuggest__status">
+                              Searching addresses...
+                            </div>
+                          ) : null}
+
+                          {!compAddressSuggesting && compAddressSuggestError ? (
+                            <div className="propAddressSuggest__status propAddressSuggest__status--error">
+                              {compAddressSuggestError}
+                            </div>
+                          ) : null}
+
+                          {!compAddressSuggesting &&
+                          !compAddressSuggestError &&
+                          compAddressSuggestions.length === 0 &&
+                          compAddressSuggestHasSearched ? (
+                            <div className="propAddressSuggest__status">
+                              No suggestions found.
+                            </div>
+                          ) : null}
+
+                          {!compAddressSuggesting && !compAddressSuggestError
+                            ? compAddressSuggestions.map((suggestion) => {
+                                const title =
+                                  suggestion.street1 ||
+                                  suggestion.display ||
+                                  "Suggested address";
+                                const meta =
+                                  formatAddressSuggestionMeta(suggestion) ||
+                                  suggestion.display;
+
+                                return (
+                                  <button
+                                    key={`comp-${suggestion.key}`}
+                                    type="button"
+                                    className="propAddressSuggest__item"
+                                    onMouseDown={(event) => {
+                                      event.preventDefault();
+                                      applyCompAddressSuggestion(suggestion);
+                                    }}
+                                  >
+                                    <span className="propAddressSuggest__title">
+                                      {title}
+                                    </span>
+                                    {meta ? (
+                                      <span className="propAddressSuggest__meta">
+                                        {meta}
+                                      </span>
+                                    ) : null}
+                                  </button>
+                                );
+                              })
+                            : null}
+                        </div>
+                      ) : null}
+                    </div>
+                  </div>
+
+                  <div className="propField">
+                    <div className="propField__label">Sold Date</div>
+                    <input
+                      className="propField__input"
+                      type="date"
+                      value={compDraft.soldDate}
+                      onChange={(event) =>
+                        setCompField("soldDate", event.target.value)
+                      }
+                    />
+                  </div>
+
+                  <div className="propField">
+                    <div className="propField__label">Sold Price</div>
+                    <div className="propField__moneyWrap">
+                      <span className="propField__moneyPrefix">$</span>
+                      <input
+                        className="propField__input propField__input--money"
+                        value={compDraft.soldPrice}
+                        onChange={(event) =>
+                          setCompPriceField("soldPrice", event.target.value)
+                        }
+                        inputMode="numeric"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="propField">
+                    <div className="propField__label">Distance (mi)</div>
+                    <input
+                      className="propField__input"
+                      value={compDraft.distanceMiles}
+                      onChange={(event) =>
+                        setCompField("distanceMiles", event.target.value)
+                      }
+                      inputMode="decimal"
+                    />
+                  </div>
+                </div>
+
+                <div className="propCompGrid propCompGrid--bottom">
+                  <div className="propField">
+                    <div className="propField__label">Beds</div>
+                    <input
+                      className="propField__input"
+                      value={compDraft.beds}
+                      onChange={(event) =>
+                        setCompField("beds", event.target.value)
+                      }
+                      inputMode="numeric"
+                    />
+                  </div>
+
+                  <div className="propField">
+                    <div className="propField__label">Baths</div>
+                    <input
+                      className="propField__input"
+                      value={compDraft.baths}
+                      onChange={(event) =>
+                        setCompField("baths", event.target.value)
+                      }
+                      inputMode="decimal"
+                    />
+                  </div>
+
+                  <div className="propField">
+                    <div className="propField__label">Sq Ft</div>
+                    <input
+                      className="propField__input"
+                      value={compDraft.livingAreaSqft}
+                      onChange={(event) =>
+                        setCompField("livingAreaSqft", event.target.value)
+                      }
+                      inputMode="numeric"
+                    />
+                  </div>
+
+                  <div className="propField propCompField--notes">
+                    <div className="propField__label">Notes (optional)</div>
+                    <input
+                      className="propField__input"
+                      value={compDraft.notes}
+                      onChange={(event) =>
+                        setCompField("notes", event.target.value)
+                      }
+                    />
+                  </div>
+                </div>
+
+                {compError ? (
+                  <div className="propCompEditor__error">{compError}</div>
+                ) : null}
+
+                <div className="propCompActions">
+                  <button
+                    type="button"
+                    className="propBtn"
+                    onClick={cancelCompEditor}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    className="propBtn propBtn--primary"
+                    onClick={addSaleComp}
+                  >
+                    Add Comp
+                  </button>
+                </div>
+              </div>
+            ) : null}
+
             <div className="propCompsTableWrap">
               <table className="propCompsTable">
+                <colgroup>
+                  <col style={{ width: "28%" }} />
+                  <col style={{ width: "12%" }} />
+                  <col style={{ width: "12%" }} />
+                  <col style={{ width: "11%" }} />
+                  <col style={{ width: "10%" }} />
+                  <col style={{ width: "7%" }} />
+                  <col style={{ width: "7%" }} />
+                  <col style={{ width: "9%" }} />
+                  <col style={{ width: "4%" }} />
+                </colgroup>
                 <thead>
                   <tr>
                     <th>Address</th>
-                    <th>Status</th>
+                    <th>Sold Date</th>
                     <th className="tRight">Price</th>
                     <th className="tRight">Price/ft²</th>
                     <th className="tRight">Distance</th>
                     <th className="tRight">Bed</th>
                     <th className="tRight">Bath</th>
                     <th className="tRight">Sq Ft</th>
-                    <th className="tRight">Year</th>
                     <th className="tIcon"></th>
                   </tr>
                 </thead>
                 <tbody>
-                  <tr>
-                    <td colSpan={10} className="propCompsEmpty">
-                      No comps added yet.
-                    </td>
-                  </tr>
+                  {(form.saleComps ?? []).length === 0 ? (
+                    <tr>
+                      <td colSpan={9} className="propCompsEmpty">
+                        No comps added yet.
+                      </td>
+                    </tr>
+                  ) : (
+                    (form.saleComps ?? []).map((comp, idx) => (
+                      <tr key={`comp-row-${comp.id ?? idx}`}>
+                        <td className="propCompsTable__address">
+                          {String(comp.address ?? "").trim() || "—"}
+                        </td>
+                        <td className="tNowrap">{formatCompDate(comp.soldDate)}</td>
+                        <td className="tRight tNowrap">
+                          {formatCompMoney(comp.soldPrice)}
+                        </td>
+                        <td className="tRight tNowrap">
+                          {formatCompPricePerSqft(comp)}
+                        </td>
+                        <td className="tRight tNowrap">
+                          {formatCompDistance(comp.distanceMiles)}
+                        </td>
+                        <td className="tRight tNowrap">
+                          {formatCompBeds(comp.beds)}
+                        </td>
+                        <td className="tRight tNowrap">
+                          {formatCompBaths(comp.baths)}
+                        </td>
+                        <td className="tRight tNowrap">
+                          {formatCompSqft(comp.livingAreaSqft)}
+                        </td>
+                        <td className="tIcon">
+                          <button
+                            type="button"
+                            className="propCompsTable__removeBtn"
+                            onClick={() => removeSaleComp(idx)}
+                            aria-label={`Remove comp ${idx + 1}`}
+                            disabled={submitting || deleting || photoUploading}
+                          >
+                            ✕
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>

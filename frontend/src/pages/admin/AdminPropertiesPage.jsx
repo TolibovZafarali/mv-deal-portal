@@ -269,6 +269,24 @@ export default function AdminPropertiesPage() {
       }));
   }
 
+  function mapSaleCompsForUpsert(saleComps) {
+    if (!Array.isArray(saleComps)) return [];
+
+    return saleComps
+      .map((comp, idx) => ({
+        address: cleanStr(comp?.address),
+        soldPrice: parseNum(comp?.soldPrice),
+        soldDate: cleanStr(comp?.soldDate),
+        beds: parseIntNum(comp?.beds),
+        baths: parseNum(comp?.baths),
+        livingAreaSqft: parseIntNum(comp?.livingAreaSqft),
+        distanceMiles: parseNum(comp?.distanceMiles),
+        notes: cleanStr(comp?.notes),
+        sortOrder: idx,
+      }))
+      .filter((comp) => Boolean(comp.address));
+  }
+
   async function handlePhotoUpload(file) {
     const uploaded = await uploadPropertyPhoto(file);
     return uploaded?.url ?? "";
@@ -304,7 +322,7 @@ export default function AdminPropertiesPage() {
         closingTerms: cleanStr(form.closingTerms),
 
         photos: mapPhotosForUpsert(form.photos),
-        saleComps: null,
+        saleComps: mapSaleCompsForUpsert(form.saleComps),
       };
 
       await createProperty(dto);
@@ -345,7 +363,7 @@ export default function AdminPropertiesPage() {
       closingTerms: cleanStr(form.closingTerms),
 
       photos: mapPhotosForUpsert(form.photos),
-      saleComps: null,
+      saleComps: mapSaleCompsForUpsert(form.saleComps),
     };
   }
 
@@ -589,10 +607,10 @@ export default function AdminPropertiesPage() {
                       <tr key={p.id}>
                         <td className="adminProps__tdAddress">
                           <div className="adminProps__addrMain">
-                            {p.street1}
+                            {fullAddress(p)}
                           </div>
                           <div className="adminProps__addrSub">
-                            {fullAddress(p)}
+                            {p.title}
                           </div>
                         </td>
 
