@@ -537,7 +537,7 @@ export default function AdminPropertiesPage() {
               setAddOpen(true);
             }}
           >
-            <span className="material-symbols-outlined">add_home_work</span>
+            <span className="material-symbols-outlined">add_home</span>
           </button>
         </div>
       </form>

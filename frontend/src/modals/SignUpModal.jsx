@@ -201,8 +201,13 @@ export default function SignUpModal() {
 
   return (
     <div className="signupOverlay" onMouseDown={close}>
-      <div className="signupModal" onMouseDown={(e) => e.stopPropagation()}>
-        <div className="signupModal__header">
+      <div
+        className={`signupModal ${step === STEP_DONE ? "signupModal--done" : ""}`}
+        onMouseDown={(e) => e.stopPropagation()}
+      >
+        <div
+          className={`signupModal__header ${step === STEP_DONE ? "signupModal__header--done" : ""}`}
+        >
           <div className="signupModal__headerLeft">
             <h2 className="signupModal__title">{modalTitle}</h2>
 
@@ -225,7 +230,10 @@ export default function SignUpModal() {
           </div>
         </div>
 
-        <form className="signupModal__form" onSubmit={handleSubmit}>
+        <form
+          className={`signupModal__form ${step === STEP_DONE ? "signupModal__form--done" : ""}`}
+          onSubmit={handleSubmit}
+        >
           <div className="signupModal__contentWrap">
             <div
               key={animKey}
@@ -380,7 +388,7 @@ export default function SignUpModal() {
                     </p>
                   )}
 
-                  <button className="signupModal__btn" type="submit">
+                  <button className="signupModal__btn signupModal__doneClose" type="submit">
                     Close
                   </button>
                 </div>

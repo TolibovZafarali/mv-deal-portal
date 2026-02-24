@@ -21,6 +21,11 @@
   justify-content: center;
 }
 
+.signupModal--done {
+  justify-content: flex-start;
+  padding-top: 40px;
+}
+
 .signupModal__header {
   width: 92%;
   margin: 0 auto;
@@ -29,6 +34,11 @@
   justify-content: space-between;
   padding-top: 4px;
   padding-bottom: 10px;
+}
+
+.signupModal__header--done {
+  padding-top: 0;
+  padding-bottom: 4px;
 }
 
 .signupModal__headerLeft {
@@ -71,6 +81,14 @@
   flex-direction: column;
   gap: 10px;
   padding-bottom: 10px;
+}
+
+.signupModal__form--done {
+  padding-bottom: 0;
+}
+
+.signupModal__form--done .signupModal__contentWrap {
+  padding-top: 4px;
 }
 
 /* same floating-label field styling as login */
@@ -217,6 +235,7 @@
   flex-direction: column;
   gap: 10px;
   color: var(--text);
+  min-height: 196px;
 }
 
 .signupModal__done p {
@@ -227,6 +246,10 @@
 .signupModal__doneMeta {
   color: var(--text);
   font-size: 13px;
+}
+
+.signupModal__doneClose {
+  margin-top: auto;
 }
 
 /* Prevent Chrome autofill from inverting colors */
