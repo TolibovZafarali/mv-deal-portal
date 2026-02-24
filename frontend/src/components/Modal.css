@@ -2,7 +2,7 @@
     position: fixed;
     inset: 0;
     background: rgba(0, 0, 0, 0.55);
-    backdrop-filter: blue(8px);
+    backdrop-filter: blur(8px);
     display: grid;
     place-items: center;
     z-index: 999;
@@ -10,7 +10,7 @@
 }
 
 .mv-modal {
-    border: 1px solid var(--border-muted);
+    border: 1px solid var(--border-muted, rgba(242, 242, 242, 0.28));
     background: rgba(16, 16, 16, 0.96);
     box-shadow: 0 20px 80px rgba(0, 0, 0, 0.55);
     max-width: 92vw;
@@ -29,15 +29,21 @@
 .mv-modal__title {
     margin: 0;
     font-size: 16px;
+    color: var(--text, #f2f2f2);
 }
 
-mv-modal__x {
+.mv-modal__x {
     margin-left: auto;
-    border: 1px solid var(--border-muted);
+    border: 1px solid var(--border-muted, rgba(242, 242, 242, 0.28));
     background: transparent;
-    color: var(--text);
+    color: var(--text, #f2f2f2);
     padding: 6px 10px;
     cursor: pointer;
+}
+
+.mv-modal__x:hover {
+    background: var(--text, #f2f2f2);
+    color: #101010;
 }
 
 .mv-modal__body {
