@@ -117,12 +117,13 @@
 }
 
 .adminInq__tableWrap {
-  overflow: auto;
+  overflow-x: hidden;
 }
 
 .adminInq__table {
   width: 100%;
   border-collapse: collapse;
+  table-layout: fixed;
   font-size: 13px;
 }
 
@@ -131,7 +132,10 @@
   padding: 10px;
   border-bottom: 1px solid rgba(16, 16, 16, 0.12);
   text-align: left;
-  white-space: nowrap;
+  white-space: normal;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  vertical-align: top;
 }
 
 .adminInq__table th {
@@ -140,11 +144,14 @@
   font-weight: 400;
 }
 
+.adminInq__tdAddress,
 .adminInq__tdMessage {
-  min-width: 280px;
+  min-width: 240px;
   max-width: 420px;
-  white-space: normal;
+  white-space: pre-line;
+  word-break: break-word;
   line-height: 1.4;
+  vertical-align: top;
 }
 
 .adminInq__pagination {

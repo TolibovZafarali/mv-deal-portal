@@ -4,6 +4,7 @@ import {
   getInquiriesByProperty,
   getInquiryByInvestor,
 } from "@/api/modules/inquiryApi";
+import { getPropertyId } from "@/api/modules/propertyApi";
 import "@/features/admin/pages/AdminInquiriesPage.css";
 
 const PAGE_SIZE = 20;
@@ -38,11 +39,11 @@ function prettyDateTime(value) {
   });
 }
 
-function messagePreview(value) {
-  const clean = String(value ?? "").trim();
-  if (!clean) return "—";
-  if (clean.length <= 120) return clean;
-  return `${clean.slice(0, 117)}...`;
+function propertyAddress(property) {
+  if (!property) return "";
+  const line1 = [property.street1, property.street2].filter(Boolean).join(", ");
+  const line2 = [property.city, property.state, property.zip].filter(Boolean).join(", ");
+  return [line1, line2].filter(Boolean).join("\n");
 }
 
 function Pagination({ page, totalPages, onPageChange }) {
@@ -83,6 +84,7 @@ export default function AdminInquiriesPage() {
   const [page, setPage] = useState(0);
   const [rows, setRows] = useState([]);
   const [meta, setMeta] = useState({ totalPages: 0, totalElements: 0 });
+  const [propertyAddressById, setPropertyAddressById] = useState({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -162,9 +164,51 @@ export default function AdminInquiriesPage() {
     };
   }, [filters, page]);
 
+  useEffect(() => {
+    let alive = true;
+
+    const missingPropertyIds = [...new Set(rows.map((row) => row?.propertyId).filter(Boolean))].filter(
+      (id) => !propertyAddressById[id],
+    );
+    if (!missingPropertyIds.length) return undefined;
+
+    async function loadPropertyAddresses() {
+      const entries = await Promise.all(
+        missingPropertyIds.map(async (id) => {
+          try {
+            const property = await getPropertyId(id);
+            return [id, propertyAddress(property) || `Property #${id}`];
+          } catch {
+            return [id, `Property #${id}`];
+          }
+        }),
+      );
+
+      if (!alive) return;
+
+      setPropertyAddressById((prev) => {
+        const next = { ...prev };
+        entries.forEach(([id, address]) => {
+          next[id] = address;
+        });
+        return next;
+      });
+    }
+
+    loadPropertyAddresses();
+    return () => {
+      alive = false;
+    };
+  }, [rows, propertyAddressById]);
+
   function updateFilter(key, value) {
     setFilters((prev) => ({ ...prev, [key]: value }));
     setPage(0);
+  }
+
+  function resolveAddress(inquiry) {
+    const id = inquiry?.propertyId;
+    return propertyAddressById[id] || `Property #${id ?? "—"}`;
   }
 
   const showPagination = !loading && !error && meta.totalPages > 1;
@@ -178,7 +222,7 @@ export default function AdminInquiriesPage() {
             <input
               className="adminInq__input adminInq__input--text"
               type="search"
-              placeholder="Subject, contact, company, email, phone"
+              placeholder="Address, contact, company, email, phone"
               value={filters.q}
               onChange={(e) => updateFilter("q", e.target.value)}
             />
@@ -255,12 +299,9 @@ export default function AdminInquiriesPage() {
               <table className="adminInq__table">
                 <thead>
                   <tr>
-                    <th>ID</th>
-                    <th>Property</th>
-                    <th>Investor</th>
-                    <th>Subject</th>
-                    <th>Message</th>
                     <th>Contact</th>
+                    <th>Address</th>
+                    <th>Message</th>
                     <th>Company</th>
                     <th>Email</th>
                     <th>Phone</th>
@@ -271,14 +312,13 @@ export default function AdminInquiriesPage() {
                 <tbody>
                   {rows.map((inquiry) => (
                     <tr key={inquiry.id}>
-                      <td>{inquiry.id}</td>
-                      <td>{inquiry.propertyId}</td>
-                      <td>{inquiry.investorId}</td>
-                      <td>{inquiry.subject || "—"}</td>
-                      <td className="adminInq__tdMessage" title={inquiry.messageBody || ""}>
-                        {messagePreview(inquiry.messageBody)}
-                      </td>
                       <td>{inquiry.contactName || "—"}</td>
+                      <td className="adminInq__tdAddress" title={resolveAddress(inquiry)}>
+                        {resolveAddress(inquiry)}
+                      </td>
+                      <td className="adminInq__tdMessage" title={inquiry.messageBody || ""}>
+                        {inquiry.messageBody || "—"}
+                      </td>
                       <td>{inquiry.companyName || "—"}</td>
                       <td>{inquiry.contactEmail || "—"}</td>
                       <td>{inquiry.contactPhone || "—"}</td>
