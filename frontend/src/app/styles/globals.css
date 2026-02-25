@@ -47,3 +47,11 @@ a {
     line-height: 1;
     user-select: none;
 }
+
+.appRouteFallback {
+    display: grid;
+    place-items: center;
+    min-height: 100dvh;
+    color: var(--muted);
+    letter-spacing: 0.02em;
+}
