@@ -13,10 +13,13 @@ export default function LoginModal() {
   const hasBackground = !!location.state?.backgroundLocation;
   const bg = location.state?.backgroundLocation || { pathname: "/" };
   const fromState = location.state?.from;
+  const backgroundPath = location.state?.backgroundLocation?.pathname;
   const from =
     typeof fromState === "string" && fromState.trim().length > 0
       ? fromState
-      : location.state?.backgroundLocation?.pathname || "/app";
+      : backgroundPath && backgroundPath !== "/"
+        ? backgroundPath
+        : "/app";
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");

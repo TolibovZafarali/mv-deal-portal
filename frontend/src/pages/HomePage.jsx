@@ -1,4 +1,4 @@
-import { Link, Navigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import "./HomePage.css"
 import { useEffect } from "react";
 
@@ -11,11 +11,6 @@ export default function HomePage({ location, isAuthed, bootstrapping }) {
     // Don't flash homepage while the app is still checking the token
     if (bootstrapping) {
         return <div style={{ padding: "28px 18px" }}>Loading...</div>;
-    }
-
-    // If token is valid, go straight to the app redirect (which sends to dashboard)
-    if (isAuthed) {
-        return <Navigate to="/app" replace />;
     }
 
     return (
@@ -35,20 +30,28 @@ export default function HomePage({ location, isAuthed, bootstrapping }) {
                     </Link>
 
                     <nav className="homeHeader__nav">
-                        <Link
-                            to="/signup"
-                            className="homeHeader__link"
-                            state={{ backgroundLocation: location, modal: true }}
-                        >
-                            Sign Up
-                        </Link>
-                        <Link
-                            to="/login"
-                            className="homeHeader__link"
-                            state={{ backgroundLocation: location, modal: true }}
-                        >
-                            Login
-                        </Link>
+                        {isAuthed ? (
+                            <Link to="/app" className="homeHeader__link">
+                                Dashboard
+                            </Link>
+                        ) : (
+                            <>
+                                <Link
+                                    to="/signup"
+                                    className="homeHeader__link"
+                                    state={{ backgroundLocation: location, modal: true }}
+                                >
+                                    Sign Up
+                                </Link>
+                                <Link
+                                    to="/login"
+                                    className="homeHeader__link"
+                                    state={{ backgroundLocation: location, modal: true }}
+                                >
+                                    Login
+                                </Link>
+                            </>
+                        )}
                     </nav>
                 </div>
             </header>
@@ -64,14 +67,16 @@ export default function HomePage({ location, isAuthed, bootstrapping }) {
                             Clean pipeline. Serious investors. Zero noise.
                         </p>
 
-                        <Link
-                            to="/signup"
-                            className="homeHero__cta"
-                            state={{ backgroundLocation: location, modal: true }}
-                        >
-                            <span className="homeHero__ctaText">Get started</span>
-                            <span className="homeHero__ctaArrow" aria-hidden="true"></span>
-                        </Link>
+                        {!isAuthed && (
+                            <Link
+                                to="/signup"
+                                className="homeHero__cta"
+                                state={{ backgroundLocation: location, modal: true }}
+                            >
+                                <span className="homeHero__ctaText">Get started</span>
+                                <span className="homeHero__ctaArrow" aria-hidden="true"></span>
+                            </Link>
+                        )}
                     </div>
                 </section>
             </main>

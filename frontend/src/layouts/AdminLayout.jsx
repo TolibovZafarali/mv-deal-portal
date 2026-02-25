@@ -1,4 +1,4 @@
-import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth";
 import "./AdminLayout.css";
 
@@ -15,11 +15,13 @@ export default function AdminLayout() {
     <div className="adminShell">
       <aside className="adminSidebar">
         <div className="adminBrand">
-          <img
-            src="/favicon.svg"
-            alt="Megna"
-            className="adminBrand__logo"
-          />
+          <Link to="/" aria-label="Megna homepage">
+            <img
+              src="/favicon.svg"
+              alt="Megna"
+              className="adminBrand__logo"
+            />
+          </Link>
         </div>
 
         <nav className="adminNav" aria-label="Admin navigation">

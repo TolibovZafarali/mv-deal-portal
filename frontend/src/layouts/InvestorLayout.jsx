@@ -27,7 +27,7 @@ export default function InvestorLayout() {
   return (
     <div className="investorShell">
       <header className="investorHeader">
-        <Link to="/investor" className="investorBrand" aria-label="Megna Investor Dashboard">
+        <Link to="/" className="investorBrand" aria-label="Megna homepage">
           <img src="/favicon.svg" alt="Megna" className="investorBrand__logo" />
         </Link>
 
