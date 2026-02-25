@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react"
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { getAccessToken, login, logout, me } from "../api"
 
@@ -7,6 +7,7 @@ const AuthContext = createContext(null)
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [bootstrapping, setBootstrapping] = useState(true)
+  const suppressExpiredRedirectRef = useRef(false)
 
   const navigate = useNavigate()
 
@@ -41,6 +42,7 @@ export function AuthProvider({ children }) {
 
     try {
       const profile = await me()
+      suppressExpiredRedirectRef.current = false
       setUser(profile)
     } catch {
       logout()
@@ -57,6 +59,7 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     function onExpired() {
+      if (suppressExpiredRedirectRef.current) return
       setUser(null)
       openLoginOnHome()
     }
@@ -65,7 +68,8 @@ export function AuthProvider({ children }) {
     return () => window.removeEventListener("mv:auth:expired", onExpired)
   }, [openLoginOnHome])
 
-  async function signIn(email, password) {
+  const signIn = useCallback(async (email, password) => {
+    suppressExpiredRedirectRef.current = false
     await login({ email, password })
 
     const profile = await me()
@@ -83,12 +87,14 @@ export function AuthProvider({ children }) {
 
     setUser(profile)
     return profile
-  }
+  }, [])
 
-  function signOut() {
+  const signOut = useCallback(() => {
+    suppressExpiredRedirectRef.current = true
     logout()
     setUser(null)
-  }
+    navigate("/", { replace: true })
+  }, [navigate])
 
   const value = useMemo(
     () => ({
@@ -100,7 +106,7 @@ export function AuthProvider({ children }) {
       signOut,
       refresh: bootstrap,
     }),
-    [bootstrapping, bootstrap, user],
+    [bootstrapping, bootstrap, signIn, signOut, user],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

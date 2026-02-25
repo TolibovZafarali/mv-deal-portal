@@ -49,9 +49,13 @@ apiClient.interceptors.response.use(
     (error) => {
         const status = error?.response?.status ?? null;
         const data = error?.response?.data ?? null;
+        const hadAuthHeader = Boolean(
+            error?.config?.headers?.Authorization ||
+            error?.config?.headers?.authorization
+        );
 
         // If token is bad/expired, force logout
-        if (status === 401) {
+        if (status === 401 && hadAuthHeader) {
             clearAccessToken();
             window.dispatchEvent(new CustomEvent("mv:auth:expired"));
         }

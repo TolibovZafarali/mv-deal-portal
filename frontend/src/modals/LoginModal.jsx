@@ -1,10 +1,10 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import "./LoginModal.css";
 
 export default function LoginModal() {
-  const { signIn } = useAuth();
+  const { signIn, user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const forcedMessage = location.state?.forcedMessage || "";
@@ -12,7 +12,11 @@ export default function LoginModal() {
 
   const hasBackground = !!location.state?.backgroundLocation;
   const bg = location.state?.backgroundLocation || { pathname: "/" };
-  const from = location.state?.from || location.state?.backgroundLocation?.pathname || "/app";
+  const fromState = location.state?.from;
+  const from =
+    typeof fromState === "string" && fromState.trim().length > 0
+      ? fromState
+      : location.state?.backgroundLocation?.pathname || "/app";
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -48,14 +52,31 @@ export default function LoginModal() {
     if (forcedMessage) setError(forcedMessage);
   }, [forcedMessage]);
 
+  const resolveDestination = useCallback(
+    (profile) => {
+      if (from !== "/login" && from !== "/signup") return from;
+      if (profile?.role === "ADMIN") return "/admin";
+      if (profile?.role === "INVESTOR") {
+        return profile?.status === "APPROVED" ? "/investor" : "/investor/pending";
+      }
+      return "/app";
+    },
+    [from],
+  );
+
+  useEffect(() => {
+    if (!user) return;
+    navigate(resolveDestination(user), { replace: true });
+  }, [navigate, resolveDestination, user]);
+
   async function handleSubmit(e) {
     e.preventDefault();
     setError("");
     setLoading(true);
 
     try {
-      await signIn(email, password);
-      navigate(from, { replace: true });
+      const profile = await signIn(email, password);
+      navigate(resolveDestination(profile), { replace: true });
     } catch (err) {
       if (err?.code === "ACCOUNT_PENDING") {
         const msg = "Your account is in review. Please wait for the Megna team to reach out.";
