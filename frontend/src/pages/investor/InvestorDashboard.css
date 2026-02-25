@@ -184,7 +184,9 @@
 }
 
 .invDash__listPane {
-  overflow: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
   padding-right: 2px;
 }
 
@@ -331,6 +333,12 @@
   margin: 8px 0 0;
   font-size: 11px;
   color: rgba(16, 16, 16, 0.56);
+  min-height: 1.2em;
+  visibility: hidden;
+}
+
+.invDash__cardHint--visible {
+  visibility: visible;
 }
 
 .invDash__notice {

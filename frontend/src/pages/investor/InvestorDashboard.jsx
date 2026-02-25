@@ -521,7 +521,13 @@ export default function InvestorDashboard() {
                           <span>{property.livingAreaSqft?.toLocaleString("en-US") ?? "—"} sqft</span>
                         </div>
 
-                        {isActive ? <p className="invDash__cardHint">Click again for details</p> : null}
+                        <p
+                          className={`invDash__cardHint ${
+                            isActive ? "invDash__cardHint--visible" : ""
+                          }`}
+                        >
+                          Click again for details
+                        </p>
                       </div>
                     </button>
                   </article>
