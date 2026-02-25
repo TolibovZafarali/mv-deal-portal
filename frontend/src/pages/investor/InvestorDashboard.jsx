@@ -546,6 +546,11 @@ export default function InvestorDashboard() {
         inquiryError={inquiryError}
         inquirySuccess={inquirySuccess}
         profileError={investorProfileError}
+        isFavorite={detailProperty ? favoritePropertyIdSet.has(String(detailProperty.id)) : false}
+        onToggleFavorite={() => {
+          if (!detailProperty) return;
+          toggleFavoriteProperty(detailProperty.id);
+        }}
         onClose={closePropertyDetails}
       />
     </section>

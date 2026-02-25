@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import "./InvestorPropertyDetailsModal.css";
 
 function money(value) {
@@ -71,15 +71,27 @@ export default function InvestorPropertyDetailsModal({
   inquiryError,
   inquirySuccess,
   profileError,
+  isFavorite = false,
+  onToggleFavorite,
   onClose,
 }) {
   const [photoSelection, setPhotoSelection] = useState({ propertyId: null, index: 0 });
+  const [photoPreviewOpen, setPhotoPreviewOpen] = useState(false);
+  const closeModal = useCallback(() => {
+    setPhotoPreviewOpen(false);
+    onClose?.();
+  }, [onClose]);
 
   useEffect(() => {
     if (!open) return undefined;
 
     function onKeyDown(event) {
-      if (event.key === "Escape") onClose?.();
+      if (event.key !== "Escape") return;
+      if (photoPreviewOpen) {
+        setPhotoPreviewOpen(false);
+        return;
+      }
+      closeModal();
     }
 
     const previous = document.body.style.overflow;
@@ -90,7 +102,7 @@ export default function InvestorPropertyDetailsModal({
       document.body.style.overflow = previous;
       document.removeEventListener("keydown", onKeyDown);
     };
-  }, [open, onClose]);
+  }, [open, photoPreviewOpen, closeModal]);
 
   if (!open || !property) return null;
 
@@ -106,6 +118,21 @@ export default function InvestorPropertyDetailsModal({
   const activePhoto = photos[boundedPhotoIndex] || "";
   const nextPotentialProfit = potentialProfit(property);
   const saleComps = Array.isArray(property.saleComps) ? property.saleComps : [];
+  const propertyAddress = fullAddress(property);
+  const canNavigatePreview = photos.length > 1;
+
+  function movePreviewPhoto(step) {
+    if (!canNavigatePreview) return;
+
+    setPhotoSelection((prev) => {
+      const currentIndex =
+        prev.propertyId === property.id && prev.index >= 0 && prev.index < photos.length
+          ? prev.index
+          : 0;
+      const nextIndex = (currentIndex + step + photos.length) % photos.length;
+      return { propertyId: property.id, index: nextIndex };
+    });
+  }
 
   return (
     <div
@@ -114,7 +141,7 @@ export default function InvestorPropertyDetailsModal({
       aria-modal="true"
       aria-label="Property details"
       onMouseDown={(event) => {
-        if (event.target === event.currentTarget) onClose?.();
+        if (event.target === event.currentTarget) closeModal();
       }}
     >
       <div className="invPropDetail">
@@ -122,47 +149,79 @@ export default function InvestorPropertyDetailsModal({
           type="button"
           className="invPropDetail__close"
           aria-label="Close property details"
-          onClick={onClose}
+          onClick={closeModal}
         >
           ✕
         </button>
 
         <div className="invPropDetail__left">
           <div className="invPropDetail__gallery">
-            {activePhoto ? (
-              <img
-                src={activePhoto}
-                alt={property.title || fullAddress(property) || `Property ${property.id}`}
-                className="invPropDetail__leadPhoto"
-              />
-            ) : (
-              <div className="invPropDetail__photoFallback">
-                <span className="material-symbols-outlined">home</span>
-              </div>
-            )}
+            <div
+              className={
+                photos.length > 1
+                  ? "invPropDetail__photoRow"
+                  : "invPropDetail__photoRow invPropDetail__photoRow--single"
+              }
+            >
+              {activePhoto ? (
+                <button
+                  type="button"
+                  className="invPropDetail__leadPhotoBtn"
+                  onClick={() => setPhotoPreviewOpen(true)}
+                  aria-label="View full size property photo"
+                >
+                  <img
+                    src={activePhoto}
+                    alt={propertyAddress || `Property ${property.id}`}
+                    className="invPropDetail__leadPhoto"
+                  />
+                </button>
+              ) : (
+                <div className="invPropDetail__photoFallback">
+                  <span className="material-symbols-outlined">home</span>
+                </div>
+              )}
 
-            {photos.length > 1 ? (
-              <div className="invPropDetail__thumbs" role="list" aria-label="Property photos">
-                {photos.map((photo, idx) => (
-                  <button
-                    key={`${property.id}-photo-${idx}`}
-                    type="button"
-                    role="listitem"
-                    className={`invPropDetail__thumbBtn ${
-                      idx === boundedPhotoIndex ? "invPropDetail__thumbBtn--active" : ""
-                    }`}
-                    onClick={() => setPhotoSelection({ propertyId: property.id, index: idx })}
-                  >
-                    <img src={photo} alt={`Property photo ${idx + 1}`} className="invPropDetail__thumbImg" />
-                  </button>
-                ))}
-              </div>
-            ) : null}
+              {photos.length > 1 ? (
+                <div className="invPropDetail__thumbs" role="list" aria-label="Property photos">
+                  {photos.map((photo, idx) => (
+                    <button
+                      key={`${property.id}-photo-${idx}`}
+                      type="button"
+                      role="listitem"
+                      className={`invPropDetail__thumbBtn ${
+                        idx === boundedPhotoIndex ? "invPropDetail__thumbBtn--active" : ""
+                      }`}
+                      onClick={() => setPhotoSelection({ propertyId: property.id, index: idx })}
+                    >
+                      <img src={photo} alt={`Property photo ${idx + 1}`} className="invPropDetail__thumbImg" />
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+            </div>
           </div>
 
           <section className="invPropDetail__section">
-            <h3 className="invPropDetail__sectionTitle">Address</h3>
-            <p className="invPropDetail__address">{fullAddress(property) || "Address unavailable"}</p>
+            <div className="invPropDetail__addressRow">
+              <h3 className="invPropDetail__sectionTitle">Address</h3>
+              {onToggleFavorite ? (
+                <button
+                  type="button"
+                  className={`invPropDetail__bookmarkToggle ${
+                    isFavorite ? "invPropDetail__bookmarkToggle--active" : ""
+                  }`}
+                  onClick={onToggleFavorite}
+                  aria-label={isFavorite ? "Remove bookmark" : "Save bookmark"}
+                  aria-pressed={isFavorite}
+                >
+                  <svg className="invPropDetail__bookmarkIcon" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M6 3h12a1 1 0 0 1 1 1v17l-7-3-7 3V4a1 1 0 0 1 1-1z" />
+                  </svg>
+                </button>
+              ) : null}
+            </div>
+            <p className="invPropDetail__address">{propertyAddress || "Address unavailable"}</p>
           </section>
 
           <section className="invPropDetail__section">
@@ -192,10 +251,6 @@ export default function InvestorPropertyDetailsModal({
           <section className="invPropDetail__section">
             <h3 className="invPropDetail__sectionTitle">Property Information</h3>
             <div className="invPropDetail__facts">
-              <div>
-                <span>Title</span>
-                <strong>{property.title || "—"}</strong>
-              </div>
               <div>
                 <span>Bedrooms</span>
                 <strong>{property.beds ?? "—"}</strong>
@@ -308,6 +363,54 @@ export default function InvestorPropertyDetailsModal({
           </div>
         </aside>
       </div>
+
+      {photoPreviewOpen && activePhoto ? (
+        <div
+          className="invPropDetail__previewBackdrop"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Full size property photo"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setPhotoPreviewOpen(false);
+          }}
+        >
+          {canNavigatePreview ? (
+            <button
+              type="button"
+              className="invPropDetail__previewNav invPropDetail__previewNav--prev"
+              aria-label="Previous photo"
+              onClick={() => movePreviewPhoto(-1)}
+            >
+              ‹
+            </button>
+          ) : null}
+
+          <button
+            type="button"
+            className="invPropDetail__previewClose"
+            aria-label="Close full size photo"
+            onClick={() => setPhotoPreviewOpen(false)}
+          >
+            ✕
+          </button>
+          <img
+            src={activePhoto}
+            alt={propertyAddress || `Property ${property.id}`}
+            className="invPropDetail__previewPhoto"
+          />
+
+          {canNavigatePreview ? (
+            <button
+              type="button"
+              className="invPropDetail__previewNav invPropDetail__previewNav--next"
+              aria-label="Next photo"
+              onClick={() => movePreviewPhoto(1)}
+            >
+              ›
+            </button>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   );
 }
