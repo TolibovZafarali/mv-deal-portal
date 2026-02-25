@@ -1,1 +1,13 @@
+# OS artifacts
 .DS_Store
+**/.DS_Store
+
+# Frontend build/runtime artifacts
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+
+# Backend build/runtime artifacts
+backend/target/
+backend/uploads/
+backend/.idea/

@@ -1,8 +1,8 @@
-export { apiClient } from "./apiClient";
-export * from "./tokenStorage";
-export * from "./authApi";
-export * from "./params";
-export * from "./propertyApi";
-export * from "./investorApi";
-export * from "./inquiryApi";
-export * from "./adminInvestorApi";
+export { apiClient } from "@/api/core/apiClient";
+export * from "@/api/core/tokenStorage";
+export * from "@/api/modules/authApi";
+export * from "@/api/core/params";
+export * from "@/api/modules/propertyApi";
+export * from "@/api/modules/investorApi";
+export * from "@/api/modules/inquiryApi";
+export * from "@/api/modules/adminInvestorApi";

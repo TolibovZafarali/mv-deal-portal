@@ -72,6 +72,36 @@ Admins can create/manage property listings, approve investor access, and receive
 
 ---
 
+## Repository Structure (Refactored)
+
+The repo now uses a clearer separation by app (`frontend`, `backend`) and by concern inside each app:
+
+```text
+mv-deal-portal/
+  backend/
+    docs/openapi/                    # exported OpenAPI spec
+    src/main/java/com/megna/backend/
+      application/                   # services + query specifications
+      domain/                        # entities, enums, repositories
+      infrastructure/                # framework/config/security wiring
+      interfaces/rest/               # controllers, API DTOs, mappers
+      shared/                        # cross-cutting error models/handlers
+  frontend/
+    src/
+      app/                           # app entry + top-level routing
+      api/                           # HTTP client + API modules
+      features/                      # admin, auth, investor, home, dev
+      shared/                        # reusable UI + utilities
+```
+
+Quick pointers:
+- Frontend entry: `frontend/src/app/main.jsx`
+- Frontend routes: `frontend/src/app/App.jsx`
+- Backend API controllers: `backend/src/main/java/com/megna/backend/interfaces/rest/controller`
+- Backend service layer: `backend/src/main/java/com/megna/backend/application/service`
+
+---
+
 ## Product Docs
 
 ### Wireframes
