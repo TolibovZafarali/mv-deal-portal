@@ -63,6 +63,9 @@ public class Property {
     @Column(name = "est_repairs", precision = 12, scale = 2)
     private BigDecimal estRepairs;
 
+    @Column(name = "fmr", precision = 12, scale = 2)
+    private BigDecimal fmr;
+
     @Column(name = "beds")
     private Integer beds;
 

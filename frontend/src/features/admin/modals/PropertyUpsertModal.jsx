@@ -251,6 +251,7 @@ const DEFAULT_FORM = {
   askingPrice: "",
   arv: "",
   estRepairs: "",
+  fmr: "",
   beds: "",
   baths: "",
   livingAreaSqft: "",
@@ -374,6 +375,7 @@ export default function PropertyUpsertModal({
       askingPrice: formatPriceInput(numOrEmpty(initialValue.askingPrice)),
       arv: formatPriceInput(numOrEmpty(initialValue.arv)),
       estRepairs: (formatPriceInput(numOrEmpty(initialValue.estRepairs))),
+      fmr: formatPriceInput(numOrEmpty(initialValue.fmr)),
       beds: numOrEmpty(initialValue.beds),
       baths: numOrEmpty(initialValue.baths),
       livingAreaSqft: numOrEmpty(initialValue.livingAreaSqft),
@@ -1140,6 +1142,20 @@ export default function PropertyUpsertModal({
                     inputMode="numeric"
                   />
                 </div>
+              </div>
+
+              <div className="propField">
+                <div className="propField__label">FMR (Monthly)</div>
+                <div className="propField__moneyWrap">
+                  <span className="propField__moneyPrefix">$</span>
+                  <input
+                    className="propField__input propField__input--money"
+                    value={form.fmr}
+                    readOnly
+                    placeholder="Auto after save"
+                  />
+                </div>
+                <div className="propField__help">Auto from ZIP + beds</div>
               </div>
             </div>
           </div>

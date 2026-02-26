@@ -111,6 +111,11 @@
   color: var(--muted);
 }
 
+.propField__help {
+  font-size: 11px;
+  color: var(--muted);
+}
+
 .propField__input {
   border: 1px solid var(--border-muted);
   background: transparent;

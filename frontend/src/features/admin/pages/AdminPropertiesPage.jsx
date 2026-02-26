@@ -592,6 +592,7 @@ export default function AdminPropertiesPage() {
                       <th className="adminProps__thRight">Asking</th>
                       <th className="adminProps__thRight">ARV</th>
                       <th className="adminProps__thRight">Repairs</th>
+                      <th className="adminProps__thRight">FMR</th>
                       <th className="adminProps__thCenter">Exit</th>
                       <th className="adminProps__thRight">SqFt</th>
                       <th className="adminProps__thCenter">Bed</th>
@@ -621,6 +622,7 @@ export default function AdminPropertiesPage() {
                         <td className="adminProps__tdRight">
                           {money(p.estRepairs)}
                         </td>
+                        <td className="adminProps__tdRight">{money(p.fmr)}</td>
                         <td className="adminProps__tdCenter">
                           {prettyEnum(p.exitStrategy)}
                         </td>

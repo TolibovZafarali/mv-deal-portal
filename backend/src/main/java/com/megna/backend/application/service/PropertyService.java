@@ -37,10 +37,12 @@ public class PropertyService {
     private final PropertyRepository propertyRepository;
     private final InvestorRepository investorRepository;
     private final PropertyAddressAutocompleteService propertyAddressAutocompleteService;
+    private final FmrLookupService fmrLookupService;
 
     public PropertyResponseDto create(PropertyUpsertRequestDto dto) {
         Property property = PropertyMapper.toEntity(dto);
         refreshCoordinates(property, true);
+        refreshFmr(property);
         validateForActiveStatus(property);
         Property saved = propertyRepository.save(property);
         return PropertyMapper.toDto(saved);
@@ -76,12 +78,24 @@ public class PropertyService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Property not found: " + id));
 
         String originalAddressFingerprint = addressFingerprint(property);
+        String originalZip = FmrLookupService.normalizeZip(property.getZip());
+        Integer originalBeds = property.getBeds();
         PropertyMapper.applyUpsert(dto, property);
+
         boolean addressChanged = !Objects.equals(originalAddressFingerprint, addressFingerprint(property));
         boolean coordinatesMissing = property.getLatitude() == null || property.getLongitude() == null;
         if (addressChanged || coordinatesMissing) {
             refreshCoordinates(property, true);
         }
+
+        String updatedZip = FmrLookupService.normalizeZip(property.getZip());
+        Integer updatedBeds = property.getBeds();
+        boolean fmrInputsChanged = !Objects.equals(originalZip, updatedZip)
+                || !Objects.equals(originalBeds, updatedBeds);
+        if (fmrInputsChanged) {
+            refreshFmr(property);
+        }
+
         validateForActiveStatus(property);
 
         Property saved = propertyRepository.save(property);
@@ -247,6 +261,11 @@ public class PropertyService {
                             }
                         }
                 );
+    }
+
+    private void refreshFmr(Property property) {
+        if (property == null) return;
+        property.setFmr(fmrLookupService.lookup(property.getZip(), property.getBeds()));
     }
 
     private static String addressFingerprint(Property property) {

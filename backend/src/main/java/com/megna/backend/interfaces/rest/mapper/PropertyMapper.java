@@ -42,6 +42,7 @@ public final class PropertyMapper {
                 entity.getAskingPrice(),
                 entity.getArv(),
                 entity.getEstRepairs(),
+                entity.getFmr(),
 
                 entity.getBeds(),
                 entity.getBaths(),

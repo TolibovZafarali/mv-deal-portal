@@ -1,0 +1,142 @@
+package com.megna.backend.application.service;
+
+import com.megna.backend.domain.entity.Property;
+import com.megna.backend.domain.enums.PropertyStatus;
+import com.megna.backend.domain.repository.InvestorRepository;
+import com.megna.backend.domain.repository.PropertyRepository;
+import com.megna.backend.interfaces.rest.dto.property.PropertyUpsertRequestDto;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.math.BigDecimal;
+import java.util.Optional;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+@ExtendWith(MockitoExtension.class)
+class PropertyServiceTest {
+
+    @Mock
+    private PropertyRepository propertyRepository;
+
+    @Mock
+    private InvestorRepository investorRepository;
+
+    @Mock
+    private PropertyAddressAutocompleteService propertyAddressAutocompleteService;
+
+    @Mock
+    private FmrLookupService fmrLookupService;
+
+    @InjectMocks
+    private PropertyService propertyService;
+
+    @BeforeEach
+    void setUp() {
+        when(propertyRepository.save(any(Property.class))).thenAnswer(invocation -> invocation.getArgument(0));
+    }
+
+    @Test
+    void createSetsFmrFromLookup() {
+        when(propertyAddressAutocompleteService.geocode(anyString(), anyString(), anyString(), anyString()))
+                .thenReturn(Optional.empty());
+        when(fmrLookupService.lookup("62001", 2)).thenReturn(new BigDecimal("990"));
+
+        PropertyUpsertRequestDto dto = dto("Create Test", "62001", 2);
+        propertyService.create(dto);
+
+        ArgumentCaptor<Property> savedCaptor = ArgumentCaptor.forClass(Property.class);
+        verify(propertyRepository).save(savedCaptor.capture());
+
+        assertEquals(new BigDecimal("990"), savedCaptor.getValue().getFmr());
+    }
+
+    @Test
+    void updateWithoutZipOrBedsChangeKeepsExistingFmr() {
+        Property existing = existingProperty(1L, "62001", 2, new BigDecimal("990"));
+        when(propertyRepository.findById(1L)).thenReturn(Optional.of(existing));
+
+        PropertyUpsertRequestDto dto = dto("Updated Title", "62001", 2);
+        propertyService.update(1L, dto);
+
+        verify(fmrLookupService, never()).lookup(any(), any());
+        assertEquals(new BigDecimal("990"), existing.getFmr());
+    }
+
+    @Test
+    void updateWithZipChangeRecalculatesFmr() {
+        Property existing = existingProperty(2L, "62001", 2, new BigDecimal("990"));
+        when(propertyRepository.findById(2L)).thenReturn(Optional.of(existing));
+        when(propertyAddressAutocompleteService.geocode(anyString(), anyString(), anyString(), anyString()))
+                .thenReturn(Optional.empty());
+        when(fmrLookupService.lookup("62002", 2)).thenReturn(new BigDecimal("1160"));
+
+        PropertyUpsertRequestDto dto = dto("Zip Change", "62002", 2);
+        propertyService.update(2L, dto);
+
+        verify(fmrLookupService).lookup("62002", 2);
+        assertEquals(new BigDecimal("1160"), existing.getFmr());
+    }
+
+    @Test
+    void updateWithBedsChangeRecalculatesFmr() {
+        Property existing = existingProperty(3L, "62001", 2, new BigDecimal("990"));
+        when(propertyRepository.findById(3L)).thenReturn(Optional.of(existing));
+        when(fmrLookupService.lookup("62001", 3)).thenReturn(new BigDecimal("1270"));
+
+        PropertyUpsertRequestDto dto = dto("Beds Change", "62001", 3);
+        propertyService.update(3L, dto);
+
+        verify(fmrLookupService).lookup("62001", 3);
+        assertEquals(new BigDecimal("1270"), existing.getFmr());
+    }
+
+    private static Property existingProperty(Long id, String zip, Integer beds, BigDecimal fmr) {
+        Property property = new Property();
+        property.setId(id);
+        property.setStatus(PropertyStatus.DRAFT);
+        property.setTitle("Existing");
+        property.setZip(zip);
+        property.setBeds(beds);
+        property.setFmr(fmr);
+        property.setLatitude(new BigDecimal("38.6270"));
+        property.setLongitude(new BigDecimal("-90.1994"));
+        return property;
+    }
+
+    private static PropertyUpsertRequestDto dto(String title, String zip, Integer beds) {
+        return new PropertyUpsertRequestDto(
+                PropertyStatus.DRAFT,
+                title,
+                null,
+                null,
+                null,
+                null,
+                zip,
+                null,
+                null,
+                null,
+                beds,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null
+        );
+    }
+}

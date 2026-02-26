@@ -25,6 +25,7 @@ public record PropertyResponseDto(
         BigDecimal askingPrice,
         BigDecimal arv,
         BigDecimal estRepairs,
+        BigDecimal fmr,
 
         Integer beds,
         BigDecimal baths,

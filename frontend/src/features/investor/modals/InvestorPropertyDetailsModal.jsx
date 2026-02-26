@@ -240,6 +240,10 @@ export default function InvestorPropertyDetailsModal({
                 <strong>{money(property.estRepairs)}</strong>
               </div>
               <div>
+                <span>FMR (Monthly)</span>
+                <strong>{money(property.fmr)}</strong>
+              </div>
+              <div>
                 <span>Potential Profit</span>
                 <strong className="invPropDetail__profit">
                   {nextPotentialProfit === null ? "—" : money(nextPotentialProfit)}
