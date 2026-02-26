@@ -81,4 +81,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             throw new BadCredentialsException("Invalid or expired token", ex);
         }
     }
+
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        String path = request.getServletPath();
+        return path.equals("/")
+                || path.startsWith("/actuator/")
+                || path.startsWith("/api/auth/");
+    }
 }
