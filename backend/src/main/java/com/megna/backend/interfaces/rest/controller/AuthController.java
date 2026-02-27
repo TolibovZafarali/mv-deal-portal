@@ -30,8 +30,13 @@ public class AuthController {
     @GetMapping("/me")
     public MeResponseDto me() {
         var p = SecurityUtils.requirePrincipal();
+        String role = p.role() == null ? "" : p.role().trim().toUpperCase();
 
-        if ("ADMIN".equalsIgnoreCase(p.role())) {
+        if (p.userId() <= 0 || role.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Not authenticated");
+        }
+
+        if ("ADMIN".equals(role)) {
             // Ensure admin still exists
             adminRepository.findById(p.userId())
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Not authenticated"));
@@ -40,19 +45,27 @@ public class AuthController {
                     p.email(),
                     p.userId(),
                     null,
-                    p.role(),
+                    role,
                     null
             );
+        }
+
+        if (!"INVESTOR".equals(role)) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Not authenticated");
         }
 
         var investor = investorRepository.findById(p.userId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Not authenticated"));
 
+        if (investor.getStatus() == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Not authenticated");
+        }
+
         return new MeResponseDto(
                 p.email(),
                 p.userId(),
                 p.userId(),
-                p.role(),
+                role,
                 investor.getStatus().name()
         );
     }
