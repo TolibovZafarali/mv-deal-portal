@@ -49,7 +49,7 @@ Admins can create/manage property listings, approve investor access, and receive
 - Occupancy status
 - Exit strategy
 - Closing terms
-- Photos (upload and/or external link)
+- Photos (admin upload; stored as GCS-backed photo assets)
 - Notes / description
 
 ### Investor
@@ -194,3 +194,103 @@ npm run backfill:coords
 
 - The script is idempotent and can be safely re-run after address/data fixes.
 - If coordinates need to be reverted, restore from your DB backup or set `latitude`/`longitude` back to `NULL` for affected rows, then re-run the backfill.
+
+---
+
+## Photo Upload Manual Test (GCS Direct Upload)
+
+Use this checklist to verify the direct browser-to-GCS flow end to end.
+
+### Preconditions
+
+- Backend env:
+  - `GCS_BUCKET_NAME` is set (`mv-photos-dev` for dev, `mv-photos-prod` for prod)
+  - `APP_PHOTOS_PUBLIC_BASE_URL` is set (currently `https://storage.googleapis.com/<bucket>`)
+- Admin account is authenticated in UI.
+- DB migration `V9__add_photo_assets_and_migrate_property_photos.sql` has run.
+
+### 1) Initialize upload
+
+`POST /api/properties/photos/uploads/init`
+
+Expected:
+
+- `201 Created`
+- Response includes `uploadId`, `uploadUrl`, `httpMethod = "PUT"`, `requiredHeaders.Content-Type`, `expiresAt`, `uploadToken`
+- A `photo_assets` row is created with `status = UPLOADING`
+
+### 2) Upload bytes to signed URL
+
+From browser, issue `PUT uploadUrl` with required `Content-Type` header and file bytes.
+
+Expected:
+
+- Upload succeeds (2xx from GCS signed URL).
+- Original object exists under `original/yyyy/MM/...`.
+
+### 3) Complete upload + derivative generation
+
+`POST /api/properties/photos/uploads/{uploadId}/complete` with `{ uploadToken }`
+
+Expected:
+
+- `200 OK`
+- Response includes `photoAssetId`, `url`, `thumbnailUrl`, `width`, `height`, `contentType = "image/jpeg"`, `sizeBytes`
+- `photo_assets.status` transitions to `READY`
+- `display/yyyy/MM/...` and `thumb/yyyy/MM/...` objects exist
+
+### 4) Save property with photo assets
+
+Create/update property payload `photos[]` entries must include:
+
+```json
+{
+  "photoAssetId": "<uuid>",
+  "sortOrder": 0,
+  "caption": null
+}
+```
+
+Expected:
+
+- Save succeeds.
+- `property_photos.photo_asset_id` is populated.
+- Investor UI shows thumbnail image in cards and detail thumbs.
+
+### 5) Removal behavior
+
+- Remove a photo from an existing property and save.
+
+Expected:
+
+- Related `photo_assets.status = DELETED_PENDING`
+- `purge_after_at = now + 30 days`
+
+- Remove a staged (not-yet-attached) upload in admin modal.
+
+Expected:
+
+- `DELETE /api/properties/photos/uploads/{uploadId}` succeeds.
+- Asset is marked `DELETED` (or `FAILED` if immediate cleanup fails).
+
+### 6) Legacy cleanup checks
+
+Run:
+
+```sql
+SELECT COUNT(*) AS legacy_upload_urls
+FROM property_photos
+WHERE url LIKE '/uploads/%';
+
+SELECT COUNT(*) AS active_without_photos
+FROM properties p
+WHERE p.status = 'ACTIVE'
+  AND NOT EXISTS (
+    SELECT 1 FROM property_photos pp WHERE pp.property_id = p.id
+  );
+```
+
+Expected:
+
+- `legacy_upload_urls = 0`
+- `active_without_photos = 0`
