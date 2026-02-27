@@ -6,7 +6,7 @@ on:
     # Optional but smart: only run if frontend changed
     paths:
       - "frontend/**"
-      - ".github/workflows/**"
+      - ".github/workflows/firebase-hosting-merge.yml"
 
 jobs:
   build_and_deploy:
