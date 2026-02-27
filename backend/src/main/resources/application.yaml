@@ -42,8 +42,7 @@ app:
     timeout-ms: ${ADDRESS_AUTOCOMPLETE_TIMEOUT_MS:2500}
 
 server:
-  port:
-    ${PORT:8080}
+  port: ${PORT:8080}
 
 management:
   endpoints:
