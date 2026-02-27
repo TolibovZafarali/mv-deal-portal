@@ -5,7 +5,7 @@
 Set these on Cloud Run:
 
 - `APP_PHOTOS_PROVIDER=gcs`
-- `APP_PHOTOS_BUCKET=<gcs-bucket-name>`
+- `GCS_BUCKET_NAME=<gcs-bucket-name>`
 - `APP_PHOTOS_PUBLIC_BASE_URL=https://img.megna-realestate.com`
 - `APP_PHOTOS_MAX_FILE_SIZE_BYTES=10485760`
 - `APP_PHOTOS_ALLOWED_CONTENT_TYPES=image/jpeg,image/png,image/webp`

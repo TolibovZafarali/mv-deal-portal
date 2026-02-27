@@ -31,7 +31,7 @@ app:
       password: ${ADMIN_PASSWORD:}
   photos:
     provider: ${APP_PHOTOS_PROVIDER:gcs}
-    bucket: ${APP_PHOTOS_BUCKET:}
+    bucket: ${GCS_BUCKET_NAME:}
     public-base-url: ${APP_PHOTOS_PUBLIC_BASE_URL:}
     max-file-size-bytes: ${APP_PHOTOS_MAX_FILE_SIZE_BYTES:10485760}
     allowed-content-types: ${APP_PHOTOS_ALLOWED_CONTENT_TYPES:image/jpeg,image/png,image/webp}

@@ -53,7 +53,7 @@ public class PhotoAssetService {
 
     private static final DateTimeFormatter OBJECT_DATE_PREFIX = DateTimeFormatter.ofPattern("yyyy/MM");
     private static final int DISPLAY_MAX_EDGE = 1920;
-    private static final int THUMB_MAX_EDGE = 480;
+    private static final int THUMB_MAX_EDGE = 400;
 
     private final PhotoAssetRepository photoAssetRepository;
     private final PropertyPhotoRepository propertyPhotoRepository;
@@ -222,7 +222,7 @@ public class PhotoAssetService {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Photo is already attached to a property");
         }
 
-        markDeletedPending(List.of(uploadId));
+        hardDeleteAssetNow(asset);
     }
 
     @Transactional(readOnly = true)
@@ -328,6 +328,30 @@ public class PhotoAssetService {
             return;
         }
         photoObjectStorage.deleteIfExists(bucket, objectKey);
+    }
+
+    private void hardDeleteAssetNow(PhotoAsset asset) {
+        if (asset.getStatus() == PhotoAssetStatus.DELETED) {
+            return;
+        }
+
+        try {
+            safeDeleteObject(asset.getOriginalBucket(), asset.getOriginalObjectKey());
+            safeDeleteObject(asset.getOriginalBucket(), asset.getDisplayObjectKey());
+            safeDeleteObject(asset.getOriginalBucket(), asset.getThumbObjectKey());
+
+            asset.setStatus(PhotoAssetStatus.DELETED);
+            asset.setDeletedAt(LocalDateTime.now());
+            asset.setPurgeAfterAt(null);
+            asset.setErrorMessage(null);
+            asset.setRetryCount(0);
+            photoAssetRepository.save(asset);
+        } catch (Exception ex) {
+            asset.setStatus(PhotoAssetStatus.FAILED);
+            asset.setErrorMessage(truncate(ex.getMessage(), 500));
+            photoAssetRepository.save(asset);
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to delete staged upload");
+        }
     }
 
     private void failAsset(PhotoAsset asset, String message) {
