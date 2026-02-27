@@ -14,3 +14,7 @@ app:
     secret: test-secret-value-with-min-32-chars!!
     issuer: test-issuer
     access-token-ttl-minutes: 5
+  cors:
+    allowed-origins:
+      - https://megna-realestate.com
+      - https://www.megna-realestate.com
