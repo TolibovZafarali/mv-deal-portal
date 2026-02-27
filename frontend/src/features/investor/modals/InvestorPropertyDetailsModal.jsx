@@ -108,14 +108,17 @@ export default function InvestorPropertyDetailsModal({
 
   const photos = Array.isArray(property.photos)
     ? property.photos
-      .map((photo) => String(photo?.url ?? "").trim())
-      .filter(Boolean)
+      .map((photo) => ({
+        full: String(photo?.url ?? "").trim(),
+        thumb: String(photo?.thumbnailUrl ?? photo?.url ?? "").trim(),
+      }))
+      .filter((photo) => photo.full)
     : [];
   const activePhotoIndex =
     photoSelection.propertyId === property.id ? photoSelection.index : 0;
   const boundedPhotoIndex =
     activePhotoIndex >= 0 && activePhotoIndex < photos.length ? activePhotoIndex : 0;
-  const activePhoto = photos[boundedPhotoIndex] || "";
+  const activePhoto = photos[boundedPhotoIndex]?.full || "";
   const nextPotentialProfit = potentialProfit(property);
   const saleComps = Array.isArray(property.saleComps) ? property.saleComps : [];
   const propertyAddress = fullAddress(property);
@@ -194,7 +197,11 @@ export default function InvestorPropertyDetailsModal({
                       }`}
                       onClick={() => setPhotoSelection({ propertyId: property.id, index: idx })}
                     >
-                      <img src={photo} alt={`Property photo ${idx + 1}`} className="invPropDetail__thumbImg" />
+                      <img
+                        src={photo.thumb || photo.full}
+                        alt={`Property photo ${idx + 1}`}
+                        className="invPropDetail__thumbImg"
+                      />
                     </button>
                   ))}
                 </div>

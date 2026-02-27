@@ -17,7 +17,9 @@ public final class PropertyPhotoMapper {
         return new PropertyPhotoResponseDto(
                 entity.getId(),
                 propertyId,
+                entity.getPhotoAssetId(),
                 entity.getUrl(),
+                entity.getThumbnailUrl(),
                 entity.getSortOrder(),
                 entity.getCaption(),
                 entity.getCreatedAt()
@@ -29,7 +31,7 @@ public final class PropertyPhotoMapper {
 
         PropertyPhoto photo = new PropertyPhoto();
         photo.setProperty(property);
-        photo.setUrl(dto.url());
+        photo.setPhotoAssetId(dto.photoAssetId());
         photo.setSortOrder(dto.sortOrder() != null ? dto.sortOrder() : 0);
         photo.setCaption(dto.caption());
         return photo;

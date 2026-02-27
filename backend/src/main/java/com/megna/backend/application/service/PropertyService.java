@@ -3,6 +3,7 @@ package com.megna.backend.application.service;
 import com.megna.backend.interfaces.rest.dto.property.PropertyResponseDto;
 import com.megna.backend.interfaces.rest.dto.property.PropertyUpsertRequestDto;
 import com.megna.backend.domain.entity.Investor;
+import com.megna.backend.domain.entity.PhotoAsset;
 import com.megna.backend.domain.entity.Property;
 import com.megna.backend.domain.enums.ClosingTerms;
 import com.megna.backend.domain.enums.ExitStrategy;
@@ -20,12 +21,14 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
 
 import static com.megna.backend.domain.enums.PropertyStatus.ACTIVE;
@@ -38,9 +41,14 @@ public class PropertyService {
     private final InvestorRepository investorRepository;
     private final PropertyAddressAutocompleteService propertyAddressAutocompleteService;
     private final FmrLookupService fmrLookupService;
+    private final PhotoAssetService photoAssetService;
 
     public PropertyResponseDto create(PropertyUpsertRequestDto dto) {
         Property property = PropertyMapper.toEntity(dto);
+        if (dto.photos() != null) {
+            long adminId = requireAdminId();
+            hydratePhotoAssets(property, null, adminId);
+        }
         refreshCoordinates(property, true);
         refreshFmr(property);
         validateForActiveStatus(property);
@@ -80,7 +88,20 @@ public class PropertyService {
         String originalAddressFingerprint = addressFingerprint(property);
         String originalZip = FmrLookupService.normalizeZip(property.getZip());
         Integer originalBeds = property.getBeds();
+        List<String> originalPhotoAssetIds = photoAssetService.collectPhotoAssetIds(property.getPhotos());
         PropertyMapper.applyUpsert(dto, property);
+
+        if (dto.photos() != null) {
+            long adminId = requireAdminId();
+            hydratePhotoAssets(property, property.getId(), adminId);
+
+            List<String> updatedPhotoAssetIds = photoAssetService.collectPhotoAssetIds(property.getPhotos());
+            photoAssetService.forEachRemovedAsset(
+                    originalPhotoAssetIds,
+                    updatedPhotoAssetIds,
+                    photoAssetService::markDeletedPending
+            );
+        }
 
         boolean addressChanged = !Objects.equals(originalAddressFingerprint, addressFingerprint(property));
         boolean coordinatesMissing = property.getLatitude() == null || property.getLongitude() == null;
@@ -103,9 +124,11 @@ public class PropertyService {
     }
 
     public void delete(Long id) {
-        if (!propertyRepository.existsById(id)) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Property not found: " + id);
-        }
+        Property property = propertyRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Property not found: " + id));
+
+        List<String> photoAssetIds = photoAssetService.collectPhotoAssetIds(property.getPhotos());
+        photoAssetService.markDeletedPending(photoAssetIds);
         propertyRepository.deleteById(id);
     }
 
@@ -206,7 +229,11 @@ public class PropertyService {
         requireNotNull(property.getClosingTerms(), "closingTerms", missingFields);
 
         boolean hasAtLeastOnePhoto = property.getPhotos() != null
-                && property.getPhotos().stream().anyMatch(photo -> photo != null && photo.getUrl() != null && !photo.getUrl().isBlank());
+                && property.getPhotos().stream().anyMatch(photo ->
+                        photo != null
+                                && StringUtils.hasText(photo.getPhotoAssetId())
+                                && StringUtils.hasText(photo.getUrl())
+                );
         if (!hasAtLeastOnePhoto) {
             missingFields.add("photos (at least one)");
         }
@@ -281,5 +308,23 @@ public class PropertyService {
 
     private static String normalizeAddressPart(String value) {
         return value == null ? "" : value.trim();
+    }
+
+    private long requireAdminId() {
+        AuthPrincipal authPrincipal = principal();
+        if (!"ADMIN".equalsIgnoreCase(authPrincipal.role())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only admins can manage photos");
+        }
+        return authPrincipal.userId();
+    }
+
+    private void hydratePhotoAssets(Property property, Long currentPropertyId, long adminId) {
+        List<String> photoAssetIds = photoAssetService.collectPhotoAssetIds(property.getPhotos());
+        Map<String, PhotoAsset> resolvedAssets = photoAssetService.resolveReadyAssetsOrThrow(
+                photoAssetIds,
+                currentPropertyId,
+                adminId
+        );
+        photoAssetService.applyAssetUrlsToPhotos(property.getPhotos(), resolvedAssets);
     }
 }

@@ -4,7 +4,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
 public record PropertyPhotoRequestDto(
-        @NotBlank String url,
+        @NotBlank @Size(max = 36) String photoAssetId,
         Integer sortOrder,
         @Size(max = 120) String caption
 ) {

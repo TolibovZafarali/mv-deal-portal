@@ -24,14 +24,63 @@ export async function updateProperty(id, propertyUpsertDto) {
     return data;
 }
 
-export async function uploadPropertyPhoto(file) {
-    const formData = new FormData();
-    formData.append("file", file);
+export async function initPropertyPhotoUpload(file) {
+    const payload = {
+        fileName: String(file?.name ?? "upload.jpg"),
+        contentType: String(file?.type ?? "").trim().toLowerCase(),
+        sizeBytes: Number(file?.size ?? 0),
+    };
 
-    const { data } = await apiClient.post(`${BASE}/photos/upload`, formData, {
-        timeout: 30000,
+    const { data } = await apiClient.post(`${BASE}/photos/uploads/init`, payload, {
+        timeout: 15000,
     });
     return data;
+}
+
+export async function uploadPropertyPhotoToSignedUrl(uploadUrl, file, requiredHeaders = {}) {
+    const response = await fetch(uploadUrl, {
+        method: "PUT",
+        headers: requiredHeaders,
+        body: file,
+    });
+
+    if (!response.ok) {
+        throw new Error(`Upload failed (${response.status})`);
+    }
+
+    return true;
+}
+
+export async function completePropertyPhotoUpload(uploadId, uploadToken) {
+    const { data } = await apiClient.post(`${BASE}/photos/uploads/${uploadId}/complete`, {
+        uploadToken,
+    }, {
+        timeout: 30000,
+    });
+
+    return data;
+}
+
+export async function uploadPropertyPhoto(file) {
+    const init = await initPropertyPhotoUpload(file);
+
+    await uploadPropertyPhotoToSignedUrl(
+        init?.uploadUrl,
+        file,
+        init?.requiredHeaders ?? {},
+    );
+
+    const completed = await completePropertyPhotoUpload(init?.uploadId, init?.uploadToken);
+    return {
+        ...completed,
+        uploadId: init?.uploadId,
+    };
+}
+
+export async function deletePropertyPhotoUpload(uploadId) {
+    if (!uploadId) return true;
+    await apiClient.delete(`${BASE}/photos/uploads/${uploadId}`);
+    return true;
 }
 
 export async function deleteProperty(id) {

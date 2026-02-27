@@ -103,15 +103,33 @@ function createEmptyCompForm() {
   };
 }
 
-function normalizePhotoUrls(photos) {
+function normalizePhotos(photos, options = {}) {
+  const { existing = false } = options;
   if (!Array.isArray(photos)) return [];
 
   return photos
-    .map((photo) => {
+    .map((photo, idx) => {
       const rawUrl = typeof photo === "string" ? photo : photo?.url;
-      return String(rawUrl ?? "").trim();
+      const url = String(rawUrl ?? "").trim();
+      if (!url) return null;
+
+      const thumb = String(
+        typeof photo === "string" ? rawUrl : photo?.thumbnailUrl ?? rawUrl,
+      ).trim();
+
+      return {
+        photoAssetId: String(photo?.photoAssetId ?? "").trim(),
+        uploadId: String(photo?.uploadId ?? photo?.photoAssetId ?? "").trim(),
+        url,
+        thumbnailUrl: thumb || url,
+        sortOrder: Number.isFinite(Number(photo?.sortOrder))
+          ? Number(photo.sortOrder)
+          : idx,
+        caption: String(photo?.caption ?? "").trim() || null,
+        isExisting: existing || Boolean(photo?.id) || Boolean(photo?.isExisting),
+      };
     })
-    .filter((url) => url.length > 0);
+    .filter(Boolean);
 }
 
 function normalizeStateCode(value) {
@@ -272,6 +290,7 @@ export default function PropertyUpsertModal({
   onClose,
   onSubmit,
   onUploadPhoto,
+  onDeleteUploadedPhoto,
   onDelete,
   submitting = false,
   submitError = "",
@@ -357,10 +376,11 @@ export default function PropertyUpsertModal({
     }
 
     const normalizedState = String(initialValue.state ?? "").toUpperCase();
-    const normalizedPhotos = normalizePhotoUrls(
+    const normalizedPhotos = normalizePhotos(
       [...(initialValue.photos ?? [])].sort(
         (a, b) => (a?.sortOrder ?? 0) - (b?.sortOrder ?? 0),
       ),
+      { existing: true },
     );
     const normalizedSaleComps = normalizeSaleComps(initialValue.saleComps);
 
@@ -474,7 +494,7 @@ export default function PropertyUpsertModal({
       }
     });
 
-    if (normalizePhotoUrls(form.photos).length === 0) {
+    if (normalizePhotos(form.photos).length === 0) {
       missing.push("At least 1 Photo");
     }
 
@@ -726,10 +746,26 @@ export default function PropertyUpsertModal({
   }
 
   function removePhoto(index) {
-    setForm((prev) => ({
-      ...prev,
-      photos: (prev.photos ?? []).filter((_, i) => i !== index),
-    }));
+    const targetPhoto = form.photos?.[index];
+    if (
+      targetPhoto &&
+      !targetPhoto.isExisting &&
+      targetPhoto.uploadId &&
+      onDeleteUploadedPhoto
+    ) {
+      onDeleteUploadedPhoto(targetPhoto.uploadId);
+    }
+
+    setForm((prev) => {
+      const remaining = (prev.photos ?? []).filter((_, i) => i !== index);
+      return {
+        ...prev,
+        photos: remaining.map((photo, i) => ({
+          ...photo,
+          sortOrder: i,
+        })),
+      };
+    });
   }
 
   function openPhotoPicker() {
@@ -801,20 +837,36 @@ export default function PropertyUpsertModal({
     setPhotoUploading(true);
 
     try {
-      const uploadedUrls = [];
+      const uploadedPhotos = [];
 
       for (const file of files) {
-        const uploadedUrl = await onUploadPhoto(file);
-        const normalized = String(uploadedUrl ?? "").trim();
-        if (!normalized) {
-          throw new Error("Upload failed to return a photo URL.");
+        const uploadedPhoto = await onUploadPhoto(file);
+        const photoAssetId = String(uploadedPhoto?.photoAssetId ?? "").trim();
+        const url = String(uploadedPhoto?.url ?? "").trim();
+        const thumbnailUrl = String(
+          uploadedPhoto?.thumbnailUrl ?? uploadedPhoto?.url ?? "",
+        ).trim();
+
+        if (!photoAssetId || !url) {
+          throw new Error("Upload failed to return a valid photo object.");
         }
-        uploadedUrls.push(normalized);
+
+        uploadedPhotos.push({
+          photoAssetId,
+          uploadId: String(uploadedPhoto?.uploadId ?? photoAssetId).trim(),
+          url,
+          thumbnailUrl: thumbnailUrl || url,
+          caption: null,
+          isExisting: false,
+        });
       }
 
       setForm((prev) => ({
         ...prev,
-        photos: [...(prev.photos ?? []), ...uploadedUrls],
+        photos: [...(prev.photos ?? []), ...uploadedPhotos].map((photo, i) => ({
+          ...photo,
+          sortOrder: i,
+        })),
       }));
     } catch (error) {
       setPhotoUploadError(error?.message || "Failed to upload photo.");
@@ -1306,11 +1358,11 @@ export default function PropertyUpsertModal({
                   className="propPhotos"
                   onWheel={handlePhotoStripWheel}
                 >
-                  {form.photos.map((photoUrl, index) => (
-                    <div key={`photo-${index}`} className="propPhotoCard">
+                  {form.photos.map((photo, index) => (
+                    <div key={`photo-${photo.photoAssetId || index}`} className="propPhotoCard">
                       <img
                         className="propPhotoCard__image"
-                        src={photoUrl}
+                        src={photo.thumbnailUrl || photo.url}
                         alt={`Property photo ${index + 1}`}
                         loading="lazy"
                       />

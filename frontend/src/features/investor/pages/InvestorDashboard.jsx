@@ -454,7 +454,10 @@ export default function InvestorDashboard() {
           {!loading && !error && visibleRows.length > 0 ? (
             <div className="invDash__cards">
               {visibleRows.map((property) => {
-                const leadPhoto = property.photos?.[0]?.url || "";
+                const leadPhoto =
+                  property.photos?.[0]?.thumbnailUrl ||
+                  property.photos?.[0]?.url ||
+                  "";
                 const isActive = selectedPropertyId === property.id;
                 const isFavorite = favoritePropertyIdSet.has(String(property.id));
 

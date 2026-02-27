@@ -26,6 +26,13 @@ public class PropertyPhoto {
     @Column(name = "url", nullable = false, columnDefinition = "TEXT")
     private String url;
 
+    @Lob
+    @Column(name = "thumbnail_url", columnDefinition = "TEXT")
+    private String thumbnailUrl;
+
+    @Column(name = "photo_asset_id", nullable = false, length = 36)
+    private String photoAssetId;
+
     @Column(name = "sort_order", nullable = false)
     private int sortOrder = 0;
 
