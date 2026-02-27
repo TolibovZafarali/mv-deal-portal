@@ -1,3 +1,6 @@
+SPRING_PROFILES_ACTIVE: prod
+SPRING_DATASOURCE_URL: jdbc:mysql:///__DB_NAME__?cloudSqlInstance=__CLOUDSQL_INSTANCE__&socketFactory=com.google.cloud.sql.mysql.SocketFactory
+DB_USERNAME: __DB_USER__
 APP_PHOTOS_PROVIDER: gcs
 GCS_BUCKET_NAME: mv-photos-prod
 APP_PHOTOS_PUBLIC_BASE_URL: https://storage.googleapis.com/mv-photos-prod

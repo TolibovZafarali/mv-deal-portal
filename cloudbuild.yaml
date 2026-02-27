@@ -28,6 +28,16 @@ steps:
       - push
       - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPOSITORY}/${_IMAGE_NAME}:$COMMIT_SHA
 
+  - id: render-env-prod
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    entrypoint: bash
+    args:
+      - -ceu
+      - |
+        sed -i "s|__DB_NAME__|${_DB_NAME}|g" infra/cloudrun/env-prod.yaml
+        sed -i "s|__DB_USER__|${_DB_USER}|g" infra/cloudrun/env-prod.yaml
+        sed -i "s|__CLOUDSQL_INSTANCE__|${_CLOUDSQL_INSTANCE}|g" infra/cloudrun/env-prod.yaml
+
   - id: deploy-cloud-run
     name: gcr.io/google.com/cloudsdktool/cloud-sdk
     entrypoint: gcloud
@@ -42,7 +52,6 @@ steps:
       - --service-account=${_RUN_SERVICE_ACCOUNT}
       - --add-cloudsql-instances=${_CLOUDSQL_INSTANCE}
       - --set-secrets=DB_PASSWORD=DB_PASSWORD:latest,JWT_SECRET=JWT_SECRET:latest
-      - --set-env-vars=SPRING_PROFILES_ACTIVE=prod,SPRING_DATASOURCE_URL=jdbc:mysql:///${_DB_NAME}?cloudSqlInstance=${_CLOUDSQL_INSTANCE}&socketFactory=com.google.cloud.sql.mysql.SocketFactory,DB_USERNAME=${_DB_USER}
       - --env-vars-file=infra/cloudrun/env-prod.yaml
 
 images:
