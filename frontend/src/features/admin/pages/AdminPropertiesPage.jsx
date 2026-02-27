@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   createProperty,
+  deletePropertyPhotoUpload,
   deleteProperty,
   getPropertyId,
   searchProperties,
@@ -260,12 +261,15 @@ export default function AdminPropertiesPage() {
     if (!Array.isArray(photos)) return [];
 
     return photos
-      .map((url) => cleanStr(url))
-      .filter(Boolean)
-      .map((url, idx) => ({
-        url,
+      .map((photo) => ({
+        photoAssetId: cleanStr(photo?.photoAssetId),
+        caption: cleanStr(photo?.caption),
+      }))
+      .filter((photo) => Boolean(photo.photoAssetId))
+      .map((photo, idx) => ({
+        photoAssetId: photo.photoAssetId,
         sortOrder: idx,
-        caption: null,
+        caption: photo.caption,
       }));
   }
 
@@ -288,8 +292,16 @@ export default function AdminPropertiesPage() {
   }
 
   async function handlePhotoUpload(file) {
-    const uploaded = await uploadPropertyPhoto(file);
-    return uploaded?.url ?? "";
+    return uploadPropertyPhoto(file);
+  }
+
+  async function handlePhotoUploadDelete(uploadId) {
+    if (!uploadId) return;
+    try {
+      await deletePropertyPhotoUpload(uploadId);
+    } catch {
+      // best-effort staged cleanup; save/update path handles bound photo lifecycle.
+    }
   }
 
   async function handleAddSubmit(form) {
@@ -679,6 +691,7 @@ export default function AdminPropertiesPage() {
         }}
         onSubmit={handleAddSubmit}
         onUploadPhoto={handlePhotoUpload}
+        onDeleteUploadedPhoto={handlePhotoUploadDelete}
         submitting={addSubmitting}
         submitError={addError}
       />
@@ -703,6 +716,7 @@ export default function AdminPropertiesPage() {
         }}
         onSubmit={handleEditSubmit}
         onUploadPhoto={handlePhotoUpload}
+        onDeleteUploadedPhoto={handlePhotoUploadDelete}
         submitting={editSubmitting}
         submitError={editError}
         onDelete={handleEditDelete}

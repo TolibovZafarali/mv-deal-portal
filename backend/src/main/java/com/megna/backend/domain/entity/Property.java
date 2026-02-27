@@ -105,6 +105,7 @@ public class Property {
 
     // Relationships
     @OneToMany(mappedBy = "property", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("sortOrder ASC, id ASC")
     private List<PropertyPhoto> photos = new ArrayList<>();
 
     @OneToMany(mappedBy = "property", cascade = CascadeType.ALL, orphanRemoval = true)

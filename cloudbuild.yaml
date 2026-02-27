@@ -7,6 +7,8 @@ substitutions:
   _DB_NAME: megnarealestate
   _DB_USER: root
   _RUN_SERVICE_ACCOUNT: mv-deal-backend-run@megna-real-estate-backend.iam.gserviceaccount.com
+  _PHOTO_BUCKET: CHANGE_ME
+  _PHOTO_PUBLIC_BASE_URL: https://img.megna-realestate.com
 
 options:
   logging: CLOUD_LOGGING_ONLY
@@ -43,6 +45,7 @@ steps:
       - --add-cloudsql-instances=${_CLOUDSQL_INSTANCE}
       - --set-secrets=DB_PASSWORD=DB_PASSWORD:latest,JWT_SECRET=JWT_SECRET:latest
       - --set-env-vars=SPRING_PROFILES_ACTIVE=prod,SPRING_DATASOURCE_URL=jdbc:mysql:///${_DB_NAME}?cloudSqlInstance=${_CLOUDSQL_INSTANCE}&socketFactory=com.google.cloud.sql.mysql.SocketFactory,DB_USERNAME=${_DB_USER}
+      - --update-env-vars=APP_PHOTOS_PROVIDER=gcs,APP_PHOTOS_BUCKET=${_PHOTO_BUCKET},APP_PHOTOS_PUBLIC_BASE_URL=${_PHOTO_PUBLIC_BASE_URL},APP_PHOTOS_MAX_FILE_SIZE_BYTES=10485760,APP_PHOTOS_ALLOWED_CONTENT_TYPES=image/jpeg\\,image/png\\,image/webp,APP_PHOTOS_UPLOAD_URL_TTL_SECONDS=900,APP_PHOTOS_PURGE_GRACE_DAYS=30
 
 images:
   - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPOSITORY}/${_IMAGE_NAME}:$COMMIT_SHA
