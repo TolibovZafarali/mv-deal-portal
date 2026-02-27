@@ -6,7 +6,7 @@ substitutions:
   _CLOUDSQL_INSTANCE: CHANGE_ME
   _DB_NAME: megnarealestate
   _DB_USER: root
-  _RUN_SERVICE_ACCOUNT: mv-deal-backend-run@YOUR_PROJECT_ID.iam.gserviceaccount.com
+  _RUN_SERVICE_ACCOUNT: mv-deal-backend-run@megna-real-estate-backend.iam.gserviceaccount.com
 
 options:
   logging: CLOUD_LOGGING_ONLY
