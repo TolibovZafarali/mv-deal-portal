@@ -568,4 +568,7 @@ public class PhotoAssetService {
             consumer.accept(removed);
         }
     }
+
+    private record ProcessedImage(byte[] displayBytes, byte[] thumbBytes, int width, int height) {
+    }
 }
