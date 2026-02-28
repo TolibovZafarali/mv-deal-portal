@@ -128,9 +128,10 @@
 			<scope>test</scope>
 		</dependency>
 			<dependency>
-				<groupId>com.google.cloud.sql</groupId>
-				.24.2</version>
-			</dependency>
+			<groupId>com.google.cloud.sql</groupId>
+			<artifactId>mysql-socket-factory-connector-j-8</artifactId>
+			<version>1.24.2</version>
+		</dependency>
 			<dependency>
 				<groupId>com.google.cloud</groupId>
 				<artifactId>google-cloud-storage</artifactId>
