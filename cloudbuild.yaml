@@ -3,7 +3,7 @@ substitutions:
   _REGION: us-central1
   _AR_REPOSITORY: mv-deal-portal
   _IMAGE_NAME: backend
-  _CLOUDSQL_INSTANCE: CHANGE_ME
+  _CLOUDSQL_INSTANCE: megna-real-estate-backend:us-central1:mv-mysql
   _DB_NAME: megnarealestate
   _DB_USER: root
   _RUN_SERVICE_ACCOUNT: mv-deal-backend-run@megna-real-estate-backend.iam.gserviceaccount.com
