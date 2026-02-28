@@ -1,0 +1,12 @@
+[
+  {
+    "origin": [
+      "http://localhost:5173",
+      "https://megna-realestate.com",
+      "https://www.megna-realestate.com"
+    ],
+    "method": ["PUT", "GET", "HEAD", "OPTIONS"],
+    "responseHeader": ["Content-Type", "Cache-Control", "ETag"],
+    "maxAgeSeconds": 3600
+  }
+]
