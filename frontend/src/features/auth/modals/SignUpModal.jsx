@@ -1,15 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { register } from "@/api";
+import { register, registerSeller } from "@/api";
 import "@/features/auth/modals/SignUpModal.css";
 
 const STEP_INFO = 0;
 const STEP_PASSWORD = 1;
 const STEP_DONE = 2;
 
-export default function SignUpModal() {
+export default function SignUpModal({ accountType = "investor" }) {
   const navigate = useNavigate();
   const location = useLocation();
+  const isSellerSignup = accountType === "seller";
 
   const hasBackground = !!location.state?.backgroundLocation;
   const forceHomeOnClose = !!location.state?.forceHomeOnClose;
@@ -168,15 +169,15 @@ export default function SignUpModal() {
 
       setLoading(true);
       try {
-        // RegisterRequestDto requires: firstName, lastName, companyName, email, phone, password
-        const res = await register({
+        const payload = {
           firstName: form.firstName.trim(),
           lastName: form.lastName.trim(),
           companyName: form.companyName.trim(),
           email: form.email.trim(),
           phone: form.phone.trim(),
           password: form.password,
-        });
+        };
+        const res = isSellerSignup ? await registerSeller(payload) : await register(payload);
 
         setResult(res);
         goStep(STEP_DONE);
@@ -197,7 +198,9 @@ export default function SignUpModal() {
       ? "Set password"
       : step === STEP_DONE
         ? "Thank you"
-        : "Sign Up";
+        : isSellerSignup
+          ? "Seller Sign Up"
+          : "Sign Up";
 
   return (
     <div className="signupOverlay" onMouseDown={close}>
@@ -316,6 +319,19 @@ export default function SignUpModal() {
                       <span className="signupModal__altLinkInner">Login</span>
                     </Link>
                   </div>
+                  <div className="signupModal__alt">
+                    {isSellerSignup ? "Looking to invest?" : "Looking to sell?"}{" "}
+                    <Link
+                      className="signupModal__altLink"
+                      to={isSellerSignup ? "/signup" : "/signup/seller"}
+                      replace
+                      state={{ modal: true, backgroundLocation: bg }}
+                    >
+                      <span className="signupModal__altLinkInner">
+                        {isSellerSignup ? "Investor sign up" : "Seller sign up"}
+                      </span>
+                    </Link>
+                  </div>
                 </>
               )}
 
@@ -378,8 +394,9 @@ export default function SignUpModal() {
               {step === STEP_DONE && (
                 <div className="signupModal__done">
                   <p>
-                    Your request has been received. Please wait until the Megna
-                    team reaches out to you.
+                    {isSellerSignup
+                      ? "Your seller account is ready. Use Login to access the seller portal."
+                      : "Your request has been received. Please wait until the Megna team reaches out to you."}
                   </p>
 
                   {result?.email && (
@@ -426,7 +443,11 @@ export default function SignUpModal() {
                     type="submit"
                     disabled={loading || !passwordValid}
                   >
-                    {loading ? "Submitting..." : "Get Started"}
+                    {loading
+                      ? "Submitting..."
+                      : isSellerSignup
+                        ? "Create Seller Account"
+                        : "Get Started"}
                   </button>
                 </div>
               )}

@@ -1,0 +1,54 @@
+.sellerInbox {
+  display: grid;
+  gap: 12px;
+}
+
+.sellerInbox h2 {
+  margin: 0;
+}
+
+.sellerInbox p {
+  margin: 4px 0 0;
+  opacity: 0.74;
+}
+
+.sellerInbox__tableWrap {
+  overflow: auto;
+  border: 1px solid #d8dbe2;
+  background: #fff;
+}
+
+.sellerInbox__table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 860px;
+}
+
+.sellerInbox__table th,
+.sellerInbox__table td {
+  border-bottom: 1px solid #eceef3;
+  padding: 10px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.sellerInbox__subtle {
+  color: #656d7e;
+  font-size: 12px;
+}
+
+.sellerInbox__message {
+  margin-top: 4px;
+  white-space: pre-wrap;
+}
+
+.sellerInbox__empty {
+  text-align: center;
+  color: #5a5f6b;
+}
+
+.sellerInbox__pagination {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}

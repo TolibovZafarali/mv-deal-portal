@@ -4,6 +4,7 @@ import { ProtectedRoute, useAuth } from "@/features/auth"
 
 const AdminLayout = lazy(() => import("@/features/admin/layout/AdminLayout"))
 const InvestorLayout = lazy(() => import("@/features/investor/layout/InvestorLayout"))
+const SellerLayout = lazy(() => import("@/features/seller/layout/SellerLayout"))
 const LoginModal = lazy(() => import("@/features/auth/modals/LoginModal"))
 const SignUpModal = lazy(() => import("@/features/auth/modals/SignUpModal"))
 const ApiSmokeTest = lazy(() => import("@/features/dev/pages/ApiSmokeTest"))
@@ -14,6 +15,9 @@ const AdminInvestorsPage = lazy(() => import("@/features/admin/pages/AdminInvest
 const AdminPropertiesPage = lazy(() => import("@/features/admin/pages/AdminPropertiesPage"))
 const InvestorDashboard = lazy(() => import("@/features/investor/pages/InvestorDashboard"))
 const InvestorPending = lazy(() => import("@/features/investor/pages/InvestorPending"))
+const SellerListingsPage = lazy(() => import("@/features/seller/pages/SellerListingsPage"))
+const SellerInboxPage = lazy(() => import("@/features/seller/pages/SellerInboxPage"))
+const SellerProfilePage = lazy(() => import("@/features/seller/pages/SellerProfilePage"))
 
 function Home() {
   const location = useLocation()
@@ -41,6 +45,7 @@ export default function App() {
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<LoginModal />} />
           <Route path="/signup" element={<SignUpModal />} />
+          <Route path="/signup/seller" element={<SignUpModal accountType="seller" />} />
 
           <Route element={<ProtectedRoute />}>
             <Route path="/app" element={<AppRedirect />} />
@@ -63,6 +68,15 @@ export default function App() {
             </Route>
           </Route>
 
+          <Route element={<ProtectedRoute roles={["SELLER"]} />}>
+            <Route path="/seller" element={<SellerLayout />}>
+              <Route index element={<Navigate to="listings" replace />} />
+              <Route path="listings" element={<SellerListingsPage />} />
+              <Route path="inbox" element={<SellerInboxPage />} />
+              <Route path="profile" element={<SellerProfilePage />} />
+            </Route>
+          </Route>
+
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Suspense>
@@ -72,6 +86,7 @@ export default function App() {
           <Routes>
             <Route path="/login" element={<LoginModal />} />
             <Route path="/signup" element={<SignUpModal />} />
+            <Route path="/signup/seller" element={<SignUpModal accountType="seller" />} />
           </Routes>
         </Suspense>
       )}

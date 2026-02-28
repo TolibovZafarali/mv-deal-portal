@@ -2,8 +2,11 @@ package com.megna.backend.application.service;
 
 import com.megna.backend.domain.entity.Property;
 import com.megna.backend.domain.enums.PropertyStatus;
+import com.megna.backend.domain.repository.AdminRepository;
 import com.megna.backend.domain.repository.InvestorRepository;
+import com.megna.backend.domain.repository.PropertyChangeRequestRepository;
 import com.megna.backend.domain.repository.PropertyRepository;
+import com.megna.backend.domain.repository.SellerRepository;
 import com.megna.backend.interfaces.rest.dto.property.PropertyUpsertRequestDto;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -33,10 +36,22 @@ class PropertyServiceTest {
     private InvestorRepository investorRepository;
 
     @Mock
+    private SellerRepository sellerRepository;
+
+    @Mock
+    private AdminRepository adminRepository;
+
+    @Mock
+    private PropertyChangeRequestRepository propertyChangeRequestRepository;
+
+    @Mock
     private PropertyAddressAutocompleteService propertyAddressAutocompleteService;
 
     @Mock
     private FmrLookupService fmrLookupService;
+
+    @Mock
+    private PhotoAssetService photoAssetService;
 
     @InjectMocks
     private PropertyService propertyService;

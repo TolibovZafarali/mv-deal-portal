@@ -35,8 +35,8 @@ CREATE TABLE IF NOT EXISTS photo_assets (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 ALTER TABLE property_photos
-    ADD COLUMN IF NOT EXISTS thumbnail_url TEXT NULL,
-    ADD COLUMN IF NOT EXISTS photo_asset_id CHAR(36) NULL;
+    ADD COLUMN thumbnail_url TEXT NULL,
+    ADD COLUMN photo_asset_id CHAR(36) NULL;
 
 CREATE TEMPORARY TABLE tmp_photo_asset_map (
     photo_id BIGINT UNSIGNED NOT NULL PRIMARY KEY,

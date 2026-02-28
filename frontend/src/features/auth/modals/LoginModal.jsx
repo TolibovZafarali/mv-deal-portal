@@ -57,11 +57,12 @@ export default function LoginModal() {
 
   const resolveDestination = useCallback(
     (profile) => {
-      if (from !== "/login" && from !== "/signup") return from;
+      if (from !== "/login" && from !== "/signup" && from !== "/signup/seller") return from;
       if (profile?.role === "ADMIN") return "/admin";
       if (profile?.role === "INVESTOR") {
         return profile?.status === "APPROVED" ? "/investor" : "/investor/pending";
       }
+      if (profile?.role === "SELLER") return "/seller";
       return "/app";
     },
     [from],

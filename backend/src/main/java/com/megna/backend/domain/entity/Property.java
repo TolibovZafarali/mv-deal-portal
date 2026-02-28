@@ -4,6 +4,7 @@ import com.megna.backend.domain.enums.ExitStrategy;
 import com.megna.backend.domain.enums.OccupancyStatus;
 import com.megna.backend.domain.enums.PropertyStatus;
 import com.megna.backend.domain.enums.ClosingTerms;
+import com.megna.backend.domain.enums.SellerWorkflowStatus;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -95,6 +96,27 @@ public class Property {
     @Enumerated(EnumType.STRING)
     @Column(name = "closing_terms", length = 30)
     private ClosingTerms closingTerms;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "seller_id")
+    private Seller seller;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "seller_workflow_status", length = 30)
+    private SellerWorkflowStatus sellerWorkflowStatus;
+
+    @Lob
+    @Column(name = "seller_review_note", columnDefinition = "TEXT")
+    private String sellerReviewNote;
+
+    @Column(name = "submitted_at")
+    private LocalDateTime submittedAt;
+
+    @Column(name = "reviewed_at")
+    private LocalDateTime reviewedAt;
+
+    @Column(name = "published_at")
+    private LocalDateTime publishedAt;
 
     // DB-managed timestamps
     @Column(name = "created_at", nullable = false, insertable = false, updatable = false)

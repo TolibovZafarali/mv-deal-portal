@@ -2,6 +2,7 @@ package com.megna.backend.infrastructure.security.jwt;
 
 import com.megna.backend.domain.entity.Admin;
 import com.megna.backend.domain.entity.Investor;
+import com.megna.backend.domain.entity.Seller;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
@@ -38,6 +39,10 @@ public class JwtService {
 
     public String generateAccessToken(Admin admin) {
         return buildToken(admin.getEmail(), admin.getId(), "ADMIN");
+    }
+
+    public String generateAccessToken(Seller seller) {
+        return buildToken(seller.getEmail(), seller.getId(), "SELLER");
     }
 
     private String buildToken(String email, long id, String role) {

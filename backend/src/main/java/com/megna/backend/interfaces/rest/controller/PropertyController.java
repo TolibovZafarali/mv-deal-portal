@@ -11,6 +11,7 @@ import com.megna.backend.domain.enums.ClosingTerms;
 import com.megna.backend.domain.enums.ExitStrategy;
 import com.megna.backend.domain.enums.OccupancyStatus;
 import com.megna.backend.domain.enums.PropertyStatus;
+import com.megna.backend.domain.enums.SellerWorkflowStatus;
 import com.megna.backend.application.service.PropertyAddressAutocompleteService;
 import com.megna.backend.application.service.PhotoAssetService;
 import com.megna.backend.application.service.PropertyService;
@@ -124,6 +125,7 @@ public class PropertyController {
             @RequestParam(required = false) OccupancyStatus occupancyStatus,
             @RequestParam(required = false) ExitStrategy exitStrategy,
             @RequestParam(required = false) ClosingTerms closingTerms,
+            @RequestParam(required = false) SellerWorkflowStatus sellerWorkflowStatus,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
             ) {
         return propertyService.search(
@@ -131,7 +133,7 @@ public class PropertyController {
                 minBeds, maxBeds, minBaths,
                 minAskingPrice, maxAskingPrice,
                 minArv, maxArv,
-                occupancyStatus, exitStrategy, closingTerms,
+                occupancyStatus, exitStrategy, closingTerms, sellerWorkflowStatus,
                 pageable
         );
     }

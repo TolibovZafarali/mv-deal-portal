@@ -55,6 +55,13 @@ public final class PropertyMapper {
                 entity.getExitStrategy(),
                 entity.getClosingTerms(),
 
+                entity.getSeller() == null ? null : entity.getSeller().getId(),
+                entity.getSellerWorkflowStatus(),
+                entity.getSellerReviewNote(),
+                entity.getSubmittedAt(),
+                entity.getReviewedAt(),
+                entity.getPublishedAt(),
+
                 entity.getCreatedAt(),
                 entity.getUpdatedAt(),
 

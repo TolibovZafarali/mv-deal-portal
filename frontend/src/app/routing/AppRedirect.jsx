@@ -13,5 +13,7 @@ export default function AppRedirect() {
         return <Navigate to="/investor/pending" replace />;
     }
 
+    if (user.role === "SELLER") return <Navigate to="/seller" replace />;
+
     return <Navigate to="/" replace />;
 }

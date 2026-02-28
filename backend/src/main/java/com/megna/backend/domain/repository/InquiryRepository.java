@@ -13,6 +13,8 @@ public interface InquiryRepository extends JpaRepository<Inquiry, Long> {
 
     Page<Inquiry> findByInvestorId(Long investorId, Pageable pageable);
 
+    Page<Inquiry> findByPropertySellerId(Long sellerId, Pageable pageable);
+
     List<Inquiry> findByEmailStatus(EmailStatus emailStatus);
 
     List<Inquiry> findByPropertyIdAndEmailStatus(Long propertyId, EmailStatus emailStatus);

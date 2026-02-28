@@ -265,6 +265,13 @@
   text-align: right;
 }
 
+.adminProps__actionsCol {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
 .adminProps__editBtn {
   height: 34px;
   width: 42px;
@@ -287,6 +294,103 @@
 
 .adminProps__editBtn .material-symbols-outlined {
   font-size: 18px;
+}
+
+.adminProps__textBtn {
+  border: 1px solid var(--admin-ink);
+  background: transparent;
+  color: var(--admin-ink);
+  height: 34px;
+  padding: 0 8px;
+  cursor: pointer;
+  transition:
+    background 180ms ease,
+    color 180ms ease,
+    border-color 180ms ease;
+}
+
+.adminProps__textBtn:hover {
+  background: var(--admin-ink);
+  color: var(--admin-bg);
+}
+
+.adminProps__noteOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  padding: 12px;
+}
+
+.adminProps__noteModal {
+  background: #fff;
+  color: #101010;
+  border: 1px solid var(--admin-border);
+  padding: 14px;
+  width: min(620px, 100%);
+  display: grid;
+  gap: 12px;
+}
+
+.adminProps__noteModal h3 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.adminProps__noteModal p {
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.adminProps__noteActions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.adminProps__noteActions button {
+  border: 1px solid var(--admin-ink);
+  background: transparent;
+  color: var(--admin-ink);
+  padding: 8px 10px;
+  cursor: pointer;
+}
+
+.adminProps__changeReqSection {
+  margin-top: 14px;
+  border: 1px solid var(--admin-border);
+  background: #fff;
+  padding: 12px;
+  display: grid;
+  gap: 10px;
+}
+
+.adminProps__changeReqSection h3 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.adminProps__changeReqList {
+  display: grid;
+  gap: 8px;
+}
+
+.adminProps__changeReqItem {
+  border: 1px solid rgba(16, 16, 16, 0.2);
+  background: rgba(16, 16, 16, 0.02);
+  padding: 10px;
+  display: grid;
+  gap: 8px;
+}
+
+.adminProps__changeReqBody {
+  white-space: pre-wrap;
+}
+
+.adminProps__changeReqActions {
+  display: flex;
+  gap: 8px;
 }
 
 /* pagination */
