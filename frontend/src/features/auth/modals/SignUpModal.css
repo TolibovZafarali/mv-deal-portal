@@ -59,6 +59,95 @@
   font-size: 13px;
 }
 
+.signupModal__roleToggle {
+  position: relative;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--text);
+  overflow: hidden;
+  isolation: isolate;
+  margin-top: 4px;
+  margin-bottom: 0;
+}
+
+.signupModal__roleToggle::after {
+  content: "";
+  position: absolute;
+  top: 6px;
+  bottom: 6px;
+  left: 50%;
+  width: 1px;
+  transform: translateX(-0.5px);
+  background: rgba(127, 127, 127, 0.7);
+  pointer-events: none;
+  z-index: 2;
+  opacity: 1;
+  transition: opacity 120ms ease;
+}
+
+.signupModal__roleToggle--investor::after,
+.signupModal__roleToggle--seller::after {
+  opacity: 0;
+}
+
+.signupModal__roleToggleThumb {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: calc(50% - 3px);
+  height: calc(100% - 6px);
+  background: var(--text);
+  transform: translateX(0);
+  transition: opacity 200ms ease;
+  opacity: 0;
+  z-index: 0;
+}
+
+.signupModal__roleToggle--animate .signupModal__roleToggleThumb {
+  transition:
+    transform 240ms ease,
+    opacity 200ms ease;
+}
+
+.signupModal__roleToggle--investor .signupModal__roleToggleThumb {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.signupModal__roleToggle--seller .signupModal__roleToggleThumb {
+  opacity: 1;
+  transform: translateX(100%);
+}
+
+.signupModal__roleBtn {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  padding: 11px 14px;
+  cursor: pointer;
+  font: inherit;
+  transition:
+    color 220ms ease,
+    background 220ms ease;
+}
+
+.signupModal__roleBtn:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.signupModal__roleBtn--active {
+  color: var(--bg);
+}
+
+.signupModal__roleBtn:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 1px var(--text);
+}
+
 .signupModal__close {
   cursor: pointer;
   width: 32px;
@@ -265,8 +354,9 @@
 
 /* Smooth step transitions */
 .signupModal__contentWrap {
-  overflow: hidden;
-  padding-top: 12px;
+  overflow-x: hidden;
+  overflow-y: visible;
+  padding-top: 6px;
   padding-bottom: 6px;
 }
 

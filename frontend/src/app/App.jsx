@@ -45,7 +45,7 @@ export default function App() {
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<LoginModal />} />
           <Route path="/signup" element={<SignUpModal />} />
-          <Route path="/signup/seller" element={<SignUpModal accountType="seller" />} />
+          <Route path="/signup/seller" element={<SignUpModal />} />
 
           <Route element={<ProtectedRoute />}>
             <Route path="/app" element={<AppRedirect />} />
@@ -86,7 +86,7 @@ export default function App() {
           <Routes>
             <Route path="/login" element={<LoginModal />} />
             <Route path="/signup" element={<SignUpModal />} />
-            <Route path="/signup/seller" element={<SignUpModal accountType="seller" />} />
+            <Route path="/signup/seller" element={<SignUpModal />} />
           </Routes>
         </Suspense>
       )}

@@ -41,14 +41,7 @@ export default function HomePage({ location, isAuthed, bootstrapping }) {
                                     className="homeHeader__link"
                                     state={{ backgroundLocation: location, modal: true }}
                                 >
-                                    Investor Sign Up
-                                </Link>
-                                <Link
-                                    to="/signup/seller"
-                                    className="homeHeader__link"
-                                    state={{ backgroundLocation: location, modal: true }}
-                                >
-                                    Seller Sign Up
+                                    Sign Up
                                 </Link>
                                 <Link
                                     to="/login"
@@ -81,15 +74,7 @@ export default function HomePage({ location, isAuthed, bootstrapping }) {
                                     className="homeHero__cta"
                                     state={{ backgroundLocation: location, modal: true }}
                                 >
-                                    <span className="homeHero__ctaText">Join as Investor</span>
-                                    <span className="homeHero__ctaArrow" aria-hidden="true"></span>
-                                </Link>
-                                <Link
-                                    to="/signup/seller"
-                                    className="homeHero__cta"
-                                    state={{ backgroundLocation: location, modal: true }}
-                                >
-                                    <span className="homeHero__ctaText">List as Seller</span>
+                                    <span className="homeHero__ctaText">Get Started</span>
                                     <span className="homeHero__ctaArrow" aria-hidden="true"></span>
                                 </Link>
                             </div>

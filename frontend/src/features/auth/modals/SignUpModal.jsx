@@ -6,16 +6,19 @@ import "@/features/auth/modals/SignUpModal.css";
 const STEP_INFO = 0;
 const STEP_PASSWORD = 1;
 const STEP_DONE = 2;
+const ROLE_BUYER = "INVESTOR";
+const ROLE_SELLER = "SELLER";
 
-export default function SignUpModal({ accountType = "investor" }) {
+export default function SignUpModal() {
   const navigate = useNavigate();
   const location = useLocation();
-  const isSellerSignup = accountType === "seller";
 
   const hasBackground = !!location.state?.backgroundLocation;
   const forceHomeOnClose = !!location.state?.forceHomeOnClose;
 
   const [step, setStep] = useState(STEP_INFO);
+  const [selectedRole, setSelectedRole] = useState(null);
+  const [roleSlideEnabled, setRoleSlideEnabled] = useState(false);
 
   const [form, setForm] = useState({
     firstName: "",
@@ -39,6 +42,7 @@ export default function SignUpModal({ accountType = "investor" }) {
 
   const bg = location.state?.backgroundLocation || { pathname: "/" };
   const phoneRef = useRef(null);
+  const isSellerSignup = selectedRole === ROLE_SELLER;
 
   function goStep(nextStep) {
     setDirection(nextStep > step ? "forward" : "back");
@@ -70,14 +74,15 @@ export default function SignUpModal({ accountType = "investor" }) {
   }, [hasBackground, forceHomeOnClose]);
 
   const infoValid = useMemo(() => {
-    return (
-      form.firstName.trim() &&
-      form.lastName.trim() &&
-      form.companyName.trim() &&
-      form.email.trim() &&
-      form.phone.trim()
+    return Boolean(
+      selectedRole &&
+        form.firstName.trim() &&
+        form.lastName.trim() &&
+        form.companyName.trim() &&
+        form.email.trim() &&
+        form.phone.trim(),
     );
-  }, [form]);
+  }, [form, selectedRole]);
 
   const passwordValid = useMemo(() => {
     // backend requires minLength 8 for password
@@ -144,11 +149,25 @@ export default function SignUpModal({ accountType = "investor" }) {
     });
   }
 
+  function handleRoleSelect(role) {
+    setError("");
+    setSelectedRole((prev) => {
+      if (prev && prev !== role) {
+        setRoleSlideEnabled(true);
+      }
+      return role;
+    });
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
     setError("");
 
     if (step === STEP_INFO) {
+      if (!selectedRole) {
+        setError("Choose Buyer or Seller to continue.");
+        return;
+      }
       if (!infoValid) {
         setError("Fill out all fields to continue.");
         return;
@@ -158,6 +177,10 @@ export default function SignUpModal({ accountType = "investor" }) {
     }
 
     if (step === STEP_PASSWORD) {
+      if (!selectedRole) {
+        setError("Choose Buyer or Seller to continue.");
+        return;
+      }
       if (form.password.length < 8) {
         setError("Password must be at least 8 characters.");
         return;
@@ -198,9 +221,7 @@ export default function SignUpModal({ accountType = "investor" }) {
       ? "Set password"
       : step === STEP_DONE
         ? "Thank you"
-        : isSellerSignup
-          ? "Seller Sign Up"
-          : "Sign Up";
+        : "Sign Up";
 
   return (
     <div className="signupOverlay" onMouseDown={close}>
@@ -237,6 +258,40 @@ export default function SignUpModal({ accountType = "investor" }) {
           className={`signupModal__form ${step === STEP_DONE ? "signupModal__form--done" : ""}`}
           onSubmit={handleSubmit}
         >
+          {step !== STEP_DONE && (
+            <div
+              className={[
+                "signupModal__roleToggle",
+                roleSlideEnabled ? "signupModal__roleToggle--animate" : "",
+                selectedRole ? `signupModal__roleToggle--${selectedRole.toLowerCase()}` : "",
+              ]
+                .filter(Boolean)
+                .join(" ")}
+              role="group"
+              aria-label="Account type"
+            >
+              <span className="signupModal__roleToggleThumb" aria-hidden="true" />
+
+              <button
+                type="button"
+                className={`signupModal__roleBtn ${selectedRole === ROLE_BUYER ? "signupModal__roleBtn--active" : ""}`}
+                onClick={() => handleRoleSelect(ROLE_BUYER)}
+                aria-pressed={selectedRole === ROLE_BUYER}
+              >
+                Buyer
+              </button>
+
+              <button
+                type="button"
+                className={`signupModal__roleBtn ${selectedRole === ROLE_SELLER ? "signupModal__roleBtn--active" : ""}`}
+                onClick={() => handleRoleSelect(ROLE_SELLER)}
+                aria-pressed={selectedRole === ROLE_SELLER}
+              >
+                Seller
+              </button>
+            </div>
+          )}
+
           <div className="signupModal__contentWrap">
             <div
               key={animKey}
@@ -317,19 +372,6 @@ export default function SignUpModal({ accountType = "investor" }) {
                       state={{ modal: true, backgroundLocation: bg }}
                     >
                       <span className="signupModal__altLinkInner">Login</span>
-                    </Link>
-                  </div>
-                  <div className="signupModal__alt">
-                    {isSellerSignup ? "Looking to invest?" : "Looking to sell?"}{" "}
-                    <Link
-                      className="signupModal__altLink"
-                      to={isSellerSignup ? "/signup" : "/signup/seller"}
-                      replace
-                      state={{ modal: true, backgroundLocation: bg }}
-                    >
-                      <span className="signupModal__altLinkInner">
-                        {isSellerSignup ? "Investor sign up" : "Seller sign up"}
-                      </span>
                     </Link>
                   </div>
                 </>
@@ -447,7 +489,7 @@ export default function SignUpModal({ accountType = "investor" }) {
                       ? "Submitting..."
                       : isSellerSignup
                         ? "Create Seller Account"
-                        : "Get Started"}
+                        : "Create Buyer Account"}
                   </button>
                 </div>
               )}
