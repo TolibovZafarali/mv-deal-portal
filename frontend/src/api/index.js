@@ -8,3 +8,4 @@ export * from "@/api/modules/inquiryApi";
 export * from "@/api/modules/adminInvestorApi";
 export * from "@/api/modules/sellerApi";
 export * from "@/api/modules/sellerPropertyApi";
+export * from "@/api/modules/adminQueueApi";

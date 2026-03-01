@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import {
   createProperty,
   deletePropertyPhotoUpload,
@@ -16,7 +17,16 @@ import {
   reviewSellerProperty,
 } from "@/api/modules/sellerPropertyApi";
 import "@/features/admin/pages/AdminPropertiesPage.css";
+import AdminFilterBar, { AdminFilterMore } from "@/features/admin/components/AdminFilterBar";
+import AdminPagination from "@/features/admin/components/AdminPagination";
+import SellerAssignmentModal from "@/features/admin/modals/SellerAssignmentModal";
+import SellerReviewModal from "@/features/admin/modals/SellerReviewModal";
+import ChangeRequestDecisionModal from "@/features/admin/modals/ChangeRequestDecisionModal";
 import PropertyUpsertModal from "@/features/admin/modals/PropertyUpsertModal";
+import {
+  signalAdminQueueRefresh,
+  startAdminTimer,
+} from "@/features/admin/utils/adminTelemetry";
 import { formatPriceInput } from "@/shared/utils/priceFormatting";
 
 const PAGE_SIZE = 20;
@@ -72,86 +82,6 @@ function prettyEnum(v) {
     .replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-function buildPages(current, total) {
-  if (total <= 7) return Array.from({ length: total }, (_, i) => i);
-
-  const pages = new Set([
-    0,
-    1,
-    total - 2,
-    total - 1,
-    current - 1,
-    current,
-    current + 1,
-  ]);
-  const sorted = [...pages]
-    .filter((p) => p >= 0 && p < total)
-    .sort((a, b) => a - b);
-
-  const out = [];
-  for (let i = 0; i < sorted.length; i++) {
-    const p = sorted[i];
-    const prev = sorted[i - 1];
-    if (i > 0 && p - prev > 1) out.push("…");
-    out.push(p);
-  }
-  return out;
-}
-
-function Pagination({ page, totalPages, onPageChange }) {
-  if (!totalPages || totalPages <= 1) return null;
-
-  const items = buildPages(page, totalPages);
-
-  return (
-    <div className="adminProps__pagination">
-      <button
-        className="adminProps__pageBtn"
-        type="button"
-        disabled={page === 0}
-        onClick={() => onPageChange(page - 1)}
-      >
-        Prev
-      </button>
-
-      <div className="adminProps__pageNums">
-        {items.map((it, idx) =>
-          it === "…" ? (
-            <span key={`dots-${idx}`} className="adminProps__dots">
-              …
-            </span>
-          ) : (
-            <button
-              key={it}
-              className={`adminProps__pageBtn adminProps__pageBtn--num ${
-                it === page ? "adminProps__pageBtn--active" : ""
-              }`}
-              type="button"
-              onClick={() => onPageChange(it)}
-            >
-              {it + 1}
-            </button>
-          ),
-        )}
-      </div>
-
-      <button
-        className="adminProps__pageBtn"
-        type="button"
-        disabled={page === totalPages - 1}
-        onClick={() => onPageChange(page + 1)}
-      >
-        Next
-      </button>
-
-      <div className="adminProps__pageMeta">
-        Page <span className="adminProps__pageMetaNum">{page + 1}</span> /{" "}
-        <span className="adminProps__pageMetaNum">{totalPages}</span>
-      </div>
-    </div>
-  );
-}
-
 export default function AdminPropertiesPage() {
   const [filters, setFilters] = useState({
     q: "",
@@ -188,6 +118,22 @@ export default function AdminPropertiesPage() {
   const [editDeleting, setEditDeleting] = useState(false);
   const [editDeleteError, setEditDeleteError] = useState("");
   const [reviewNoteModal, setReviewNoteModal] = useState({ open: false, note: "" });
+
+  const [assignmentModal, setAssignmentModal] = useState({ open: false, property: null });
+  const [assignmentResults, setAssignmentResults] = useState([]);
+  const [assignmentSearching, setAssignmentSearching] = useState(false);
+  const [assignmentSearchError, setAssignmentSearchError] = useState("");
+  const [assignmentSaving, setAssignmentSaving] = useState(false);
+  const [assignmentSaveError, setAssignmentSaveError] = useState("");
+
+  const [sellerReviewModal, setSellerReviewModal] = useState({ open: false, property: null });
+  const [sellerReviewSubmitting, setSellerReviewSubmitting] = useState(false);
+  const [sellerReviewError, setSellerReviewError] = useState("");
+
+  const [changeDecisionModal, setChangeDecisionModal] = useState({ open: false, request: null });
+  const [changeDecisionSubmitting, setChangeDecisionSubmitting] = useState(false);
+  const [changeDecisionError, setChangeDecisionError] = useState("");
+
   const [changeRequests, setChangeRequests] = useState([]);
   const [changeRequestsLoading, setChangeRequestsLoading] = useState(false);
   const [changeRequestsError, setChangeRequestsError] = useState("");
@@ -243,7 +189,7 @@ export default function AdminPropertiesPage() {
       setChangeRequestsError("");
 
       try {
-        const data = await getAdminPropertyChangeRequests({ status: "OPEN" }, { page: 0, size: 25, sort: "createdAt,desc" });
+        const data = await getAdminPropertyChangeRequests({ status: "OPEN" }, { page: 0, size: 6, sort: "createdAt,desc" });
         if (!alive) return;
         setChangeRequests(data?.content ?? []);
       } catch (e) {
@@ -443,86 +389,119 @@ export default function AdminPropertiesPage() {
     }
   }
 
-  async function handleAssignSeller(property) {
-    const query = window.prompt(
-      "Enter seller email/name to assign. Leave blank to unassign this listing.",
-    );
-    if (query === null) return;
+  function openAssignSellerModal(property) {
+    setAssignmentSearchError("");
+    setAssignmentSaveError("");
+    setAssignmentResults([]);
+    setAssignmentModal({ open: true, property });
+  }
+
+  async function handleAssignmentSearch(query) {
+    if (!query?.trim()) return;
+
+    setAssignmentSearching(true);
+    setAssignmentSearchError("");
 
     try {
-      if (!query.trim()) {
-        await assignPropertySeller(property.id, null);
-        setRefreshKey((k) => k + 1);
-        return;
+      const sellers = await searchAdminSellers({ q: query.trim() }, { page: 0, size: 12, sort: "createdAt,desc" });
+      setAssignmentResults(sellers?.content ?? []);
+      if ((sellers?.content ?? []).length === 0) {
+        setAssignmentSearchError("No sellers matched that query.");
       }
-
-      const sellers = await searchAdminSellers({ q: query.trim() }, { page: 0, size: 10, sort: "createdAt,desc" });
-      const rows = sellers?.content ?? [];
-
-      if (!rows.length) {
-        window.alert("No seller matched the query.");
-        return;
-      }
-
-      let targetSellerId = rows[0].id;
-
-      if (rows.length > 1) {
-        const pick = window.prompt(
-          `Multiple sellers found. Enter seller ID:\n${rows
-            .map((s) => `${s.id}: ${s.firstName} ${s.lastName} (${s.email})`)
-            .join("\n")}`,
-        );
-
-        if (pick === null) return;
-        const parsed = Number(pick);
-        if (!Number.isInteger(parsed) || parsed <= 0) {
-          window.alert("Invalid seller ID.");
-          return;
-        }
-        targetSellerId = parsed;
-      }
-
-      await assignPropertySeller(property.id, targetSellerId);
-      setRefreshKey((k) => k + 1);
     } catch (e) {
-      window.alert(e?.message || "Failed to assign seller.");
+      setAssignmentResults([]);
+      setAssignmentSearchError(e?.message || "Failed to search sellers.");
+    } finally {
+      setAssignmentSearching(false);
     }
   }
 
-  async function handleReviewSeller(property) {
-    const actionInput = window.prompt("Type action: PUBLISH or REQUEST_CHANGES");
-    if (!actionInput) return;
-    const action = actionInput.trim().toUpperCase();
+  async function handleAssignmentSave(sellerId) {
+    const property = assignmentModal.property;
+    if (!property?.id) return;
 
-    if (action !== "PUBLISH" && action !== "REQUEST_CHANGES") {
-      window.alert("Invalid action. Use PUBLISH or REQUEST_CHANGES.");
-      return;
+    const stop = startAdminTimer("admin.properties.assign_seller", {
+      propertyId: property.id,
+      sellerId: sellerId ?? null,
+    });
+
+    setAssignmentSaving(true);
+    setAssignmentSaveError("");
+
+    try {
+      await assignPropertySeller(property.id, sellerId ?? null);
+      stop("success");
+      signalAdminQueueRefresh();
+      setAssignmentModal({ open: false, property: null });
+      setAssignmentResults([]);
+      setRefreshKey((k) => k + 1);
+    } catch (e) {
+      setAssignmentSaveError(e?.message || "Failed to assign seller.");
+      stop("error", { error: e?.message || "unknown" });
+    } finally {
+      setAssignmentSaving(false);
     }
+  }
 
-    const reviewNote = window.prompt(
-      action === "REQUEST_CHANGES"
-        ? "Enter review note (required for REQUEST_CHANGES):"
-        : "Enter review note (optional):",
-    );
+  function openSellerReviewModal(property) {
+    setSellerReviewError("");
+    setSellerReviewModal({ open: true, property });
+  }
+
+  async function handleSellerReviewSubmit({ action, reviewNote }) {
+    const property = sellerReviewModal.property;
+    if (!property?.id) return;
+
+    const stop = startAdminTimer("admin.properties.review_seller", {
+      propertyId: property.id,
+      action,
+    });
+
+    setSellerReviewSubmitting(true);
+    setSellerReviewError("");
 
     try {
       await reviewSellerProperty(property.id, action, reviewNote ?? "");
+      stop("success");
+      signalAdminQueueRefresh();
+      setSellerReviewModal({ open: false, property: null });
       setRefreshKey((k) => k + 1);
     } catch (e) {
-      window.alert(e?.message || "Failed to review seller listing.");
+      setSellerReviewError(e?.message || "Failed to review seller listing.");
+      stop("error", { error: e?.message || "unknown" });
+    } finally {
+      setSellerReviewSubmitting(false);
     }
   }
 
-  async function handleModerateChangeRequest(request, action) {
-    const adminNote = window.prompt(
-      `Add admin note for ${action === "APPLIED" ? "apply" : "reject"} (optional):`,
-    );
+  function openChangeDecisionModal(request) {
+    setChangeDecisionError("");
+    setChangeDecisionModal({ open: true, request });
+  }
+
+  async function handleChangeDecisionSubmit({ action, adminNote }) {
+    const request = changeDecisionModal.request;
+    if (!request?.id) return;
+
+    const stop = startAdminTimer("admin.properties.change_request", {
+      requestId: request.id,
+      action,
+    });
+
+    setChangeDecisionSubmitting(true);
+    setChangeDecisionError("");
 
     try {
       await moderatePropertyChangeRequest(request.id, action, adminNote ?? "");
+      stop("success");
+      signalAdminQueueRefresh();
+      setChangeDecisionModal({ open: false, request: null });
       setRefreshKey((k) => k + 1);
     } catch (e) {
-      window.alert(e?.message || "Failed to update change request.");
+      setChangeDecisionError(e?.message || "Failed to update change request.");
+      stop("error", { error: e?.message || "unknown" });
+    } finally {
+      setChangeDecisionSubmitting(false);
     }
   }
 
@@ -574,30 +553,108 @@ export default function AdminPropertiesPage() {
 
   return (
     <section className="adminProps">
-      <form
-        className="adminProps__filters"
-        onSubmit={(e) => e.preventDefault()}
-      >
-        <div className="adminProps__filterRow">
+      <AdminFilterBar className="adminProps__filters" rowClassName="adminProps__filterRow" onSubmit={(e) => e.preventDefault()}>
+        <label className="adminProps__filter">
+          <span className="adminProps__label">Search</span>
+          <input
+            className="adminProps__input adminProps__input--text"
+            type="search"
+            placeholder="Address or title"
+            value={filters.q}
+            onChange={(e) => updateFilter("q", e.target.value)}
+          />
+        </label>
+
+        <label className="adminProps__filter">
+          <span className="adminProps__label">Status</span>
+          <select
+            className="adminProps__input"
+            value={filters.status}
+            onChange={(e) => updateFilter("status", e.target.value)}
+          >
+            {STATUSES.map((o) => (
+              <option key={o.label} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className="adminProps__filter">
+          <span className="adminProps__label">Asking Price</span>
+          <div className="adminProps__rangeInputs">
+            <div className="adminProps__moneyWrap">
+              <span className="adminProps__moneyPrefix">$</span>
+              <input
+                className="adminProps__input adminProps__input--text adminProps__input--money"
+                type="text"
+                inputMode="numeric"
+                placeholder="Min"
+                value={filters.minAskingPrice}
+                onChange={(e) =>
+                  updatePriceFilter("minAskingPrice", e.target.value)
+                }
+              />
+            </div>
+            <div className="adminProps__moneyWrap">
+              <span className="adminProps__moneyPrefix">$</span>
+              <input
+                className="adminProps__input adminProps__input--text adminProps__input--money"
+                type="text"
+                inputMode="numeric"
+                placeholder="Max"
+                value={filters.maxAskingPrice}
+                onChange={(e) =>
+                  updatePriceFilter("maxAskingPrice", e.target.value)
+                }
+              />
+            </div>
+          </div>
+        </label>
+
+        <AdminFilterMore
+          className="adminProps__moreMenu"
+          summaryClassName="adminProps__moreSummary"
+          summaryActiveClassName="adminProps__moreSummary--active"
+          bodyClassName="adminProps__moreBody"
+          active={hasMoreFiltersSelected}
+          summaryLabel="More"
+        >
           <label className="adminProps__filter">
-            <span className="adminProps__label">Search</span>
+            <span className="adminProps__label">Beds (Min)</span>
             <input
               className="adminProps__input adminProps__input--text"
-              type="search"
-              placeholder="Address or title"
-              value={filters.q}
-              onChange={(e) => updateFilter("q", e.target.value)}
+              type="number"
+              min="0"
+              placeholder="Any"
+              value={filters.minBeds}
+              onChange={(e) => updateFilter("minBeds", e.target.value)}
             />
           </label>
 
           <label className="adminProps__filter">
-            <span className="adminProps__label">Status</span>
+            <span className="adminProps__label">Baths (Min)</span>
+            <input
+              className="adminProps__input adminProps__input--text"
+              type="number"
+              min="0"
+              step="0.5"
+              placeholder="Any"
+              value={filters.minBaths}
+              onChange={(e) => updateFilter("minBaths", e.target.value)}
+            />
+          </label>
+
+          <label className="adminProps__filter">
+            <span className="adminProps__label">Occupancy Status</span>
             <select
               className="adminProps__input"
-              value={filters.status}
-              onChange={(e) => updateFilter("status", e.target.value)}
+              value={filters.occupancyStatus}
+              onChange={(e) =>
+                updateFilter("occupancyStatus", e.target.value)
+              }
             >
-              {STATUSES.map((o) => (
+              {OCCUPANCY.map((o) => (
                 <option key={o.label} value={o.value}>
                   {o.label}
                 </option>
@@ -606,132 +663,48 @@ export default function AdminPropertiesPage() {
           </label>
 
           <label className="adminProps__filter">
-            <span className="adminProps__label">Asking Price</span>
-            <div className="adminProps__rangeInputs">
-            <div className="adminProps__moneyWrap">
-                <span className="adminProps__moneyPrefix">$</span>
-                <input
-                  className="adminProps__input adminProps__input--text adminProps__input--money"
-                  type="text"
-                  inputMode="numeric"
-                  placeholder="Min"
-                  value={filters.minAskingPrice}
-                  onChange={(e) =>
-                    updatePriceFilter("minAskingPrice", e.target.value)
-                  }
-                />
-              </div>
-              <div className="adminProps__moneyWrap">
-                <span className="adminProps__moneyPrefix">$</span>
-                <input
-                  className="adminProps__input adminProps__input--text adminProps__input--money"
-                  type="text"
-                  inputMode="numeric"
-                  placeholder="Max"
-                  value={filters.maxAskingPrice}
-                  onChange={(e) =>
-                    updatePriceFilter("maxAskingPrice", e.target.value)
-                  }
-                />
-              </div>
-            </div>
+            <span className="adminProps__label">Exit Strategy</span>
+            <select
+              className="adminProps__input"
+              value={filters.exitStrategy}
+              onChange={(e) => updateFilter("exitStrategy", e.target.value)}
+            >
+              {EXIT_STRATEGIES.map((o) => (
+                <option key={o.label} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
           </label>
 
-          <details className="adminProps__moreMenu">
-            <summary
-              className={`adminProps__moreSummary ${hasMoreFiltersSelected ? "adminProps__moreSummary--active" : ""}`}
+          <label className="adminProps__filter">
+            <span className="adminProps__label">Seller Workflow</span>
+            <select
+              className="adminProps__input"
+              value={filters.sellerWorkflowStatus}
+              onChange={(e) => updateFilter("sellerWorkflowStatus", e.target.value)}
             >
-              More
-            </summary>
+              {SELLER_WORKFLOWS.map((o) => (
+                <option key={o.label} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </label>
+        </AdminFilterMore>
 
-            <div className="adminProps__moreBody">
-              <label className="adminProps__filter">
-                <span className="adminProps__label">Beds (Min)</span>
-                <input
-                  className="adminProps__input adminProps__input--text"
-                  type="number"
-                  min="0"
-                  placeholder="Any"
-                  value={filters.minBeds}
-                  onChange={(e) => updateFilter("minBeds", e.target.value)}
-                />
-              </label>
-
-              <label className="adminProps__filter">
-                <span className="adminProps__label">Baths (Min)</span>
-                <input
-                  className="adminProps__input adminProps__input--text"
-                  type="number"
-                  min="0"
-                  step="0.5"
-                  placeholder="Any"
-                  value={filters.minBaths}
-                  onChange={(e) => updateFilter("minBaths", e.target.value)}
-                />
-              </label>
-
-              <label className="adminProps__filter">
-                <span className="adminProps__label">Occupancy Status</span>
-                <select
-                  className="adminProps__input"
-                  value={filters.occupancyStatus}
-                  onChange={(e) =>
-                    updateFilter("occupancyStatus", e.target.value)
-                  }
-                >
-                  {OCCUPANCY.map((o) => (
-                    <option key={o.label} value={o.value}>
-                      {o.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <label className="adminProps__filter">
-                <span className="adminProps__label">Exit Strategy</span>
-                <select
-                  className="adminProps__input"
-                  value={filters.exitStrategy}
-                  onChange={(e) => updateFilter("exitStrategy", e.target.value)}
-                >
-                  {EXIT_STRATEGIES.map((o) => (
-                    <option key={o.label} value={o.value}>
-                      {o.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <label className="adminProps__filter">
-                <span className="adminProps__label">Seller Workflow</span>
-                <select
-                  className="adminProps__input"
-                  value={filters.sellerWorkflowStatus}
-                  onChange={(e) => updateFilter("sellerWorkflowStatus", e.target.value)}
-                >
-                  {SELLER_WORKFLOWS.map((o) => (
-                    <option key={o.label} value={o.value}>
-                      {o.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </div>
-          </details>
-
-          <button
-            className="adminProps__iconBtn"
-            type="button"
-            title="Add Property"
-            aria-label="Add Property"
-            onClick={() => {
-              setAddOpen(true);
-            }}
-          >
-            <span className="material-symbols-outlined">add_home</span>
-          </button>
-        </div>
-      </form>
+        <button
+          className="adminProps__iconBtn"
+          type="button"
+          title="Add Property"
+          aria-label="Add Property"
+          onClick={() => {
+            setAddOpen(true);
+          }}
+        >
+          <span className="material-symbols-outlined">add_home</span>
+        </button>
+      </AdminFilterBar>
 
       <div className="adminProps__tableSection">
         <div className="adminProps__below">
@@ -840,7 +813,7 @@ export default function AdminPropertiesPage() {
                             <button
                               className="adminProps__textBtn"
                               type="button"
-                              onClick={() => handleAssignSeller(p)}
+                              onClick={() => openAssignSellerModal(p)}
                             >
                               Assign
                             </button>
@@ -849,7 +822,7 @@ export default function AdminPropertiesPage() {
                               <button
                                 className="adminProps__textBtn"
                                 type="button"
-                                onClick={() => handleReviewSeller(p)}
+                                onClick={() => openSellerReviewModal(p)}
                               >
                                 Review
                               </button>
@@ -862,10 +835,18 @@ export default function AdminPropertiesPage() {
                 </table>
               </div>
 
-              <Pagination
+              <AdminPagination
                 page={page}
                 totalPages={pageMeta.totalPages}
                 onPageChange={setPage}
+                className="adminProps__pagination"
+                buttonClassName="adminProps__pageBtn"
+                numbersClassName="adminProps__pageNums"
+                numberButtonClassName="adminProps__pageBtn--num"
+                activeNumberClassName="adminProps__pageBtn--active"
+                dotsClassName="adminProps__dots"
+                metaClassName="adminProps__pageMeta"
+                metaValueClassName="adminProps__pageMetaNum"
               />
             </>
           )}
@@ -892,7 +873,12 @@ export default function AdminPropertiesPage() {
       ) : null}
 
       <section className="adminProps__changeReqSection">
-        <h3>Open Seller Change Requests</h3>
+        <div className="adminProps__changeReqHead">
+          <h3>Open Seller Change Requests</h3>
+          <Link className="adminProps__queueLink" to="/admin/queue">
+            Open Full Queue
+          </Link>
+        </div>
 
         {changeRequestsLoading ? (
           <div className="adminProps__notice">Loading change requests...</div>
@@ -915,11 +901,8 @@ export default function AdminPropertiesPage() {
                 </div>
                 <div className="adminProps__changeReqBody">{request.requestedChanges}</div>
                 <div className="adminProps__changeReqActions">
-                  <button type="button" className="adminProps__textBtn" onClick={() => handleModerateChangeRequest(request, "APPLIED")}>
-                    Apply
-                  </button>
-                  <button type="button" className="adminProps__textBtn" onClick={() => handleModerateChangeRequest(request, "REJECTED")}>
-                    Reject
+                  <button type="button" className="adminProps__textBtn" onClick={() => openChangeDecisionModal(request)}>
+                    Resolve
                   </button>
                 </div>
               </article>
@@ -948,6 +931,52 @@ export default function AdminPropertiesPage() {
         onDelete={handleEditDelete}
         deleting={editDeleting}
         deleteError={editDeleteError}
+      />
+
+      <SellerAssignmentModal
+        open={assignmentModal.open}
+        property={assignmentModal.property}
+        searching={assignmentSearching}
+        searchError={assignmentSearchError}
+        results={assignmentResults}
+        saving={assignmentSaving}
+        saveError={assignmentSaveError}
+        onClose={() => {
+          if (assignmentSaving) return;
+          setAssignmentModal({ open: false, property: null });
+          setAssignmentResults([]);
+          setAssignmentSearchError("");
+          setAssignmentSaveError("");
+        }}
+        onSearch={handleAssignmentSearch}
+        onAssign={(sellerId) => handleAssignmentSave(sellerId)}
+        onUnassign={() => handleAssignmentSave(null)}
+      />
+
+      <SellerReviewModal
+        open={sellerReviewModal.open}
+        property={sellerReviewModal.property}
+        submitting={sellerReviewSubmitting}
+        submitError={sellerReviewError}
+        onClose={() => {
+          if (sellerReviewSubmitting) return;
+          setSellerReviewModal({ open: false, property: null });
+          setSellerReviewError("");
+        }}
+        onSubmit={handleSellerReviewSubmit}
+      />
+
+      <ChangeRequestDecisionModal
+        open={changeDecisionModal.open}
+        request={changeDecisionModal.request}
+        submitting={changeDecisionSubmitting}
+        submitError={changeDecisionError}
+        onClose={() => {
+          if (changeDecisionSubmitting) return;
+          setChangeDecisionModal({ open: false, request: null });
+          setChangeDecisionError("");
+        }}
+        onSubmit={handleChangeDecisionSubmit}
       />
 
       {reviewNoteModal.open ? (

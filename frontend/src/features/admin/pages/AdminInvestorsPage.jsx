@@ -6,7 +6,10 @@ import {
   searchAdminInvestors,
   updateInvestorRejectionReason,
 } from "@/api/modules/adminInvestorApi";
+import AdminFilterBar, { AdminFilterMore } from "@/features/admin/components/AdminFilterBar";
+import AdminPagination from "@/features/admin/components/AdminPagination";
 import AdminInvestorReviewModal from "@/features/admin/modals/AdminInvestorReviewModal";
+import { signalAdminQueueRefresh } from "@/features/admin/utils/adminTelemetry";
 import "@/features/admin/pages/AdminInvestorsPage.css";
 
 const PAGE_SIZE = 20;
@@ -38,17 +41,6 @@ function prettyDate(value) {
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return "—";
   return d.toLocaleString("en-US", { month: "short", day: "2-digit", year: "numeric" });
-}
-
-function Pagination({ page, totalPages, onPageChange }) {
-  if (!totalPages || totalPages <= 1) return null;
-  return (
-    <div className="adminInv__pagination">
-      <button className="adminInv__pageBtn" type="button" disabled={page === 0} onClick={() => onPageChange(page - 1)}>Prev</button>
-      <span className="adminInv__pageMeta">Page {page + 1} / {totalPages}</span>
-      <button className="adminInv__pageBtn" type="button" disabled={page >= totalPages - 1} onClick={() => onPageChange(page + 1)}>Next</button>
-    </div>
-  );
 }
 
 export default function AdminInvestorsPage() {
@@ -141,6 +133,7 @@ export default function AdminInvestorsPage() {
       }
       setModalOpen(false);
       setSelectedInvestor(null);
+      signalAdminQueueRefresh();
       updateFilter("q", filters.q);
     } catch (e) {
       setSubmitError(e?.message || "Failed to save investor.");
@@ -151,51 +144,53 @@ export default function AdminInvestorsPage() {
 
   return (
     <section className="adminInv">
-      <form className="adminInv__filters" onSubmit={(e) => e.preventDefault()}>
-        <div className="adminInv__filterRow">
-          <label className="adminInv__filter">
-            <span className="adminInv__label">Search</span>
-            <input className="adminInv__input adminInv__input--text" type="search" placeholder="Name, company, email, phone" value={filters.q} onChange={(e) => updateFilter("q", e.target.value)} />
-          </label>
+      <AdminFilterBar className="adminInv__filters" rowClassName="adminInv__filterRow" onSubmit={(e) => e.preventDefault()}>
+        <label className="adminInv__filter">
+          <span className="adminInv__label">Search</span>
+          <input className="adminInv__input adminInv__input--text" type="search" placeholder="Name, company, email, phone" value={filters.q} onChange={(e) => updateFilter("q", e.target.value)} />
+        </label>
 
+        <label className="adminInv__filter">
+          <span className="adminInv__label">Status</span>
+          <select className="adminInv__input" value={filters.status} onChange={(e) => updateFilter("status", e.target.value)}>
+            {STATUS_OPTIONS.map((option) => (
+              <option key={option.label} value={option.value}>{option.label}</option>
+            ))}
+          </select>
+        </label>
+
+        <AdminFilterMore
+          className="adminInv__moreMenu"
+          summaryClassName="adminInv__moreSummary"
+          summaryActiveClassName="adminInv__moreSummary--active"
+          bodyClassName="adminInv__moreBody"
+          active={hasMoreFiltersSelected}
+          summaryLabel="More"
+        >
           <label className="adminInv__filter">
-            <span className="adminInv__label">Status</span>
-            <select className="adminInv__input" value={filters.status} onChange={(e) => updateFilter("status", e.target.value)}>
-              {STATUS_OPTIONS.map((option) => (
-                <option key={option.label} value={option.value}>{option.label}</option>
-              ))}
+            <span className="adminInv__label">Created</span>
+            <select className="adminInv__input" value={filters.createdRange} onChange={(e) => updateFilter("createdRange", e.target.value)}>
+              {RANGE_OPTIONS.map((option) => <option key={option.label} value={option.value}>{option.label}</option>)}
             </select>
           </label>
 
-          <details className="adminInv__moreMenu">
-            <summary className={`adminInv__moreSummary ${hasMoreFiltersSelected ? "adminInv__moreSummary--active" : ""}`}>More</summary>
-            <div className="adminInv__moreBody">
-              <label className="adminInv__filter">
-                <span className="adminInv__label">Created</span>
-                <select className="adminInv__input" value={filters.createdRange} onChange={(e) => updateFilter("createdRange", e.target.value)}>
-                  {RANGE_OPTIONS.map((option) => <option key={option.label} value={option.value}>{option.label}</option>)}
-                </select>
-              </label>
+          <label className="adminInv__filter">
+            <span className="adminInv__label">Updated</span>
+            <select className="adminInv__input" value={filters.updatedRange} onChange={(e) => updateFilter("updatedRange", e.target.value)}>
+              {RANGE_OPTIONS.map((option) => <option key={option.label} value={option.value}>{option.label}</option>)}
+            </select>
+          </label>
 
-              <label className="adminInv__filter">
-                <span className="adminInv__label">Updated</span>
-                <select className="adminInv__input" value={filters.updatedRange} onChange={(e) => updateFilter("updatedRange", e.target.value)}>
-                  {RANGE_OPTIONS.map((option) => <option key={option.label} value={option.value}>{option.label}</option>)}
-                </select>
-              </label>
-
-              {filters.status === "APPROVED" ? (
-                <label className="adminInv__filter">
-                  <span className="adminInv__label">Approved</span>
-                  <select className="adminInv__input" value={filters.approvedRange} onChange={(e) => updateFilter("approvedRange", e.target.value)}>
-                    {RANGE_OPTIONS.map((option) => <option key={option.label} value={option.value}>{option.label}</option>)}
-                  </select>
-                </label>
-              ) : null}
-            </div>
-          </details>
-        </div>
-      </form>
+          {filters.status === "APPROVED" ? (
+            <label className="adminInv__filter">
+              <span className="adminInv__label">Approved</span>
+              <select className="adminInv__input" value={filters.approvedRange} onChange={(e) => updateFilter("approvedRange", e.target.value)}>
+                {RANGE_OPTIONS.map((option) => <option key={option.label} value={option.value}>{option.label}</option>)}
+              </select>
+            </label>
+          ) : null}
+        </AdminFilterMore>
+      </AdminFilterBar>
 
       <div className="adminInv__tableSection">
         {loading ? <div className="adminInv__notice">Loading investors...</div> : null}
@@ -240,7 +235,19 @@ export default function AdminInvestorsPage() {
                 </tbody>
               </table>
             </div>
-            <Pagination page={page} totalPages={meta.totalPages} onPageChange={setPage} />
+            <AdminPagination
+              page={page}
+              totalPages={meta.totalPages}
+              onPageChange={setPage}
+              className="adminInv__pagination"
+              buttonClassName="adminInv__pageBtn"
+              numbersClassName="adminInv__pageNums"
+              numberButtonClassName="adminInv__pageBtn--num"
+              activeNumberClassName="adminInv__pageBtn--active"
+              dotsClassName="adminInv__dots"
+              metaClassName="adminInv__pageMeta"
+              metaValueClassName="adminInv__pageMetaNum"
+            />
           </>
         ) : null}
       </div>

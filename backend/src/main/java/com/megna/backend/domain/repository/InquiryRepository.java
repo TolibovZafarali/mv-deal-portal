@@ -21,6 +21,8 @@ public interface InquiryRepository extends JpaRepository<Inquiry, Long> {
 
     List<Inquiry> findByInvestorIdAndEmailStatus(Long investorId, EmailStatus emailStatus);
 
+    long countByEmailStatus(EmailStatus emailStatus);
+
     long countByPropertyId(Long propertyId);
 
     long countByInvestorId(Long investorId);

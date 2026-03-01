@@ -5,6 +5,8 @@ import {
   getInquiryByInvestor,
 } from "@/api/modules/inquiryApi";
 import { getPropertyId } from "@/api/modules/propertyApi";
+import AdminFilterBar, { AdminFilterMore } from "@/features/admin/components/AdminFilterBar";
+import AdminPagination from "@/features/admin/components/AdminPagination";
 import "@/features/admin/pages/AdminInquiriesPage.css";
 
 const PAGE_SIZE = 20;
@@ -44,34 +46,6 @@ function propertyAddress(property) {
   const line1 = [property.street1, property.street2].filter(Boolean).join(", ");
   const line2 = [property.city, property.state, property.zip].filter(Boolean).join(", ");
   return [line1, line2].filter(Boolean).join("\n");
-}
-
-function Pagination({ page, totalPages, onPageChange }) {
-  if (!totalPages || totalPages <= 1) return null;
-
-  return (
-    <div className="adminInq__pagination">
-      <button
-        className="adminInq__pageBtn"
-        type="button"
-        disabled={page === 0}
-        onClick={() => onPageChange(page - 1)}
-      >
-        Prev
-      </button>
-      <span className="adminInq__pageMeta">
-        Page {page + 1} / {totalPages}
-      </span>
-      <button
-        className="adminInq__pageBtn"
-        type="button"
-        disabled={page >= totalPages - 1}
-        onClick={() => onPageChange(page + 1)}
-      >
-        Next
-      </button>
-    </div>
-  );
 }
 
 export default function AdminInquiriesPage() {
@@ -215,74 +189,70 @@ export default function AdminInquiriesPage() {
 
   return (
     <section className="adminInq">
-      <form className="adminInq__filters" onSubmit={(e) => e.preventDefault()}>
-        <div className="adminInq__filterRow">
+      <AdminFilterBar className="adminInq__filters" rowClassName="adminInq__filterRow" onSubmit={(e) => e.preventDefault()}>
+        <label className="adminInq__filter">
+          <span className="adminInq__label">Search</span>
+          <input
+            className="adminInq__input adminInq__input--text"
+            type="search"
+            placeholder="Address, contact, company, email, phone"
+            value={filters.q}
+            onChange={(e) => updateFilter("q", e.target.value)}
+          />
+        </label>
+
+        <label className="adminInq__filter">
+          <span className="adminInq__label">Email Status</span>
+          <select
+            className="adminInq__input"
+            value={filters.emailStatus}
+            onChange={(e) => updateFilter("emailStatus", e.target.value)}
+          >
+            {EMAIL_STATUS_OPTIONS.map((option) => (
+              <option key={option.label} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <AdminFilterMore
+          className="adminInq__moreMenu"
+          summaryClassName="adminInq__moreSummary"
+          summaryActiveClassName="adminInq__moreSummary--active"
+          bodyClassName="adminInq__moreBody"
+          active={hasMoreFiltersSelected}
+          summaryLabel="More"
+        >
           <label className="adminInq__filter">
-            <span className="adminInq__label">Search</span>
+            <span className="adminInq__label">Property ID</span>
             <input
               className="adminInq__input adminInq__input--text"
-              type="search"
-              placeholder="Address, contact, company, email, phone"
-              value={filters.q}
-              onChange={(e) => updateFilter("q", e.target.value)}
+              type="text"
+              inputMode="numeric"
+              placeholder="e.g. 101"
+              value={filters.propertyId}
+              onChange={(e) =>
+                updateFilter("propertyId", e.target.value.replace(/[^\d]/g, ""))
+              }
             />
           </label>
 
           <label className="adminInq__filter">
-            <span className="adminInq__label">Email Status</span>
-            <select
-              className="adminInq__input"
-              value={filters.emailStatus}
-              onChange={(e) => updateFilter("emailStatus", e.target.value)}
-            >
-              {EMAIL_STATUS_OPTIONS.map((option) => (
-                <option key={option.label} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
+            <span className="adminInq__label">Investor ID</span>
+            <input
+              className="adminInq__input adminInq__input--text"
+              type="text"
+              inputMode="numeric"
+              placeholder="e.g. 42"
+              value={filters.investorId}
+              onChange={(e) =>
+                updateFilter("investorId", e.target.value.replace(/[^\d]/g, ""))
+              }
+            />
           </label>
-
-          <details className="adminInq__moreMenu">
-            <summary
-              className={`adminInq__moreSummary ${
-                hasMoreFiltersSelected ? "adminInq__moreSummary--active" : ""
-              }`}
-            >
-              More
-            </summary>
-            <div className="adminInq__moreBody">
-              <label className="adminInq__filter">
-                <span className="adminInq__label">Property ID</span>
-                <input
-                  className="adminInq__input adminInq__input--text"
-                  type="text"
-                  inputMode="numeric"
-                  placeholder="e.g. 101"
-                  value={filters.propertyId}
-                  onChange={(e) =>
-                    updateFilter("propertyId", e.target.value.replace(/[^\d]/g, ""))
-                  }
-                />
-              </label>
-
-              <label className="adminInq__filter">
-                <span className="adminInq__label">Investor ID</span>
-                <input
-                  className="adminInq__input adminInq__input--text"
-                  type="text"
-                  inputMode="numeric"
-                  placeholder="e.g. 42"
-                  value={filters.investorId}
-                  onChange={(e) =>
-                    updateFilter("investorId", e.target.value.replace(/[^\d]/g, ""))
-                  }
-                />
-              </label>
-            </div>
-          </details>
-        </div>
-      </form>
+        </AdminFilterMore>
+      </AdminFilterBar>
 
       <div className="adminInq__tableSection">
         {loading ? <div className="adminInq__notice">Loading inquiries...</div> : null}
@@ -334,7 +304,19 @@ export default function AdminInquiriesPage() {
         ) : null}
 
         {showPagination ? (
-          <Pagination page={page} totalPages={meta.totalPages} onPageChange={setPage} />
+          <AdminPagination
+            page={page}
+            totalPages={meta.totalPages}
+            onPageChange={setPage}
+            className="adminInq__pagination"
+            buttonClassName="adminInq__pageBtn"
+            numbersClassName="adminInq__pageNums"
+            numberButtonClassName="adminInq__pageBtn--num"
+            activeNumberClassName="adminInq__pageBtn--active"
+            dotsClassName="adminInq__dots"
+            metaClassName="adminInq__pageMeta"
+            metaValueClassName="adminInq__pageMetaNum"
+          />
         ) : null}
       </div>
     </section>

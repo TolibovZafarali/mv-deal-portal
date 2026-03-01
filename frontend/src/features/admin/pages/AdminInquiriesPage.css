@@ -167,6 +167,30 @@
   color: var(--admin-muted);
 }
 
+.adminInq__pageMetaNum {
+  color: var(--admin-ink);
+}
+
+.adminInq__pageNums {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.adminInq__pageBtn--num {
+  min-width: 38px;
+}
+
+.adminInq__pageBtn--active {
+  background: var(--admin-ink);
+  color: var(--admin-bg);
+}
+
+.adminInq__dots {
+  color: var(--admin-muted);
+}
+
 .adminInq__pageBtn {
   border: 1px solid var(--admin-ink);
   background: transparent;

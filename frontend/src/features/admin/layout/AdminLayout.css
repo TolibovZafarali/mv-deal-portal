@@ -42,8 +42,19 @@
 
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
   text-align: center;
+  gap: 10px;
+}
+
+.adminNav__badge {
+  min-width: 24px;
+  height: 24px;
+  border: 1px solid currentColor;
+  font-size: 12px;
+  display: grid;
+  place-items: center;
+  line-height: 1;
 }
 
 .adminNav__link:hover {

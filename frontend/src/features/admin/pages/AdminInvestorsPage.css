@@ -102,6 +102,11 @@
 }
 .adminInv__pagination { display:flex; justify-content:flex-end; align-items:center; gap:10px; padding-top:12px; }
 .adminInv__pageMeta { font-size:12px; color: var(--admin-muted); }
+.adminInv__pageMetaNum { color: var(--admin-ink); }
+.adminInv__pageNums { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+.adminInv__pageBtn--num { min-width: 38px; }
+.adminInv__pageBtn--active { background: var(--admin-ink); color: var(--admin-bg); }
+.adminInv__dots { color: var(--admin-muted); }
 .adminInv__notice { padding: 12px; color: var(--admin-muted); }
 .adminInv__notice--error { color: rgba(170, 38, 38, 0.95); }
 

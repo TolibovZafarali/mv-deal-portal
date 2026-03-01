@@ -10,6 +10,7 @@ const SignUpModal = lazy(() => import("@/features/auth/modals/SignUpModal"))
 const ApiSmokeTest = lazy(() => import("@/features/dev/pages/ApiSmokeTest"))
 const AppRedirect = lazy(() => import("@/app/routing/AppRedirect"))
 const HomePage = lazy(() => import("@/features/home/pages/HomePage"))
+const AdminQueuePage = lazy(() => import("@/features/admin/pages/AdminQueuePage"))
 const AdminInquiriesPage = lazy(() => import("@/features/admin/pages/AdminInquiriesPage"))
 const AdminInvestorsPage = lazy(() => import("@/features/admin/pages/AdminInvestorsPage"))
 const AdminPropertiesPage = lazy(() => import("@/features/admin/pages/AdminPropertiesPage"))
@@ -54,7 +55,8 @@ export default function App() {
 
           <Route element={<ProtectedRoute roles={["ADMIN"]} />}>
             <Route path="/admin" element={<AdminLayout />}>
-              <Route index element={<Navigate to="properties" replace />} />
+              <Route index element={<Navigate to="queue" replace />} />
+              <Route path="queue" element={<AdminQueuePage />} />
               <Route path="properties" element={<AdminPropertiesPage />} />
               <Route path="investors" element={<AdminInvestorsPage />} />
               <Route path="inquiries" element={<AdminInquiriesPage />} />

@@ -1,10 +1,19 @@
 import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "@/features/auth";
+import useAdminQueue from "@/features/admin/hooks/useAdminQueue";
 import "@/features/admin/layout/AdminLayout.css";
 
 export default function AdminLayout() {
   const { signOut } = useAuth();
   const navigate = useNavigate();
+  const { counts } = useAdminQueue({ includeItems: false });
+
+  const badges = {
+    queue: counts.submittedProperties + counts.openChangeRequests + counts.pendingInvestors,
+    properties: counts.submittedProperties + counts.openChangeRequests,
+    investors: counts.pendingInvestors,
+    inquiries: counts.failedInquiries,
+  };
 
   function handleLogout() {
     signOut();
@@ -26,12 +35,22 @@ export default function AdminLayout() {
 
         <nav className="adminNav" aria-label="Admin navigation">
           <NavLink
+            to="queue"
+            className={({ isActive }) =>
+              `adminNav__link ${isActive ? "adminNav__link--active" : ""}`
+            }
+          >
+            <span>Queue</span>
+            {badges.queue > 0 ? <span className="adminNav__badge">{badges.queue}</span> : null}
+          </NavLink>
+          <NavLink
             to="properties"
             className={({ isActive }) =>
               `adminNav__link ${isActive ? "adminNav__link--active" : ""}`
             }
           >
-            Properties
+            <span>Properties</span>
+            {badges.properties > 0 ? <span className="adminNav__badge">{badges.properties}</span> : null}
           </NavLink>
           <NavLink
             to="investors"
@@ -39,7 +58,8 @@ export default function AdminLayout() {
               `adminNav__link ${isActive ? "adminNav__link--active" : ""}`
             }
           >
-            Investors
+            <span>Investors</span>
+            {badges.investors > 0 ? <span className="adminNav__badge">{badges.investors}</span> : null}
           </NavLink>
           <NavLink
             to="inquiries"
@@ -47,7 +67,8 @@ export default function AdminLayout() {
               `adminNav__link ${isActive ? "adminNav__link--active" : ""}`
             }
           >
-            Inquiries
+            <span>Inquiries</span>
+            {badges.inquiries > 0 ? <span className="adminNav__badge">{badges.inquiries}</span> : null}
           </NavLink>
         </nav>
 

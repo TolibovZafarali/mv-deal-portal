@@ -371,6 +371,26 @@
   font-size: 16px;
 }
 
+.adminProps__changeReqHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.adminProps__queueLink {
+  border: 1px solid var(--admin-ink);
+  color: var(--admin-ink);
+  text-decoration: none;
+  font-size: 12px;
+  padding: 6px 8px;
+}
+
+.adminProps__queueLink:hover {
+  background: var(--admin-ink);
+  color: var(--admin-bg);
+}
+
 .adminProps__changeReqList {
   display: grid;
   gap: 8px;
