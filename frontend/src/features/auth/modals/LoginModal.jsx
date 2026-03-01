@@ -1,7 +1,9 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/features/auth";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import "@/features/auth/modals/LoginModal.css";
+
+const CLOSE_ANIMATION_MS = 180;
 
 export default function LoginModal() {
   const { signIn, user } = useAuth();
@@ -27,20 +29,38 @@ export default function LoginModal() {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [isClosing, setIsClosing] = useState(false);
+
+  const closeTimerRef = useRef(null);
+  const closingRef = useRef(false);
 
   function close() {
-    if (forceHomeOnClose) {
+    if (closingRef.current) return;
+
+    closingRef.current = true;
+    setIsClosing(true);
+    closeTimerRef.current = window.setTimeout(() => {
+      if (forceHomeOnClose) {
+        navigate("/", { replace: true });
+        return;
+      }
+
+      if (hasBackground) {
+        navigate(bg, { replace: true });
+        return;
+      }
+
       navigate("/", { replace: true });
-      return;
-    }
-
-    if (hasBackground) {
-      navigate(bg, { replace: true });
-      return;
-    }
-
-    navigate("/", { replace: true });
+    }, CLOSE_ANIMATION_MS);
   }
+
+  useEffect(() => {
+    return () => {
+      if (closeTimerRef.current) {
+        window.clearTimeout(closeTimerRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     function onKeyDown(e) {
@@ -107,8 +127,8 @@ export default function LoginModal() {
   }
 
   return (
-    <div className="loginOverlay" onMouseDown={close}>
-      <div className="loginModal" onMouseDown={(e) => e.stopPropagation()}>
+    <div className={`loginOverlay ${isClosing ? "loginOverlay--closing" : ""}`} onMouseDown={close}>
+      <div className={`loginModal ${isClosing ? "loginModal--closing" : ""}`} onMouseDown={(e) => e.stopPropagation()}>
         <div className="loginModal__header">
           <h2 className="loginModal__title">Login</h2>
 

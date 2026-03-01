@@ -8,6 +8,7 @@ const STEP_PASSWORD = 1;
 const STEP_DONE = 2;
 const ROLE_BUYER = "INVESTOR";
 const ROLE_SELLER = "SELLER";
+const CLOSE_ANIMATION_MS = 180;
 
 export default function SignUpModal() {
   const navigate = useNavigate();
@@ -39,30 +40,49 @@ export default function SignUpModal() {
 
   const [direction, setDirection] = useState("forward"); // "forward" | "back"
   const [animKey, setAnimKey] = useState(0);
+  const [hasStepTransition, setHasStepTransition] = useState(false);
+  const [isClosing, setIsClosing] = useState(false);
 
   const bg = location.state?.backgroundLocation || { pathname: "/" };
   const phoneRef = useRef(null);
+  const closeTimerRef = useRef(null);
+  const closingRef = useRef(false);
   const isSellerSignup = selectedRole === ROLE_SELLER;
 
   function goStep(nextStep) {
+    setHasStepTransition(true);
     setDirection(nextStep > step ? "forward" : "back");
     setStep(nextStep);
     setAnimKey((k) => k + 1);
   }
 
   function close() {
-    if (forceHomeOnClose) {
+    if (closingRef.current) return;
+
+    closingRef.current = true;
+    setIsClosing(true);
+    closeTimerRef.current = window.setTimeout(() => {
+      if (forceHomeOnClose) {
+        navigate("/", { replace: true });
+        return;
+      }
+
+      if (hasBackground) {
+        navigate(bg, { replace: true });
+        return;
+      }
+
       navigate("/", { replace: true });
-      return;
-    }
-
-    if (hasBackground) {
-      navigate(bg, { replace: true });
-      return;
-    }
-
-    navigate("/", { replace: true });
+    }, CLOSE_ANIMATION_MS);
   }
+
+  useEffect(() => {
+    return () => {
+      if (closeTimerRef.current) {
+        window.clearTimeout(closeTimerRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     function onKeyDown(e) {
@@ -224,9 +244,15 @@ export default function SignUpModal() {
         : "Sign Up";
 
   return (
-    <div className="signupOverlay" onMouseDown={close}>
+    <div className={`signupOverlay ${isClosing ? "signupOverlay--closing" : ""}`} onMouseDown={close}>
       <div
-        className={`signupModal ${step === STEP_DONE ? "signupModal--done" : ""}`}
+        className={[
+          "signupModal",
+          step === STEP_DONE ? "signupModal--done" : "",
+          isClosing ? "signupModal--closing" : "",
+        ]
+          .filter(Boolean)
+          .join(" ")}
         onMouseDown={(e) => e.stopPropagation()}
       >
         <div
@@ -295,7 +321,12 @@ export default function SignUpModal() {
           <div className="signupModal__contentWrap">
             <div
               key={animKey}
-              className={`signupModal__content signupModal__content--${direction}`}
+              className={[
+                "signupModal__content",
+                hasStepTransition ? `signupModal__content--${direction}` : "",
+              ]
+                .filter(Boolean)
+                .join(" ")}
             >
               {step === STEP_INFO && (
                 <>

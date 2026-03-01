@@ -7,6 +7,12 @@
   align-items: center;
   justify-content: center;
   z-index: 9999;
+  animation: mvAuthOverlayFadeIn 180ms ease-out both;
+}
+
+.signupOverlay--closing {
+  animation: mvAuthOverlayFadeOut 170ms ease-in both;
+  pointer-events: none;
 }
 
 .signupModal {
@@ -19,6 +25,12 @@
   display: flex;
   flex-direction: column;
   justify-content: center;
+  transform-origin: center;
+  animation: mvAuthModalIn 220ms ease-out both;
+}
+
+.signupModal--closing {
+  animation: mvAuthModalOut 170ms ease-in both;
 }
 
 .signupModal--done {
@@ -422,4 +434,55 @@
 
 .signupModal__altLink:hover {
   opacity: 0.9;
+}
+
+@keyframes mvAuthOverlayFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes mvAuthOverlayFadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes mvAuthModalIn {
+  from {
+    opacity: 0;
+    transform: scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes mvAuthModalOut {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.985);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .signupOverlay,
+  .signupOverlay--closing,
+  .signupModal,
+  .signupModal--closing,
+  .signupModal__content--forward,
+  .signupModal__content--back {
+    animation: none;
+  }
 }
