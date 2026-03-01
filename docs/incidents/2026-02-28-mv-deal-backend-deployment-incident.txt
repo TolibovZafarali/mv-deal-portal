@@ -1,0 +1,99 @@
+Incident Note: mv-deal-backend Cloud Build/Cloud Run Deployment Failures
+Date: February 28, 2026 (UTC)
+Project: megna-real-estate-backend
+Service: mv-deal-backend
+Region: us-central1
+Primary build failure step: deploy-cloud-run (Cloud Build step 3)
+
+1) Executive Summary
+Deployments repeatedly failed at Cloud Run revision startup, while image build and push steps succeeded.
+This incident had multiple sequential root causes:
+1. Java runtime dependency conflict (protobuf / Cloud SQL connector) causing java.lang.VerifyError.
+2. Flyway migration validation failure (V9 marked failed in flyway_schema_history).
+3. Schema drift (property_photos.photo_asset_id missing), causing Hibernate schema validation failure at startup.
+
+Service was stabilized temporarily by disabling Flyway and JPA schema checks, then permanently fixed by repairing schema/history and restoring strict validation settings.
+
+2) Service Impact
+- Existing stable revision continued serving traffic for part of the incident while new revisions failed.
+- New backend releases could not be deployed during the incident window.
+- Schema drift risk existed until DB and Flyway history were corrected.
+
+3) Timeline and Evidence (UTC)
+- 2026-02-28T00:47:31Z: Revision mv-deal-backend-00016-49q failed startup.
+  - Build: b7803959-fc91-4841-a9a8-5058ec40b8c4
+  - Cloud Run reported generic PORT=8080 startup failure.
+  - Actual app logs showed root error:
+    - java.lang.VerifyError: Bad return type
+    - MetadataExchangeRequest.internalGetFieldAccessorTable
+    - GeneratedMessageV3$FieldAccessorTable vs GeneratedMessage$FieldAccessorTable mismatch
+
+- 2026-02-28T01:45:02Z: Revision mv-deal-backend-00017-dhf still failed with VerifyError.
+
+- ~2026-02-28T02:21:45Z: Revision mv-deal-backend-00019-8cg no longer showed VerifyError; Hikari/DB connection succeeded.
+  - New blocker: FlywayValidateException: Validate failed: Migrations have failed validation.
+
+- ~2026-02-28T02:56:24Z: Revision mv-deal-backend-00022-f5h with Flyway disabled still failed.
+  - Error: SchemaManagementException: missing column [photo_asset_id] in table [property_photos].
+
+- 2026-02-28T03:20:35Z to 03:24:50Z: Build d2ce1b2c-f2bd-4cc8-8cd6-46b96ec56e06 failed deploying revision 00026-cds for startup failure.
+
+- 2026-02-28T03:29:27Z: Manual Cloud Run update deployed revision 00027-q26 successfully with temporary safe settings (Flyway off, DDL auto none).
+
+- 2026-02-28T04:09:35Z: Service confirmed healthy.
+  - latestReadyRevisionName == latestCreatedRevisionName == mv-deal-backend-00033-nsf
+  - /actuator/health returned HTTP 200
+
+4) Root Causes
+A) Runtime dependency mismatch:
+- Cloud SQL socket factory path loaded incompatible protobuf runtime classes, causing VerifyError during DB pool initialization.
+
+B) Failed Flyway migration state:
+- flyway_schema_history had V9__add_photo_assets_and_migrate_property_photos.sql with success=0.
+
+C) Database schema drift:
+- property_photos lacked expected columns used by the application model (photo_asset_id and thumbnail_url).
+
+5) Fixes Applied
+- Adjusted backend dependency handling in pom.xml to address protobuf/runtime conflict in the MySQL/Cloud SQL path.
+
+- Temporary Cloud Run stabilization env vars:
+  - SPRING_FLYWAY_ENABLED=false
+  - SPRING_FLYWAY_VALIDATE_ON_MIGRATE=false
+  - SPRING_JPA_HIBERNATE_DDL_AUTO=none
+
+- Manual DB repair (database: megnarealestate):
+  - Added column thumbnail_url to property_photos.
+  - Added column photo_asset_id to property_photos.
+  - Backfilled where applicable.
+  - Enforced photo_asset_id as NOT NULL.
+  - Verified zero rows with missing photo_asset_id.
+
+- Flyway history correction:
+  - Updated flyway_schema_history version 9 row from success=0 to success=1.
+
+- Restored strict runtime settings:
+  - SPRING_JPA_HIBERNATE_DDL_AUTO=validate
+  - SPRING_FLYWAY_ENABLED=true
+  - SPRING_FLYWAY_VALIDATE_ON_MIGRATE=true
+
+6) Final Verification
+- gcloud run services describe confirmed latest ready revision equals latest created revision:
+  - mv-deal-backend-00033-nsf
+
+- Health check:
+  - GET https://mv-deal-backend-2ul3cg6loa-uc.a.run.app/actuator/health
+  - Response: HTTP/2 200, status UP
+
+7) Why Troubleshooting Took Time
+- Cloud Build surfaced only generic startup probe failures.
+- Root causes were in Cloud Run stdout/stderr logs.
+- gcloud intermittently crashed with TypeError (string indices must be integers), requiring Logging API fallback.
+- Multiple independent failures appeared sequentially, so each exposed the next issue only after the previous one was resolved.
+
+8) Prevention Actions
+1. Add CI dependency checks for protobuf/Cloud SQL connector compatibility.
+2. Add pre-deploy migration validation against a prod-like MySQL environment.
+3. Avoid manual edits to flyway_schema_history except incident-approved break-glass steps with documentation.
+4. Add no-traffic revision health gate before routing 100% traffic.
+5. Create and retain Cloud SQL backup snapshots around each production schema-change release.
