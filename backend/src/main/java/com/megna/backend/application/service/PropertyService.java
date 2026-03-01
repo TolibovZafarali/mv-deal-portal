@@ -51,6 +51,9 @@ import static com.megna.backend.domain.enums.PropertyStatus.ACTIVE;
 @RequiredArgsConstructor
 public class PropertyService {
 
+    private static final BigDecimal MAX_MONEY_FILTER = new BigDecimal("9999999999.99");
+    private static final BigDecimal MAX_BATHS_FILTER = new BigDecimal("99.9");
+
     private final PropertyRepository propertyRepository;
     private final InvestorRepository investorRepository;
     private final SellerRepository sellerRepository;
@@ -169,6 +172,8 @@ public class PropertyService {
             SellerWorkflowStatus sellerWorkflowStatus,
             Pageable pageable
     ) {
+        validateSearchFilters(minBeds, maxBeds, minBaths, minAskingPrice, maxAskingPrice, minArv, maxArv);
+
         boolean admin = requireApprovedInvestorOrAdmin();
 
         PropertyStatus effectiveStatus = admin ? status : ACTIVE;
@@ -194,6 +199,40 @@ public class PropertyService {
 
         return propertyRepository.findAll(spec, pageable)
                 .map(PropertyMapper::toDto);
+    }
+
+    private void validateSearchFilters(
+            Integer minBeds,
+            Integer maxBeds,
+            BigDecimal minBaths,
+            BigDecimal minAskingPrice,
+            BigDecimal maxAskingPrice,
+            BigDecimal minArv,
+            BigDecimal maxArv
+    ) {
+        validateNonNegative("minBeds", minBeds);
+        validateNonNegative("maxBeds", maxBeds);
+        validateDecimalRange("minBaths", minBaths, BigDecimal.ZERO, MAX_BATHS_FILTER);
+        validateDecimalRange("minAskingPrice", minAskingPrice, BigDecimal.ZERO, MAX_MONEY_FILTER);
+        validateDecimalRange("maxAskingPrice", maxAskingPrice, BigDecimal.ZERO, MAX_MONEY_FILTER);
+        validateDecimalRange("minArv", minArv, BigDecimal.ZERO, MAX_MONEY_FILTER);
+        validateDecimalRange("maxArv", maxArv, BigDecimal.ZERO, MAX_MONEY_FILTER);
+    }
+
+    private void validateNonNegative(String field, Integer value) {
+        if (value != null && value < 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, field + " must be greater than or equal to 0");
+        }
+    }
+
+    private void validateDecimalRange(String field, BigDecimal value, BigDecimal min, BigDecimal max) {
+        if (value == null) return;
+        if (value.compareTo(min) < 0 || value.compareTo(max) > 0) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    field + " must be between " + min.toPlainString() + " and " + max.toPlainString()
+            );
+        }
     }
 
     public Page<PropertyResponseDto> getSellerProperties(Long sellerId, Pageable pageable) {

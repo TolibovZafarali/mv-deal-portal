@@ -164,7 +164,20 @@ export default function AdminPropertiesPage() {
       setError("");
 
       try {
-        const data = await searchProperties(filters, { page, size: PAGE_SIZE });
+        const data = await searchProperties(
+          {
+            q: cleanStr(filters.q),
+            minAskingPrice: parseNum(filters.minAskingPrice),
+            maxAskingPrice: parseNum(filters.maxAskingPrice),
+            minBeds: parseIntNum(filters.minBeds),
+            minBaths: parseNum(filters.minBaths),
+            occupancyStatus: cleanStr(filters.occupancyStatus),
+            exitStrategy: cleanStr(filters.exitStrategy),
+            status: cleanStr(filters.status),
+            sellerWorkflowStatus: cleanStr(filters.sellerWorkflowStatus),
+          },
+          { page, size: PAGE_SIZE },
+        );
 
         if (!alive) return;
 
