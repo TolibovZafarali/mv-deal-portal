@@ -318,6 +318,12 @@ export default function AdminInquiriesPage() {
             metaValueClassName="adminInq__pageMetaNum"
           />
         ) : null}
+
+        {!loading && !error && rows.length > 0 ? (
+          <div className="adminInq__meta">
+            {rows.length.toLocaleString("en-US")} on page • {meta.totalElements.toLocaleString("en-US")} total
+          </div>
+        ) : null}
       </div>
     </section>
   );

@@ -62,6 +62,14 @@ export default function AdminLayout() {
             {badges.investors > 0 ? <span className="adminNav__badge">{badges.investors}</span> : null}
           </NavLink>
           <NavLink
+            to="sellers"
+            className={({ isActive }) =>
+              `adminNav__link ${isActive ? "adminNav__link--active" : ""}`
+            }
+          >
+            <span>Sellers</span>
+          </NavLink>
+          <NavLink
             to="inquiries"
             className={({ isActive }) =>
               `adminNav__link ${isActive ? "adminNav__link--active" : ""}`

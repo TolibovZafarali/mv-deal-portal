@@ -248,6 +248,9 @@ export default function AdminInvestorsPage() {
               metaClassName="adminInv__pageMeta"
               metaValueClassName="adminInv__pageMetaNum"
             />
+            <div className="adminInv__meta">
+              {rows.length.toLocaleString("en-US")} on page • {meta.totalElements.toLocaleString("en-US")} total
+            </div>
           </>
         ) : null}
       </div>

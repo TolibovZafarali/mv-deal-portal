@@ -1,0 +1,134 @@
+.adminSel {
+  --admin-bg: #f2f2f2;
+  --admin-ink: #101010;
+  --admin-muted: rgba(16, 16, 16, 0.65);
+  --admin-border: rgba(16, 16, 16, 0.28);
+  color: var(--admin-ink);
+}
+
+.adminSel__filters,
+.adminSel__tableSection {
+  border: 1px solid var(--admin-border);
+  background: rgba(255, 255, 255, 0.55);
+  padding: 12px;
+}
+
+.adminSel__tableSection {
+  margin-top: 14px;
+}
+
+.adminSel__filterRow {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+  align-items: end;
+}
+
+.adminSel__filter {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.adminSel__label {
+  font-size: 12px;
+  color: var(--admin-muted);
+}
+
+.adminSel__input {
+  border: 1px solid var(--admin-border);
+  padding: 10px;
+  background: transparent;
+  color: var(--admin-ink);
+  outline: none;
+  font-family: inherit;
+}
+
+.adminSel__input:focus {
+  border-color: var(--admin-ink);
+}
+
+.adminSel__tableWrap {
+  overflow: auto;
+}
+
+.adminSel__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.adminSel__table th,
+.adminSel__table td {
+  padding: 10px;
+  border-bottom: 1px solid rgba(16, 16, 16, 0.12);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.adminSel__table th {
+  font-size: 12px;
+  color: var(--admin-muted);
+  font-weight: 400;
+}
+
+.adminSel__pagination {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+  padding-top: 12px;
+}
+
+.adminSel__pageMeta {
+  font-size: 12px;
+  color: var(--admin-muted);
+}
+
+.adminSel__pageMetaNum {
+  color: var(--admin-ink);
+}
+
+.adminSel__pageNums {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.adminSel__pageBtn {
+  border: 1px solid var(--admin-ink);
+  background: transparent;
+  color: var(--admin-ink);
+  padding: 7px 10px;
+  cursor: pointer;
+}
+
+.adminSel__pageBtn--num {
+  min-width: 38px;
+}
+
+.adminSel__pageBtn--active,
+.adminSel__pageBtn:hover {
+  background: var(--admin-ink);
+  color: var(--admin-bg);
+}
+
+.adminSel__dots {
+  color: var(--admin-muted);
+}
+
+.adminSel__notice {
+  padding: 12px;
+  color: var(--admin-muted);
+}
+
+.adminSel__notice--error {
+  color: rgba(170, 38, 38, 0.95);
+}
+
+.adminSel__meta {
+  padding-top: 10px;
+  font-size: 12px;
+  color: var(--admin-muted);
+}

@@ -487,6 +487,12 @@
   font-size: 13px;
 }
 
+.adminProps__meta {
+  padding: 6px 10px 0;
+  font-size: 12px;
+  color: var(--admin-muted);
+}
+
 .adminProps__notice--error {
   color: rgba(170, 38, 38, 0.95);
 }

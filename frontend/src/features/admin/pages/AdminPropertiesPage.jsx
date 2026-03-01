@@ -848,6 +848,9 @@ export default function AdminPropertiesPage() {
                 metaClassName="adminProps__pageMeta"
                 metaValueClassName="adminProps__pageMetaNum"
               />
+              <div className="adminProps__meta">
+                {rows.length.toLocaleString("en-US")} on page • {pageMeta.totalElements.toLocaleString("en-US")} total
+              </div>
             </>
           )}
         </div>
