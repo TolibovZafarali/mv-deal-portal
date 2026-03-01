@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useOutletContext } from "react-router-dom";
 import {
   approveInvestor,
   getAdminInvestorById,
@@ -44,6 +45,8 @@ function prettyDate(value) {
 }
 
 export default function AdminInvestorsPage() {
+  const outletContext = useOutletContext();
+  const sidebarCollapsed = Boolean(outletContext?.sidebarCollapsed);
   const [filters, setFilters] = useState({
     q: "",
     status: "",
@@ -65,6 +68,38 @@ export default function AdminInvestorsPage() {
   const hasMoreFiltersSelected = useMemo(() => {
     return [filters.createdRange, filters.updatedRange, filters.approvedRange].some(Boolean);
   }, [filters.createdRange, filters.updatedRange, filters.approvedRange]);
+
+  const hasApprovedFilter = filters.status === "APPROVED";
+  const filterRowClassName = sidebarCollapsed
+    ? `adminInv__filterRow ${hasApprovedFilter ? "adminInv__filterRow--collapsedApproved" : "adminInv__filterRow--collapsed"}`
+    : "adminInv__filterRow";
+
+  const advancedFilters = (
+    <>
+      <label className="adminInv__filter adminInv__filter--created">
+        <span className="adminInv__label">Created</span>
+        <select className="adminInv__input" value={filters.createdRange} onChange={(e) => updateFilter("createdRange", e.target.value)}>
+          {RANGE_OPTIONS.map((option) => <option key={option.label} value={option.value}>{option.label}</option>)}
+        </select>
+      </label>
+
+      <label className="adminInv__filter adminInv__filter--updated">
+        <span className="adminInv__label">Updated</span>
+        <select className="adminInv__input" value={filters.updatedRange} onChange={(e) => updateFilter("updatedRange", e.target.value)}>
+          {RANGE_OPTIONS.map((option) => <option key={option.label} value={option.value}>{option.label}</option>)}
+        </select>
+      </label>
+
+      {hasApprovedFilter ? (
+        <label className="adminInv__filter adminInv__filter--approved">
+          <span className="adminInv__label">Approved</span>
+          <select className="adminInv__input" value={filters.approvedRange} onChange={(e) => updateFilter("approvedRange", e.target.value)}>
+            {RANGE_OPTIONS.map((option) => <option key={option.label} value={option.value}>{option.label}</option>)}
+          </select>
+        </label>
+      ) : null}
+    </>
+  );
 
   useEffect(() => {
     let alive = true;
@@ -143,14 +178,14 @@ export default function AdminInvestorsPage() {
   }
 
   return (
-    <section className="adminInv">
-      <AdminFilterBar className="adminInv__filters" rowClassName="adminInv__filterRow" onSubmit={(e) => e.preventDefault()}>
-        <label className="adminInv__filter">
+    <section className={`adminInv ${sidebarCollapsed ? "adminInv--sidebarCollapsed" : ""}`.trim()}>
+      <AdminFilterBar className="adminInv__filters" rowClassName={filterRowClassName} onSubmit={(e) => e.preventDefault()}>
+        <label className="adminInv__filter adminInv__filter--search">
           <span className="adminInv__label">Search</span>
           <input className="adminInv__input adminInv__input--text" type="search" placeholder="Name, company, email, phone" value={filters.q} onChange={(e) => updateFilter("q", e.target.value)} />
         </label>
 
-        <label className="adminInv__filter">
+        <label className="adminInv__filter adminInv__filter--status">
           <span className="adminInv__label">Status</span>
           <select className="adminInv__input" value={filters.status} onChange={(e) => updateFilter("status", e.target.value)}>
             {STATUS_OPTIONS.map((option) => (
@@ -159,37 +194,18 @@ export default function AdminInvestorsPage() {
           </select>
         </label>
 
-        <AdminFilterMore
-          className="adminInv__moreMenu"
-          summaryClassName="adminInv__moreSummary"
-          summaryActiveClassName="adminInv__moreSummary--active"
-          bodyClassName="adminInv__moreBody"
-          active={hasMoreFiltersSelected}
-          summaryLabel="More"
-        >
-          <label className="adminInv__filter">
-            <span className="adminInv__label">Created</span>
-            <select className="adminInv__input" value={filters.createdRange} onChange={(e) => updateFilter("createdRange", e.target.value)}>
-              {RANGE_OPTIONS.map((option) => <option key={option.label} value={option.value}>{option.label}</option>)}
-            </select>
-          </label>
-
-          <label className="adminInv__filter">
-            <span className="adminInv__label">Updated</span>
-            <select className="adminInv__input" value={filters.updatedRange} onChange={(e) => updateFilter("updatedRange", e.target.value)}>
-              {RANGE_OPTIONS.map((option) => <option key={option.label} value={option.value}>{option.label}</option>)}
-            </select>
-          </label>
-
-          {filters.status === "APPROVED" ? (
-            <label className="adminInv__filter">
-              <span className="adminInv__label">Approved</span>
-              <select className="adminInv__input" value={filters.approvedRange} onChange={(e) => updateFilter("approvedRange", e.target.value)}>
-                {RANGE_OPTIONS.map((option) => <option key={option.label} value={option.value}>{option.label}</option>)}
-              </select>
-            </label>
-          ) : null}
-        </AdminFilterMore>
+        {sidebarCollapsed ? advancedFilters : (
+          <AdminFilterMore
+            className="adminInv__moreMenu"
+            summaryClassName="adminInv__moreSummary"
+            summaryActiveClassName="adminInv__moreSummary--active"
+            bodyClassName="adminInv__moreBody"
+            active={hasMoreFiltersSelected}
+            summaryLabel="More"
+          >
+            {advancedFilters}
+          </AdminFilterMore>
+        )}
       </AdminFilterBar>
 
       <div className="adminInv__tableSection">

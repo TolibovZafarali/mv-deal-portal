@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useOutletContext } from "react-router-dom";
 import {
   createProperty,
   deletePropertyPhotoUpload,
@@ -83,6 +83,8 @@ function prettyEnum(v) {
 }
 
 export default function AdminPropertiesPage() {
+  const outletContext = useOutletContext();
+  const sidebarCollapsed = Boolean(outletContext?.sidebarCollapsed);
   const [filters, setFilters] = useState({
     q: "",
     minAskingPrice: "",
@@ -231,6 +233,82 @@ export default function AdminPropertiesPage() {
     filters.exitStrategy,
     filters.sellerWorkflowStatus,
   ]);
+
+  const advancedFilters = (
+    <>
+      <label className="adminProps__filter adminProps__filter--beds">
+        <span className="adminProps__label">Beds (Min)</span>
+        <input
+          className="adminProps__input adminProps__input--text"
+          type="number"
+          min="0"
+          placeholder="Any"
+          value={filters.minBeds}
+          onChange={(e) => updateFilter("minBeds", e.target.value)}
+        />
+      </label>
+
+      <label className="adminProps__filter adminProps__filter--baths">
+        <span className="adminProps__label">Baths (Min)</span>
+        <input
+          className="adminProps__input adminProps__input--text"
+          type="number"
+          min="0"
+          step="0.5"
+          placeholder="Any"
+          value={filters.minBaths}
+          onChange={(e) => updateFilter("minBaths", e.target.value)}
+        />
+      </label>
+
+      <label className="adminProps__filter adminProps__filter--occupancy">
+        <span className="adminProps__label">Occupancy Status</span>
+        <select
+          className="adminProps__input"
+          value={filters.occupancyStatus}
+          onChange={(e) =>
+            updateFilter("occupancyStatus", e.target.value)
+          }
+        >
+          {OCCUPANCY.map((o) => (
+            <option key={o.label} value={o.value}>
+              {o.label}
+            </option>
+          ))}
+        </select>
+      </label>
+
+      <label className="adminProps__filter adminProps__filter--exit">
+        <span className="adminProps__label">Exit Strategy</span>
+        <select
+          className="adminProps__input"
+          value={filters.exitStrategy}
+          onChange={(e) => updateFilter("exitStrategy", e.target.value)}
+        >
+          {EXIT_STRATEGIES.map((o) => (
+            <option key={o.label} value={o.value}>
+              {o.label}
+            </option>
+          ))}
+        </select>
+      </label>
+
+      <label className="adminProps__filter adminProps__filter--workflow">
+        <span className="adminProps__label">Seller Workflow</span>
+        <select
+          className="adminProps__input"
+          value={filters.sellerWorkflowStatus}
+          onChange={(e) => updateFilter("sellerWorkflowStatus", e.target.value)}
+        >
+          {SELLER_WORKFLOWS.map((o) => (
+            <option key={o.label} value={o.value}>
+              {o.label}
+            </option>
+          ))}
+        </select>
+      </label>
+    </>
+  );
   
   function cleanStr(v) {
     const s = String(v ?? "").trim();
@@ -552,7 +630,7 @@ export default function AdminPropertiesPage() {
   }
 
   return (
-    <section className="adminProps">
+    <section className={`adminProps ${sidebarCollapsed ? "adminProps--sidebarCollapsed" : ""}`.trim()}>
       <AdminFilterBar className="adminProps__filters" rowClassName="adminProps__filterRow" onSubmit={(e) => e.preventDefault()}>
         <label className="adminProps__filter">
           <span className="adminProps__label">Search</span>
@@ -565,7 +643,7 @@ export default function AdminPropertiesPage() {
           />
         </label>
 
-        <label className="adminProps__filter">
+        <label className="adminProps__filter adminProps__filter--status">
           <span className="adminProps__label">Status</span>
           <select
             className="adminProps__input"
@@ -580,7 +658,7 @@ export default function AdminPropertiesPage() {
           </select>
         </label>
 
-        <label className="adminProps__filter">
+        <label className="adminProps__filter adminProps__filter--asking">
           <span className="adminProps__label">Asking Price</span>
           <div className="adminProps__rangeInputs">
             <div className="adminProps__moneyWrap">
@@ -612,103 +690,35 @@ export default function AdminPropertiesPage() {
           </div>
         </label>
 
-        <AdminFilterMore
-          className="adminProps__moreMenu"
-          summaryClassName="adminProps__moreSummary"
-          summaryActiveClassName="adminProps__moreSummary--active"
-          bodyClassName="adminProps__moreBody"
-          active={hasMoreFiltersSelected}
-          summaryLabel="More"
-        >
-          <label className="adminProps__filter">
-            <span className="adminProps__label">Beds (Min)</span>
-            <input
-              className="adminProps__input adminProps__input--text"
-              type="number"
-              min="0"
-              placeholder="Any"
-              value={filters.minBeds}
-              onChange={(e) => updateFilter("minBeds", e.target.value)}
-            />
-          </label>
-
-          <label className="adminProps__filter">
-            <span className="adminProps__label">Baths (Min)</span>
-            <input
-              className="adminProps__input adminProps__input--text"
-              type="number"
-              min="0"
-              step="0.5"
-              placeholder="Any"
-              value={filters.minBaths}
-              onChange={(e) => updateFilter("minBaths", e.target.value)}
-            />
-          </label>
-
-          <label className="adminProps__filter">
-            <span className="adminProps__label">Occupancy Status</span>
-            <select
-              className="adminProps__input"
-              value={filters.occupancyStatus}
-              onChange={(e) =>
-                updateFilter("occupancyStatus", e.target.value)
-              }
-            >
-              {OCCUPANCY.map((o) => (
-                <option key={o.label} value={o.value}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label className="adminProps__filter">
-            <span className="adminProps__label">Exit Strategy</span>
-            <select
-              className="adminProps__input"
-              value={filters.exitStrategy}
-              onChange={(e) => updateFilter("exitStrategy", e.target.value)}
-            >
-              {EXIT_STRATEGIES.map((o) => (
-                <option key={o.label} value={o.value}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label className="adminProps__filter">
-            <span className="adminProps__label">Seller Workflow</span>
-            <select
-              className="adminProps__input"
-              value={filters.sellerWorkflowStatus}
-              onChange={(e) => updateFilter("sellerWorkflowStatus", e.target.value)}
-            >
-              {SELLER_WORKFLOWS.map((o) => (
-                <option key={o.label} value={o.value}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
-          </label>
-        </AdminFilterMore>
-
-        <button
-          className="adminProps__iconBtn"
-          type="button"
-          title="Add Property"
-          aria-label="Add Property"
-          onClick={() => {
-            setAddOpen(true);
-          }}
-        >
-          <span className="material-symbols-outlined">add_home</span>
-        </button>
+        {sidebarCollapsed ? advancedFilters : (
+          <AdminFilterMore
+            className="adminProps__moreMenu"
+            summaryClassName="adminProps__moreSummary"
+            summaryActiveClassName="adminProps__moreSummary--active"
+            bodyClassName="adminProps__moreBody"
+            active={hasMoreFiltersSelected}
+            summaryLabel="More"
+          >
+            {advancedFilters}
+          </AdminFilterMore>
+        )}
       </AdminFilterBar>
 
       <div className="adminProps__tableSection">
         <div className="adminProps__below">
-          <h3 className="adminProps__sectionTitle">Properties</h3>
+          <div className="adminProps__sectionHead">
+            <h3 className="adminProps__sectionTitle">Properties</h3>
+            <button
+              className="adminProps__addBtn"
+              type="button"
+              onClick={() => {
+                setAddOpen(true);
+              }}
+            >
+              <span className="material-symbols-outlined">add_home</span>
+              Add Property
+            </button>
+          </div>
           {!hasRows ? (
             <div
               className={`adminProps__notice ${error ? "adminProps__notice--error" : ""}`}

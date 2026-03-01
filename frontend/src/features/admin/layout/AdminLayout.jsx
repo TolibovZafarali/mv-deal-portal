@@ -127,7 +127,7 @@ export default function AdminLayout() {
       </aside>
 
       <main className="adminMain">
-        <Outlet />
+        <Outlet context={{ sidebarCollapsed }} />
       </main>
     </div>
   );

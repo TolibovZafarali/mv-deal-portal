@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useOutletContext } from "react-router-dom";
 import {
   getInquiries,
   getInquiriesByProperty,
@@ -49,6 +50,8 @@ function propertyAddress(property) {
 }
 
 export default function AdminInquiriesPage() {
+  const outletContext = useOutletContext();
+  const sidebarCollapsed = Boolean(outletContext?.sidebarCollapsed);
   const [filters, setFilters] = useState({
     q: "",
     emailStatus: "",
@@ -65,6 +68,39 @@ export default function AdminInquiriesPage() {
   const hasMoreFiltersSelected = useMemo(
     () => [filters.propertyId, filters.investorId].some((value) => value.trim().length > 0),
     [filters.propertyId, filters.investorId],
+  );
+  const filterRowClassName = sidebarCollapsed ? "adminInq__filterRow adminInq__filterRow--collapsed" : "adminInq__filterRow";
+
+  const advancedFilters = (
+    <>
+      <label className="adminInq__filter adminInq__filter--propertyId">
+        <span className="adminInq__label">Property ID</span>
+        <input
+          className="adminInq__input adminInq__input--text"
+          type="text"
+          inputMode="numeric"
+          placeholder="e.g. 101"
+          value={filters.propertyId}
+          onChange={(e) =>
+            updateFilter("propertyId", e.target.value.replace(/[^\d]/g, ""))
+          }
+        />
+      </label>
+
+      <label className="adminInq__filter adminInq__filter--investorId">
+        <span className="adminInq__label">Investor ID</span>
+        <input
+          className="adminInq__input adminInq__input--text"
+          type="text"
+          inputMode="numeric"
+          placeholder="e.g. 42"
+          value={filters.investorId}
+          onChange={(e) =>
+            updateFilter("investorId", e.target.value.replace(/[^\d]/g, ""))
+          }
+        />
+      </label>
+    </>
   );
 
   useEffect(() => {
@@ -188,9 +224,9 @@ export default function AdminInquiriesPage() {
   const showPagination = !loading && !error && meta.totalPages > 1;
 
   return (
-    <section className="adminInq">
-      <AdminFilterBar className="adminInq__filters" rowClassName="adminInq__filterRow" onSubmit={(e) => e.preventDefault()}>
-        <label className="adminInq__filter">
+    <section className={`adminInq ${sidebarCollapsed ? "adminInq--sidebarCollapsed" : ""}`.trim()}>
+      <AdminFilterBar className="adminInq__filters" rowClassName={filterRowClassName} onSubmit={(e) => e.preventDefault()}>
+        <label className="adminInq__filter adminInq__filter--search">
           <span className="adminInq__label">Search</span>
           <input
             className="adminInq__input adminInq__input--text"
@@ -201,7 +237,7 @@ export default function AdminInquiriesPage() {
           />
         </label>
 
-        <label className="adminInq__filter">
+        <label className="adminInq__filter adminInq__filter--status">
           <span className="adminInq__label">Email Status</span>
           <select
             className="adminInq__input"
@@ -216,42 +252,18 @@ export default function AdminInquiriesPage() {
           </select>
         </label>
 
-        <AdminFilterMore
-          className="adminInq__moreMenu"
-          summaryClassName="adminInq__moreSummary"
-          summaryActiveClassName="adminInq__moreSummary--active"
-          bodyClassName="adminInq__moreBody"
-          active={hasMoreFiltersSelected}
-          summaryLabel="More"
-        >
-          <label className="adminInq__filter">
-            <span className="adminInq__label">Property ID</span>
-            <input
-              className="adminInq__input adminInq__input--text"
-              type="text"
-              inputMode="numeric"
-              placeholder="e.g. 101"
-              value={filters.propertyId}
-              onChange={(e) =>
-                updateFilter("propertyId", e.target.value.replace(/[^\d]/g, ""))
-              }
-            />
-          </label>
-
-          <label className="adminInq__filter">
-            <span className="adminInq__label">Investor ID</span>
-            <input
-              className="adminInq__input adminInq__input--text"
-              type="text"
-              inputMode="numeric"
-              placeholder="e.g. 42"
-              value={filters.investorId}
-              onChange={(e) =>
-                updateFilter("investorId", e.target.value.replace(/[^\d]/g, ""))
-              }
-            />
-          </label>
-        </AdminFilterMore>
+        {sidebarCollapsed ? advancedFilters : (
+          <AdminFilterMore
+            className="adminInq__moreMenu"
+            summaryClassName="adminInq__moreSummary"
+            summaryActiveClassName="adminInq__moreSummary--active"
+            bodyClassName="adminInq__moreBody"
+            active={hasMoreFiltersSelected}
+            summaryLabel="More"
+          >
+            {advancedFilters}
+          </AdminFilterMore>
+        )}
       </AdminFilterBar>
 
       <div className="adminInq__tableSection">
