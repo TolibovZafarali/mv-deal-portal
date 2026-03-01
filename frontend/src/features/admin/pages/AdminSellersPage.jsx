@@ -92,6 +92,7 @@ export default function AdminSellersPage() {
       </AdminFilterBar>
 
       <div className="adminSel__tableSection">
+        <h3 className="adminSel__sectionTitle">Sellers</h3>
         {loading ? <div className="adminSel__notice">Loading sellers...</div> : null}
         {!loading && error ? <div className="adminSel__notice adminSel__notice--error">{error}</div> : null}
         {!loading && !error && rows.length === 0 ? <div className="adminSel__notice">No sellers found.</div> : null}

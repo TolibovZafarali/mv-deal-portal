@@ -193,6 +193,7 @@ export default function AdminInvestorsPage() {
       </AdminFilterBar>
 
       <div className="adminInv__tableSection">
+        <h3 className="adminInv__sectionTitle">Investors</h3>
         {loading ? <div className="adminInv__notice">Loading investors...</div> : null}
         {!loading && error ? <div className="adminInv__notice adminInv__notice--error">{error}</div> : null}
         {!loading && !error && rows.length === 0 ? <div className="adminInv__notice">No investors found.</div> : null}

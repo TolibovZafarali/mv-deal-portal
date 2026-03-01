@@ -163,6 +163,11 @@
   margin-top: 14px;
 }
 
+.adminProps__sectionTitle {
+  margin: 0 0 10px;
+  font-size: 16px;
+}
+
 .adminProps__below {
   border: 1px solid var(--admin-border);
   padding: 16px 12px;

@@ -17,6 +17,11 @@
   margin-top: 14px;
 }
 
+.adminSel__sectionTitle {
+  margin: 0 0 10px;
+  font-size: 16px;
+}
+
 .adminSel__filterRow {
   display: grid;
   grid-template-columns: 1fr;

@@ -255,6 +255,7 @@ export default function AdminInquiriesPage() {
       </AdminFilterBar>
 
       <div className="adminInq__tableSection">
+        <h3 className="adminInq__sectionTitle">Inquiries</h3>
         {loading ? <div className="adminInq__notice">Loading inquiries...</div> : null}
         {!loading && error ? (
           <div className="adminInq__notice adminInq__notice--error">{error}</div>

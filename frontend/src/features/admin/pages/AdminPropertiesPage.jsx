@@ -708,6 +708,7 @@ export default function AdminPropertiesPage() {
 
       <div className="adminProps__tableSection">
         <div className="adminProps__below">
+          <h3 className="adminProps__sectionTitle">Properties</h3>
           {!hasRows ? (
             <div
               className={`adminProps__notice ${error ? "adminProps__notice--error" : ""}`}
