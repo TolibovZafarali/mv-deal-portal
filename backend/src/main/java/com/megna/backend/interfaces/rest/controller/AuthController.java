@@ -1,15 +1,25 @@
 package com.megna.backend.interfaces.rest.controller;
 
-import com.megna.backend.interfaces.rest.dto.auth.*;
+import com.megna.backend.application.service.AuthService;
 import com.megna.backend.domain.repository.AdminRepository;
 import com.megna.backend.domain.repository.InvestorRepository;
+import com.megna.backend.domain.repository.SellerRepository;
 import com.megna.backend.infrastructure.security.SecurityUtils;
-import com.megna.backend.application.service.AuthService;
+import com.megna.backend.interfaces.rest.dto.auth.LoginRequestDto;
+import com.megna.backend.interfaces.rest.dto.auth.LoginResponseDto;
+import com.megna.backend.interfaces.rest.dto.auth.MeResponseDto;
+import com.megna.backend.interfaces.rest.dto.auth.RegisterRequestDto;
+import com.megna.backend.interfaces.rest.dto.auth.RegisterResponseDto;
+import com.megna.backend.interfaces.rest.dto.auth.SellerRegisterResponseDto;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
 @RestController
@@ -19,6 +29,7 @@ public class AuthController {
 
     private final AuthService authService;
     private final InvestorRepository investorRepository;
+    private final SellerRepository sellerRepository;
     private final AdminRepository adminRepository;
 
     @PostMapping("/login")
@@ -37,7 +48,6 @@ public class AuthController {
         }
 
         if ("ADMIN".equals(role)) {
-            // Ensure admin still exists
             adminRepository.findById(p.userId())
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Not authenticated"));
 
@@ -45,33 +55,58 @@ public class AuthController {
                     p.email(),
                     p.userId(),
                     null,
+                    null,
                     role,
                     null
             );
         }
 
-        if (!"INVESTOR".equals(role)) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Not authenticated");
+        if ("INVESTOR".equals(role)) {
+            var investor = investorRepository.findById(p.userId())
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Not authenticated"));
+
+            if (investor.getStatus() == null) {
+                throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Not authenticated");
+            }
+
+            return new MeResponseDto(
+                    p.email(),
+                    p.userId(),
+                    p.userId(),
+                    null,
+                    role,
+                    investor.getStatus().name()
+            );
         }
 
-        var investor = investorRepository.findById(p.userId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Not authenticated"));
+        if ("SELLER".equals(role)) {
+            var seller = sellerRepository.findById(p.userId())
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Not authenticated"));
 
-        if (investor.getStatus() == null) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Not authenticated");
+            if (seller.getStatus() == null) {
+                throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Not authenticated");
+            }
+
+            return new MeResponseDto(
+                    p.email(),
+                    p.userId(),
+                    null,
+                    p.userId(),
+                    role,
+                    seller.getStatus().name()
+            );
         }
 
-        return new MeResponseDto(
-                p.email(),
-                p.userId(),
-                p.userId(),
-                role,
-                investor.getStatus().name()
-        );
+        throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Not authenticated");
     }
 
     @PostMapping("/register")
     public RegisterResponseDto register(@Valid @RequestBody RegisterRequestDto dto) {
         return authService.registerInvestor(dto);
+    }
+
+    @PostMapping("/register/seller")
+    public SellerRegisterResponseDto registerSeller(@Valid @RequestBody RegisterRequestDto dto) {
+        return authService.registerSeller(dto);
     }
 }

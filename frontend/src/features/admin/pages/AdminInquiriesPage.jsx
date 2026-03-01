@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
+import { useOutletContext } from "react-router-dom";
 import {
   getInquiries,
-  getInquiriesByProperty,
-  getInquiryByInvestor,
 } from "@/api/modules/inquiryApi";
 import { getPropertyId } from "@/api/modules/propertyApi";
+import AdminFilterBar from "@/features/admin/components/AdminFilterBar";
+import AdminPagination from "@/features/admin/components/AdminPagination";
 import "@/features/admin/pages/AdminInquiriesPage.css";
 
 const PAGE_SIZE = 20;
@@ -14,16 +15,6 @@ const EMAIL_STATUS_OPTIONS = [
   { label: "Sent", value: "SENT" },
   { label: "Failed", value: "FAILED" },
 ];
-
-function parseId(value) {
-  const normalized = String(value ?? "").trim();
-  if (!normalized) return null;
-
-  const parsed = Number(normalized);
-  if (!Number.isInteger(parsed) || parsed <= 0) return null;
-
-  return parsed;
-}
 
 function prettyDateTime(value) {
   if (!value) return "—";
@@ -46,52 +37,22 @@ function propertyAddress(property) {
   return [line1, line2].filter(Boolean).join("\n");
 }
 
-function Pagination({ page, totalPages, onPageChange }) {
-  if (!totalPages || totalPages <= 1) return null;
-
-  return (
-    <div className="adminInq__pagination">
-      <button
-        className="adminInq__pageBtn"
-        type="button"
-        disabled={page === 0}
-        onClick={() => onPageChange(page - 1)}
-      >
-        Prev
-      </button>
-      <span className="adminInq__pageMeta">
-        Page {page + 1} / {totalPages}
-      </span>
-      <button
-        className="adminInq__pageBtn"
-        type="button"
-        disabled={page >= totalPages - 1}
-        onClick={() => onPageChange(page + 1)}
-      >
-        Next
-      </button>
-    </div>
-  );
-}
-
 export default function AdminInquiriesPage() {
+  const outletContext = useOutletContext();
+  const sidebarCollapsed = Boolean(outletContext?.sidebarCollapsed);
   const [filters, setFilters] = useState({
     q: "",
     emailStatus: "",
-    propertyId: "",
-    investorId: "",
   });
+  const [searchInput, setSearchInput] = useState("");
   const [page, setPage] = useState(0);
-  const [rows, setRows] = useState([]);
+  const [rawRows, setRawRows] = useState([]);
   const [meta, setMeta] = useState({ totalPages: 0, totalElements: 0 });
   const [propertyAddressById, setPropertyAddressById] = useState({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const hasMoreFiltersSelected = useMemo(
-    () => [filters.propertyId, filters.investorId].some((value) => value.trim().length > 0),
-    [filters.propertyId, filters.investorId],
-  );
+  const filterRowClassName = "adminInq__filterRow";
 
   useEffect(() => {
     let alive = true;
@@ -100,48 +61,12 @@ export default function AdminInquiriesPage() {
       setLoading(true);
       setError("");
 
-      const propertyId = parseId(filters.propertyId);
-      const investorId = parseId(filters.investorId);
-      const q = filters.q.trim().toLowerCase();
-
       try {
-        let data;
-
-        if (propertyId !== null) {
-          data = await getInquiriesByProperty(propertyId, { page, size: PAGE_SIZE });
-        } else if (investorId !== null) {
-          data = await getInquiryByInvestor(investorId, { page, size: PAGE_SIZE });
-        } else {
-          data = await getInquiries({ page, size: PAGE_SIZE });
-        }
+        const data = await getInquiries({ page, size: PAGE_SIZE });
 
         if (!alive) return;
 
-        const nextRows = (data?.content ?? []).filter((inquiry) => {
-          if (filters.emailStatus && inquiry.emailStatus !== filters.emailStatus) return false;
-          if (investorId !== null && inquiry.investorId !== investorId) return false;
-
-          if (!q) return true;
-
-          const haystack = [
-            inquiry.id,
-            inquiry.propertyId,
-            inquiry.investorId,
-            inquiry.subject,
-            inquiry.messageBody,
-            inquiry.contactName,
-            inquiry.companyName,
-            inquiry.contactEmail,
-            inquiry.contactPhone,
-            inquiry.emailStatus,
-          ]
-            .map((value) => String(value ?? "").toLowerCase())
-            .join(" ");
-
-          return haystack.includes(q);
-        });
-
-        setRows(nextRows);
+        setRawRows(data?.content ?? []);
         setMeta({
           totalPages: data?.totalPages ?? 0,
           totalElements: data?.totalElements ?? 0,
@@ -149,7 +74,7 @@ export default function AdminInquiriesPage() {
       } catch (e) {
         if (!alive) return;
 
-        setRows([]);
+        setRawRows([]);
         setMeta({ totalPages: 0, totalElements: 0 });
         setError(e?.message || "Failed to load inquiries.");
       } finally {
@@ -162,12 +87,12 @@ export default function AdminInquiriesPage() {
     return () => {
       alive = false;
     };
-  }, [filters, page]);
+  }, [page]);
 
   useEffect(() => {
     let alive = true;
 
-    const missingPropertyIds = [...new Set(rows.map((row) => row?.propertyId).filter(Boolean))].filter(
+    const missingPropertyIds = [...new Set(rawRows.map((row) => row?.propertyId).filter(Boolean))].filter(
       (id) => !propertyAddressById[id],
     );
     if (!missingPropertyIds.length) return undefined;
@@ -199,10 +124,16 @@ export default function AdminInquiriesPage() {
     return () => {
       alive = false;
     };
-  }, [rows, propertyAddressById]);
+  }, [rawRows, propertyAddressById]);
 
   function updateFilter(key, value) {
     setFilters((prev) => ({ ...prev, [key]: value }));
+    setPage(0);
+  }
+
+  function handleSearchSubmit(event) {
+    event.preventDefault();
+    setFilters((prev) => ({ ...prev, q: searchInput }));
     setPage(0);
   }
 
@@ -211,89 +142,84 @@ export default function AdminInquiriesPage() {
     return propertyAddressById[id] || `Property #${id ?? "—"}`;
   }
 
+  const filteredRows = useMemo(() => {
+    const q = filters.q.trim().toLowerCase();
+
+    return rawRows.filter((inquiry) => {
+      const resolvedAddress = propertyAddressById[inquiry?.propertyId] || `Property #${inquiry?.propertyId ?? "—"}`;
+
+      if (filters.emailStatus && inquiry.emailStatus !== filters.emailStatus) return false;
+
+      if (!q) return true;
+
+      const haystack = [
+        inquiry.id,
+        inquiry.propertyId,
+        inquiry.investorId,
+        resolvedAddress,
+        inquiry.subject,
+        inquiry.messageBody,
+        inquiry.contactName,
+        inquiry.companyName,
+        inquiry.contactEmail,
+        inquiry.contactPhone,
+        inquiry.emailStatus,
+      ]
+        .map((value) => String(value ?? "").toLowerCase())
+        .join(" ");
+
+      return haystack.includes(q);
+    });
+  }, [rawRows, filters, propertyAddressById]);
+
   const showPagination = !loading && !error && meta.totalPages > 1;
 
   return (
-    <section className="adminInq">
-      <form className="adminInq__filters" onSubmit={(e) => e.preventDefault()}>
-        <div className="adminInq__filterRow">
-          <label className="adminInq__filter">
-            <span className="adminInq__label">Search</span>
+    <section className={`adminInq ${sidebarCollapsed ? "adminInq--sidebarCollapsed" : ""}`.trim()}>
+      <AdminFilterBar className="adminInq__filters" rowClassName={filterRowClassName} onSubmit={handleSearchSubmit}>
+        <label className="adminInq__filter adminInq__filter--search">
+          <span className="adminInq__label">Search</span>
+          <div className="adminInq__searchWrap">
             <input
-              className="adminInq__input adminInq__input--text"
+              className="adminInq__input adminInq__input--text adminInq__input--search"
               type="search"
               placeholder="Address, contact, company, email, phone"
-              value={filters.q}
-              onChange={(e) => updateFilter("q", e.target.value)}
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
             />
-          </label>
+            <button className="adminInq__searchBtn" type="submit" aria-label="Search inquiries">
+              <span className="material-symbols-outlined adminInq__searchIcon" aria-hidden="true">search</span>
+            </button>
+          </div>
+        </label>
 
-          <label className="adminInq__filter">
-            <span className="adminInq__label">Email Status</span>
-            <select
-              className="adminInq__input"
-              value={filters.emailStatus}
-              onChange={(e) => updateFilter("emailStatus", e.target.value)}
-            >
-              {EMAIL_STATUS_OPTIONS.map((option) => (
-                <option key={option.label} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <details className="adminInq__moreMenu">
-            <summary
-              className={`adminInq__moreSummary ${
-                hasMoreFiltersSelected ? "adminInq__moreSummary--active" : ""
-              }`}
-            >
-              More
-            </summary>
-            <div className="adminInq__moreBody">
-              <label className="adminInq__filter">
-                <span className="adminInq__label">Property ID</span>
-                <input
-                  className="adminInq__input adminInq__input--text"
-                  type="text"
-                  inputMode="numeric"
-                  placeholder="e.g. 101"
-                  value={filters.propertyId}
-                  onChange={(e) =>
-                    updateFilter("propertyId", e.target.value.replace(/[^\d]/g, ""))
-                  }
-                />
-              </label>
-
-              <label className="adminInq__filter">
-                <span className="adminInq__label">Investor ID</span>
-                <input
-                  className="adminInq__input adminInq__input--text"
-                  type="text"
-                  inputMode="numeric"
-                  placeholder="e.g. 42"
-                  value={filters.investorId}
-                  onChange={(e) =>
-                    updateFilter("investorId", e.target.value.replace(/[^\d]/g, ""))
-                  }
-                />
-              </label>
-            </div>
-          </details>
-        </div>
-      </form>
+        <label className="adminInq__filter adminInq__filter--status">
+          <span className="adminInq__label">Email Status</span>
+          <select
+            className="adminInq__input"
+            value={filters.emailStatus}
+            onChange={(e) => updateFilter("emailStatus", e.target.value)}
+          >
+            {EMAIL_STATUS_OPTIONS.map((option) => (
+              <option key={option.label} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </label>
+      </AdminFilterBar>
 
       <div className="adminInq__tableSection">
+        <h3 className="adminInq__sectionTitle">Inquiries</h3>
         {loading ? <div className="adminInq__notice">Loading inquiries...</div> : null}
         {!loading && error ? (
           <div className="adminInq__notice adminInq__notice--error">{error}</div>
         ) : null}
-        {!loading && !error && rows.length === 0 ? (
+        {!loading && !error && filteredRows.length === 0 ? (
           <div className="adminInq__notice">No inquiries found.</div>
         ) : null}
 
-        {!loading && rows.length > 0 ? (
+        {!loading && filteredRows.length > 0 ? (
           <>
             <div className="adminInq__tableWrap">
               <table className="adminInq__table">
@@ -310,7 +236,7 @@ export default function AdminInquiriesPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {rows.map((inquiry) => (
+                  {filteredRows.map((inquiry) => (
                     <tr key={inquiry.id}>
                       <td>{inquiry.contactName || "—"}</td>
                       <td className="adminInq__tdAddress" title={resolveAddress(inquiry)}>
@@ -334,7 +260,25 @@ export default function AdminInquiriesPage() {
         ) : null}
 
         {showPagination ? (
-          <Pagination page={page} totalPages={meta.totalPages} onPageChange={setPage} />
+          <AdminPagination
+            page={page}
+            totalPages={meta.totalPages}
+            onPageChange={setPage}
+            className="adminInq__pagination"
+            buttonClassName="adminInq__pageBtn"
+            numbersClassName="adminInq__pageNums"
+            numberButtonClassName="adminInq__pageBtn--num"
+            activeNumberClassName="adminInq__pageBtn--active"
+            dotsClassName="adminInq__dots"
+            metaClassName="adminInq__pageMeta"
+            metaValueClassName="adminInq__pageMetaNum"
+          />
+        ) : null}
+
+        {!loading && !error && filteredRows.length > 0 ? (
+          <div className="adminInq__meta">
+            {filteredRows.length.toLocaleString("en-US")} on page • {meta.totalElements.toLocaleString("en-US")} total
+          </div>
         ) : null}
       </div>
     </section>

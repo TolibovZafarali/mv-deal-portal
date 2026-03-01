@@ -1,0 +1,187 @@
+.adminSel {
+  --admin-bg: #f2f2f2;
+  --admin-ink: #101010;
+  --admin-muted: rgba(16, 16, 16, 0.65);
+  --admin-border: rgba(16, 16, 16, 0.28);
+  --admin-filter-bg: #101010;
+  --admin-filter-ink: #f2f2f2;
+  --admin-filter-muted: #b8b8b8;
+  --admin-filter-border: #5a5a5a;
+  --admin-filter-input-bg: rgba(242, 242, 242, 0.06);
+  color: var(--admin-ink);
+}
+
+.adminSel__filters {
+  border: 1px solid var(--admin-filter-border);
+  background: var(--admin-filter-bg);
+  padding: 12px;
+}
+
+.adminSel__tableSection {
+  border: 1px solid var(--admin-border);
+  background: rgba(255, 255, 255, 0.55);
+  padding: 12px;
+}
+
+.adminSel__tableSection {
+  margin-top: 14px;
+}
+
+.adminSel__sectionTitle {
+  margin: 0 0 10px;
+  font-size: 16px;
+}
+
+.adminSel__filterRow {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+  align-items: end;
+}
+
+.adminSel__filter {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.adminSel__label {
+  font-size: 12px;
+  color: var(--admin-filter-muted);
+}
+
+.adminSel__searchWrap {
+  position: relative;
+  width: 100%;
+}
+
+.adminSel__input {
+  border: 1px solid var(--admin-filter-border);
+  padding: 10px;
+  background: var(--admin-filter-input-bg);
+  color: var(--admin-filter-ink);
+  outline: none;
+  font-family: inherit;
+}
+.adminSel__input::placeholder { color: var(--admin-filter-muted); opacity: 1; }
+
+.adminSel__input--search {
+  width: 100%;
+  box-sizing: border-box;
+  padding-right: 34px;
+}
+
+.adminSel__searchBtn {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  transform: translateY(-50%);
+  width: 28px;
+  height: 28px;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+.adminSel__searchIcon {
+  color: var(--admin-filter-muted);
+  font-size: 18px;
+}
+
+.adminSel__searchBtn:hover .adminSel__searchIcon,
+.adminSel__searchBtn:focus-visible .adminSel__searchIcon {
+  color: var(--admin-filter-ink);
+}
+
+.adminSel__input:focus {
+  border-color: var(--admin-filter-ink);
+}
+
+.adminSel__tableWrap {
+  overflow: auto;
+}
+
+.adminSel__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.adminSel__table th,
+.adminSel__table td {
+  padding: 10px;
+  border-bottom: 1px solid rgba(16, 16, 16, 0.12);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.adminSel__table th {
+  font-size: 12px;
+  color: var(--admin-muted);
+  font-weight: 400;
+}
+
+.adminSel__pagination {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+  padding-top: 12px;
+}
+
+.adminSel__pageMeta {
+  font-size: 12px;
+  color: var(--admin-muted);
+}
+
+.adminSel__pageMetaNum {
+  color: var(--admin-ink);
+}
+
+.adminSel__pageNums {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.adminSel__pageBtn {
+  border: 1px solid var(--admin-ink);
+  background: transparent;
+  color: var(--admin-ink);
+  padding: 7px 10px;
+  cursor: pointer;
+}
+
+.adminSel__pageBtn--num {
+  min-width: 38px;
+}
+
+.adminSel__pageBtn--active,
+.adminSel__pageBtn:hover {
+  background: var(--admin-ink);
+  color: var(--admin-bg);
+}
+
+.adminSel__dots {
+  color: var(--admin-muted);
+}
+
+.adminSel__notice {
+  padding: 12px;
+  color: var(--admin-muted);
+}
+
+.adminSel__notice--error {
+  color: rgba(170, 38, 38, 0.95);
+}
+
+.adminSel__meta {
+  padding-top: 10px;
+  font-size: 12px;
+  color: var(--admin-muted);
+}

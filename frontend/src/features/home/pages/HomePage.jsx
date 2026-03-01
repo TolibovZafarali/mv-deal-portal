@@ -68,14 +68,16 @@ export default function HomePage({ location, isAuthed, bootstrapping }) {
                         </p>
 
                         {!isAuthed && (
-                            <Link
-                                to="/signup"
-                                className="homeHero__cta"
-                                state={{ backgroundLocation: location, modal: true }}
-                            >
-                                <span className="homeHero__ctaText">Get started</span>
-                                <span className="homeHero__ctaArrow" aria-hidden="true"></span>
-                            </Link>
+                            <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
+                                <Link
+                                    to="/signup"
+                                    className="homeHero__cta"
+                                    state={{ backgroundLocation: location, modal: true }}
+                                >
+                                    <span className="homeHero__ctaText">Get Started</span>
+                                    <span className="homeHero__ctaArrow" aria-hidden="true"></span>
+                                </Link>
+                            </div>
                         )}
                     </div>
                 </section>

@@ -1,11 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { register } from "@/api";
+import { register, registerSeller } from "@/api";
 import "@/features/auth/modals/SignUpModal.css";
 
 const STEP_INFO = 0;
 const STEP_PASSWORD = 1;
 const STEP_DONE = 2;
+const ROLE_BUYER = "INVESTOR";
+const ROLE_SELLER = "SELLER";
+const CLOSE_ANIMATION_MS = 180;
 
 export default function SignUpModal() {
   const navigate = useNavigate();
@@ -15,6 +18,8 @@ export default function SignUpModal() {
   const forceHomeOnClose = !!location.state?.forceHomeOnClose;
 
   const [step, setStep] = useState(STEP_INFO);
+  const [selectedRole, setSelectedRole] = useState(null);
+  const [roleSlideEnabled, setRoleSlideEnabled] = useState(false);
 
   const [form, setForm] = useState({
     firstName: "",
@@ -35,29 +40,49 @@ export default function SignUpModal() {
 
   const [direction, setDirection] = useState("forward"); // "forward" | "back"
   const [animKey, setAnimKey] = useState(0);
+  const [hasStepTransition, setHasStepTransition] = useState(false);
+  const [isClosing, setIsClosing] = useState(false);
 
   const bg = location.state?.backgroundLocation || { pathname: "/" };
   const phoneRef = useRef(null);
+  const closeTimerRef = useRef(null);
+  const closingRef = useRef(false);
+  const isSellerSignup = selectedRole === ROLE_SELLER;
 
   function goStep(nextStep) {
+    setHasStepTransition(true);
     setDirection(nextStep > step ? "forward" : "back");
     setStep(nextStep);
     setAnimKey((k) => k + 1);
   }
 
   function close() {
-    if (forceHomeOnClose) {
+    if (closingRef.current) return;
+
+    closingRef.current = true;
+    setIsClosing(true);
+    closeTimerRef.current = window.setTimeout(() => {
+      if (forceHomeOnClose) {
+        navigate("/", { replace: true });
+        return;
+      }
+
+      if (hasBackground) {
+        navigate(bg, { replace: true });
+        return;
+      }
+
       navigate("/", { replace: true });
-      return;
-    }
-
-    if (hasBackground) {
-      navigate(bg, { replace: true });
-      return;
-    }
-
-    navigate("/", { replace: true });
+    }, CLOSE_ANIMATION_MS);
   }
+
+  useEffect(() => {
+    return () => {
+      if (closeTimerRef.current) {
+        window.clearTimeout(closeTimerRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     function onKeyDown(e) {
@@ -69,14 +94,15 @@ export default function SignUpModal() {
   }, [hasBackground, forceHomeOnClose]);
 
   const infoValid = useMemo(() => {
-    return (
-      form.firstName.trim() &&
-      form.lastName.trim() &&
-      form.companyName.trim() &&
-      form.email.trim() &&
-      form.phone.trim()
+    return Boolean(
+      selectedRole &&
+        form.firstName.trim() &&
+        form.lastName.trim() &&
+        form.companyName.trim() &&
+        form.email.trim() &&
+        form.phone.trim(),
     );
-  }, [form]);
+  }, [form, selectedRole]);
 
   const passwordValid = useMemo(() => {
     // backend requires minLength 8 for password
@@ -143,11 +169,25 @@ export default function SignUpModal() {
     });
   }
 
+  function handleRoleSelect(role) {
+    setError("");
+    setSelectedRole((prev) => {
+      if (prev && prev !== role) {
+        setRoleSlideEnabled(true);
+      }
+      return role;
+    });
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
     setError("");
 
     if (step === STEP_INFO) {
+      if (!selectedRole) {
+        setError("Choose Buyer or Seller to continue.");
+        return;
+      }
       if (!infoValid) {
         setError("Fill out all fields to continue.");
         return;
@@ -157,6 +197,10 @@ export default function SignUpModal() {
     }
 
     if (step === STEP_PASSWORD) {
+      if (!selectedRole) {
+        setError("Choose Buyer or Seller to continue.");
+        return;
+      }
       if (form.password.length < 8) {
         setError("Password must be at least 8 characters.");
         return;
@@ -168,15 +212,15 @@ export default function SignUpModal() {
 
       setLoading(true);
       try {
-        // RegisterRequestDto requires: firstName, lastName, companyName, email, phone, password
-        const res = await register({
+        const payload = {
           firstName: form.firstName.trim(),
           lastName: form.lastName.trim(),
           companyName: form.companyName.trim(),
           email: form.email.trim(),
           phone: form.phone.trim(),
           password: form.password,
-        });
+        };
+        const res = isSellerSignup ? await registerSeller(payload) : await register(payload);
 
         setResult(res);
         goStep(STEP_DONE);
@@ -200,9 +244,15 @@ export default function SignUpModal() {
         : "Sign Up";
 
   return (
-    <div className="signupOverlay" onMouseDown={close}>
+    <div className={`signupOverlay ${isClosing ? "signupOverlay--closing" : ""}`} onMouseDown={close}>
       <div
-        className={`signupModal ${step === STEP_DONE ? "signupModal--done" : ""}`}
+        className={[
+          "signupModal",
+          step === STEP_DONE ? "signupModal--done" : "",
+          isClosing ? "signupModal--closing" : "",
+        ]
+          .filter(Boolean)
+          .join(" ")}
         onMouseDown={(e) => e.stopPropagation()}
       >
         <div
@@ -234,10 +284,49 @@ export default function SignUpModal() {
           className={`signupModal__form ${step === STEP_DONE ? "signupModal__form--done" : ""}`}
           onSubmit={handleSubmit}
         >
+          {step !== STEP_DONE && (
+            <div
+              className={[
+                "signupModal__roleToggle",
+                roleSlideEnabled ? "signupModal__roleToggle--animate" : "",
+                selectedRole ? `signupModal__roleToggle--${selectedRole.toLowerCase()}` : "",
+              ]
+                .filter(Boolean)
+                .join(" ")}
+              role="group"
+              aria-label="Account type"
+            >
+              <span className="signupModal__roleToggleThumb" aria-hidden="true" />
+
+              <button
+                type="button"
+                className={`signupModal__roleBtn ${selectedRole === ROLE_BUYER ? "signupModal__roleBtn--active" : ""}`}
+                onClick={() => handleRoleSelect(ROLE_BUYER)}
+                aria-pressed={selectedRole === ROLE_BUYER}
+              >
+                Buyer
+              </button>
+
+              <button
+                type="button"
+                className={`signupModal__roleBtn ${selectedRole === ROLE_SELLER ? "signupModal__roleBtn--active" : ""}`}
+                onClick={() => handleRoleSelect(ROLE_SELLER)}
+                aria-pressed={selectedRole === ROLE_SELLER}
+              >
+                Seller
+              </button>
+            </div>
+          )}
+
           <div className="signupModal__contentWrap">
             <div
               key={animKey}
-              className={`signupModal__content signupModal__content--${direction}`}
+              className={[
+                "signupModal__content",
+                hasStepTransition ? `signupModal__content--${direction}` : "",
+              ]
+                .filter(Boolean)
+                .join(" ")}
             >
               {step === STEP_INFO && (
                 <>
@@ -378,8 +467,9 @@ export default function SignUpModal() {
               {step === STEP_DONE && (
                 <div className="signupModal__done">
                   <p>
-                    Your request has been received. Please wait until the Megna
-                    team reaches out to you.
+                    {isSellerSignup
+                      ? "Your seller account is ready. Use Login to access the seller portal."
+                      : "Your request has been received. Please wait until the Megna team reaches out to you."}
                   </p>
 
                   {result?.email && (
@@ -426,7 +516,11 @@ export default function SignUpModal() {
                     type="submit"
                     disabled={loading || !passwordValid}
                   >
-                    {loading ? "Submitting..." : "Get Started"}
+                    {loading
+                      ? "Submitting..."
+                      : isSellerSignup
+                        ? "Create Seller Account"
+                        : "Create Buyer Account"}
                   </button>
                 </div>
               )}

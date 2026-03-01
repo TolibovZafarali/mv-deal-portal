@@ -4,6 +4,7 @@ import com.megna.backend.domain.enums.ClosingTerms;
 import com.megna.backend.domain.enums.ExitStrategy;
 import com.megna.backend.domain.enums.OccupancyStatus;
 import com.megna.backend.domain.enums.PropertyStatus;
+import com.megna.backend.domain.enums.SellerWorkflowStatus;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -37,6 +38,13 @@ public record PropertyResponseDto(
         OccupancyStatus occupancyStatus,
         ExitStrategy exitStrategy,
         ClosingTerms closingTerms,
+
+        Long sellerId,
+        SellerWorkflowStatus sellerWorkflowStatus,
+        String sellerReviewNote,
+        LocalDateTime submittedAt,
+        LocalDateTime reviewedAt,
+        LocalDateTime publishedAt,
 
         LocalDateTime createdAt,
         LocalDateTime updatedAt,

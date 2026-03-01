@@ -13,7 +13,8 @@ export default function ProtectedRoute({ roles }) {
   if (!isAuthed) {
     if (
       location.pathname.startsWith("/admin") ||
-      location.pathname.startsWith("/investor")
+      location.pathname.startsWith("/investor") ||
+      location.pathname.startsWith("/seller")
     ) {
       return <Navigate to="/" replace />
     }

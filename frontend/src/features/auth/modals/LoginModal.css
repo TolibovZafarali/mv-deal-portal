@@ -8,6 +8,12 @@
   align-items: center;
   justify-content: center;
   z-index: 9999;
+  animation: mvAuthOverlayFadeIn 180ms ease-out both;
+}
+
+.loginOverlay--closing {
+  animation: mvAuthOverlayFadeOut 170ms ease-in both;
+  pointer-events: none;
 }
 
 /* the modal panel */
@@ -21,6 +27,12 @@
   display: flex;
   flex-direction: column;
   justify-content: center;
+  transform-origin: center;
+  animation: mvAuthModalIn 220ms ease-out both;
+}
+
+.loginModal--closing {
+  animation: mvAuthModalOut 170ms ease-in both;
 }
 
 /* header: title left, X right */
@@ -220,4 +232,53 @@
   caret-color: var(--text);
   box-shadow: 0 0 0px 1000px rgba(16, 16, 16, 0.96) inset;
   transition: background-color 9999s ease-in-out 0s;
+}
+
+@keyframes mvAuthOverlayFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes mvAuthOverlayFadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes mvAuthModalIn {
+  from {
+    opacity: 0;
+    transform: scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes mvAuthModalOut {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.985);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loginOverlay,
+  .loginOverlay--closing,
+  .loginModal,
+  .loginModal--closing {
+    animation: none;
+  }
 }

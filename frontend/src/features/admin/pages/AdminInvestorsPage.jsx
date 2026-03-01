@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useOutletContext } from "react-router-dom";
 import {
   approveInvestor,
   getAdminInvestorById,
@@ -6,7 +7,10 @@ import {
   searchAdminInvestors,
   updateInvestorRejectionReason,
 } from "@/api/modules/adminInvestorApi";
+import AdminFilterBar, { AdminFilterMore } from "@/features/admin/components/AdminFilterBar";
+import AdminPagination from "@/features/admin/components/AdminPagination";
 import AdminInvestorReviewModal from "@/features/admin/modals/AdminInvestorReviewModal";
+import { signalAdminQueueRefresh } from "@/features/admin/utils/adminTelemetry";
 import "@/features/admin/pages/AdminInvestorsPage.css";
 
 const PAGE_SIZE = 20;
@@ -40,18 +44,9 @@ function prettyDate(value) {
   return d.toLocaleString("en-US", { month: "short", day: "2-digit", year: "numeric" });
 }
 
-function Pagination({ page, totalPages, onPageChange }) {
-  if (!totalPages || totalPages <= 1) return null;
-  return (
-    <div className="adminInv__pagination">
-      <button className="adminInv__pageBtn" type="button" disabled={page === 0} onClick={() => onPageChange(page - 1)}>Prev</button>
-      <span className="adminInv__pageMeta">Page {page + 1} / {totalPages}</span>
-      <button className="adminInv__pageBtn" type="button" disabled={page >= totalPages - 1} onClick={() => onPageChange(page + 1)}>Next</button>
-    </div>
-  );
-}
-
 export default function AdminInvestorsPage() {
+  const outletContext = useOutletContext();
+  const sidebarCollapsed = Boolean(outletContext?.sidebarCollapsed);
   const [filters, setFilters] = useState({
     q: "",
     status: "",
@@ -59,6 +54,7 @@ export default function AdminInvestorsPage() {
     updatedRange: "",
     approvedRange: "",
   });
+  const [searchInput, setSearchInput] = useState("");
   const [page, setPage] = useState(0);
   const [rows, setRows] = useState([]);
   const [meta, setMeta] = useState({ totalPages: 0, totalElements: 0 });
@@ -73,6 +69,38 @@ export default function AdminInvestorsPage() {
   const hasMoreFiltersSelected = useMemo(() => {
     return [filters.createdRange, filters.updatedRange, filters.approvedRange].some(Boolean);
   }, [filters.createdRange, filters.updatedRange, filters.approvedRange]);
+
+  const hasApprovedFilter = filters.status === "APPROVED";
+  const filterRowClassName = sidebarCollapsed
+    ? `adminInv__filterRow ${hasApprovedFilter ? "adminInv__filterRow--collapsedApproved" : "adminInv__filterRow--collapsed"}`
+    : "adminInv__filterRow";
+
+  const advancedFilters = (
+    <>
+      <label className="adminInv__filter adminInv__filter--created">
+        <span className="adminInv__label">Created</span>
+        <select className="adminInv__input" value={filters.createdRange} onChange={(e) => updateFilter("createdRange", e.target.value)}>
+          {RANGE_OPTIONS.map((option) => <option key={option.label} value={option.value}>{option.label}</option>)}
+        </select>
+      </label>
+
+      <label className="adminInv__filter adminInv__filter--updated">
+        <span className="adminInv__label">Updated</span>
+        <select className="adminInv__input" value={filters.updatedRange} onChange={(e) => updateFilter("updatedRange", e.target.value)}>
+          {RANGE_OPTIONS.map((option) => <option key={option.label} value={option.value}>{option.label}</option>)}
+        </select>
+      </label>
+
+      {hasApprovedFilter ? (
+        <label className="adminInv__filter adminInv__filter--approved">
+          <span className="adminInv__label">Approved</span>
+          <select className="adminInv__input" value={filters.approvedRange} onChange={(e) => updateFilter("approvedRange", e.target.value)}>
+            {RANGE_OPTIONS.map((option) => <option key={option.label} value={option.value}>{option.label}</option>)}
+          </select>
+        </label>
+      ) : null}
+    </>
+  );
 
   useEffect(() => {
     let alive = true;
@@ -121,6 +149,12 @@ export default function AdminInvestorsPage() {
     setPage(0);
   }
 
+  function handleSearchSubmit(event) {
+    event.preventDefault();
+    setFilters((prev) => ({ ...prev, q: searchInput }));
+    setPage(0);
+  }
+
   async function openModal(id) {
     setSubmitError("");
     const full = await getAdminInvestorById(id);
@@ -141,6 +175,7 @@ export default function AdminInvestorsPage() {
       }
       setModalOpen(false);
       setSelectedInvestor(null);
+      signalAdminQueueRefresh();
       updateFilter("q", filters.q);
     } catch (e) {
       setSubmitError(e?.message || "Failed to save investor.");
@@ -150,54 +185,49 @@ export default function AdminInvestorsPage() {
   }
 
   return (
-    <section className="adminInv">
-      <form className="adminInv__filters" onSubmit={(e) => e.preventDefault()}>
-        <div className="adminInv__filterRow">
-          <label className="adminInv__filter">
-            <span className="adminInv__label">Search</span>
-            <input className="adminInv__input adminInv__input--text" type="search" placeholder="Name, company, email, phone" value={filters.q} onChange={(e) => updateFilter("q", e.target.value)} />
-          </label>
+    <section className={`adminInv ${sidebarCollapsed ? "adminInv--sidebarCollapsed" : ""}`.trim()}>
+      <AdminFilterBar className="adminInv__filters" rowClassName={filterRowClassName} onSubmit={handleSearchSubmit}>
+        <label className="adminInv__filter adminInv__filter--search">
+          <span className="adminInv__label">Search</span>
+          <div className="adminInv__searchWrap">
+            <input
+              className="adminInv__input adminInv__input--text adminInv__input--search"
+              type="search"
+              placeholder="Name, company, email, phone"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+            />
+            <button className="adminInv__searchBtn" type="submit" aria-label="Search investors">
+              <span className="material-symbols-outlined adminInv__searchIcon" aria-hidden="true">search</span>
+            </button>
+          </div>
+        </label>
 
-          <label className="adminInv__filter">
-            <span className="adminInv__label">Status</span>
-            <select className="adminInv__input" value={filters.status} onChange={(e) => updateFilter("status", e.target.value)}>
-              {STATUS_OPTIONS.map((option) => (
-                <option key={option.label} value={option.value}>{option.label}</option>
-              ))}
-            </select>
-          </label>
+        <label className="adminInv__filter adminInv__filter--status">
+          <span className="adminInv__label">Status</span>
+          <select className="adminInv__input" value={filters.status} onChange={(e) => updateFilter("status", e.target.value)}>
+            {STATUS_OPTIONS.map((option) => (
+              <option key={option.label} value={option.value}>{option.label}</option>
+            ))}
+          </select>
+        </label>
 
-          <details className="adminInv__moreMenu">
-            <summary className={`adminInv__moreSummary ${hasMoreFiltersSelected ? "adminInv__moreSummary--active" : ""}`}>More</summary>
-            <div className="adminInv__moreBody">
-              <label className="adminInv__filter">
-                <span className="adminInv__label">Created</span>
-                <select className="adminInv__input" value={filters.createdRange} onChange={(e) => updateFilter("createdRange", e.target.value)}>
-                  {RANGE_OPTIONS.map((option) => <option key={option.label} value={option.value}>{option.label}</option>)}
-                </select>
-              </label>
-
-              <label className="adminInv__filter">
-                <span className="adminInv__label">Updated</span>
-                <select className="adminInv__input" value={filters.updatedRange} onChange={(e) => updateFilter("updatedRange", e.target.value)}>
-                  {RANGE_OPTIONS.map((option) => <option key={option.label} value={option.value}>{option.label}</option>)}
-                </select>
-              </label>
-
-              {filters.status === "APPROVED" ? (
-                <label className="adminInv__filter">
-                  <span className="adminInv__label">Approved</span>
-                  <select className="adminInv__input" value={filters.approvedRange} onChange={(e) => updateFilter("approvedRange", e.target.value)}>
-                    {RANGE_OPTIONS.map((option) => <option key={option.label} value={option.value}>{option.label}</option>)}
-                  </select>
-                </label>
-              ) : null}
-            </div>
-          </details>
-        </div>
-      </form>
+        {sidebarCollapsed ? advancedFilters : (
+          <AdminFilterMore
+            className="adminInv__moreMenu"
+            summaryClassName="adminInv__moreSummary"
+            summaryActiveClassName="adminInv__moreSummary--active"
+            bodyClassName="adminInv__moreBody"
+            active={hasMoreFiltersSelected}
+            summaryLabel="More"
+          >
+            {advancedFilters}
+          </AdminFilterMore>
+        )}
+      </AdminFilterBar>
 
       <div className="adminInv__tableSection">
+        <h3 className="adminInv__sectionTitle">Investors</h3>
         {loading ? <div className="adminInv__notice">Loading investors...</div> : null}
         {!loading && error ? <div className="adminInv__notice adminInv__notice--error">{error}</div> : null}
         {!loading && !error && rows.length === 0 ? <div className="adminInv__notice">No investors found.</div> : null}
@@ -240,7 +270,22 @@ export default function AdminInvestorsPage() {
                 </tbody>
               </table>
             </div>
-            <Pagination page={page} totalPages={meta.totalPages} onPageChange={setPage} />
+            <AdminPagination
+              page={page}
+              totalPages={meta.totalPages}
+              onPageChange={setPage}
+              className="adminInv__pagination"
+              buttonClassName="adminInv__pageBtn"
+              numbersClassName="adminInv__pageNums"
+              numberButtonClassName="adminInv__pageBtn--num"
+              activeNumberClassName="adminInv__pageBtn--active"
+              dotsClassName="adminInv__dots"
+              metaClassName="adminInv__pageMeta"
+              metaValueClassName="adminInv__pageMetaNum"
+            />
+            <div className="adminInv__meta">
+              {rows.length.toLocaleString("en-US")} on page • {meta.totalElements.toLocaleString("en-US")} total
+            </div>
           </>
         ) : null}
       </div>

@@ -1,0 +1,57 @@
+.sellerProfile {
+  display: grid;
+  gap: 12px;
+}
+
+.sellerProfile h2 {
+  margin: 0;
+}
+
+.sellerProfile__notice {
+  color: #475467;
+}
+
+.sellerProfile__error {
+  color: #b42318;
+}
+
+.sellerProfile__success {
+  color: #067647;
+}
+
+.sellerProfile__card {
+  background: #fff;
+  border: 1px solid #d6dbe9;
+  padding: 14px;
+  display: grid;
+  gap: 10px;
+  max-width: 520px;
+}
+
+.sellerProfile__card label {
+  display: grid;
+  gap: 4px;
+  font-size: 13px;
+}
+
+.sellerProfile__card input {
+  border: 1px solid #cfd5e5;
+  padding: 8px;
+}
+
+.sellerProfile__card input[readonly] {
+  background: #f7f8fc;
+}
+
+.sellerProfile__actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.sellerProfile__actions button {
+  border: 1px solid #0f3f2d;
+  background: #0f3f2d;
+  color: #fff;
+  padding: 8px 12px;
+  cursor: pointer;
+}

@@ -93,6 +93,7 @@ export default function InvestorDashboard() {
     minAskingPrice: "",
     maxAskingPrice: "",
   });
+  const [searchInput, setSearchInput] = useState("");
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -221,6 +222,11 @@ export default function InvestorDashboard() {
     setFilters((prev) => ({ ...prev, [key]: value }));
   }
 
+  function handleSearchSubmit(event) {
+    event.preventDefault();
+    setFilters((prev) => ({ ...prev, q: searchInput }));
+  }
+
   function toggleFavoriteProperty(propertyId) {
     const propertyIdKey = String(propertyId);
     setFavoritePropertyIds((prev) => {
@@ -313,17 +319,19 @@ export default function InvestorDashboard() {
 
   return (
     <section className="invDash">
-      <form className="invDash__filters" onSubmit={(event) => event.preventDefault()}>
+      <form className="invDash__filters" onSubmit={handleSearchSubmit}>
         <div className="invDash__filterRow">
           <div className="invDash__searchWrap">
             <input
               className="invDash__search"
               type="search"
               placeholder="Address, neighborhood, city, zip"
-              value={filters.q}
-              onChange={(event) => updateFilter("q", event.target.value)}
+              value={searchInput}
+              onChange={(event) => setSearchInput(event.target.value)}
             />
-            <span className="material-symbols-outlined invDash__searchIcon">search</span>
+            <button className="invDash__searchBtn" type="submit" aria-label="Search properties">
+              <span className="material-symbols-outlined invDash__searchIcon" aria-hidden="true">search</span>
+            </button>
           </div>
 
           <div className="invDash__controlGroup">

@@ -2,6 +2,7 @@ import { apiClient } from "@/api/core/apiClient";
 import { buildPageParams } from "@/api/core/params";
 
 const BASE = "/api/inquiries";
+const SELLER_BASE = "/api/seller/inquiries";
 
 export async function getInquiries(pageOpts = {}) {
     const params = buildPageParams(pageOpts);
@@ -33,5 +34,11 @@ export async function getInquiryByInvestor(investorId, pageOpts = {}) {
 export async function getInquiriesByProperty(propertyId, pageOpts = {}) {
     const params = buildPageParams(pageOpts);
     const { data } = await apiClient.get(`${BASE}/by-property/${propertyId}`, { params });
+    return data;
+}
+
+export async function getSellerInquiries(pageOpts = {}) {
+    const params = buildPageParams(pageOpts);
+    const { data } = await apiClient.get(SELLER_BASE, { params });
     return data;
 }

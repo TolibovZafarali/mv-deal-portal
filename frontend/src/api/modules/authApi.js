@@ -8,6 +8,11 @@ export async function register(registerDto) {
     return data;
 }
 
+export async function registerSeller(registerDto) {
+    const { data } = await apiClient.post(`${AUTH_BASE}/register/seller`, registerDto);
+    return data;
+}
+
 export async function login(credentials) {
     const { data } = await apiClient.post(`${AUTH_BASE}/login`, credentials);
 
@@ -22,7 +27,7 @@ export async function me(tokenOverride) {
         : undefined;
     
     const { data } = await apiClient.get(`${AUTH_BASE}/me`, config);
-    return data; // { role, status, email, userId, investorId }
+    return data; // { role, status, email, userId, investorId, sellerId }
 }
 
 export function logout() {

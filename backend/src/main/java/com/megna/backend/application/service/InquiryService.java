@@ -84,6 +84,12 @@ public class InquiryService {
                 .map(InquiryMapper::toDto);
     }
 
+    public Page<InquiryResponseDto> getBySellerId(Long sellerId, Pageable pageable) {
+        requireSellerSelfOrAdmin(sellerId);
+        return inquiryRepository.findByPropertySellerId(sellerId, pageable)
+                .map(InquiryMapper::toDto);
+    }
+
     private AuthPrincipal principal() {
         return SecurityUtils.requirePrincipal();
     }
@@ -116,6 +122,19 @@ public class InquiryService {
                     HttpStatus.FORBIDDEN,
                     "Access denied: investor status is " + investor.getStatus().name()
             );
+        }
+    }
+
+    private void requireSellerSelfOrAdmin(Long sellerId) {
+        if (sellerId == null || sellerId <= 0) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Forbidden");
+        }
+
+        if (isAdmin()) return;
+
+        AuthPrincipal principal = principal();
+        if (!"SELLER".equalsIgnoreCase(principal.role()) || principal.userId() != sellerId) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Forbidden");
         }
     }
 }

@@ -1,0 +1,81 @@
+.sellerReview {
+  color: var(--text, #f2f2f2);
+  display: grid;
+  gap: 12px;
+}
+
+.sellerReview__meta {
+  border: 1px solid rgba(242, 242, 242, 0.2);
+  padding: 10px;
+  display: grid;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.sellerReview__meta span {
+  color: rgba(242, 242, 242, 0.7);
+}
+
+.sellerReview__actionGroup {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.sellerReview__choice {
+  border: 1px solid rgba(242, 242, 242, 0.5);
+  background: transparent;
+  color: var(--text, #f2f2f2);
+  padding: 8px 10px;
+  cursor: pointer;
+}
+
+.sellerReview__choice--warning {
+  border-color: rgba(255, 184, 72, 0.8);
+  color: rgba(255, 184, 72, 0.95);
+}
+
+.sellerReview__choice--active {
+  background: #f2f2f2;
+  color: #101010;
+}
+
+.sellerReview__noteWrap {
+  display: grid;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.sellerReview__noteWrap textarea {
+  border: 1px solid rgba(242, 242, 242, 0.3);
+  background: transparent;
+  color: var(--text, #f2f2f2);
+  padding: 10px;
+  font-family: inherit;
+  resize: vertical;
+}
+
+.sellerReview__error {
+  color: rgba(255, 117, 117, 0.95);
+  font-size: 13px;
+}
+
+.sellerReview__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.sellerReview__btn {
+  border: 1px solid rgba(242, 242, 242, 0.5);
+  background: transparent;
+  color: var(--text, #f2f2f2);
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+.sellerReview__btn--primary {
+  border-color: #f2f2f2;
+  background: #f2f2f2;
+  color: #101010;
+}

@@ -5,6 +5,7 @@ import com.megna.backend.domain.enums.ClosingTerms;
 import com.megna.backend.domain.enums.ExitStrategy;
 import com.megna.backend.domain.enums.OccupancyStatus;
 import com.megna.backend.domain.enums.PropertyStatus;
+import com.megna.backend.domain.enums.SellerWorkflowStatus;
 import org.springframework.data.jpa.domain.Specification;
 
 import java.math.BigDecimal;
@@ -29,6 +30,81 @@ public final class PropertySpecifications {
             ExitStrategy exitStrategy,
             ClosingTerms closingTerms
     ) {
+        return withFilters(
+                status,
+                query,
+                city,
+                state,
+                minBeds,
+                maxBeds,
+                minBaths,
+                minAskingPrice,
+                maxAskingPrice,
+                minArv,
+                maxArv,
+                occupancyStatus,
+                exitStrategy,
+                closingTerms,
+                null,
+                null
+        );
+    }
+
+    public static Specification<Property> withFilters(
+            PropertyStatus status,
+            String query,
+            String city,
+            String state,
+            Integer minBeds,
+            Integer maxBeds,
+            BigDecimal minBaths,
+            BigDecimal minAskingPrice,
+            BigDecimal maxAskingPrice,
+            BigDecimal minArv,
+            BigDecimal maxArv,
+            OccupancyStatus occupancyStatus,
+            ExitStrategy exitStrategy,
+            ClosingTerms closingTerms,
+            Long sellerId
+    ) {
+        return withFilters(
+                status,
+                query,
+                city,
+                state,
+                minBeds,
+                maxBeds,
+                minBaths,
+                minAskingPrice,
+                maxAskingPrice,
+                minArv,
+                maxArv,
+                occupancyStatus,
+                exitStrategy,
+                closingTerms,
+                sellerId,
+                null
+        );
+    }
+
+    public static Specification<Property> withFilters(
+            PropertyStatus status,
+            String query,
+            String city,
+            String state,
+            Integer minBeds,
+            Integer maxBeds,
+            BigDecimal minBaths,
+            BigDecimal minAskingPrice,
+            BigDecimal maxAskingPrice,
+            BigDecimal minArv,
+            BigDecimal maxArv,
+            OccupancyStatus occupancyStatus,
+            ExitStrategy exitStrategy,
+            ClosingTerms closingTerms,
+            Long sellerId,
+            SellerWorkflowStatus sellerWorkflowStatus
+    ) {
         return Specification.where(eqStatus(status))
                 .and(matchesSearchTerm(query))
                 .and(containsIgnoreCase("city", city))
@@ -42,7 +118,9 @@ public final class PropertySpecifications {
                 .and(lteDecimal("arv", maxArv))
                 .and(eqOccupancy(occupancyStatus))
                 .and(eqExitStrategy(exitStrategy))
-                .and(eqClosingTerms(closingTerms));
+                .and(eqClosingTerms(closingTerms))
+                .and(eqSellerId(sellerId))
+                .and(eqSellerWorkflowStatus(sellerWorkflowStatus));
     }
 
 
@@ -75,6 +153,16 @@ public final class PropertySpecifications {
 
     private static Specification<Property> eqClosingTerms(ClosingTerms closingTerms) {
         return (root, query, cb) -> closingTerms == null ? cb.conjunction() : cb.equal(root.get("closingTerms"), closingTerms);
+    }
+
+    private static Specification<Property> eqSellerId(Long sellerId) {
+        return (root, query, cb) -> sellerId == null ? cb.conjunction() : cb.equal(root.get("seller").get("id"), sellerId);
+    }
+
+    private static Specification<Property> eqSellerWorkflowStatus(SellerWorkflowStatus sellerWorkflowStatus) {
+        return (root, query, cb) -> sellerWorkflowStatus == null
+                ? cb.conjunction()
+                : cb.equal(root.get("sellerWorkflowStatus"), sellerWorkflowStatus);
     }
 
     private static Specification<Property> containsIgnoreCase(String field, String value) {

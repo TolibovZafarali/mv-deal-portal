@@ -44,12 +44,29 @@
 }
 
 .invDash__searchIcon {
-  position: absolute;
-  right: 12px;
-  top: 50%;
-  transform: translateY(-50%);
   color: rgba(16, 16, 16, 0.8);
   font-size: 19px;
+}
+
+.invDash__searchBtn {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  transform: translateY(-50%);
+  width: 28px;
+  height: 28px;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+.invDash__searchBtn:hover .invDash__searchIcon,
+.invDash__searchBtn:focus-visible .invDash__searchIcon {
+  color: #101010;
 }
 
 .invDash__select {
