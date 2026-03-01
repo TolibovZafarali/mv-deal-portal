@@ -33,6 +33,7 @@
 .adminInv__filterRow { display: grid; grid-template-columns: 2fr 1fr auto; gap: 10px; align-items: end; }
 .adminInv__filter { display: flex; flex-direction: column; gap: 6px; }
 .adminInv__label { font-size: 12px; color: var(--admin-filter-muted); }
+.adminInv__searchWrap { position: relative; width: 100%; }
 
 .adminInv__input {
   border: 1px solid var(--admin-filter-border);
@@ -52,6 +53,30 @@
 .adminInv__input::placeholder { color: var(--admin-filter-muted); opacity: 1; }
 .adminInv__input option { color: #101010; background: #ffffff; }
 .adminInv__input--text { background-image: none; padding-right: 10px; }
+.adminInv__input--search { width: 100%; box-sizing: border-box; padding-right: 34px; }
+.adminInv__searchBtn {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  transform: translateY(-50%);
+  width: 28px;
+  height: 28px;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+.adminInv__searchIcon {
+  color: var(--admin-filter-muted);
+  font-size: 18px;
+}
+.adminInv__searchBtn:hover .adminInv__searchIcon,
+.adminInv__searchBtn:focus-visible .adminInv__searchIcon {
+  color: var(--admin-filter-ink);
+}
 
 .adminInv__moreSummary {
   list-style: none;

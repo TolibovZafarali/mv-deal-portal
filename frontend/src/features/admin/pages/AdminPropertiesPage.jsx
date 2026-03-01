@@ -96,6 +96,7 @@ export default function AdminPropertiesPage() {
     status: "",
     sellerWorkflowStatus: "",
   });
+  const [searchInput, setSearchInput] = useState("");
 
   const [page, setPage] = useState(0);
 
@@ -147,6 +148,12 @@ export default function AdminPropertiesPage() {
 
   function updatePriceFilter(key, value) {
     updateFilter(key, formatPriceInput(value));
+  }
+
+  function handleSearchSubmit(event) {
+    event.preventDefault();
+    setFilters((prev) => ({ ...prev, q: searchInput }));
+    setPage(0);
   }
 
   useEffect(() => {
@@ -631,16 +638,21 @@ export default function AdminPropertiesPage() {
 
   return (
     <section className={`adminProps ${sidebarCollapsed ? "adminProps--sidebarCollapsed" : ""}`.trim()}>
-      <AdminFilterBar className="adminProps__filters" rowClassName="adminProps__filterRow" onSubmit={(e) => e.preventDefault()}>
+      <AdminFilterBar className="adminProps__filters" rowClassName="adminProps__filterRow" onSubmit={handleSearchSubmit}>
         <label className="adminProps__filter">
           <span className="adminProps__label">Search</span>
-          <input
-            className="adminProps__input adminProps__input--text"
-            type="search"
-            placeholder="Address or title"
-            value={filters.q}
-            onChange={(e) => updateFilter("q", e.target.value)}
-          />
+          <div className="adminProps__searchWrap">
+            <input
+              className="adminProps__input adminProps__input--text adminProps__input--search"
+              type="search"
+              placeholder="Address or title"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+            />
+            <button className="adminProps__searchBtn" type="submit" aria-label="Search properties">
+              <span className="material-symbols-outlined adminProps__searchIcon" aria-hidden="true">search</span>
+            </button>
+          </div>
         </label>
 
         <label className="adminProps__filter adminProps__filter--status">

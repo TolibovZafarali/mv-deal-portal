@@ -37,6 +37,11 @@
   color: var(--admin-filter-muted);
 }
 
+.adminProps__searchWrap {
+  position: relative;
+  width: 100%;
+}
+
 .adminProps__input {
   border: 1px solid var(--admin-filter-border);
   padding: 10px 34px 10px 10px;
@@ -58,6 +63,38 @@
 .adminProps__input--text {
   background-image: none;
   padding-right: 10px;
+}
+
+.adminProps__input--search {
+  width: 100%;
+  box-sizing: border-box;
+  padding-right: 34px;
+}
+
+.adminProps__searchBtn {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  transform: translateY(-50%);
+  width: 28px;
+  height: 28px;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+.adminProps__searchIcon {
+  color: var(--admin-filter-muted);
+  font-size: 18px;
+}
+
+.adminProps__searchBtn:hover .adminProps__searchIcon,
+.adminProps__searchBtn:focus-visible .adminProps__searchIcon {
+  color: var(--admin-filter-ink);
 }
 
 .adminProps__rangeInputs {
@@ -174,6 +211,16 @@
 
 .adminProps--sidebarCollapsed .adminProps__input--text {
   padding-right: 9px;
+}
+
+.adminProps--sidebarCollapsed .adminProps__input--search {
+  padding-right: 26px;
+}
+
+.adminProps--sidebarCollapsed .adminProps__searchBtn {
+  right: 3px;
+  width: 24px;
+  height: 24px;
 }
 
 .adminProps--sidebarCollapsed .adminProps__input--money {

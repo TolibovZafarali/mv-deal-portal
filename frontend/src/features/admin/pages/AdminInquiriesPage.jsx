@@ -44,6 +44,7 @@ export default function AdminInquiriesPage() {
     q: "",
     emailStatus: "",
   });
+  const [searchInput, setSearchInput] = useState("");
   const [page, setPage] = useState(0);
   const [rawRows, setRawRows] = useState([]);
   const [meta, setMeta] = useState({ totalPages: 0, totalElements: 0 });
@@ -130,6 +131,12 @@ export default function AdminInquiriesPage() {
     setPage(0);
   }
 
+  function handleSearchSubmit(event) {
+    event.preventDefault();
+    setFilters((prev) => ({ ...prev, q: searchInput }));
+    setPage(0);
+  }
+
   function resolveAddress(inquiry) {
     const id = inquiry?.propertyId;
     return propertyAddressById[id] || `Property #${id ?? "—"}`;
@@ -169,16 +176,21 @@ export default function AdminInquiriesPage() {
 
   return (
     <section className={`adminInq ${sidebarCollapsed ? "adminInq--sidebarCollapsed" : ""}`.trim()}>
-      <AdminFilterBar className="adminInq__filters" rowClassName={filterRowClassName} onSubmit={(e) => e.preventDefault()}>
+      <AdminFilterBar className="adminInq__filters" rowClassName={filterRowClassName} onSubmit={handleSearchSubmit}>
         <label className="adminInq__filter adminInq__filter--search">
           <span className="adminInq__label">Search</span>
-          <input
-            className="adminInq__input adminInq__input--text"
-            type="search"
-            placeholder="Address, contact, company, email, phone"
-            value={filters.q}
-            onChange={(e) => updateFilter("q", e.target.value)}
-          />
+          <div className="adminInq__searchWrap">
+            <input
+              className="adminInq__input adminInq__input--text adminInq__input--search"
+              type="search"
+              placeholder="Address, contact, company, email, phone"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+            />
+            <button className="adminInq__searchBtn" type="submit" aria-label="Search inquiries">
+              <span className="material-symbols-outlined adminInq__searchIcon" aria-hidden="true">search</span>
+            </button>
+          </div>
         </label>
 
         <label className="adminInq__filter adminInq__filter--status">

@@ -54,6 +54,7 @@ export default function AdminInvestorsPage() {
     updatedRange: "",
     approvedRange: "",
   });
+  const [searchInput, setSearchInput] = useState("");
   const [page, setPage] = useState(0);
   const [rows, setRows] = useState([]);
   const [meta, setMeta] = useState({ totalPages: 0, totalElements: 0 });
@@ -148,6 +149,12 @@ export default function AdminInvestorsPage() {
     setPage(0);
   }
 
+  function handleSearchSubmit(event) {
+    event.preventDefault();
+    setFilters((prev) => ({ ...prev, q: searchInput }));
+    setPage(0);
+  }
+
   async function openModal(id) {
     setSubmitError("");
     const full = await getAdminInvestorById(id);
@@ -179,10 +186,21 @@ export default function AdminInvestorsPage() {
 
   return (
     <section className={`adminInv ${sidebarCollapsed ? "adminInv--sidebarCollapsed" : ""}`.trim()}>
-      <AdminFilterBar className="adminInv__filters" rowClassName={filterRowClassName} onSubmit={(e) => e.preventDefault()}>
+      <AdminFilterBar className="adminInv__filters" rowClassName={filterRowClassName} onSubmit={handleSearchSubmit}>
         <label className="adminInv__filter adminInv__filter--search">
           <span className="adminInv__label">Search</span>
-          <input className="adminInv__input adminInv__input--text" type="search" placeholder="Name, company, email, phone" value={filters.q} onChange={(e) => updateFilter("q", e.target.value)} />
+          <div className="adminInv__searchWrap">
+            <input
+              className="adminInv__input adminInv__input--text adminInv__input--search"
+              type="search"
+              placeholder="Name, company, email, phone"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+            />
+            <button className="adminInv__searchBtn" type="submit" aria-label="Search investors">
+              <span className="material-symbols-outlined adminInv__searchIcon" aria-hidden="true">search</span>
+            </button>
+          </div>
         </label>
 
         <label className="adminInv__filter adminInv__filter--status">

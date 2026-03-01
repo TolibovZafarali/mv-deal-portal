@@ -28,6 +28,7 @@ function prettyEnum(value) {
 
 export default function AdminSellersPage() {
   const [filters, setFilters] = useState({ q: "" });
+  const [searchInput, setSearchInput] = useState("");
   const [page, setPage] = useState(0);
   const [rows, setRows] = useState([]);
   const [meta, setMeta] = useState({ totalPages: 0, totalElements: 0 });
@@ -71,23 +72,29 @@ export default function AdminSellersPage() {
     };
   }, [filters, page]);
 
-  function updateFilter(key, value) {
-    setFilters((prev) => ({ ...prev, [key]: value }));
+  function handleSearchSubmit(event) {
+    event.preventDefault();
+    setFilters((prev) => ({ ...prev, q: searchInput }));
     setPage(0);
   }
 
   return (
     <section className="adminSel">
-      <AdminFilterBar className="adminSel__filters" rowClassName="adminSel__filterRow" onSubmit={(e) => e.preventDefault()}>
+      <AdminFilterBar className="adminSel__filters" rowClassName="adminSel__filterRow" onSubmit={handleSearchSubmit}>
         <label className="adminSel__filter">
           <span className="adminSel__label">Search</span>
-          <input
-            className="adminSel__input adminSel__input--text"
-            type="search"
-            placeholder="Name, company, email, phone"
-            value={filters.q}
-            onChange={(e) => updateFilter("q", e.target.value)}
-          />
+          <div className="adminSel__searchWrap">
+            <input
+              className="adminSel__input adminSel__input--text adminSel__input--search"
+              type="search"
+              placeholder="Name, company, email, phone"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+            />
+            <button className="adminSel__searchBtn" type="submit" aria-label="Search sellers">
+              <span className="material-symbols-outlined adminSel__searchIcon" aria-hidden="true">search</span>
+            </button>
+          </div>
         </label>
       </AdminFilterBar>
 
