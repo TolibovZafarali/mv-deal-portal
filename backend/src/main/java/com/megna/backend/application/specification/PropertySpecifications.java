@@ -130,7 +130,6 @@ public final class PropertySpecifications {
 
             String normalized = "%" + query.toLowerCase() + "%";
             return cb.or(
-                    cb.like(cb.lower(root.get("title")), normalized),
                     cb.like(cb.lower(root.get("street1")), normalized),
                     cb.like(cb.lower(root.get("street2")), normalized),
                     cb.like(cb.lower(root.get("city")), normalized),

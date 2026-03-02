@@ -29,8 +29,6 @@ public final class PropertyMapper {
         return new PropertyResponseDto(
                 entity.getId(),
                 entity.getStatus(),
-                entity.getTitle(),
-
                 entity.getStreet1(),
                 entity.getStreet2(),
                 entity.getCity(),
@@ -93,7 +91,6 @@ public final class PropertyMapper {
         if (dto == null || entity == null) return;
 
         entity.setStatus(dto.status());
-        entity.setTitle(dto.title());
 
         entity.setStreet1(dto.street1());
         entity.setStreet2(dto.street2());

@@ -14,8 +14,6 @@ import java.util.List;
 
 public record PropertyUpsertRequestDto(
         @NotNull PropertyStatus status,
-        @NotBlank @Size(max = 120) String title,
-
         @NotBlank @Size(max = 120) String street1,
         @Size(max = 120) String street2,
         @NotBlank @Size(max = 80) String city,

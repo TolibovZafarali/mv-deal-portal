@@ -504,7 +504,7 @@ export default function InvestorDashboard() {
                       {leadPhoto ? (
                         <img
                           src={leadPhoto}
-                          alt={property.title || fullAddress(property) || `Property ${property.id}`}
+                          alt={fullAddress(property) || `Property ${property.id}`}
                           className="invDash__cardImg"
                         />
                       ) : (

@@ -64,11 +64,6 @@ function propertyLabel(property) {
 }
 
 function propertyToUpsertDto(property) {
-  const title = asNullableString(property?.title);
-  if (!title) {
-    throw new Error(`Property ${property?.id ?? "unknown"} is missing required title.`);
-  }
-
   const photos = (Array.isArray(property?.photos) ? property.photos : [])
     .map((photo, idx) => ({
       url: asNullableString(photo?.url),
@@ -97,8 +92,6 @@ function propertyToUpsertDto(property) {
 
   return {
     status: property?.status,
-    title,
-
     street1: asNullableString(property?.street1),
     street2: asNullableString(property?.street2),
     city: asNullableString(property?.city),

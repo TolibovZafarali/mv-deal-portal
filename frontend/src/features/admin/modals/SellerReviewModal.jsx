@@ -24,7 +24,6 @@ function SellerReviewModalBody({ property, submitting, submitError, onClose, onS
     <div className="sellerReview">
       <div className="sellerReview__meta">
         <div><span>Property:</span> #{property.id}</div>
-        <div><span>Title:</span> {property.title || "—"}</div>
         <div><span>Address:</span> {address || "—"}</div>
         <div><span>Current Workflow:</span> {property.sellerWorkflowStatus || "—"}</div>
       </div>

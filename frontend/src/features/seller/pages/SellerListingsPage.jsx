@@ -16,7 +16,6 @@ const EXIT_STRATEGY_OPTIONS = ["", "FLIP", "RENTAL", "WHOLESALE"];
 const CLOSING_TERMS_OPTIONS = ["", "CASH_ONLY", "HARD_MONEY", "CONVENTIONAL", "SELLER_FINANCE"];
 
 const EMPTY_FORM = {
-  title: "",
   street1: "",
   street2: "",
   city: "",
@@ -88,7 +87,6 @@ function addressLine(row) {
 function toPayload(form) {
   return {
     status: "DRAFT",
-    title: String(form.title ?? "").trim(),
     street1: String(form.street1 ?? "").trim() || null,
     street2: String(form.street2 ?? "").trim() || null,
     city: String(form.city ?? "").trim() || null,
@@ -115,7 +113,6 @@ function toPayload(form) {
 function formFromRow(row) {
   if (!row) return { ...EMPTY_FORM };
   return {
-    title: row.title ?? "",
     street1: row.street1 ?? "",
     street2: row.street2 ?? "",
     city: row.city ?? "",
@@ -208,11 +205,6 @@ export default function SellerListingsPage() {
   async function saveListing() {
     const payload = toPayload(form);
 
-    if (!payload.title) {
-      setSubmitError("Title is required.");
-      return;
-    }
-
     setSubmitting(true);
     setSubmitError("");
 
@@ -268,7 +260,6 @@ export default function SellerListingsPage() {
         <table className="sellerListings__table">
           <thead>
             <tr>
-              <th>Title</th>
               <th>Address</th>
               <th>Workflow</th>
               <th>Visibility</th>
@@ -280,7 +271,7 @@ export default function SellerListingsPage() {
           <tbody>
             {!loading && rows.length === 0 ? (
               <tr>
-                <td colSpan={7} className="sellerListings__empty">
+                <td colSpan={6} className="sellerListings__empty">
                   No listings yet.
                 </td>
               </tr>
@@ -293,7 +284,6 @@ export default function SellerListingsPage() {
 
               return (
                 <tr key={row.id}>
-                  <td>{row.title}</td>
                   <td>{addressLine(row)}</td>
                   <td>
                     <span className={`sellerStatus sellerStatus--${workflow.toLowerCase()}`}>
@@ -356,10 +346,6 @@ export default function SellerListingsPage() {
             </div>
 
             <div className="sellerListingsModal__grid">
-              <label>
-                Title *
-                <input value={form.title} onChange={(e) => updateField("title", e.target.value)} />
-              </label>
               <label>
                 Street 1
                 <input value={form.street1} onChange={(e) => updateField("street1", e.target.value)} />

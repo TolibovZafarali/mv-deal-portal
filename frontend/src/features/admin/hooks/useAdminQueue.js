@@ -20,7 +20,6 @@ function formatPropertyTitle(property) {
   const line2 = [property?.city, property?.state, property?.zip].filter(Boolean).join(", ");
   const joined = [line1, line2].filter(Boolean).join(" ");
   if (joined) return joined;
-  if (property?.title) return property.title;
   return `Property #${property?.id ?? "—"}`;
 }
 
@@ -35,7 +34,7 @@ function toQueueItems({ submittedListings, openChangeRequests, pendingInvestors 
     type: "SUBMITTED_LISTING",
     entityId: property.id,
     title: formatPropertyTitle(property),
-    subtitle: property?.title || "Listing submitted by seller",
+    subtitle: "Listing submitted by seller",
     createdAt: property?.submittedAt || property?.updatedAt || property?.createdAt || null,
     priority: 1,
     primaryAction: "Review listing",

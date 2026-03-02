@@ -82,7 +82,7 @@ export default function SellerInboxPage() {
             return [
               propertyId,
               {
-                title: property?.title || `Property #${propertyId}`,
+                title: compactAddress(property) || `Property #${propertyId}`,
                 address: compactAddress(property),
               },
             ];

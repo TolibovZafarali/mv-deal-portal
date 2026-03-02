@@ -486,7 +486,6 @@ export default function AdminPropertiesPage() {
     try {
       const dto = {
         status: form.status,
-        title: cleanStr(form.title), // required
         street1: cleanStr(form.street1),
         street2: cleanStr(form.street2),
         city: cleanStr(form.city),
@@ -531,7 +530,6 @@ export default function AdminPropertiesPage() {
   function formToUpsertDto(form) {
     return {
       status: form.status,
-      title: cleanStr(form.title), // required
       street1: cleanStr(form.street1),
       street2: cleanStr(form.street2),
       city: cleanStr(form.city),
@@ -721,7 +719,7 @@ export default function AdminPropertiesPage() {
             <input
               className="adminProps__input adminProps__input--text adminProps__input--search"
               type="search"
-              placeholder="Address or title"
+              placeholder="Address"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
             />
@@ -864,9 +862,6 @@ export default function AdminPropertiesPage() {
                         <td className="adminProps__tdAddress">
                           <div className="adminProps__addrMain">
                             {fullAddress(p)}
-                          </div>
-                          <div className="adminProps__addrSub">
-                            {p.title}
                           </div>
                         </td>
 

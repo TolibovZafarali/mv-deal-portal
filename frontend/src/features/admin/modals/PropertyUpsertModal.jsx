@@ -285,7 +285,6 @@ function sellerDisplayLabelFromProperty(property) {
 
 const DEFAULT_FORM = {
   status: "DRAFT",
-  title: "",
   street1: "",
   street2: "",
   city: "",
@@ -448,7 +447,6 @@ export default function PropertyUpsertModal({
 
     setForm({
       status: initialValue.status ?? "DRAFT",
-      title: initialValue.title ?? "",
       street1: initialValue.street1 ?? "",
       street2: initialValue.street2 ?? "",
       city: initialValue.city ?? "",
@@ -691,7 +689,6 @@ export default function PropertyUpsertModal({
   const hasMissingAddressFields = missingAddressFields.length > 0;
 
   const isSubmitDisabled =
-    !form.title.trim() ||
     hasMissingAddressFields ||
     submitting ||
     deleting ||
@@ -1323,17 +1320,6 @@ export default function PropertyUpsertModal({
         </div>
 
         <form className="propModal__body" onSubmit={handleSubmit}>
-          {/* Title */}
-          <div className="propField">
-            <div className="propField__label">Title</div>
-            <input
-              className="propField__input propField__input--title"
-              value={form.title}
-              onChange={(e) => setField("title", e.target.value)}
-              placeholder="House on the Main Street owned by John Doe"
-            />
-          </div>
-
           {/* Address */}
           <div className="propSection">
             <div className="propSection__head">

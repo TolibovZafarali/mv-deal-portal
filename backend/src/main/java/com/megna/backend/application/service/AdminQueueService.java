@@ -185,7 +185,7 @@ public class AdminQueueService {
         String address = joinWithSpace(line1, line2);
 
         String title = address.isBlank() ? "Property #" + property.id() : address;
-        String subtitle = nonBlank(property.title()).isBlank() ? "Listing submitted by seller" : property.title();
+        String subtitle = "Listing submitted by seller";
         LocalDateTime createdAt = property.submittedAt() != null
                 ? property.submittedAt()
                 : (property.updatedAt() != null ? property.updatedAt() : property.createdAt());
@@ -196,7 +196,7 @@ public class AdminQueueService {
                 property.id(),
                 title,
                 subtitle,
-                property.title(),
+                address,
                 createdAt,
                 1,
                 "Review listing"

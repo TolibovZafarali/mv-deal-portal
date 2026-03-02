@@ -81,7 +81,7 @@ class PropertyServiceTest {
                 .thenReturn(Optional.empty());
         when(fmrLookupService.lookup("62001", 2)).thenReturn(new BigDecimal("990"));
 
-        PropertyUpsertRequestDto dto = dto("Create Test", "62001", 2);
+        PropertyUpsertRequestDto dto = dto("62001", 2);
         propertyService.create(dto);
 
         ArgumentCaptor<Property> savedCaptor = ArgumentCaptor.forClass(Property.class);
@@ -95,7 +95,7 @@ class PropertyServiceTest {
         Property existing = existingProperty(1L, "62001", 2, new BigDecimal("990"));
         when(propertyRepository.findById(1L)).thenReturn(Optional.of(existing));
 
-        PropertyUpsertRequestDto dto = dto("Updated Title", "62001", 2);
+        PropertyUpsertRequestDto dto = dto("62001", 2);
         propertyService.update(1L, dto);
 
         verify(fmrLookupService, never()).lookup(any(), any());
@@ -110,7 +110,7 @@ class PropertyServiceTest {
                 .thenReturn(Optional.empty());
         when(fmrLookupService.lookup("62002", 2)).thenReturn(new BigDecimal("1160"));
 
-        PropertyUpsertRequestDto dto = dto("Zip Change", "62002", 2);
+        PropertyUpsertRequestDto dto = dto("62002", 2);
         propertyService.update(2L, dto);
 
         verify(fmrLookupService).lookup("62002", 2);
@@ -123,7 +123,7 @@ class PropertyServiceTest {
         when(propertyRepository.findById(3L)).thenReturn(Optional.of(existing));
         when(fmrLookupService.lookup("62001", 3)).thenReturn(new BigDecimal("1270"));
 
-        PropertyUpsertRequestDto dto = dto("Beds Change", "62001", 3);
+        PropertyUpsertRequestDto dto = dto("62001", 3);
         propertyService.update(3L, dto);
 
         verify(fmrLookupService).lookup("62001", 3);
@@ -176,7 +176,6 @@ class PropertyServiceTest {
         Property property = new Property();
         property.setId(id);
         property.setStatus(PropertyStatus.DRAFT);
-        property.setTitle("Existing");
         property.setZip(zip);
         property.setBeds(beds);
         property.setFmr(fmr);
@@ -185,10 +184,9 @@ class PropertyServiceTest {
         return property;
     }
 
-    private static PropertyUpsertRequestDto dto(String title, String zip, Integer beds) {
+    private static PropertyUpsertRequestDto dto(String zip, Integer beds) {
         return new PropertyUpsertRequestDto(
                 PropertyStatus.DRAFT,
-                title,
                 null,
                 null,
                 null,

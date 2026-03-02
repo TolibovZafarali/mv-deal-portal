@@ -205,7 +205,7 @@ export default function AdminQueuePage() {
             <article className="adminQueue__item" key={`submitted-${property.id}`}>
               <div className="adminQueue__itemMain">
                 <div className="adminQueue__itemTitle">{propertyAddress(property)}</div>
-                <div className="adminQueue__itemSub">Property #{property.id} • {property.title || "Untitled listing"}</div>
+                <div className="adminQueue__itemSub">Property #{property.id} • Listing submitted by seller</div>
                 <div className="adminQueue__itemTime">Submitted {prettyDate(property.submittedAt || property.updatedAt || property.createdAt)}</div>
               </div>
               <div className="adminQueue__itemActions">
