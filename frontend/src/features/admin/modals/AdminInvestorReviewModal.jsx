@@ -48,56 +48,60 @@ function ReviewBody({ investor, submitting, submitError, onClose, onSave }) {
         <div><span>Approved:</span> {fmtDate(investor.approvedAt)}</div>
       </div>
 
-      <div className="invModal__statusSection">
-        <div className="invModal__label">Status Action</div>
-        <div className="invModal__statuses">
-          <button
-            type="button"
-            disabled={!isPending || submitting}
-            className={`invModal__statusBtn ${nextStatus === "REJECTED" ? "invModal__statusBtn--danger invModal__statusBtn--active" : "invModal__statusBtn--danger"}`}
-            onClick={() => setNextStatus("REJECTED")}
-          >
-            Reject
-          </button>
-          <button
-            type="button"
-            disabled={!isPending || submitting}
-            className={`invModal__statusBtn ${nextStatus === "APPROVED" ? "invModal__statusBtn--success invModal__statusBtn--active" : "invModal__statusBtn--success"}`}
-            onClick={() => setNextStatus("APPROVED")}
-          >
-            Approve
-          </button>
-        </div>
+      {isPending ? (
+        <div className="invModal__statusSection">
+          <div className="invModal__label">Status Action</div>
+          <div className="invModal__statuses">
+            <button
+              type="button"
+              disabled={!isPending || submitting}
+              className={`invModal__statusBtn invModal__statusBtn--status-rejected ${nextStatus === "REJECTED" ? "invModal__statusBtn--selected" : ""}`}
+              onClick={() => setNextStatus("REJECTED")}
+            >
+              Reject
+            </button>
+            <button
+              type="button"
+              disabled={!isPending || submitting}
+              className={`invModal__statusBtn invModal__statusBtn--status-approved ${nextStatus === "APPROVED" ? "invModal__statusBtn--selected" : ""}`}
+              onClick={() => setNextStatus("APPROVED")}
+            >
+              Approve
+            </button>
+          </div>
 
-        {requiresReason ? (
-          <label className="invModal__reasonWrap">
-            <span>Rejection Reason</span>
-            <textarea
-              value={rejectionReason}
-              disabled={(isPending && nextStatus !== "REJECTED") || isApproved || submitting}
-              onChange={(e) => setRejectionReason(e.target.value)}
-              rows={3}
-              maxLength={500}
-            />
-          </label>
-        ) : null}
-      </div>
+          {requiresReason ? (
+            <label className="invModal__reasonWrap">
+              <span>Rejection Reason</span>
+              <textarea
+                value={rejectionReason}
+                disabled={(isPending && nextStatus !== "REJECTED") || isApproved || submitting}
+                onChange={(e) => setRejectionReason(e.target.value)}
+                rows={3}
+                maxLength={500}
+              />
+            </label>
+          ) : null}
+        </div>
+      ) : null}
 
       {submitError ? <div className="invModal__error">{submitError}</div> : null}
 
-      <div className="invModal__actions">
-        <button type="button" className="invModal__btn" onClick={onClose} disabled={submitting}>
-          Cancel
-        </button>
-        <button
-          type="button"
-          className="invModal__btn invModal__btn--primary"
-          onClick={handleSave}
-          disabled={submitting || isReadOnly || (isPending && !nextStatus) || (requiresReason && !rejectionReason.trim())}
-        >
-          {submitting ? "Saving..." : "Save"}
-        </button>
-      </div>
+      {isPending ? (
+        <div className="invModal__actions">
+          <button type="button" className="invModal__btn" onClick={onClose} disabled={submitting}>
+            Cancel
+          </button>
+          <button
+            type="button"
+            className="invModal__btn invModal__btn--primary"
+            onClick={handleSave}
+            disabled={submitting || isReadOnly || (isPending && !nextStatus) || (requiresReason && !rejectionReason.trim())}
+          >
+            {submitting ? "Saving..." : "Save"}
+          </button>
+        </div>
+      ) : null}
     </div>
   );
 }
