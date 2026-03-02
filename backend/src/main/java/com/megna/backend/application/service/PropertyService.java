@@ -203,6 +203,10 @@ public class PropertyService {
                 .map(PropertyMapper::toDto);
     }
 
+    public BigDecimal lookupFmr(String zip, Integer beds) {
+        return fmrLookupService.lookup(zip, beds);
+    }
+
     private void validateSearchFilters(
             Integer minBeds,
             Integer maxBeds,

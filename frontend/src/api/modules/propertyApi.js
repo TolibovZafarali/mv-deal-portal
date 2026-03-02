@@ -115,3 +115,12 @@ export async function getAddressSuggestions(query, opts = {}) {
     const { data } = await apiClient.get(`${BASE}/address-suggestions`, { params });
     return Array.isArray(data) ? data : [];
 }
+
+export async function lookupPropertyFmr(zip, beds) {
+    const params = cleanParams({
+        zip: String(zip ?? "").trim(),
+        beds: Number(beds),
+    });
+    const { data } = await apiClient.get(`${BASE}/fmr`, { params });
+    return data;
+}

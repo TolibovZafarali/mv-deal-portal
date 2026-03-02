@@ -131,6 +131,10 @@ body.mv-admin-layout .propModal {
   color: var(--muted);
 }
 
+.propField__help--error {
+  color: rgba(255, 120, 120, 0.95);
+}
+
 .propField__input {
   border: 1px solid var(--border-muted);
   background: transparent;
@@ -162,6 +166,10 @@ select.propField__input {
 
 .propField__input:focus {
   border-color: var(--text);
+}
+
+.propField__input--error {
+  border-color: rgba(255, 120, 120, 0.95);
 }
 
 .propAddressAutocomplete {
@@ -242,6 +250,38 @@ select.propField__input {
   padding-left: 24px;
   width: 100%;
   box-sizing: border-box;
+}
+
+.propField__input--withInlineBtn {
+  padding-right: 88px;
+}
+
+.propField__inlineBtn {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: grid;
+  place-items: center;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  padding: 5px 8px;
+  cursor: pointer;
+}
+
+.propField__inlineBtn .material-symbols-outlined {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.propField__inlineBtn:hover:not(:disabled) {
+  color: #ffffff;
+}
+
+.propField__inlineBtn:disabled {
+  opacity: 0.6;
+  cursor: default;
 }
 
 .propField__input--profit {

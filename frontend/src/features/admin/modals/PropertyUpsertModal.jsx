@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import "@/features/admin/modals/PropertyUpsertModal.css";
 import { formatPriceInput } from "@/shared/utils/priceFormatting";
 import { numOrEmpty } from "@/shared/utils/formValue";
-import { getAddressSuggestions } from "@/api/modules/propertyApi";
+import { getAddressSuggestions, lookupPropertyFmr } from "@/api/modules/propertyApi";
 import { getSellerById, searchAdminSellers } from "@/api/modules/sellerApi";
 import { acquireModalBodyLock } from "@/shared/ui/modal/bodyLock";
 
@@ -355,6 +355,12 @@ export default function PropertyUpsertModal({
   const [ownerSearching, setOwnerSearching] = useState(false);
   const [selectedOwnerCandidate, setSelectedOwnerCandidate] = useState(null);
   const [assignedOwner, setAssignedOwner] = useState(null);
+  const [fmrLookupLoading, setFmrLookupLoading] = useState(false);
+  const [fmrLookupError, setFmrLookupError] = useState("");
+  const [fmrFieldErrors, setFmrFieldErrors] = useState({
+    zip: false,
+    beds: false,
+  });
   const photoInputRef = useRef(null);
   const photoUrlInputRef = useRef(null);
   const addressInputRef = useRef(null);
@@ -410,6 +416,9 @@ export default function PropertyUpsertModal({
       setOwnerSearching(false);
       setSelectedOwnerCandidate(null);
       setAssignedOwner(null);
+      setFmrLookupLoading(false);
+      setFmrLookupError("");
+      setFmrFieldErrors({ zip: false, beds: false });
       ownerLookupRequestSeqRef.current += 1;
       if (ownerBlurTimeoutRef.current) {
         clearTimeout(ownerBlurTimeoutRef.current);
@@ -719,6 +728,10 @@ export default function PropertyUpsertModal({
       }
       return { ...prev, [key]: value };
     });
+    if (key === "zip" || key === "beds") {
+      setFmrLookupError("");
+      setFmrFieldErrors((prev) => ({ ...prev, [key]: false }));
+    }
   }
 
   function setPriceField(key, value) {
@@ -731,6 +744,38 @@ export default function PropertyUpsertModal({
 
   function setCompPriceField(key, value) {
     setCompDraft((prev) => ({ ...prev, [key]: formatPriceInput(value) }));
+  }
+
+  async function handleFmrLookup() {
+    const zip = String(form.zip ?? "").trim();
+    const bedsRaw = String(form.beds ?? "").trim();
+    const beds = Number.parseInt(bedsRaw, 10);
+    const zipMissing = !zip;
+    const bedsMissing = !bedsRaw;
+
+    setFmrLookupError("");
+    setFmrFieldErrors({ zip: zipMissing, beds: bedsMissing });
+    if (zipMissing || bedsMissing) {
+      return;
+    }
+    if (!Number.isFinite(beds)) {
+      setFmrFieldErrors({ zip: false, beds: true });
+      setFmrLookupError("Beds must be a valid number.");
+      return;
+    }
+
+    setFmrLookupLoading(true);
+    try {
+      const response = await lookupPropertyFmr(zip, beds);
+      setForm((prev) => ({
+        ...prev,
+        fmr: formatPriceInput(numOrEmpty(response?.fmr)),
+      }));
+    } catch (error) {
+      setFmrLookupError(error?.message || "Failed to fetch FMR.");
+    } finally {
+      setFmrLookupLoading(false);
+    }
   }
 
   function clearOwnerBlurTimer() {
@@ -1443,7 +1488,7 @@ export default function PropertyUpsertModal({
               <div className="propField propField--addressZip">
                 <div className="propField__label">ZIP / postcode</div>
                 <input
-                  className="propField__input"
+                  className={`propField__input ${fmrFieldErrors.zip ? "propField__input--error" : ""}`}
                   value={form.zip}
                   onChange={(e) => setField("zip", e.target.value)}
                   placeholder="63128"
@@ -1463,7 +1508,7 @@ export default function PropertyUpsertModal({
               <div className="propField">
                 <div className="propField__label">Beds</div>
                 <input
-                  className="propField__input"
+                  className={`propField__input ${fmrFieldErrors.beds ? "propField__input--error" : ""}`}
                   value={form.beds}
                   onChange={(e) => setField("beds", e.target.value)}
                   inputMode="numeric"
@@ -1622,13 +1667,28 @@ export default function PropertyUpsertModal({
                 <div className="propField__moneyWrap">
                   <span className="propField__moneyPrefix">$</span>
                   <input
-                    className="propField__input propField__input--money"
+                    className="propField__input propField__input--money propField__input--withInlineBtn"
                     value={form.fmr}
                     readOnly
                     placeholder="Auto after save"
                   />
+                  <button
+                    type="button"
+                    className="propField__inlineBtn"
+                    onClick={handleFmrLookup}
+                    disabled={fmrLookupLoading}
+                    aria-label="Set FMR"
+                    title="Set FMR"
+                  >
+                    <span className="material-symbols-outlined">
+                      {fmrLookupLoading ? "progress_activity" : "auto_fix_high"}
+                    </span>
+                  </button>
                 </div>
                 <div className="propField__help">Auto from ZIP + beds</div>
+                {fmrLookupError ? (
+                  <div className="propField__help propField__help--error">{fmrLookupError}</div>
+                ) : null}
               </div>
 
               <div className="propField">
