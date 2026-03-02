@@ -244,9 +244,76 @@
   margin-bottom: 10px;
 }
 
+.adminProps__sectionActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .adminProps__sectionTitle {
   margin: 0;
   font-size: 16px;
+}
+
+.adminProps__columnsMenu {
+  position: relative;
+  display: inline-block;
+}
+
+.adminProps__columnsBtn {
+  list-style: none;
+  height: 34px;
+  min-width: 132px;
+  border: 1px solid var(--admin-ink);
+  background: transparent;
+  color: var(--admin-ink);
+  padding: 0 10px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition:
+    background 180ms ease,
+    color 180ms ease,
+    border-color 180ms ease;
+}
+
+.adminProps__columnsBtn::-webkit-details-marker {
+  display: none;
+}
+
+.adminProps__columnsMenu[open] .adminProps__columnsBtn,
+.adminProps__columnsBtn:hover {
+  background: var(--admin-ink);
+  color: var(--admin-bg);
+}
+
+.adminProps__columnsBtn .material-symbols-outlined {
+  font-size: 18px;
+}
+
+.adminProps__columnsBody {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  z-index: 3;
+  width: 100%;
+  border: 1px solid var(--admin-border);
+  background: #fff;
+  padding: 10px;
+  display: grid;
+  gap: 8px;
+}
+
+.adminProps__columnOption {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.adminProps__columnOption input[type="checkbox"] {
+  accent-color: var(--admin-ink);
 }
 
 .adminProps__below {
@@ -293,6 +360,10 @@
     position: static;
     margin-top: 8px;
     width: 100%;
+  }
+
+  .adminProps__sectionHead {
+    flex-wrap: wrap;
   }
 }
 

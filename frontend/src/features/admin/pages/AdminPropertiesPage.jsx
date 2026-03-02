@@ -61,6 +61,18 @@ const SELLER_WORKFLOWS = [
   { label: "Closed", value: "CLOSED" },
 ];
 
+const SECONDARY_COLUMN_OPTIONS = [
+  { key: "arv", label: "ARV" },
+  { key: "repairs", label: "Repairs" },
+  { key: "fmr", label: "FMR" },
+  { key: "exit", label: "Exit Strategy" },
+  { key: "sqft", label: "SqFt" },
+  { key: "beds", label: "Beds" },
+  { key: "baths", label: "Baths" },
+  { key: "year", label: "Year Built" },
+  { key: "reviewNote", label: "Review Note" },
+];
+
 function money(v) {
   if (v === null || v === undefined || Number.isNaN(Number(v))) return "—";
   return Number(v).toLocaleString("en-US", {
@@ -141,6 +153,7 @@ export default function AdminPropertiesPage() {
   const [changeRequests, setChangeRequests] = useState([]);
   const [changeRequestsLoading, setChangeRequestsLoading] = useState(false);
   const [changeRequestsError, setChangeRequestsError] = useState("");
+  const [secondaryColumns, setSecondaryColumns] = useState([]);
 
   function updateFilter(key, value) {
     setFilters((prev) => ({ ...prev, [key]: value }));
@@ -254,6 +267,17 @@ export default function AdminPropertiesPage() {
     filters.exitStrategy,
     filters.sellerWorkflowStatus,
   ]);
+
+  const secondaryColumnSet = useMemo(() => {
+    return new Set(secondaryColumns);
+  }, [secondaryColumns]);
+
+  function toggleSecondaryColumn(key) {
+    setSecondaryColumns((prev) => {
+      if (prev.includes(key)) return prev.filter((col) => col !== key);
+      return [...prev, key];
+    });
+  }
 
   const advancedFilters = (
     <>
@@ -738,16 +762,37 @@ export default function AdminPropertiesPage() {
         <div className="adminProps__below">
           <div className="adminProps__sectionHead">
             <h3 className="adminProps__sectionTitle">Properties</h3>
-            <button
-              className="adminProps__addBtn"
-              type="button"
-              onClick={() => {
-                setAddOpen(true);
-              }}
-            >
-              <span className="material-symbols-outlined">add_home</span>
-              Add Property
-            </button>
+            <div className="adminProps__sectionActions">
+              <details className="adminProps__columnsMenu">
+                <summary className="adminProps__columnsBtn">
+                  <span className="material-symbols-outlined">view_column</span>
+                  Columns
+                  {secondaryColumns.length ? ` (${secondaryColumns.length})` : ""}
+                </summary>
+                <div className="adminProps__columnsBody">
+                  {SECONDARY_COLUMN_OPTIONS.map((column) => (
+                    <label key={column.key} className="adminProps__columnOption">
+                      <input
+                        type="checkbox"
+                        checked={secondaryColumnSet.has(column.key)}
+                        onChange={() => toggleSecondaryColumn(column.key)}
+                      />
+                      <span>{column.label}</span>
+                    </label>
+                  ))}
+                </div>
+              </details>
+              <button
+                className="adminProps__addBtn"
+                type="button"
+                onClick={() => {
+                  setAddOpen(true);
+                }}
+              >
+                <span className="material-symbols-outlined">add_home</span>
+                Add Property
+              </button>
+            </div>
           </div>
           {!hasRows ? (
             <div
@@ -763,17 +808,17 @@ export default function AdminPropertiesPage() {
                     <tr>
                       <th>Address</th>
                       <th className="adminProps__thRight">Asking</th>
-                      <th className="adminProps__thRight">ARV</th>
-                      <th className="adminProps__thRight">Repairs</th>
-                      <th className="adminProps__thRight">FMR</th>
-                      <th className="adminProps__thCenter">Exit</th>
-                      <th className="adminProps__thRight">SqFt</th>
-                      <th className="adminProps__thCenter">Bed</th>
-                      <th className="adminProps__thCenter">Bath</th>
-                      <th className="adminProps__thCenter">Year</th>
+                      {secondaryColumnSet.has("arv") ? <th className="adminProps__thRight">ARV</th> : null}
+                      {secondaryColumnSet.has("repairs") ? <th className="adminProps__thRight">Repairs</th> : null}
+                      {secondaryColumnSet.has("fmr") ? <th className="adminProps__thRight">FMR</th> : null}
+                      {secondaryColumnSet.has("exit") ? <th className="adminProps__thCenter">Exit</th> : null}
+                      {secondaryColumnSet.has("sqft") ? <th className="adminProps__thRight">SqFt</th> : null}
+                      {secondaryColumnSet.has("beds") ? <th className="adminProps__thCenter">Bed</th> : null}
+                      {secondaryColumnSet.has("baths") ? <th className="adminProps__thCenter">Bath</th> : null}
+                      {secondaryColumnSet.has("year") ? <th className="adminProps__thCenter">Year</th> : null}
                       <th className="adminProps__thCenter">Seller Owner</th>
                       <th className="adminProps__thCenter">Seller Workflow</th>
-                      <th className="adminProps__thCenter">Review Note</th>
+                      {secondaryColumnSet.has("reviewNote") ? <th className="adminProps__thCenter">Review Note</th> : null}
                       <th className="adminProps__thCenter">Status</th>
                       <th className="adminProps__thIcon"></th>
                     </tr>
@@ -794,45 +839,59 @@ export default function AdminPropertiesPage() {
                         <td className="adminProps__tdRight">
                           {money(p.askingPrice)}
                         </td>
-                        <td className="adminProps__tdRight">{money(p.arv)}</td>
-                        <td className="adminProps__tdRight">
-                          {money(p.estRepairs)}
-                        </td>
-                        <td className="adminProps__tdRight">{money(p.fmr)}</td>
-                        <td className="adminProps__tdCenter">
-                          {prettyEnum(p.exitStrategy)}
-                        </td>
-                        <td className="adminProps__tdRight">
-                          {p.livingAreaSqft?.toLocaleString("en-US") ?? "—"}
-                        </td>
-                        <td className="adminProps__tdCenter">
-                          {p.beds ?? "—"}
-                        </td>
-                        <td className="adminProps__tdCenter">
-                          {p.baths ?? "—"}
-                        </td>
-                        <td className="adminProps__tdCenter">
-                          {p.yearBuilt ?? "—"}
-                        </td>
+                        {secondaryColumnSet.has("arv") ? <td className="adminProps__tdRight">{money(p.arv)}</td> : null}
+                        {secondaryColumnSet.has("repairs") ? (
+                          <td className="adminProps__tdRight">
+                            {money(p.estRepairs)}
+                          </td>
+                        ) : null}
+                        {secondaryColumnSet.has("fmr") ? <td className="adminProps__tdRight">{money(p.fmr)}</td> : null}
+                        {secondaryColumnSet.has("exit") ? (
+                          <td className="adminProps__tdCenter">
+                            {prettyEnum(p.exitStrategy)}
+                          </td>
+                        ) : null}
+                        {secondaryColumnSet.has("sqft") ? (
+                          <td className="adminProps__tdRight">
+                            {p.livingAreaSqft?.toLocaleString("en-US") ?? "—"}
+                          </td>
+                        ) : null}
+                        {secondaryColumnSet.has("beds") ? (
+                          <td className="adminProps__tdCenter">
+                            {p.beds ?? "—"}
+                          </td>
+                        ) : null}
+                        {secondaryColumnSet.has("baths") ? (
+                          <td className="adminProps__tdCenter">
+                            {p.baths ?? "—"}
+                          </td>
+                        ) : null}
+                        {secondaryColumnSet.has("year") ? (
+                          <td className="adminProps__tdCenter">
+                            {p.yearBuilt ?? "—"}
+                          </td>
+                        ) : null}
                         <td className="adminProps__tdCenter">
                           {p.sellerId ?? "—"}
                         </td>
                         <td className="adminProps__tdCenter">
                           {prettyEnum(p.sellerWorkflowStatus)}
                         </td>
-                        <td className="adminProps__tdCenter">
-                          {p.sellerReviewNote ? (
-                            <button
-                              className="adminProps__textBtn"
-                              type="button"
-                              onClick={() => setReviewNoteModal({ open: true, note: p.sellerReviewNote })}
-                            >
-                              View
-                            </button>
-                          ) : (
-                            "—"
-                          )}
-                        </td>
+                        {secondaryColumnSet.has("reviewNote") ? (
+                          <td className="adminProps__tdCenter">
+                            {p.sellerReviewNote ? (
+                              <button
+                                className="adminProps__textBtn"
+                                type="button"
+                                onClick={() => setReviewNoteModal({ open: true, note: p.sellerReviewNote })}
+                              >
+                                View
+                              </button>
+                            ) : (
+                              "—"
+                            )}
+                          </td>
+                        ) : null}
                         <td className="adminProps__tdCenter">
                           {prettyEnum(p.status)}
                         </td>
