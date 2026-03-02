@@ -10,7 +10,7 @@ import {
   uploadPropertyPhoto,
   updateProperty,
 } from "@/api/modules/propertyApi";
-import { searchAdminSellers } from "@/api/modules/sellerApi";
+import { getSellerById, searchAdminSellers } from "@/api/modules/sellerApi";
 import {
   assignPropertySeller,
   getAdminPropertyChangeRequests,
@@ -24,6 +24,7 @@ import SellerAssignmentModal from "@/features/admin/modals/SellerAssignmentModal
 import SellerReviewModal from "@/features/admin/modals/SellerReviewModal";
 import ChangeRequestDecisionModal from "@/features/admin/modals/ChangeRequestDecisionModal";
 import PropertyUpsertModal from "@/features/admin/modals/PropertyUpsertModal";
+import Modal from "@/shared/ui/modal/Modal";
 import {
   signalAdminQueueRefresh,
   startAdminTimer,
@@ -95,6 +96,24 @@ function prettyEnum(v) {
     .replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
+function sellerDisplayLabel(property) {
+  const fromParts = [property?.sellerFirstName, property?.sellerLastName].filter(Boolean).join(" ").trim();
+  const candidate = [
+    property?.sellerName,
+    property?.sellerFullName,
+    property?.sellerDisplayName,
+    fromParts,
+    property?.sellerEmail,
+  ].find((value) => String(value ?? "").trim().length > 0);
+  if (candidate) return candidate;
+  return "";
+}
+
+function sellerDisplayName(seller) {
+  const full = [seller?.firstName, seller?.lastName].filter(Boolean).join(" ").trim();
+  return full || seller?.email || "";
+}
+
 export default function AdminPropertiesPage() {
   const outletContext = useOutletContext();
   const sidebarCollapsed = Boolean(outletContext?.sidebarCollapsed);
@@ -133,7 +152,7 @@ export default function AdminPropertiesPage() {
 
   const [editDeleting, setEditDeleting] = useState(false);
   const [editDeleteError, setEditDeleteError] = useState("");
-  const [reviewNoteModal, setReviewNoteModal] = useState({ open: false, note: "" });
+  const [reviewNoteModal, setReviewNoteModal] = useState({ open: false, note: "", sellerId: null, sellerLabel: "" });
 
   const [assignmentModal, setAssignmentModal] = useState({ open: false, property: null });
   const [assignmentResults, setAssignmentResults] = useState([]);
@@ -154,6 +173,7 @@ export default function AdminPropertiesPage() {
   const [changeRequestsLoading, setChangeRequestsLoading] = useState(false);
   const [changeRequestsError, setChangeRequestsError] = useState("");
   const [secondaryColumns, setSecondaryColumns] = useState([]);
+  const [sellerNameById, setSellerNameById] = useState({});
 
   function updateFilter(key, value) {
     setFilters((prev) => ({ ...prev, [key]: value }));
@@ -243,6 +263,42 @@ export default function AdminPropertiesPage() {
     };
   }, [refreshKey]);
 
+  useEffect(() => {
+    const sellerIds = [...new Set(rows.map((row) => row?.sellerId).filter((id) => id !== null && id !== undefined))];
+    const missingSellerIds = sellerIds.filter((id) => !sellerNameById[id]);
+    if (!missingSellerIds.length) return undefined;
+
+    let alive = true;
+
+    async function loadSellerNames() {
+      const entries = await Promise.all(
+        missingSellerIds.map(async (sellerId) => {
+          try {
+            const seller = await getSellerById(sellerId);
+            return [sellerId, sellerDisplayName(seller) || `Seller #${sellerId}`];
+          } catch {
+            return [sellerId, `Seller #${sellerId}`];
+          }
+        }),
+      );
+
+      if (!alive) return;
+      setSellerNameById((prev) => {
+        const next = { ...prev };
+        entries.forEach(([sellerId, name]) => {
+          next[sellerId] = name;
+        });
+        return next;
+      });
+    }
+
+    loadSellerNames();
+
+    return () => {
+      alive = false;
+    };
+  }, [rows, sellerNameById]);
+
   const hasRows = rows.length > 0;
 
   const tableCaption = useMemo(() => {
@@ -277,6 +333,11 @@ export default function AdminPropertiesPage() {
       if (prev.includes(key)) return prev.filter((col) => col !== key);
       return [...prev, key];
     });
+  }
+
+  function ownerNameForProperty(property) {
+    if (property?.sellerId === null || property?.sellerId === undefined) return "Unassigned";
+    return sellerNameById[property.sellerId] || sellerDisplayLabel(property) || "Loading...";
   }
 
   const advancedFilters = (
@@ -872,7 +933,7 @@ export default function AdminPropertiesPage() {
                           </td>
                         ) : null}
                         <td className="adminProps__tdCenter">
-                          {p.sellerId ?? "—"}
+                          {ownerNameForProperty(p)}
                         </td>
                         <td className="adminProps__tdCenter">
                           {prettyEnum(p.sellerWorkflowStatus)}
@@ -883,7 +944,12 @@ export default function AdminPropertiesPage() {
                               <button
                                 className="adminProps__textBtn"
                                 type="button"
-                                onClick={() => setReviewNoteModal({ open: true, note: p.sellerReviewNote })}
+                                onClick={() => setReviewNoteModal({
+                                  open: true,
+                                  note: p.sellerReviewNote,
+                                  sellerId: p.sellerId ?? null,
+                                  sellerLabel: sellerDisplayLabel(p),
+                                })}
                               >
                                 View
                               </button>
@@ -1084,23 +1150,20 @@ export default function AdminPropertiesPage() {
         onSubmit={handleChangeDecisionSubmit}
       />
 
-      {reviewNoteModal.open ? (
-        <div
-          className="adminProps__noteOverlay"
-          role="presentation"
-          onMouseDown={() => setReviewNoteModal({ open: false, note: "" })}
-        >
-          <div className="adminProps__noteModal" onMouseDown={(e) => e.stopPropagation()}>
-            <h3>Seller Review Note</h3>
-            <p>{reviewNoteModal.note}</p>
-            <div className="adminProps__noteActions">
-              <button type="button" onClick={() => setReviewNoteModal({ open: false, note: "" })}>
-                Close
-              </button>
-            </div>
-          </div>
+      <Modal
+        open={reviewNoteModal.open}
+        onClose={() => setReviewNoteModal({ open: false, note: "", sellerId: null, sellerLabel: "" })}
+        title={`Seller Review Note • ${
+          reviewNoteModal.sellerId !== null && reviewNoteModal.sellerId !== undefined
+            ? (sellerNameById[reviewNoteModal.sellerId] || reviewNoteModal.sellerLabel || "Loading...")
+            : "Unassigned"
+        }`}
+        width={620}
+      >
+        <div className="adminProps__noteBody">
+          <p>{reviewNoteModal.note}</p>
         </div>
-      ) : null}
+      </Modal>
     </section>
   );
 }

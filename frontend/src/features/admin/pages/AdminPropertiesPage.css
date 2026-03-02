@@ -492,47 +492,16 @@
   color: var(--admin-bg);
 }
 
-.adminProps__noteOverlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.45);
-  z-index: 80;
-  display: grid;
-  place-items: center;
-  padding: 12px;
-}
-
-.adminProps__noteModal {
-  background: #fff;
-  color: #101010;
-  border: 1px solid var(--admin-border);
-  padding: 14px;
-  width: min(620px, 100%);
+.adminProps__noteBody {
   display: grid;
   gap: 12px;
 }
 
-.adminProps__noteModal h3 {
-  margin: 0;
-  font-size: 18px;
-}
-
-.adminProps__noteModal p {
+.adminProps__noteBody p {
   margin: 0;
   white-space: pre-wrap;
-}
-
-.adminProps__noteActions {
-  display: flex;
-  justify-content: flex-end;
-}
-
-.adminProps__noteActions button {
-  border: 1px solid var(--admin-ink);
-  background: transparent;
-  color: var(--admin-ink);
-  padding: 8px 10px;
-  cursor: pointer;
+  color: var(--admin-bg);
+  line-height: 1.45;
 }
 
 .adminProps__changeReqSection {
