@@ -27,6 +27,7 @@ import com.megna.backend.interfaces.rest.dto.property.AdminPropertySellerReviewA
 import com.megna.backend.interfaces.rest.dto.property.PropertyChangeRequestResponseDto;
 import com.megna.backend.interfaces.rest.dto.property.PropertyResponseDto;
 import com.megna.backend.interfaces.rest.dto.property.PropertyUpsertRequestDto;
+import com.megna.backend.interfaces.rest.dto.property.PropertyPhotoRequestDto;
 import com.megna.backend.interfaces.rest.mapper.PropertyChangeRequestMapper;
 import com.megna.backend.interfaces.rest.mapper.PropertyMapper;
 import lombok.RequiredArgsConstructor;
@@ -44,6 +45,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
+import java.util.HashSet;
 
 import static com.megna.backend.domain.enums.PropertyStatus.ACTIVE;
 
@@ -64,7 +67,9 @@ public class PropertyService {
     private final PhotoAssetService photoAssetService;
 
     public PropertyResponseDto create(PropertyUpsertRequestDto dto) {
+        validateUniquePhotoAssetIds(dto.photos());
         Property property = PropertyMapper.toEntity(dto);
+        normalizeCurrentRentForOccupancy(property);
         if (dto.photos() != null) {
             long adminId = requireAdminId();
             hydratePhotoAssets(property, null, adminId);
@@ -103,6 +108,7 @@ public class PropertyService {
     }
 
     public PropertyResponseDto update(Long id, PropertyUpsertRequestDto dto) {
+        validateUniquePhotoAssetIds(dto.photos());
         Property property = propertyRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Property not found: " + id));
 
@@ -111,6 +117,7 @@ public class PropertyService {
         Integer originalBeds = property.getBeds();
         List<String> originalPhotoAssetIds = photoAssetService.collectPhotoAssetIds(property.getPhotos());
         PropertyMapper.applyUpsert(dto, property);
+        normalizeCurrentRentForOccupancy(property);
 
         if (dto.photos() != null) {
             long adminId = requireAdminId();
@@ -201,6 +208,10 @@ public class PropertyService {
                 .map(PropertyMapper::toDto);
     }
 
+    public BigDecimal lookupFmr(String zip, Integer beds) {
+        return fmrLookupService.lookup(zip, beds);
+    }
+
     private void validateSearchFilters(
             Integer minBeds,
             Integer maxBeds,
@@ -286,6 +297,7 @@ public class PropertyService {
         property.setSubmittedAt(null);
         property.setReviewedAt(null);
         property.setPublishedAt(null);
+        normalizeCurrentRentForOccupancy(property);
 
         refreshCoordinates(property, true);
         refreshFmr(property);
@@ -316,6 +328,7 @@ public class PropertyService {
 
         PropertyMapper.applyUpsert(dto, property);
         property.setStatus(PropertyStatus.DRAFT);
+        normalizeCurrentRentForOccupancy(property);
 
         boolean addressChanged = !Objects.equals(originalAddressFingerprint, addressFingerprint(property));
         boolean coordinatesMissing = property.getLatitude() == null || property.getLongitude() == null;
@@ -598,6 +611,9 @@ public class PropertyService {
         requireNotNull(property.getLivingAreaSqft(), "livingAreaSqft", missingFields);
         requireNotNull(property.getYearBuilt(), "yearBuilt", missingFields);
         requireNotNull(property.getOccupancyStatus(), "occupancyStatus", missingFields);
+        if (property.getOccupancyStatus() == OccupancyStatus.YES) {
+            requireNotNull(property.getCurrentRent(), "currentRent", missingFields);
+        }
         requireNotNull(property.getExitStrategy(), "exitStrategy", missingFields);
         requireNotNull(property.getClosingTerms(), "closingTerms", missingFields);
 
@@ -629,6 +645,12 @@ public class PropertyService {
         if (value == null) {
             missingFields.add(fieldName);
         }
+    }
+
+    private static void normalizeCurrentRentForOccupancy(Property property) {
+        if (property == null) return;
+        if (property.getOccupancyStatus() == OccupancyStatus.YES) return;
+        property.setCurrentRent(null);
     }
 
     private void refreshCoordinates(Property property, boolean clearWhenUnavailable) {
@@ -726,5 +748,22 @@ public class PropertyService {
         if (value == null) return null;
         String trimmed = value.trim();
         return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    private void validateUniquePhotoAssetIds(List<PropertyPhotoRequestDto> photos) {
+        if (photos == null || photos.isEmpty()) return;
+
+        Set<String> seen = new HashSet<>();
+        for (PropertyPhotoRequestDto photo : photos) {
+            if (photo == null) continue;
+            String assetId = photo.photoAssetId();
+            if (!StringUtils.hasText(assetId)) continue;
+            if (!seen.add(assetId)) {
+                throw new ResponseStatusException(
+                        HttpStatus.BAD_REQUEST,
+                        "Duplicate photoAssetId in photos payload: " + assetId
+                );
+            }
+        }
     }
 }

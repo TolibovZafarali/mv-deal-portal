@@ -4,6 +4,7 @@ import com.megna.backend.domain.entity.Inquiry;
 import com.megna.backend.domain.enums.EmailStatus;
 import com.megna.backend.domain.enums.InvestorStatus;
 import com.megna.backend.domain.enums.PropertyChangeRequestStatus;
+import com.megna.backend.domain.enums.PropertyStatus;
 import com.megna.backend.domain.enums.SellerWorkflowStatus;
 import com.megna.backend.domain.repository.InquiryRepository;
 import com.megna.backend.interfaces.rest.dto.admin.AdminQueueItemDto;
@@ -38,6 +39,26 @@ public class AdminQueueService {
     private final InquiryRepository inquiryRepository;
 
     public AdminQueueSummaryDto getSummary() {
+        long draftProperties = propertyService.search(
+                        PropertyStatus.DRAFT,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        PageRequest.of(0, 1)
+                )
+                .getTotalElements();
+
         long submittedProperties = propertyService.search(
                         null,
                         null,
@@ -80,6 +101,7 @@ public class AdminQueueService {
         long failedInquiries = inquiryRepository.countByEmailStatus(EmailStatus.FAILED);
 
         return new AdminQueueSummaryDto(
+                draftProperties,
                 submittedProperties,
                 openChangeRequests,
                 pendingInvestors,
@@ -185,7 +207,7 @@ public class AdminQueueService {
         String address = joinWithSpace(line1, line2);
 
         String title = address.isBlank() ? "Property #" + property.id() : address;
-        String subtitle = nonBlank(property.title()).isBlank() ? "Listing submitted by seller" : property.title();
+        String subtitle = "Listing submitted by seller";
         LocalDateTime createdAt = property.submittedAt() != null
                 ? property.submittedAt()
                 : (property.updatedAt() != null ? property.updatedAt() : property.createdAt());
@@ -196,7 +218,7 @@ public class AdminQueueService {
                 property.id(),
                 title,
                 subtitle,
-                property.title(),
+                address,
                 createdAt,
                 1,
                 "Review listing"

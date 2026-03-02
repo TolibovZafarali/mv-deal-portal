@@ -2,7 +2,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import "@/features/admin/modals/PropertyUpsertModal.css";
 import { formatPriceInput } from "@/shared/utils/priceFormatting";
 import { numOrEmpty } from "@/shared/utils/formValue";
-import { getAddressSuggestions } from "@/api/modules/propertyApi";
+import { getAddressSuggestions, lookupPropertyFmr } from "@/api/modules/propertyApi";
+import { getSellerById, searchAdminSellers } from "@/api/modules/sellerApi";
 import { acquireModalBodyLock } from "@/shared/ui/modal/bodyLock";
 
 const STATUS = [
@@ -13,8 +14,8 @@ const STATUS = [
 
 const OCCUPANCY = [
   { label: "—", value: "" },
-  { label: "Vacant", value: "VACANT" },
-  { label: "Tenant", value: "TENANT" },
+  { label: "Yes", value: "YES" },
+  { label: "No", value: "NO" },
 ];
 
 const EXIT = [
@@ -90,6 +91,13 @@ const US_STATE_OPTIONS = [
 const US_STATE_VALUES = new Set(US_STATE_OPTIONS.map((option) => option.value));
 const ADDRESS_SUGGESTION_MIN_CHARS = 3;
 const ADDRESS_SUGGESTION_DEBOUNCE_MS = 280;
+const PROPERTY_MODAL_MOBILE_QUERY = "(max-width: 980px)";
+const REQUIRED_ADDRESS_FIELD_LABELS = new Set([
+  "Street Address",
+  "City",
+  "State",
+  "ZIP / postcode",
+]);
 
 function createEmptyCompForm() {
   return {
@@ -259,9 +267,65 @@ function formatCompPricePerSqft(comp) {
   return `$${pricePerSqft.toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
 }
 
+function sellerDisplayName(seller) {
+  const full = [seller?.firstName, seller?.lastName].filter(Boolean).join(" ").trim();
+  return full || seller?.email || `Seller #${seller?.id ?? "—"}`;
+}
+
+function sellerDisplayLabelFromProperty(property) {
+  const fromParts = [property?.sellerFirstName, property?.sellerLastName].filter(Boolean).join(" ").trim();
+  return (
+    property?.sellerName ||
+    property?.sellerFullName ||
+    property?.sellerDisplayName ||
+    fromParts ||
+    property?.sellerEmail ||
+    ""
+  );
+}
+
+function ensureImageIsReachable(url, timeoutMs = 9000) {
+  return new Promise((resolve, reject) => {
+    const candidateUrl = String(url ?? "").trim();
+    if (!candidateUrl) {
+      reject(new Error("Photo URL is required."));
+      return;
+    }
+
+    const img = new Image();
+    let settled = false;
+    const timeoutId = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      reject(new Error("Photo URL did not load in time."));
+    }, timeoutMs);
+
+    function finishSuccess() {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeoutId);
+      if (img.naturalWidth > 0 && img.naturalHeight > 0) {
+        resolve(true);
+        return;
+      }
+      reject(new Error("No valid photo found at the provided URL."));
+    }
+
+    function finishError() {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeoutId);
+      reject(new Error("No valid photo found at the provided URL."));
+    }
+
+    img.onload = finishSuccess;
+    img.onerror = finishError;
+    img.src = candidateUrl;
+  });
+}
+
 const DEFAULT_FORM = {
   status: "DRAFT",
-  title: "",
   street1: "",
   street2: "",
   city: "",
@@ -277,7 +341,9 @@ const DEFAULT_FORM = {
   yearBuilt: "",
   roofAge: "",
   hvac: "",
+  sellerId: "",
   occupancyStatus: "",
+  currentRent: "",
   exitStrategy: "",
   closingTerms: "",
   photos: [],
@@ -291,6 +357,7 @@ export default function PropertyUpsertModal({
   onClose,
   onSubmit,
   onUploadPhoto,
+  onAddPhotoByUrl,
   onDeleteUploadedPhoto,
   onDelete,
   submitting = false,
@@ -303,7 +370,15 @@ export default function PropertyUpsertModal({
   const [form, setForm] = useState(DEFAULT_FORM);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [photoUploading, setPhotoUploading] = useState(false);
+  const [photoUrlOpen, setPhotoUrlOpen] = useState(false);
+  const [photoUrlAdding, setPhotoUrlAdding] = useState(false);
+  const [photoUrlInput, setPhotoUrlInput] = useState("");
+  const [photoUrlFieldError, setPhotoUrlFieldError] = useState(false);
   const [photoUploadError, setPhotoUploadError] = useState("");
+  const [photoPreviewOpen, setPhotoPreviewOpen] = useState(false);
+  const [photoPreviewIndex, setPhotoPreviewIndex] = useState(0);
+  const [draggedPhotoIndex, setDraggedPhotoIndex] = useState(null);
+  const [photoDropTargetIndex, setPhotoDropTargetIndex] = useState(null);
   const [addressSuggestions, setAddressSuggestions] = useState([]);
   const [addressSuggesting, setAddressSuggesting] = useState(false);
   const [addressSuggestError, setAddressSuggestError] = useState("");
@@ -319,7 +394,25 @@ export default function PropertyUpsertModal({
   const [compAddressSuggestHasSearched, setCompAddressSuggestHasSearched] =
     useState(false);
   const [compAddressSuggestOpen, setCompAddressSuggestOpen] = useState(false);
+  const [ownerSearchQuery, setOwnerSearchQuery] = useState("");
+  const [ownerSearchResults, setOwnerSearchResults] = useState([]);
+  const [ownerSearchOpen, setOwnerSearchOpen] = useState(false);
+  const [ownerSearchError, setOwnerSearchError] = useState("");
+  const [ownerSearching, setOwnerSearching] = useState(false);
+  const [selectedOwnerCandidate, setSelectedOwnerCandidate] = useState(null);
+  const [assignedOwner, setAssignedOwner] = useState(null);
+  const [isMobileView, setIsMobileView] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return window.matchMedia(PROPERTY_MODAL_MOBILE_QUERY).matches;
+  });
+  const [fmrLookupLoading, setFmrLookupLoading] = useState(false);
+  const [fmrLookupError, setFmrLookupError] = useState("");
+  const [fmrFieldErrors, setFmrFieldErrors] = useState({
+    zip: false,
+    beds: false,
+  });
   const photoInputRef = useRef(null);
+  const photoUrlInputRef = useRef(null);
   const addressInputRef = useRef(null);
   const compAddressInputRef = useRef(null);
   const photoWheelRafRef = useRef(null);
@@ -330,10 +423,43 @@ export default function PropertyUpsertModal({
   const compAddressBlurTimeoutRef = useRef(null);
   const compAddressLookupRequestSeqRef = useRef(0);
   const suppressCompAddressLookupRef = useRef(false);
+  const ownerBlurTimeoutRef = useRef(null);
+  const ownerLookupRequestSeqRef = useRef(0);
+  const isOwnerAssigned = String(form.sellerId ?? "").trim().length > 0;
+
+  useEffect(() => {
+    if (typeof window === "undefined") return undefined;
+
+    const media = window.matchMedia(PROPERTY_MODAL_MOBILE_QUERY);
+    const handleMediaChange = (event) => setIsMobileView(event.matches);
+    const supportsModernListener = typeof media.addEventListener === "function";
+
+    if (supportsModernListener) {
+      media.addEventListener("change", handleMediaChange);
+    } else {
+      media.addListener(handleMediaChange);
+    }
+
+    return () => {
+      if (supportsModernListener) {
+        media.removeEventListener("change", handleMediaChange);
+        return;
+      }
+      media.removeListener(handleMediaChange);
+    };
+  }, []);
 
   useEffect(() => {
     if (!open) setShowDeleteConfirm(false);
     if (!open) setPhotoUploadError("");
+    if (!open) setPhotoUrlOpen(false);
+    if (!open) setPhotoUrlAdding(false);
+    if (!open) setPhotoUrlInput("");
+    if (!open) setPhotoUrlFieldError(false);
+    if (!open) setPhotoPreviewOpen(false);
+    if (!open) setPhotoPreviewIndex(0);
+    if (!open) setDraggedPhotoIndex(null);
+    if (!open) setPhotoDropTargetIndex(null);
     if (!open) {
       setAddressSuggestions([]);
       setAddressSuggesting(false);
@@ -360,12 +486,32 @@ export default function PropertyUpsertModal({
         clearTimeout(compAddressBlurTimeoutRef.current);
         compAddressBlurTimeoutRef.current = null;
       }
+      setOwnerSearchQuery("");
+      setOwnerSearchResults([]);
+      setOwnerSearchOpen(false);
+      setOwnerSearchError("");
+      setOwnerSearching(false);
+      setSelectedOwnerCandidate(null);
+      setAssignedOwner(null);
+      setFmrLookupLoading(false);
+      setFmrLookupError("");
+      setFmrFieldErrors({ zip: false, beds: false });
+      ownerLookupRequestSeqRef.current += 1;
+      if (ownerBlurTimeoutRef.current) {
+        clearTimeout(ownerBlurTimeoutRef.current);
+        ownerBlurTimeoutRef.current = null;
+      }
     }
   }, [open]);
 
   useEffect(() => {
     if (mode !== "edit") setShowDeleteConfirm(false);
   }, [mode]);
+
+  useEffect(() => {
+    if (!photoUrlOpen) return;
+    photoUrlInputRef.current?.focus();
+  }, [photoUrlOpen]);
 
   // hydrate for edit mode (later)
   useEffect(() => {
@@ -387,7 +533,6 @@ export default function PropertyUpsertModal({
 
     setForm({
       status: initialValue.status ?? "DRAFT",
-      title: initialValue.title ?? "",
       street1: initialValue.street1 ?? "",
       street2: initialValue.street2 ?? "",
       city: initialValue.city ?? "",
@@ -403,12 +548,30 @@ export default function PropertyUpsertModal({
       yearBuilt: numOrEmpty(initialValue.yearBuilt),
       roofAge: numOrEmpty(initialValue.roofAge),
       hvac: numOrEmpty(initialValue.hvac),
+      sellerId: numOrEmpty(initialValue.sellerId),
       occupancyStatus: initialValue.occupancyStatus ?? "",
+      currentRent: formatPriceInput(numOrEmpty(initialValue.currentRent)),
       exitStrategy: initialValue.exitStrategy ?? "",
       closingTerms: initialValue.closingTerms ?? "",
       photos: normalizedPhotos,
       saleComps: normalizedSaleComps,
     });
+    setOwnerSearchQuery(
+      sellerDisplayLabelFromProperty(initialValue) ||
+        (initialValue.sellerId ? `Seller #${initialValue.sellerId}` : ""),
+    );
+    setAssignedOwner(initialValue.sellerId ? {
+      id: initialValue.sellerId,
+      displayName:
+        sellerDisplayLabelFromProperty(initialValue) ||
+        `Seller #${initialValue.sellerId}`,
+      email: initialValue.sellerEmail || "",
+      companyName: initialValue.sellerCompanyName || "",
+    } : null);
+    setSelectedOwnerCandidate(null);
+    setOwnerSearchResults([]);
+    setOwnerSearchOpen(false);
+    setOwnerSearchError("");
   }, [open, initialValue]);
 
   // esc + scroll lock
@@ -416,7 +579,37 @@ export default function PropertyUpsertModal({
     if (!open) return;
 
     function onKeyDown(e) {
-      if (e.key === "Escape") onClose?.();
+      if (e.key === "Escape") {
+        if (photoPreviewOpen) {
+          e.preventDefault();
+          e.stopPropagation();
+          if (typeof e.stopImmediatePropagation === "function") {
+            e.stopImmediatePropagation();
+          }
+          setPhotoPreviewOpen(false);
+          return;
+        }
+        onClose?.();
+        return;
+      }
+      if (!photoPreviewOpen) return;
+      if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        if (form.photos.length > 1) {
+          setPhotoPreviewIndex(
+            (prevIndex) =>
+              (prevIndex - 1 + form.photos.length) % form.photos.length,
+          );
+        }
+      }
+      if (e.key === "ArrowRight") {
+        e.preventDefault();
+        if (form.photos.length > 1) {
+          setPhotoPreviewIndex(
+            (prevIndex) => (prevIndex + 1) % form.photos.length,
+          );
+        }
+      }
     }
     window.addEventListener("keydown", onKeyDown);
     const releaseBodyLock = acquireModalBodyLock();
@@ -425,7 +618,7 @@ export default function PropertyUpsertModal({
       window.removeEventListener("keydown", onKeyDown);
       releaseBodyLock();
     };
-  }, [open, onClose]);
+  }, [open, onClose, photoPreviewOpen, form.photos]);
 
   useEffect(() => {
     return () => {
@@ -441,6 +634,10 @@ export default function PropertyUpsertModal({
         clearTimeout(compAddressBlurTimeoutRef.current);
         compAddressBlurTimeoutRef.current = null;
       }
+      if (ownerBlurTimeoutRef.current) {
+        clearTimeout(ownerBlurTimeoutRef.current);
+        ownerBlurTimeoutRef.current = null;
+      }
     };
   }, []);
 
@@ -454,10 +651,83 @@ export default function PropertyUpsertModal({
     photoWheelTargetRef.current = 0;
   }, [open]);
 
+  useEffect(() => {
+    if (!open || isOwnerAssigned || !ownerSearchOpen) return undefined;
+
+    const requestSeq = ownerLookupRequestSeqRef.current + 1;
+    ownerLookupRequestSeqRef.current = requestSeq;
+    const timer = setTimeout(async () => {
+      setOwnerSearching(true);
+      setOwnerSearchError("");
+      try {
+        const query = String(ownerSearchQuery ?? "").trim();
+        const data = await searchAdminSellers(
+          query ? { q: query } : {},
+          { page: 0, size: 8, sort: "createdAt,desc" },
+        );
+        if (ownerLookupRequestSeqRef.current !== requestSeq) return;
+        const results = data?.content ?? [];
+        setOwnerSearchResults(results);
+        if (results.length === 0 && query) {
+          setOwnerSearchError("No sellers matched that query.");
+        }
+      } catch (error) {
+        if (ownerLookupRequestSeqRef.current !== requestSeq) return;
+        setOwnerSearchResults([]);
+        setOwnerSearchError(error?.message || "Failed to search sellers.");
+      } finally {
+        if (ownerLookupRequestSeqRef.current === requestSeq) {
+          setOwnerSearching(false);
+        }
+      }
+    }, 220);
+
+    return () => clearTimeout(timer);
+  }, [open, isOwnerAssigned, ownerSearchOpen, ownerSearchQuery]);
+
+  useEffect(() => {
+    if (!open || !isOwnerAssigned || assignedOwner?.email || assignedOwner?.companyName) return undefined;
+    const sellerId = Number(form.sellerId);
+    if (!Number.isFinite(sellerId)) return undefined;
+    let cancelled = false;
+
+    async function hydrateAssignedOwner() {
+      try {
+        const seller = await getSellerById(sellerId);
+        if (cancelled) return;
+        setAssignedOwner({
+          id: sellerId,
+          displayName: sellerDisplayName(seller),
+          email: seller?.email || "",
+          companyName: seller?.companyName || "",
+        });
+      } catch {
+        // keep fallback label from initial value if fetch fails
+      }
+    }
+    hydrateAssignedOwner();
+    return () => {
+      cancelled = true;
+    };
+  }, [open, isOwnerAssigned, assignedOwner?.email, assignedOwner?.companyName, form.sellerId]);
+
   const titleText = useMemo(
     () => (isEdit ? "Edit Property" : "Add Property"),
     [isEdit],
   );
+  const isOccupied = String(form.occupancyStatus ?? "").trim().toUpperCase() === "YES";
+  const potentialProfit = useMemo(() => {
+    const arv = parseNumericValue(form.arv);
+    const askingPrice = parseNumericValue(form.askingPrice);
+    const estRepairs = parseNumericValue(form.estRepairs);
+    if (arv === null || askingPrice === null || estRepairs === null) return "";
+
+    const value = arv - askingPrice - estRepairs;
+    const abs = Math.abs(value).toLocaleString("en-US", {
+      maximumFractionDigits: 0,
+    });
+    return value < 0 ? `-${abs}` : abs;
+  }, [form.arv, form.askingPrice, form.estRepairs]);
 
   const activeMissingRequiredFields = useMemo(() => {
     const missing = [];
@@ -466,7 +736,7 @@ export default function PropertyUpsertModal({
       ["city", "City"],
       ["state", "State"],
       ["zip", "ZIP / postcode"],
-      ["occupancyStatus", "Occupancy Status"],
+      ["occupancyStatus", "Occupied"],
       ["exitStrategy", "Exit Strategy"],
       ["closingTerms", "Closing Terms"],
     ];
@@ -493,21 +763,53 @@ export default function PropertyUpsertModal({
       }
     });
 
+    if (isOccupied && !String(form.currentRent ?? "").trim()) {
+      missing.push("Current Rent");
+    }
+
     if (normalizePhotos(form.photos).length === 0) {
       missing.push("At least 1 Photo");
     }
 
     return missing;
+  }, [form, isOccupied]);
+
+  const missingAddressFields = useMemo(() => {
+    const missing = [];
+    const requiredAddressFields = [
+      ["street1", "Street Address"],
+      ["city", "City"],
+      ["state", "State"],
+      ["zip", "ZIP / postcode"],
+    ];
+
+    requiredAddressFields.forEach(([key, label]) => {
+      if (!String(form[key] ?? "").trim()) {
+        missing.push(label);
+      }
+    });
+
+    return missing;
   }, [form]);
 
+  const activeMissingRequiredFieldsForMessage = useMemo(
+    () =>
+      activeMissingRequiredFields.filter(
+        (field) => !REQUIRED_ADDRESS_FIELD_LABELS.has(field),
+      ),
+    [activeMissingRequiredFields],
+  );
+
   const isActiveWithMissingRequired =
-    form.status === "ACTIVE" && activeMissingRequiredFields.length > 0;
+    form.status === "ACTIVE" && activeMissingRequiredFieldsForMessage.length > 0;
+  const hasMissingAddressFields = missingAddressFields.length > 0;
 
   const isSubmitDisabled =
-    !form.title.trim() ||
+    hasMissingAddressFields ||
     submitting ||
     deleting ||
     photoUploading ||
+    photoUrlAdding ||
     isActiveWithMissingRequired;
 
   const shouldShowAddressSuggestions =
@@ -527,7 +829,16 @@ export default function PropertyUpsertModal({
       compAddressSuggestHasSearched);
 
   function setField(key, value) {
-    setForm((p) => ({ ...p, [key]: value }));
+    setForm((prev) => {
+      if (key === "occupancyStatus" && value !== "YES") {
+        return { ...prev, occupancyStatus: value, currentRent: "" };
+      }
+      return { ...prev, [key]: value };
+    });
+    if (key === "zip" || key === "beds") {
+      setFmrLookupError("");
+      setFmrFieldErrors((prev) => ({ ...prev, [key]: false }));
+    }
   }
 
   function setPriceField(key, value) {
@@ -540,6 +851,98 @@ export default function PropertyUpsertModal({
 
   function setCompPriceField(key, value) {
     setCompDraft((prev) => ({ ...prev, [key]: formatPriceInput(value) }));
+  }
+
+  async function handleFmrLookup() {
+    const zip = String(form.zip ?? "").trim();
+    const bedsRaw = String(form.beds ?? "").trim();
+    const beds = Number.parseInt(bedsRaw, 10);
+    const zipMissing = !zip;
+    const bedsMissing = !bedsRaw;
+
+    setFmrLookupError("");
+    setFmrFieldErrors({ zip: zipMissing, beds: bedsMissing });
+    if (zipMissing || bedsMissing) {
+      return;
+    }
+    if (!Number.isFinite(beds)) {
+      setFmrFieldErrors({ zip: false, beds: true });
+      setFmrLookupError("Beds must be a valid number.");
+      return;
+    }
+
+    setFmrLookupLoading(true);
+    try {
+      const response = await lookupPropertyFmr(zip, beds);
+      setForm((prev) => ({
+        ...prev,
+        fmr: formatPriceInput(numOrEmpty(response?.fmr)),
+      }));
+    } catch (error) {
+      setFmrLookupError(error?.message || "Failed to fetch FMR.");
+    } finally {
+      setFmrLookupLoading(false);
+    }
+  }
+
+  function clearOwnerBlurTimer() {
+    if (ownerBlurTimeoutRef.current) {
+      clearTimeout(ownerBlurTimeoutRef.current);
+      ownerBlurTimeoutRef.current = null;
+    }
+  }
+
+  function handleOwnerInputFocus() {
+    clearOwnerBlurTimer();
+    setOwnerSearchOpen(true);
+  }
+
+  function handleOwnerInputBlur() {
+    clearOwnerBlurTimer();
+    ownerBlurTimeoutRef.current = setTimeout(() => {
+      setOwnerSearchOpen(false);
+      ownerBlurTimeoutRef.current = null;
+    }, 120);
+  }
+
+  function handleOwnerInputChange(nextValue) {
+    setOwnerSearchQuery(nextValue);
+    setSelectedOwnerCandidate(null);
+    setOwnerSearchError("");
+    setOwnerSearchOpen(true);
+  }
+
+  function pickOwnerCandidate(seller) {
+    clearOwnerBlurTimer();
+    setSelectedOwnerCandidate(seller);
+    setOwnerSearchQuery(sellerDisplayName(seller));
+    setOwnerSearchOpen(false);
+    setOwnerSearchError("");
+  }
+
+  function applySelectedOwner() {
+    if (!selectedOwnerCandidate?.id) return;
+    setField("sellerId", String(selectedOwnerCandidate.id));
+    setAssignedOwner({
+      id: selectedOwnerCandidate.id,
+      displayName: sellerDisplayName(selectedOwnerCandidate),
+      email: selectedOwnerCandidate.email || "",
+      companyName: selectedOwnerCandidate.companyName || "",
+    });
+    setSelectedOwnerCandidate(null);
+    setOwnerSearchResults([]);
+    setOwnerSearchOpen(false);
+    setOwnerSearchError("");
+  }
+
+  function clearOwnerAssignment() {
+    setField("sellerId", "");
+    setAssignedOwner(null);
+    setSelectedOwnerCandidate(null);
+    setOwnerSearchQuery("");
+    setOwnerSearchResults([]);
+    setOwnerSearchOpen(false);
+    setOwnerSearchError("");
   }
 
   function clearCompEditorAddressState() {
@@ -768,8 +1171,18 @@ export default function PropertyUpsertModal({
   }
 
   function openPhotoPicker() {
-    if (submitting || deleting || photoUploading) return;
+    if (submitting || deleting || photoUploading || photoUrlAdding) return;
     photoInputRef.current?.click();
+  }
+
+  function togglePhotoUrlField() {
+    if (submitting || deleting || photoUploading || photoUrlAdding) return;
+    const nextOpen = !photoUrlOpen;
+    setPhotoUrlOpen(nextOpen);
+    if (!nextOpen) {
+      setPhotoUrlInput("");
+      setPhotoUrlFieldError(false);
+    }
   }
 
   function handlePhotoStripWheel(event) {
@@ -819,6 +1232,48 @@ export default function PropertyUpsertModal({
     };
 
     photoWheelRafRef.current = requestAnimationFrame(animate);
+  }
+
+  function openPhotoPreview(index) {
+    const photoCount = Array.isArray(form.photos) ? form.photos.length : 0;
+    if (photoCount === 0) return;
+    const boundedIndex = index >= 0 && index < photoCount ? index : 0;
+    setPhotoPreviewIndex(boundedIndex);
+    setPhotoPreviewOpen(true);
+  }
+
+  function movePreviewPhoto(step) {
+    const photoCount = Array.isArray(form.photos) ? form.photos.length : 0;
+    if (photoCount <= 1) return;
+    setPhotoPreviewIndex((prevIndex) => (prevIndex + step + photoCount) % photoCount);
+  }
+
+  function reorderPhotos(fromIndex, toIndex) {
+    if (!Number.isInteger(fromIndex) || !Number.isInteger(toIndex)) return;
+    if (fromIndex === toIndex) return;
+
+    setForm((prev) => {
+      const photos = Array.isArray(prev.photos) ? [...prev.photos] : [];
+      if (
+        fromIndex < 0 ||
+        toIndex < 0 ||
+        fromIndex >= photos.length ||
+        toIndex >= photos.length
+      ) {
+        return prev;
+      }
+
+      const [movedPhoto] = photos.splice(fromIndex, 1);
+      photos.splice(toIndex, 0, movedPhoto);
+
+      return {
+        ...prev,
+        photos: photos.map((photo, index) => ({
+          ...photo,
+          sortOrder: index,
+        })),
+      };
+    });
   }
 
   async function handlePhotoFileSelection(event) {
@@ -874,9 +1329,71 @@ export default function PropertyUpsertModal({
     }
   }
 
+  async function handlePhotoUrlAdd() {
+    if (submitting || deleting || photoUploading || photoUrlAdding) return;
+
+    if (!onAddPhotoByUrl) {
+      setPhotoUploadError("Photo URL import is not configured.");
+      setPhotoUrlFieldError(true);
+      return;
+    }
+
+    const url = String(photoUrlInput ?? "").trim();
+    if (!url) {
+      setPhotoUploadError("Photo URL is required.");
+      setPhotoUrlFieldError(true);
+      return;
+    }
+
+    setPhotoUrlFieldError(false);
+    setPhotoUploadError("");
+    setPhotoUrlAdding(true);
+
+    try {
+      const uploadedPhoto = await onAddPhotoByUrl(url);
+      const photoAssetId = String(uploadedPhoto?.photoAssetId ?? "").trim();
+      const uploadedUrl = String(uploadedPhoto?.url ?? "").trim();
+      const thumbnailUrl = String(
+        uploadedPhoto?.thumbnailUrl ?? uploadedPhoto?.url ?? "",
+      ).trim();
+
+      if (!photoAssetId || !uploadedUrl) {
+        throw new Error("Photo URL import failed to return a valid photo.");
+      }
+
+      await ensureImageIsReachable(thumbnailUrl || uploadedUrl);
+
+      setForm((prev) => ({
+        ...prev,
+        photos: [
+          ...(prev.photos ?? []),
+          {
+            photoAssetId,
+            uploadId: photoAssetId,
+            url: uploadedUrl,
+            thumbnailUrl: thumbnailUrl || uploadedUrl,
+            caption: null,
+            isExisting: false,
+          },
+        ].map((photo, index) => ({
+          ...photo,
+          sortOrder: index,
+        })),
+      }));
+
+      setPhotoUrlInput("");
+      setPhotoUrlFieldError(false);
+    } catch (error) {
+      setPhotoUploadError(error?.message || "Failed to add photo URL.");
+      setPhotoUrlFieldError(true);
+    } finally {
+      setPhotoUrlAdding(false);
+    }
+  }
+
   function handleSubmit(e) {
     e.preventDefault();
-    if (submitting || photoUploading) return;
+    if (submitting || photoUploading || photoUrlAdding) return;
     onSubmit?.(form);
   }
 
@@ -979,6 +1496,15 @@ export default function PropertyUpsertModal({
 
   if (!open) return null;
 
+  const canNavigatePreview = form.photos.length > 1;
+  const previewPhoto =
+    form.photos[
+      photoPreviewIndex >= 0 && photoPreviewIndex < form.photos.length
+        ? photoPreviewIndex
+        : 0
+    ] ?? null;
+  const saleCompColumnCount = isMobileView ? 3 : 9;
+
   return (
     <div
       className="propModalOverlay"
@@ -1005,17 +1531,6 @@ export default function PropertyUpsertModal({
         </div>
 
         <form className="propModal__body" onSubmit={handleSubmit}>
-          {/* Title */}
-          <div className="propField">
-            <div className="propField__label">Title</div>
-            <input
-              className="propField__input propField__input--title"
-              value={form.title}
-              onChange={(e) => setField("title", e.target.value)}
-              placeholder="House on the Main Street owned by John Doe"
-            />
-          </div>
-
           {/* Address */}
           <div className="propSection">
             <div className="propSection__head">
@@ -1035,6 +1550,7 @@ export default function PropertyUpsertModal({
                     onBlur={handleStreetAddressBlur}
                     placeholder="123 Main St"
                     autoComplete="off"
+                    required
                   />
 
                   {shouldShowAddressSuggestions ? (
@@ -1115,6 +1631,7 @@ export default function PropertyUpsertModal({
                   value={form.city}
                   onChange={(e) => setField("city", e.target.value)}
                   placeholder="Saint Louis"
+                  required
                 />
               </div>
 
@@ -1124,6 +1641,7 @@ export default function PropertyUpsertModal({
                   className="propField__input"
                   value={form.state}
                   onChange={(e) => setField("state", e.target.value)}
+                  required
                 >
                   {US_STATE_OPTIONS.map((option) => (
                     <option key={option.value || "empty"} value={option.value}>
@@ -1136,11 +1654,126 @@ export default function PropertyUpsertModal({
               <div className="propField propField--addressZip">
                 <div className="propField__label">ZIP / postcode</div>
                 <input
-                  className="propField__input"
+                  className={`propField__input ${fmrFieldErrors.zip ? "propField__input--error" : ""}`}
                   value={form.zip}
                   onChange={(e) => setField("zip", e.target.value)}
                   placeholder="63128"
+                  required
                 />
+              </div>
+            </div>
+          </div>
+
+          {/* Property info */}
+          <div className="propSection">
+            <div className="propSection__head">
+              <div className="propSection__title">Property Information</div>
+            </div>
+
+            <div className="propGrid propGrid--3">
+              <div className="propField">
+                <div className="propField__label">Beds</div>
+                <input
+                  className={`propField__input ${fmrFieldErrors.beds ? "propField__input--error" : ""}`}
+                  value={form.beds}
+                  onChange={(e) => setField("beds", e.target.value)}
+                  inputMode="numeric"
+                />
+              </div>
+
+              <div className="propField">
+                <div className="propField__label">Baths</div>
+                <input
+                  className="propField__input"
+                  value={form.baths}
+                  onChange={(e) => setField("baths", e.target.value)}
+                  inputMode="decimal"
+                />
+              </div>
+
+              <div className="propField">
+                <div className="propField__label">Living Area (sqft)</div>
+                <input
+                  className="propField__input"
+                  value={form.livingAreaSqft}
+                  onChange={(e) => setField("livingAreaSqft", e.target.value)}
+                  inputMode="numeric"
+                />
+              </div>
+
+              <div className="propField">
+                <div className="propField__label">Year Built</div>
+                <input
+                  className="propField__input"
+                  value={form.yearBuilt}
+                  onChange={(e) => setField("yearBuilt", e.target.value)}
+                  inputMode="numeric"
+                />
+              </div>
+
+              <div className="propField">
+                <div className="propField__label">Roof Age</div>
+                <input
+                  className="propField__input"
+                  value={form.roofAge}
+                  onChange={(e) => setField("roofAge", e.target.value)}
+                  inputMode="numeric"
+                />
+              </div>
+
+              <div className="propField">
+                <div className="propField__label">HVAC</div>
+                <input
+                  className="propField__input"
+                  value={form.hvac}
+                  onChange={(e) => setField("hvac", e.target.value)}
+                  inputMode="numeric"
+                />
+              </div>
+
+              <div className="propField propField--propOccupied">
+                <div className="propField__label">Occupied</div>
+                <select
+                  className="propField__input"
+                  value={form.occupancyStatus}
+                  onChange={(e) => setField("occupancyStatus", e.target.value)}
+                >
+                  {OCCUPANCY.map((o) => (
+                    <option key={o.label} value={o.value}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="propField propField--propExit">
+                <div className="propField__label">Exit Strategy</div>
+                <select
+                  className="propField__input"
+                  value={form.exitStrategy}
+                  onChange={(e) => setField("exitStrategy", e.target.value)}
+                >
+                  {EXIT.map((o) => (
+                    <option key={o.label} value={o.value}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+            </div>
+
+              <div className="propField propField--propClosingTerms">
+                <div className="propField__label">Closing Terms</div>
+                <select
+                  className="propField__input"
+                  value={form.closingTerms}
+                  onChange={(e) => setField("closingTerms", e.target.value)}
+                >
+                  {CLOSING_TERMS.map((o) => (
+                    <option key={o.label} value={o.value}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
           </div>
@@ -1200,127 +1833,55 @@ export default function PropertyUpsertModal({
                 <div className="propField__moneyWrap">
                   <span className="propField__moneyPrefix">$</span>
                   <input
-                    className="propField__input propField__input--money"
+                    className="propField__input propField__input--money propField__input--withInlineBtn"
                     value={form.fmr}
                     readOnly
                     placeholder="Auto after save"
                   />
+                  <button
+                    type="button"
+                    className="propField__inlineBtn"
+                    onClick={handleFmrLookup}
+                    disabled={fmrLookupLoading}
+                    aria-label="Set FMR"
+                    title="Set FMR"
+                  >
+                    <span className="material-symbols-outlined">
+                      {fmrLookupLoading ? "progress_activity" : "auto_fix_high"}
+                    </span>
+                  </button>
                 </div>
                 <div className="propField__help">Auto from ZIP + beds</div>
-              </div>
-            </div>
-          </div>
-
-          {/* Property info */}
-          <div className="propSection">
-            <div className="propSection__head">
-              <div className="propSection__title">Property Information</div>
-            </div>
-
-            <div className="propGrid propGrid--3">
-              <div className="propField">
-                <div className="propField__label">Beds</div>
-                <input
-                  className="propField__input"
-                  value={form.beds}
-                  onChange={(e) => setField("beds", e.target.value)}
-                  inputMode="numeric"
-                />
+                {fmrLookupError ? (
+                  <div className="propField__help propField__help--error">{fmrLookupError}</div>
+                ) : null}
               </div>
 
               <div className="propField">
-                <div className="propField__label">Baths</div>
-                <input
-                  className="propField__input"
-                  value={form.baths}
-                  onChange={(e) => setField("baths", e.target.value)}
-                  inputMode="decimal"
-                />
+                <div className="propField__label">Current Rent (Monthly)</div>
+                <div className="propField__moneyWrap">
+                  <span className="propField__moneyPrefix">$</span>
+                  <input
+                    className="propField__input propField__input--money"
+                    value={form.currentRent}
+                    onChange={(e) => setPriceField("currentRent", e.target.value)}
+                    inputMode="numeric"
+                    disabled={!isOccupied}
+                  />
+                </div>
               </div>
 
               <div className="propField">
-                <div className="propField__label">Living Area (sqft)</div>
-                <input
-                  className="propField__input"
-                  value={form.livingAreaSqft}
-                  onChange={(e) => setField("livingAreaSqft", e.target.value)}
-                  inputMode="numeric"
-                />
-              </div>
-
-              <div className="propField">
-                <div className="propField__label">Year Built</div>
-                <input
-                  className="propField__input"
-                  value={form.yearBuilt}
-                  onChange={(e) => setField("yearBuilt", e.target.value)}
-                  inputMode="numeric"
-                />
-              </div>
-
-              <div className="propField">
-                <div className="propField__label">Roof Age</div>
-                <input
-                  className="propField__input"
-                  value={form.roofAge}
-                  onChange={(e) => setField("roofAge", e.target.value)}
-                  inputMode="numeric"
-                />
-              </div>
-
-              <div className="propField">
-                <div className="propField__label">HVAC</div>
-                <input
-                  className="propField__input"
-                  value={form.hvac}
-                  onChange={(e) => setField("hvac", e.target.value)}
-                  inputMode="numeric"
-                />
-              </div>
-
-              <div className="propField">
-                <div className="propField__label">Occupancy Status</div>
-                <select
-                  className="propField__input"
-                  value={form.occupancyStatus}
-                  onChange={(e) => setField("occupancyStatus", e.target.value)}
-                >
-                  {OCCUPANCY.map((o) => (
-                    <option key={o.label} value={o.value}>
-                      {o.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="propField">
-                <div className="propField__label">Exit Strategy</div>
-                <select
-                  className="propField__input"
-                  value={form.exitStrategy}
-                  onChange={(e) => setField("exitStrategy", e.target.value)}
-                >
-                  {EXIT.map((o) => (
-                    <option key={o.label} value={o.value}>
-                      {o.label}
-                    </option>
-                  ))}
-                </select>
-            </div>
-
-              <div className="propField">
-                <div className="propField__label">Closing Terms</div>
-                <select
-                  className="propField__input"
-                  value={form.closingTerms}
-                  onChange={(e) => setField("closingTerms", e.target.value)}
-                >
-                  {CLOSING_TERMS.map((o) => (
-                    <option key={o.label} value={o.value}>
-                      {o.label}
-                    </option>
-                  ))}
-                </select>
+                <div className="propField__label">Potential Profit</div>
+                <div className="propField__moneyWrap">
+                  <span className="propField__moneyPrefix">$</span>
+                  <input
+                    className="propField__input propField__input--money propField__input--profit"
+                    value={potentialProfit}
+                    readOnly
+                    placeholder="Auto from ARV - Asking - Repairs"
+                  />
+                </div>
               </div>
             </div>
           </div>
@@ -1329,14 +1890,24 @@ export default function PropertyUpsertModal({
           <div className="propSection">
             <div className="propSection__head propSection__head--row">
               <div className="propSection__title">Photos</div>
-              <button
-                type="button"
-                className="propLinkBtn"
-                onClick={openPhotoPicker}
-                disabled={submitting || deleting || photoUploading}
-              >
-                {photoUploading ? "Uploading..." : "Upload Photo +"}
-              </button>
+              <div className="propSection__headActions">
+                <button
+                  type="button"
+                  className="propLinkBtn"
+                  onClick={togglePhotoUrlField}
+                  disabled={submitting || deleting || photoUploading || photoUrlAdding}
+                >
+                  {photoUrlOpen ? "Hide URL" : "Add by URL"}
+                </button>
+                <button
+                  type="button"
+                  className="propLinkBtn"
+                  onClick={openPhotoPicker}
+                  disabled={submitting || deleting || photoUploading || photoUrlAdding}
+                >
+                  {photoUploading ? "Uploading..." : "Upload Photo +"}
+                </button>
+              </div>
             </div>
             <input
               ref={photoInputRef}
@@ -1346,6 +1917,43 @@ export default function PropertyUpsertModal({
               multiple
               onChange={handlePhotoFileSelection}
             />
+
+            {photoUrlOpen ? (
+              <div className="propPhotoUrlRow">
+                <input
+                  ref={photoUrlInputRef}
+                  className={`propField__input propPhotoUrlInput ${
+                    photoUrlFieldError ? "propField__input--error" : ""
+                  }`}
+                  type="url"
+                  value={photoUrlInput}
+                  onChange={(event) => {
+                    setPhotoUrlInput(event.target.value);
+                    if (photoUrlFieldError) {
+                      setPhotoUrlFieldError(false);
+                    }
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      event.preventDefault();
+                      handlePhotoUrlAdd();
+                    }
+                  }}
+                  placeholder="https://example.com/photo.jpg"
+                  inputMode="url"
+                  autoComplete="off"
+                  disabled={submitting || deleting || photoUploading || photoUrlAdding}
+                />
+                <button
+                  type="button"
+                  className="propPhotoUrlBtn"
+                  onClick={handlePhotoUrlAdd}
+                  disabled={submitting || deleting || photoUploading || photoUrlAdding}
+                >
+                  {photoUrlAdding ? "Adding..." : "Add URL"}
+                </button>
+              </div>
+            ) : null}
 
             {form.photos.length === 0 ? (
               <div className="propPhotos__empty">
@@ -1358,18 +1966,62 @@ export default function PropertyUpsertModal({
                   onWheel={handlePhotoStripWheel}
                 >
                   {form.photos.map((photo, index) => (
-                    <div key={`photo-${photo.photoAssetId || index}`} className="propPhotoCard">
-                      <img
-                        className="propPhotoCard__image"
-                        src={photo.thumbnailUrl || photo.url}
-                        alt={`Property photo ${index + 1}`}
-                        loading="lazy"
-                      />
+                    <div
+                      key={`photo-${photo.photoAssetId || index}`}
+                      className={`propPhotoCard ${
+                        draggedPhotoIndex === index ? "propPhotoCard--dragging" : ""
+                      } ${photoDropTargetIndex === index ? "propPhotoCard--dropTarget" : ""}`}
+                      draggable
+                      onDragStart={(event) => {
+                        setDraggedPhotoIndex(index);
+                        setPhotoDropTargetIndex(index);
+                        event.dataTransfer.effectAllowed = "move";
+                        event.dataTransfer.setData("text/plain", String(index));
+                      }}
+                      onDragOver={(event) => {
+                        event.preventDefault();
+                        if (photoDropTargetIndex !== index) {
+                          setPhotoDropTargetIndex(index);
+                        }
+                        event.dataTransfer.dropEffect = "move";
+                      }}
+                      onDrop={(event) => {
+                        event.preventDefault();
+                        const fallbackIndex = Number.parseInt(
+                          event.dataTransfer.getData("text/plain"),
+                          10,
+                        );
+                        const fromIndex =
+                          Number.isInteger(draggedPhotoIndex)
+                            ? draggedPhotoIndex
+                            : fallbackIndex;
+                        reorderPhotos(fromIndex, index);
+                        setDraggedPhotoIndex(null);
+                        setPhotoDropTargetIndex(null);
+                      }}
+                      onDragEnd={() => {
+                        setDraggedPhotoIndex(null);
+                        setPhotoDropTargetIndex(null);
+                      }}
+                    >
+                      <button
+                        type="button"
+                        className="propPhotoCard__imageBtn"
+                        onClick={() => openPhotoPreview(index)}
+                        aria-label={`View full size photo ${index + 1}`}
+                      >
+                        <img
+                          className="propPhotoCard__image"
+                          src={photo.thumbnailUrl || photo.url}
+                          alt={`Property photo ${index + 1}`}
+                          loading="lazy"
+                        />
+                      </button>
                       <button
                         type="button"
                         className="propPhotoCard__remove"
                         onClick={() => removePhoto(index)}
-                        disabled={photoUploading || submitting || deleting}
+                        disabled={photoUploading || photoUrlAdding || submitting || deleting}
                       >
                         Remove
                       </button>
@@ -1587,79 +2239,222 @@ export default function PropertyUpsertModal({
 
             <div className="propCompsTableWrap">
               <table className="propCompsTable">
-                <colgroup>
-                  <col style={{ width: "28%" }} />
-                  <col style={{ width: "12%" }} />
-                  <col style={{ width: "12%" }} />
-                  <col style={{ width: "11%" }} />
-                  <col style={{ width: "10%" }} />
-                  <col style={{ width: "7%" }} />
-                  <col style={{ width: "7%" }} />
-                  <col style={{ width: "9%" }} />
-                  <col style={{ width: "4%" }} />
-                </colgroup>
+                {isMobileView ? (
+                  <colgroup>
+                    <col style={{ width: "52%" }} />
+                    <col style={{ width: "24%" }} />
+                    <col style={{ width: "24%" }} />
+                  </colgroup>
+                ) : (
+                  <colgroup>
+                    <col style={{ width: "28%" }} />
+                    <col style={{ width: "12%" }} />
+                    <col style={{ width: "12%" }} />
+                    <col style={{ width: "11%" }} />
+                    <col style={{ width: "10%" }} />
+                    <col style={{ width: "7%" }} />
+                    <col style={{ width: "7%" }} />
+                    <col style={{ width: "9%" }} />
+                    <col style={{ width: "4%" }} />
+                  </colgroup>
+                )}
                 <thead>
                   <tr>
-                    <th>Address</th>
-                    <th>Sold Date</th>
-                    <th className="tRight">Price</th>
-                    <th className="tRight">Price/ft²</th>
-                    <th className="tRight">Distance</th>
-                    <th className="tRight">Bed</th>
-                    <th className="tRight">Bath</th>
-                    <th className="tRight">Sq Ft</th>
-                    <th className="tIcon"></th>
+                    {isMobileView ? (
+                      <>
+                        <th>Address</th>
+                        <th>Sold Date</th>
+                        <th className="tRight">Price</th>
+                      </>
+                    ) : (
+                      <>
+                        <th>Address</th>
+                        <th>Sold Date</th>
+                        <th className="tRight">Price</th>
+                        <th className="tRight">Price/ft²</th>
+                        <th className="tRight">Distance</th>
+                        <th className="tRight">Bed</th>
+                        <th className="tRight">Bath</th>
+                        <th className="tRight">Sq Ft</th>
+                        <th className="tIcon"></th>
+                      </>
+                    )}
                   </tr>
                 </thead>
                 <tbody>
                   {(form.saleComps ?? []).length === 0 ? (
                     <tr>
-                      <td colSpan={9} className="propCompsEmpty">
+                      <td colSpan={saleCompColumnCount} className="propCompsEmpty">
                         No comps added yet.
                       </td>
                     </tr>
                   ) : (
                     (form.saleComps ?? []).map((comp, idx) => (
                       <tr key={`comp-row-${comp.id ?? idx}`}>
-                        <td className="propCompsTable__address">
-                          {String(comp.address ?? "").trim() || "—"}
-                        </td>
-                        <td className="tNowrap">{formatCompDate(comp.soldDate)}</td>
-                        <td className="tRight tNowrap">
-                          {formatCompMoney(comp.soldPrice)}
-                        </td>
-                        <td className="tRight tNowrap">
-                          {formatCompPricePerSqft(comp)}
-                        </td>
-                        <td className="tRight tNowrap">
-                          {formatCompDistance(comp.distanceMiles)}
-                        </td>
-                        <td className="tRight tNowrap">
-                          {formatCompBeds(comp.beds)}
-                        </td>
-                        <td className="tRight tNowrap">
-                          {formatCompBaths(comp.baths)}
-                        </td>
-                        <td className="tRight tNowrap">
-                          {formatCompSqft(comp.livingAreaSqft)}
-                        </td>
-                        <td className="tIcon">
-                          <button
-                            type="button"
-                            className="propCompsTable__removeBtn"
-                            onClick={() => removeSaleComp(idx)}
-                            aria-label={`Remove comp ${idx + 1}`}
-                            disabled={submitting || deleting || photoUploading}
-                          >
-                            ✕
-                          </button>
-                        </td>
+                        {isMobileView ? (
+                          <>
+                            <td className="propCompsTable__address">
+                              <div className="propCompsTable__addressRow">
+                                <span>{String(comp.address ?? "").trim() || "—"}</span>
+                                <button
+                                  type="button"
+                                  className="propCompsTable__removeBtn propCompsTable__removeBtn--inline"
+                                  onClick={() => removeSaleComp(idx)}
+                                  aria-label={`Remove comp ${idx + 1}`}
+                                  disabled={submitting || deleting || photoUploading}
+                                >
+                                  ✕
+                                </button>
+                              </div>
+                            </td>
+                            <td className="tNowrap">{formatCompDate(comp.soldDate)}</td>
+                            <td className="tRight tNowrap">{formatCompMoney(comp.soldPrice)}</td>
+                          </>
+                        ) : (
+                          <>
+                            <td className="propCompsTable__address">
+                              {String(comp.address ?? "").trim() || "—"}
+                            </td>
+                            <td className="tNowrap">{formatCompDate(comp.soldDate)}</td>
+                            <td className="tRight tNowrap">
+                              {formatCompMoney(comp.soldPrice)}
+                            </td>
+                            <td className="tRight tNowrap">
+                              {formatCompPricePerSqft(comp)}
+                            </td>
+                            <td className="tRight tNowrap">
+                              {formatCompDistance(comp.distanceMiles)}
+                            </td>
+                            <td className="tRight tNowrap">
+                              {formatCompBeds(comp.beds)}
+                            </td>
+                            <td className="tRight tNowrap">
+                              {formatCompBaths(comp.baths)}
+                            </td>
+                            <td className="tRight tNowrap">
+                              {formatCompSqft(comp.livingAreaSqft)}
+                            </td>
+                            <td className="tIcon">
+                              <button
+                                type="button"
+                                className="propCompsTable__removeBtn"
+                                onClick={() => removeSaleComp(idx)}
+                                aria-label={`Remove comp ${idx + 1}`}
+                                disabled={submitting || deleting || photoUploading}
+                              >
+                                ✕
+                              </button>
+                            </td>
+                          </>
+                        )}
                       </tr>
                     ))
                   )}
                 </tbody>
               </table>
             </div>
+          </div>
+
+          {/* Seller Owner */}
+          <div className="propSection">
+            <div className="propSection__head">
+              <div className="propSection__title">Seller Owner</div>
+            </div>
+
+            {!isOwnerAssigned ? (
+              <div className="propOwnerSection">
+                <div className="propOwnerRow">
+                  <div className="propOwnerAutocomplete">
+                    <input
+                      className="propField__input propOwnerInput"
+                      value={ownerSearchQuery}
+                      onChange={(event) => handleOwnerInputChange(event.target.value)}
+                      onFocus={handleOwnerInputFocus}
+                      onBlur={handleOwnerInputBlur}
+                      placeholder="Search seller by name or email"
+                      name="seller_owner_lookup"
+                      autoComplete="new-password"
+                      autoCorrect="off"
+                      autoCapitalize="none"
+                      spellCheck={false}
+                      disabled={submitting || deleting}
+                    />
+
+                    {ownerSearchOpen ? (
+                      <div className="propAddressSuggest" role="listbox">
+                        {ownerSearching ? (
+                          <div className="propAddressSuggest__status">
+                            Searching sellers...
+                          </div>
+                        ) : null}
+
+                        {!ownerSearching && ownerSearchError ? (
+                          <div className="propAddressSuggest__status propAddressSuggest__status--error">
+                            {ownerSearchError}
+                          </div>
+                        ) : null}
+
+                        {!ownerSearching &&
+                        !ownerSearchError &&
+                        ownerSearchResults.length === 0 ? (
+                          <div className="propAddressSuggest__status">
+                            No sellers found.
+                          </div>
+                        ) : null}
+
+                        {!ownerSearching && !ownerSearchError
+                          ? ownerSearchResults.map((seller) => (
+                              <button
+                                key={`owner-option-${seller.id}`}
+                                type="button"
+                                className="propAddressSuggest__item"
+                                onMouseDown={(event) => {
+                                  event.preventDefault();
+                                  pickOwnerCandidate(seller);
+                                }}
+                              >
+                                <span className="propAddressSuggest__title">
+                                  {sellerDisplayName(seller)}
+                                </span>
+                                <span className="propAddressSuggest__meta">
+                                  {[seller.email, seller.companyName]
+                                    .filter(Boolean)
+                                    .join(" • ") || "—"}
+                                </span>
+                              </button>
+                            ))
+                          : null}
+                      </div>
+                    ) : null}
+                  </div>
+
+                  <button
+                    type="button"
+                    className="propBtn propBtn--primary propOwnerActionBtn"
+                    onClick={applySelectedOwner}
+                    disabled={submitting || deleting || !selectedOwnerCandidate}
+                  >
+                    Assign
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="propOwnerAssigned">
+                <div className="propField__input propOwnerDisplayField">
+                  <span>{assignedOwner?.displayName || `Seller #${form.sellerId}`}</span>
+                  <span>{assignedOwner?.email || "—"}</span>
+                  <span>{assignedOwner?.companyName || "—"}</span>
+                </div>
+                <button
+                  type="button"
+                  className="propBtn propOwnerActionBtn"
+                  onClick={clearOwnerAssignment}
+                  disabled={submitting || deleting}
+                >
+                  Unassign
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Status */}
@@ -1673,7 +2468,7 @@ export default function PropertyUpsertModal({
                 <button
                   key={s.value}
                   type="button"
-                  className={`propStatus__btn ${form.status === s.value ? "propStatus__btn--active" : ""}`}
+                  className={`propStatus__btn propStatus__btn--status-${String(s.value).toLowerCase()} ${form.status === s.value ? "propStatus__btn--selected" : ""}`}
                   onClick={() => setField("status", s.value)}
                 >
                   {s.label}
@@ -1683,9 +2478,14 @@ export default function PropertyUpsertModal({
           </div>
 
           {/* errors */}
+          {hasMissingAddressFields ? (
+            <div className="propModal__error">
+              Address fields are required. Missing: {missingAddressFields.join(", ")}
+            </div>
+          ) : null}
           {isActiveWithMissingRequired ? (
             <div className="propModal__error">
-              Active properties require all required fields. Missing: {activeMissingRequiredFields.join(", ")}
+              Active properties require all required fields. Missing: {activeMissingRequiredFieldsForMessage.join(", ")}
             </div>
           ) : null}
           {submitError ? (
@@ -1773,6 +2573,55 @@ export default function PropertyUpsertModal({
           </div>
         </form>
       </div>
+
+      {photoPreviewOpen && previewPhoto?.url ? (
+        <div
+          className="propPhotoPreview"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Full size property photo"
+          onMouseDown={(event) => {
+            event.stopPropagation();
+            if (event.target === event.currentTarget) setPhotoPreviewOpen(false);
+          }}
+        >
+          {canNavigatePreview ? (
+            <button
+              type="button"
+              className="propPhotoPreview__nav propPhotoPreview__nav--prev"
+              aria-label="Previous photo"
+              onClick={() => movePreviewPhoto(-1)}
+            >
+              ‹
+            </button>
+          ) : null}
+
+          <button
+            type="button"
+            className="propPhotoPreview__close"
+            aria-label="Close full size photo"
+            onClick={() => setPhotoPreviewOpen(false)}
+          >
+            ✕
+          </button>
+          <img
+            src={previewPhoto.url}
+            alt={`Property photo ${photoPreviewIndex + 1}`}
+            className="propPhotoPreview__image"
+          />
+
+          {canNavigatePreview ? (
+            <button
+              type="button"
+              className="propPhotoPreview__nav propPhotoPreview__nav--next"
+              aria-label="Next photo"
+              onClick={() => movePreviewPhoto(1)}
+            >
+              ›
+            </button>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   );
 }

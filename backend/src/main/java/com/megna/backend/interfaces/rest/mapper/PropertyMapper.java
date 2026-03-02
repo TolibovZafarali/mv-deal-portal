@@ -9,7 +9,11 @@ import com.megna.backend.domain.entity.PropertyPhoto;
 import com.megna.backend.domain.entity.PropertySaleComp;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 public final class PropertyMapper {
 
@@ -29,8 +33,6 @@ public final class PropertyMapper {
         return new PropertyResponseDto(
                 entity.getId(),
                 entity.getStatus(),
-                entity.getTitle(),
-
                 entity.getStreet1(),
                 entity.getStreet2(),
                 entity.getCity(),
@@ -52,6 +54,7 @@ public final class PropertyMapper {
                 entity.getHvac(),
 
                 entity.getOccupancyStatus(),
+                entity.getCurrentRent(),
                 entity.getExitStrategy(),
                 entity.getClosingTerms(),
 
@@ -92,7 +95,6 @@ public final class PropertyMapper {
         if (dto == null || entity == null) return;
 
         entity.setStatus(dto.status());
-        entity.setTitle(dto.title());
 
         entity.setStreet1(dto.street1());
         entity.setStreet2(dto.street2());
@@ -112,17 +114,57 @@ public final class PropertyMapper {
         entity.setHvac(dto.hvac());
 
         entity.setOccupancyStatus(dto.occupancyStatus());
+        entity.setCurrentRent(dto.currentRent());
         entity.setExitStrategy(dto.exitStrategy());
         entity.setClosingTerms(dto.closingTerms());
 
         if (dto.photos() != null) {
-            if (entity.getPhotos() == null) entity.setPhotos(new ArrayList<>());
-            else entity.getPhotos().clear();
-
-            for (var photoDto : dto.photos()) {
-                PropertyPhoto photo = PropertyPhotoMapper.toEntity(photoDto, entity);
-                if (photo != null) entity.getPhotos().add(photo);
+            if (entity.getPhotos() == null) {
+                entity.setPhotos(new ArrayList<>());
             }
+
+            List<PropertyPhoto> existingPhotos = entity.getPhotos();
+            Map<String, PropertyPhoto> existingByAssetId = existingPhotos.stream()
+                    .filter(photo -> photo != null && photo.getPhotoAssetId() != null)
+                    .collect(Collectors.toMap(
+                            PropertyPhoto::getPhotoAssetId,
+                            photo -> photo,
+                            (left, right) -> left,
+                            LinkedHashMap::new
+                    ));
+
+            List<PropertyPhoto> nextPhotos = new ArrayList<>();
+            Set<String> keepAssetIds = dto.photos().stream()
+                    .map(photoDto -> photoDto.photoAssetId())
+                    .collect(Collectors.toSet());
+
+            // Remove photos that are no longer present in the payload.
+            existingPhotos.removeIf(photo ->
+                    photo == null
+                            || photo.getPhotoAssetId() == null
+                            || !keepAssetIds.contains(photo.getPhotoAssetId())
+            );
+
+            for (int idx = 0; idx < dto.photos().size(); idx++) {
+                var photoDto = dto.photos().get(idx);
+                String assetId = photoDto.photoAssetId();
+
+                PropertyPhoto photo = existingByAssetId.get(assetId);
+                if (photo == null) {
+                    photo = PropertyPhotoMapper.toEntity(photoDto, entity);
+                    if (photo == null) continue;
+                    existingPhotos.add(photo);
+                }
+
+                photo.setProperty(entity);
+                photo.setPhotoAssetId(assetId);
+                photo.setSortOrder(photoDto.sortOrder() != null ? photoDto.sortOrder() : idx);
+                photo.setCaption(photoDto.caption());
+                nextPhotos.add(photo);
+            }
+
+            existingPhotos.clear();
+            existingPhotos.addAll(nextPhotos);
         }
 
         if (dto.saleComps() != null) {

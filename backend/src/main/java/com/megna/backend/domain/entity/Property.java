@@ -31,9 +31,6 @@ public class Property {
     @Column(name = "status", nullable = false, length = 20)
     private PropertyStatus status;
 
-    @Column(name = "title", nullable = false, length = 120)
-    private String title;
-
     @Column(name = "street_1", length = 120)
     private String street1;
 
@@ -88,6 +85,9 @@ public class Property {
     @Enumerated(EnumType.STRING)
     @Column(name = "occupancy_status", length = 20)
     private OccupancyStatus occupancyStatus;
+
+    @Column(name = "current_rent", precision = 12, scale = 2)
+    private BigDecimal currentRent;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "exit_strategy", length = 20)

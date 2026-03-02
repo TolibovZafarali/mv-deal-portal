@@ -13,8 +13,6 @@ import java.util.List;
 public record PropertyResponseDto(
         Long id,
         PropertyStatus status,
-        String title,
-
         String street1,
         String street2,
         String city,
@@ -36,6 +34,7 @@ public record PropertyResponseDto(
         Integer hvac,
 
         OccupancyStatus occupancyStatus,
+        BigDecimal currentRent,
         ExitStrategy exitStrategy,
         ClosingTerms closingTerms,
 

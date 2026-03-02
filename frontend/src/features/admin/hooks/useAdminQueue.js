@@ -20,7 +20,6 @@ function formatPropertyTitle(property) {
   const line2 = [property?.city, property?.state, property?.zip].filter(Boolean).join(", ");
   const joined = [line1, line2].filter(Boolean).join(" ");
   if (joined) return joined;
-  if (property?.title) return property.title;
   return `Property #${property?.id ?? "—"}`;
 }
 
@@ -35,7 +34,7 @@ function toQueueItems({ submittedListings, openChangeRequests, pendingInvestors 
     type: "SUBMITTED_LISTING",
     entityId: property.id,
     title: formatPropertyTitle(property),
-    subtitle: property?.title || "Listing submitted by seller",
+    subtitle: "Listing submitted by seller",
     createdAt: property?.submittedAt || property?.updatedAt || property?.createdAt || null,
     priority: 1,
     primaryAction: "Review listing",
@@ -134,6 +133,7 @@ function toSectionsFromQueueItems(items) {
 
 export default function useAdminQueue({ includeItems = true, pageSize = DEFAULT_QUEUE_PAGE_SIZE } = {}) {
   const [counts, setCounts] = useState({
+    draftProperties: 0,
     submittedProperties: 0,
     openChangeRequests: 0,
     pendingInvestors: 0,
@@ -174,10 +174,25 @@ export default function useAdminQueue({ includeItems = true, pageSize = DEFAULT_
 
       if (!includeItems) {
         try {
-          const summary = await getAdminQueueSummary();
+          const [summary, draftByStatusPage, draftByWorkflowPage] = await Promise.all([
+            getAdminQueueSummary(),
+            searchProperties(
+              { status: "DRAFT" },
+              { page: 0, size: 1, sort: "updatedAt,desc" },
+            ),
+            searchProperties(
+              { sellerWorkflowStatus: "DRAFT" },
+              { page: 0, size: 1, sort: "updatedAt,desc" },
+            ),
+          ]);
           if (!alive) return;
 
           const nextCounts = {
+            draftProperties: Math.max(
+              summary?.draftProperties ?? 0,
+              draftByStatusPage?.totalElements ?? 0,
+              draftByWorkflowPage?.totalElements ?? 0,
+            ),
             submittedProperties: summary?.submittedProperties ?? 0,
             openChangeRequests: summary?.openChangeRequests ?? 0,
             pendingInvestors: summary?.pendingInvestors ?? 0,
@@ -204,14 +219,27 @@ export default function useAdminQueue({ includeItems = true, pageSize = DEFAULT_
 
       if (includeItems) {
         try {
-          const [summary, items] = await Promise.all([
+          const [summary, items, draftByStatusPage, draftByWorkflowPage] = await Promise.all([
             getAdminQueueSummary(),
             getAdminQueueItems({}, { page: 0, size: pageSize, sort: "createdAt,asc" }),
+            searchProperties(
+              { status: "DRAFT" },
+              { page: 0, size: 1, sort: "updatedAt,desc" },
+            ),
+            searchProperties(
+              { sellerWorkflowStatus: "DRAFT" },
+              { page: 0, size: 1, sort: "updatedAt,desc" },
+            ),
           ]);
 
           if (!alive) return;
 
           const nextCounts = {
+            draftProperties: Math.max(
+              summary?.draftProperties ?? 0,
+              draftByStatusPage?.totalElements ?? 0,
+              draftByWorkflowPage?.totalElements ?? 0,
+            ),
             submittedProperties: summary?.submittedProperties ?? 0,
             openChangeRequests: summary?.openChangeRequests ?? 0,
             pendingInvestors: summary?.pendingInvestors ?? 0,
@@ -233,7 +261,15 @@ export default function useAdminQueue({ includeItems = true, pageSize = DEFAULT_
         }
       }
 
-      const [submittedRes, changeReqRes, pendingRes] = await Promise.allSettled([
+      const [draftByStatusRes, draftByWorkflowRes, submittedRes, changeReqRes, pendingRes] = await Promise.allSettled([
+        searchProperties(
+          { status: "DRAFT" },
+          { page: 0, size: 1, sort: "updatedAt,desc" },
+        ),
+        searchProperties(
+          { sellerWorkflowStatus: "DRAFT" },
+          { page: 0, size: 1, sort: "updatedAt,desc" },
+        ),
         searchProperties(
           { sellerWorkflowStatus: "SUBMITTED" },
           { page: 0, size: includeItems ? pageSize : 1, sort: "submittedAt,asc" },
@@ -252,6 +288,13 @@ export default function useAdminQueue({ includeItems = true, pageSize = DEFAULT_
 
       const nextPartialErrors = [];
 
+      const draftByStatusData = draftByStatusRes.status === "fulfilled" ? draftByStatusRes.value : null;
+      const draftByWorkflowData = draftByWorkflowRes.status === "fulfilled" ? draftByWorkflowRes.value : null;
+      const bothDraftCallsFailed = draftByStatusRes.status === "rejected" && draftByWorkflowRes.status === "rejected";
+      if (bothDraftCallsFailed) {
+        nextPartialErrors.push("Draft properties are temporarily unavailable.");
+      }
+
       const submittedData = submittedRes.status === "fulfilled" ? submittedRes.value : null;
       if (submittedRes.status === "rejected") {
         nextPartialErrors.push("Submitted listings are temporarily unavailable.");
@@ -268,6 +311,10 @@ export default function useAdminQueue({ includeItems = true, pageSize = DEFAULT_
       }
 
       const nextCounts = {
+        draftProperties: Math.max(
+          draftByStatusData?.totalElements ?? 0,
+          draftByWorkflowData?.totalElements ?? 0,
+        ),
         submittedProperties: submittedData?.totalElements ?? 0,
         openChangeRequests: changeReqData?.totalElements ?? 0,
         pendingInvestors: pendingData?.totalElements ?? 0,
@@ -284,7 +331,7 @@ export default function useAdminQueue({ includeItems = true, pageSize = DEFAULT_
 
       setPartialErrors(nextPartialErrors);
 
-      const allFailed = nextPartialErrors.length === 3;
+      const allFailed = nextPartialErrors.length === 4;
       if (allFailed) {
         setError("Unable to load admin queue right now.");
         trackAdminEvent("admin.queue.load.error", { includeItems, failures: nextPartialErrors.length });
@@ -303,7 +350,7 @@ export default function useAdminQueue({ includeItems = true, pageSize = DEFAULT_
       if (!alive) return;
       setError("Unable to load admin queue right now.");
       setLoading(false);
-      trackAdminEvent("admin.queue.load.error", { includeItems, failures: 3 });
+      trackAdminEvent("admin.queue.load.error", { includeItems, failures: 5 });
     });
 
     return () => {

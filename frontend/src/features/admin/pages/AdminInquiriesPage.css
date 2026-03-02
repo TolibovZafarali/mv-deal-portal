@@ -35,9 +35,20 @@
 
 .adminInq__filterRow {
   display: grid;
-  grid-template-columns: 2fr 1fr auto;
   gap: 10px;
   align-items: end;
+}
+
+.adminInq__filterRow--statusInline {
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+}
+
+.adminInq__filterRow--withMore {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.adminInq__filterRow--withMore .adminInq__moreMenu {
+  justify-self: end;
 }
 
 .adminInq__filter {
@@ -293,12 +304,11 @@
 }
 
 @media (max-width: 1000px) {
-  .adminInq__filterRow {
-    grid-template-columns: 1fr;
-  }
-
   .adminInq__moreBody {
-    position: static;
-    width: 100%;
+    position: absolute;
+    right: 0;
+    top: calc(100% + 8px);
+    width: min(360px, calc(100vw - 24px));
+    grid-template-columns: 1fr;
   }
 }

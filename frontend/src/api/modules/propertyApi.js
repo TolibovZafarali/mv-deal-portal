@@ -61,6 +61,13 @@ export async function completePropertyPhotoUpload(uploadId, uploadToken) {
     return data;
 }
 
+export async function createPropertyPhotoFromUrl(url) {
+    const { data } = await apiClient.post(`${BASE}/photos/urls`, {
+        url: String(url ?? "").trim(),
+    });
+    return data;
+}
+
 export async function uploadPropertyPhoto(file) {
     const init = await initPropertyPhotoUpload(file);
 
@@ -107,4 +114,13 @@ export async function getAddressSuggestions(query, opts = {}) {
 
     const { data } = await apiClient.get(`${BASE}/address-suggestions`, { params });
     return Array.isArray(data) ? data : [];
+}
+
+export async function lookupPropertyFmr(zip, beds) {
+    const params = cleanParams({
+        zip: String(zip ?? "").trim(),
+        beds: Number(beds),
+    });
+    const { data } = await apiClient.get(`${BASE}/fmr`, { params });
+    return data;
 }

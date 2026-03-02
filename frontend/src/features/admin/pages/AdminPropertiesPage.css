@@ -26,10 +26,23 @@
   align-items: end;
 }
 
+.adminProps__filterRow--primaryInline {
+  grid-template-columns: minmax(0, 2.2fr) minmax(0, 1fr) minmax(0, 1.4fr) auto;
+}
+
+.adminProps__filterRow--searchOnly {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.adminProps__filterRow--searchOnly .adminProps__moreMenu {
+  justify-self: end;
+}
+
 .adminProps__filter {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  min-width: 0;
 }
 
 .adminProps__label {
@@ -46,6 +59,8 @@
   border: 1px solid var(--admin-filter-border);
   padding: 10px 34px 10px 10px;
   background: var(--admin-filter-input-bg);
+  width: 100%;
+  box-sizing: border-box;
   appearance: none;
   -webkit-appearance: none;
   -moz-appearance: none;
@@ -99,12 +114,13 @@
 
 .adminProps__rangeInputs {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 8px;
 }
 
 .adminProps__moneyWrap {
   position: relative;
+  min-width: 0;
 }
 
 .adminProps__moneyPrefix {
@@ -179,7 +195,7 @@
   border-color: var(--admin-filter-ink);
 }
 
-.adminProps--sidebarCollapsed .adminProps__filterRow {
+.adminProps--filtersExpanded .adminProps__filterRow {
   display: grid;
   grid-template-columns:
     minmax(0, 1.7fr)
@@ -194,40 +210,40 @@
   gap: 8px;
 }
 
-.adminProps--sidebarCollapsed .adminProps__filter {
+.adminProps--filtersExpanded .adminProps__filter {
   min-width: 0;
 }
 
-.adminProps--sidebarCollapsed .adminProps__label {
+.adminProps--filtersExpanded .adminProps__label {
   font-size: 12px;
 }
 
-.adminProps--sidebarCollapsed .adminProps__input {
+.adminProps--filtersExpanded .adminProps__input {
   width: 100%;
   padding: 9px 26px 9px 9px;
   background-size: 14px;
   background-position: right 8px center;
 }
 
-.adminProps--sidebarCollapsed .adminProps__input--text {
+.adminProps--filtersExpanded .adminProps__input--text {
   padding-right: 9px;
 }
 
-.adminProps--sidebarCollapsed .adminProps__input--search {
+.adminProps--filtersExpanded .adminProps__input--search {
   padding-right: 26px;
 }
 
-.adminProps--sidebarCollapsed .adminProps__searchBtn {
+.adminProps--filtersExpanded .adminProps__searchBtn {
   right: 3px;
   width: 24px;
   height: 24px;
 }
 
-.adminProps--sidebarCollapsed .adminProps__input--money {
+.adminProps--filtersExpanded .adminProps__input--money {
   padding-left: 18px;
 }
 
-.adminProps--sidebarCollapsed .adminProps__moneyPrefix {
+.adminProps--filtersExpanded .adminProps__moneyPrefix {
   left: 7px;
   font-size: 12px;
 }
@@ -244,9 +260,76 @@
   margin-bottom: 10px;
 }
 
+.adminProps__sectionActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .adminProps__sectionTitle {
   margin: 0;
   font-size: 16px;
+}
+
+.adminProps__columnsMenu {
+  position: relative;
+  display: inline-block;
+}
+
+.adminProps__columnsBtn {
+  list-style: none;
+  height: 34px;
+  min-width: 132px;
+  border: 1px solid var(--admin-ink);
+  background: transparent;
+  color: var(--admin-ink);
+  padding: 0 10px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition:
+    background 180ms ease,
+    color 180ms ease,
+    border-color 180ms ease;
+}
+
+.adminProps__columnsBtn::-webkit-details-marker {
+  display: none;
+}
+
+.adminProps__columnsMenu[open] .adminProps__columnsBtn,
+.adminProps__columnsBtn:hover {
+  background: var(--admin-ink);
+  color: var(--admin-bg);
+}
+
+.adminProps__columnsBtn .material-symbols-outlined {
+  font-size: 18px;
+}
+
+.adminProps__columnsBody {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  z-index: 3;
+  width: 100%;
+  border: 1px solid var(--admin-border);
+  background: #fff;
+  padding: 10px;
+  display: grid;
+  gap: 8px;
+}
+
+.adminProps__columnOption {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.adminProps__columnOption input[type="checkbox"] {
+  accent-color: var(--admin-ink);
 }
 
 .adminProps__below {
@@ -285,14 +368,20 @@
 }
 
 @media (max-width: 1100px) {
-  .adminProps__filterRow {
+  .adminProps__filterRow--primaryInline {
     grid-template-columns: 1fr 1fr;
   }
 
   .adminProps__moreBody {
-    position: static;
-    margin-top: 8px;
-    width: 100%;
+    position: absolute;
+    right: 0;
+    top: calc(100% + 8px);
+    width: min(360px, calc(100vw - 24px));
+    grid-template-columns: 1fr;
+  }
+
+  .adminProps__sectionHead {
+    flex-wrap: wrap;
   }
 }
 
@@ -345,6 +434,32 @@
   background: rgba(16, 16, 16, 0.04);
 }
 
+.adminProps__row td:first-child {
+  position: relative;
+}
+
+.adminProps__row td:first-child::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 3px;
+  height: 35px;
+  transform: translateY(-50%);
+}
+
+.adminProps__row--active td:first-child::before {
+  background: #00c853;
+}
+
+.adminProps__row--draft td:first-child::before {
+  background: #ff9800;
+}
+
+.adminProps__row--closed td:first-child::before {
+  background: #5f6b7a;
+}
+
 .adminProps__tdAddress {
   min-width: 320px;
   white-space: normal;
@@ -352,6 +467,7 @@
 
 .adminProps__addrMain {
   font-size: 13px;
+  line-height: 1.35;
 }
 
 .adminProps__addrSub {
@@ -366,6 +482,37 @@
 
 .adminProps__tdCenter {
   text-align: center;
+}
+
+.adminProps__statusBadge {
+  display: inline-block;
+  min-width: 76px;
+  padding: 4px 10px;
+  border-radius: 0;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-align: center;
+}
+
+.adminProps__statusBadge--active {
+  background: #00e676;
+  color: #003d1b;
+}
+
+.adminProps__statusBadge--draft {
+  background: #ffb300;
+  color: #4a2a00;
+}
+
+.adminProps__statusBadge--closed {
+  background: #c7d1db;
+  color: #1f2933;
+}
+
+.adminProps__statusBadge--unknown {
+  background: #f1f3f5;
+  color: #495057;
 }
 
 .adminProps__tdIcon {
@@ -421,47 +568,16 @@
   color: var(--admin-bg);
 }
 
-.adminProps__noteOverlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.45);
-  z-index: 80;
-  display: grid;
-  place-items: center;
-  padding: 12px;
-}
-
-.adminProps__noteModal {
-  background: #fff;
-  color: #101010;
-  border: 1px solid var(--admin-border);
-  padding: 14px;
-  width: min(620px, 100%);
+.adminProps__noteBody {
   display: grid;
   gap: 12px;
 }
 
-.adminProps__noteModal h3 {
-  margin: 0;
-  font-size: 18px;
-}
-
-.adminProps__noteModal p {
+.adminProps__noteBody p {
   margin: 0;
   white-space: pre-wrap;
-}
-
-.adminProps__noteActions {
-  display: flex;
-  justify-content: flex-end;
-}
-
-.adminProps__noteActions button {
-  border: 1px solid var(--admin-ink);
-  background: transparent;
-  color: var(--admin-ink);
-  padding: 8px 10px;
-  cursor: pointer;
+  color: var(--admin-bg);
+  line-height: 1.45;
 }
 
 .adminProps__changeReqSection {
@@ -480,22 +596,9 @@
 
 .adminProps__changeReqHead {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
   align-items: center;
   gap: 10px;
-}
-
-.adminProps__queueLink {
-  border: 1px solid var(--admin-ink);
-  color: var(--admin-ink);
-  text-decoration: none;
-  font-size: 12px;
-  padding: 6px 8px;
-}
-
-.adminProps__queueLink:hover {
-  background: var(--admin-ink);
-  color: var(--admin-bg);
 }
 
 .adminProps__changeReqList {
@@ -602,4 +705,46 @@
 
 .adminProps__notice--error {
   color: rgba(170, 38, 38, 0.95);
+}
+
+@media (max-width: 980px) {
+  .adminProps__tableWrap {
+    overflow-x: hidden;
+  }
+
+  .adminProps__table {
+    table-layout: fixed;
+  }
+
+  .adminProps__tdAddress {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .adminProps__table thead th:first-child,
+  .adminProps__table tbody td:first-child {
+    white-space: normal;
+  }
+
+  .adminProps__thIcon {
+    width: 64px;
+    text-align: center !important;
+  }
+
+  .adminProps__tdIcon {
+    text-align: center;
+  }
+
+  .adminProps__actionsCol {
+    justify-content: center;
+  }
+
+  .adminProps__row--mobileInteractive {
+    cursor: pointer;
+  }
+
+  .adminProps__row--mobileInteractive:focus-visible {
+    outline: 2px solid var(--admin-ink);
+    outline-offset: -2px;
+  }
 }

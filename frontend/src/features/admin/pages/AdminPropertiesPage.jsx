@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useOutletContext } from "react-router-dom";
 import {
+  createPropertyPhotoFromUrl,
   createProperty,
   deletePropertyPhotoUpload,
   deleteProperty,
@@ -9,7 +9,7 @@ import {
   uploadPropertyPhoto,
   updateProperty,
 } from "@/api/modules/propertyApi";
-import { searchAdminSellers } from "@/api/modules/sellerApi";
+import { getSellerById } from "@/api/modules/sellerApi";
 import {
   assignPropertySeller,
   getAdminPropertyChangeRequests,
@@ -19,10 +19,11 @@ import {
 import "@/features/admin/pages/AdminPropertiesPage.css";
 import AdminFilterBar, { AdminFilterMore } from "@/features/admin/components/AdminFilterBar";
 import AdminPagination from "@/features/admin/components/AdminPagination";
-import SellerAssignmentModal from "@/features/admin/modals/SellerAssignmentModal";
+import useFilterBarMinWidth from "@/features/admin/hooks/useFilterBarMinWidth";
 import SellerReviewModal from "@/features/admin/modals/SellerReviewModal";
 import ChangeRequestDecisionModal from "@/features/admin/modals/ChangeRequestDecisionModal";
 import PropertyUpsertModal from "@/features/admin/modals/PropertyUpsertModal";
+import Modal from "@/shared/ui/modal/Modal";
 import {
   signalAdminQueueRefresh,
   startAdminTimer,
@@ -30,11 +31,19 @@ import {
 import { formatPriceInput } from "@/shared/utils/priceFormatting";
 
 const PAGE_SIZE = 20;
+const PROPERTIES_PRIMARY_INLINE_MIN_WIDTH = 980;
+const PROPERTIES_INLINE_FILTERS_MIN_WIDTH = 1420;
+const ADMIN_PROPERTIES_MOBILE_QUERY = "(max-width: 980px)";
+const PROPERTY_STATUS_ORDER = {
+  ACTIVE: 0,
+  DRAFT: 1,
+  CLOSED: 2,
+};
 
 const OCCUPANCY = [
   { label: "All", value: "" },
-  { label: "Vacant", value: "VACANT" },
-  { label: "Tenant", value: "TENANT" },
+  { label: "Yes", value: "YES" },
+  { label: "No", value: "NO" },
 ];
 
 const EXIT_STRATEGIES = [
@@ -60,6 +69,19 @@ const SELLER_WORKFLOWS = [
   { label: "Closed", value: "CLOSED" },
 ];
 
+const SECONDARY_COLUMN_OPTIONS = [
+  { key: "arv", label: "After Repair Value (ARV)" },
+  { key: "repairs", label: "Estimated Repairs" },
+  { key: "fmr", label: "Fair Market Rent (FMR)" },
+  { key: "exit", label: "Exit Strategy" },
+  { key: "sqft", label: "Square Footage" },
+  { key: "beds", label: "Beds" },
+  { key: "baths", label: "Baths" },
+  { key: "year", label: "Year Built" },
+  { key: "reviewNote", label: "Review Note" },
+];
+const DEFAULT_SECONDARY_COLUMNS = ["arv", "repairs", "exit", "beds", "baths"];
+
 function money(v) {
   if (v === null || v === undefined || Number.isNaN(Number(v))) return "—";
   return Number(v).toLocaleString("en-US", {
@@ -69,9 +91,13 @@ function money(v) {
   });
 }
 
-function fullAddress(p) {
-  const line1 = [p.street1, p.street2].filter(Boolean).join(", ");
-  return `${line1}, ${p.city}, ${p.state} ${p.zip}`;
+function propertyAddressLineOne(property) {
+  return [property?.street1, property?.street2].filter(Boolean).join(", ");
+}
+
+function propertyAddressLineTwo(property) {
+  const stateZip = [property?.state, property?.zip].filter(Boolean).join(" ");
+  return [property?.city, stateZip].filter(Boolean).join(", ");
 }
 
 function prettyEnum(v) {
@@ -82,9 +108,25 @@ function prettyEnum(v) {
     .replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
+function sellerDisplayLabel(property) {
+  const fromParts = [property?.sellerFirstName, property?.sellerLastName].filter(Boolean).join(" ").trim();
+  const candidate = [
+    property?.sellerName,
+    property?.sellerFullName,
+    property?.sellerDisplayName,
+    fromParts,
+    property?.sellerEmail,
+  ].find((value) => String(value ?? "").trim().length > 0);
+  if (candidate) return candidate;
+  return "";
+}
+
+function sellerDisplayName(seller) {
+  const full = [seller?.firstName, seller?.lastName].filter(Boolean).join(" ").trim();
+  return full || seller?.email || "";
+}
+
 export default function AdminPropertiesPage() {
-  const outletContext = useOutletContext();
-  const sidebarCollapsed = Boolean(outletContext?.sidebarCollapsed);
   const [filters, setFilters] = useState({
     q: "",
     minAskingPrice: "",
@@ -96,6 +138,9 @@ export default function AdminPropertiesPage() {
     status: "",
     sellerWorkflowStatus: "",
   });
+  const { setFilterBarRef, width: filterBarWidth } = useFilterBarMinWidth(PROPERTIES_INLINE_FILTERS_MIN_WIDTH);
+  const showAdvancedInline = filterBarWidth >= PROPERTIES_INLINE_FILTERS_MIN_WIDTH;
+  const showPrimaryInline = filterBarWidth >= PROPERTIES_PRIMARY_INLINE_MIN_WIDTH;
   const [searchInput, setSearchInput] = useState("");
 
   const [page, setPage] = useState(0);
@@ -120,14 +165,7 @@ export default function AdminPropertiesPage() {
 
   const [editDeleting, setEditDeleting] = useState(false);
   const [editDeleteError, setEditDeleteError] = useState("");
-  const [reviewNoteModal, setReviewNoteModal] = useState({ open: false, note: "" });
-
-  const [assignmentModal, setAssignmentModal] = useState({ open: false, property: null });
-  const [assignmentResults, setAssignmentResults] = useState([]);
-  const [assignmentSearching, setAssignmentSearching] = useState(false);
-  const [assignmentSearchError, setAssignmentSearchError] = useState("");
-  const [assignmentSaving, setAssignmentSaving] = useState(false);
-  const [assignmentSaveError, setAssignmentSaveError] = useState("");
+  const [reviewNoteModal, setReviewNoteModal] = useState({ open: false, note: "", sellerId: null, sellerLabel: "" });
 
   const [sellerReviewModal, setSellerReviewModal] = useState({ open: false, property: null });
   const [sellerReviewSubmitting, setSellerReviewSubmitting] = useState(false);
@@ -140,6 +178,33 @@ export default function AdminPropertiesPage() {
   const [changeRequests, setChangeRequests] = useState([]);
   const [changeRequestsLoading, setChangeRequestsLoading] = useState(false);
   const [changeRequestsError, setChangeRequestsError] = useState("");
+  const [secondaryColumns, setSecondaryColumns] = useState(DEFAULT_SECONDARY_COLUMNS);
+  const [sellerNameById, setSellerNameById] = useState({});
+  const [isMobileView, setIsMobileView] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return window.matchMedia(ADMIN_PROPERTIES_MOBILE_QUERY).matches;
+  });
+
+  useEffect(() => {
+    if (typeof window === "undefined") return undefined;
+    const media = window.matchMedia(ADMIN_PROPERTIES_MOBILE_QUERY);
+    const handleMediaChange = (event) => setIsMobileView(event.matches);
+    const supportsModernListener = typeof media.addEventListener === "function";
+
+    if (supportsModernListener) {
+      media.addEventListener("change", handleMediaChange);
+    } else {
+      media.addListener(handleMediaChange);
+    }
+
+    return () => {
+      if (supportsModernListener) {
+        media.removeEventListener("change", handleMediaChange);
+        return;
+      }
+      media.removeListener(handleMediaChange);
+    };
+  }, []);
 
   function updateFilter(key, value) {
     setFilters((prev) => ({ ...prev, [key]: value }));
@@ -229,7 +294,54 @@ export default function AdminPropertiesPage() {
     };
   }, [refreshKey]);
 
+  useEffect(() => {
+    const sellerIds = [...new Set(rows.map((row) => row?.sellerId).filter((id) => id !== null && id !== undefined))];
+    const missingSellerIds = sellerIds.filter((id) => !sellerNameById[id]);
+    if (!missingSellerIds.length) return undefined;
+
+    let alive = true;
+
+    async function loadSellerNames() {
+      const entries = await Promise.all(
+        missingSellerIds.map(async (sellerId) => {
+          try {
+            const seller = await getSellerById(sellerId);
+            return [sellerId, sellerDisplayName(seller) || `Seller #${sellerId}`];
+          } catch {
+            return [sellerId, `Seller #${sellerId}`];
+          }
+        }),
+      );
+
+      if (!alive) return;
+      setSellerNameById((prev) => {
+        const next = { ...prev };
+        entries.forEach(([sellerId, name]) => {
+          next[sellerId] = name;
+        });
+        return next;
+      });
+    }
+
+    loadSellerNames();
+
+    return () => {
+      alive = false;
+    };
+  }, [rows, sellerNameById]);
+
   const hasRows = rows.length > 0;
+  const sortedRows = useMemo(() => {
+    return rows
+      .map((row, idx) => ({ row, idx }))
+      .sort((a, b) => {
+        const rankA = PROPERTY_STATUS_ORDER[a.row?.status] ?? Number.MAX_SAFE_INTEGER;
+        const rankB = PROPERTY_STATUS_ORDER[b.row?.status] ?? Number.MAX_SAFE_INTEGER;
+        if (rankA !== rankB) return rankA - rankB;
+        return a.idx - b.idx;
+      })
+      .map((entry) => entry.row);
+  }, [rows]);
 
   const tableCaption = useMemo(() => {
     if (loading) return "Loading properties…";
@@ -245,6 +357,9 @@ export default function AdminPropertiesPage() {
       filters.occupancyStatus,
       filters.exitStrategy,
       filters.sellerWorkflowStatus,
+      showPrimaryInline ? "" : filters.status,
+      showPrimaryInline ? "" : filters.minAskingPrice,
+      showPrimaryInline ? "" : filters.maxAskingPrice,
     ].some((value) => String(value ?? "").trim().length > 0);
   }, [
     filters.minBeds,
@@ -252,7 +367,78 @@ export default function AdminPropertiesPage() {
     filters.occupancyStatus,
     filters.exitStrategy,
     filters.sellerWorkflowStatus,
+    filters.status,
+    filters.minAskingPrice,
+    filters.maxAskingPrice,
+    showPrimaryInline,
   ]);
+
+  const secondaryColumnSet = useMemo(() => {
+    return new Set(secondaryColumns);
+  }, [secondaryColumns]);
+
+  function toggleSecondaryColumn(key) {
+    setSecondaryColumns((prev) => {
+      if (prev.includes(key)) return prev.filter((col) => col !== key);
+      return [...prev, key];
+    });
+  }
+
+  function ownerNameForProperty(property) {
+    if (property?.sellerId === null || property?.sellerId === undefined) return "Unassigned";
+    return sellerNameById[property.sellerId] || sellerDisplayLabel(property) || "Loading...";
+  }
+
+  const primaryFilters = (
+    <>
+      <label className="adminProps__filter adminProps__filter--status">
+        <span className="adminProps__label">Status</span>
+        <select
+          className="adminProps__input"
+          value={filters.status}
+          onChange={(e) => updateFilter("status", e.target.value)}
+        >
+          {STATUSES.map((o) => (
+            <option key={o.label} value={o.value}>
+              {o.label}
+            </option>
+          ))}
+        </select>
+      </label>
+
+      <label className="adminProps__filter adminProps__filter--asking">
+        <span className="adminProps__label">Asking Price</span>
+        <div className="adminProps__rangeInputs">
+          <div className="adminProps__moneyWrap">
+            <span className="adminProps__moneyPrefix">$</span>
+            <input
+              className="adminProps__input adminProps__input--text adminProps__input--money"
+              type="text"
+              inputMode="numeric"
+              placeholder="Min"
+              value={filters.minAskingPrice}
+              onChange={(e) =>
+                updatePriceFilter("minAskingPrice", e.target.value)
+              }
+            />
+          </div>
+          <div className="adminProps__moneyWrap">
+            <span className="adminProps__moneyPrefix">$</span>
+            <input
+              className="adminProps__input adminProps__input--text adminProps__input--money"
+              type="text"
+              inputMode="numeric"
+              placeholder="Max"
+              value={filters.maxAskingPrice}
+              onChange={(e) =>
+                updatePriceFilter("maxAskingPrice", e.target.value)
+              }
+            />
+          </div>
+        </div>
+      </label>
+    </>
+  );
 
   const advancedFilters = (
     <>
@@ -282,7 +468,7 @@ export default function AdminPropertiesPage() {
       </label>
 
       <label className="adminProps__filter adminProps__filter--occupancy">
-        <span className="adminProps__label">Occupancy Status</span>
+        <span className="adminProps__label">Occupied</span>
         <select
           className="adminProps__input"
           value={filters.occupancyStatus}
@@ -388,6 +574,10 @@ export default function AdminPropertiesPage() {
     return uploadPropertyPhoto(file);
   }
 
+  async function handlePhotoUrlAdd(url) {
+    return createPropertyPhotoFromUrl(url);
+  }
+
   async function handlePhotoUploadDelete(uploadId) {
     if (!uploadId) return;
     try {
@@ -404,7 +594,6 @@ export default function AdminPropertiesPage() {
     try {
       const dto = {
         status: form.status,
-        title: cleanStr(form.title), // required
         street1: cleanStr(form.street1),
         street2: cleanStr(form.street2),
         city: cleanStr(form.city),
@@ -423,6 +612,7 @@ export default function AdminPropertiesPage() {
         hvac: parseIntNum(form.hvac),
 
         occupancyStatus: cleanStr(form.occupancyStatus),
+        currentRent: cleanStr(form.occupancyStatus) === "YES" ? parseNum(form.currentRent) : null,
         exitStrategy: cleanStr(form.exitStrategy),
         closingTerms: cleanStr(form.closingTerms),
 
@@ -430,7 +620,10 @@ export default function AdminPropertiesPage() {
         saleComps: mapSaleCompsForUpsert(form.saleComps),
       };
 
-      await createProperty(dto);
+      const created = await createProperty(dto);
+      if (form?.sellerId !== "" && form?.sellerId !== null && form?.sellerId !== undefined) {
+        await syncPropertyOwner(created?.id, form.sellerId);
+      }
 
       setAddOpen(false);
       setPage(0);
@@ -445,7 +638,6 @@ export default function AdminPropertiesPage() {
   function formToUpsertDto(form) {
     return {
       status: form.status,
-      title: cleanStr(form.title), // required
       street1: cleanStr(form.street1),
       street2: cleanStr(form.street2),
       city: cleanStr(form.city),
@@ -464,6 +656,7 @@ export default function AdminPropertiesPage() {
       hvac: parseIntNum(form.hvac),
 
       occupancyStatus: cleanStr(form.occupancyStatus),
+      currentRent: cleanStr(form.occupancyStatus) === "YES" ? parseNum(form.currentRent) : null,
       exitStrategy: cleanStr(form.exitStrategy),
       closingTerms: cleanStr(form.closingTerms),
 
@@ -487,63 +680,26 @@ export default function AdminPropertiesPage() {
     }
   }
 
-  function openAssignSellerModal(property) {
-    setAssignmentSearchError("");
-    setAssignmentSaveError("");
-    setAssignmentResults([]);
-    setAssignmentModal({ open: true, property });
-  }
-
-  async function handleAssignmentSearch(query) {
-    if (!query?.trim()) return;
-
-    setAssignmentSearching(true);
-    setAssignmentSearchError("");
-
-    try {
-      const sellers = await searchAdminSellers({ q: query.trim() }, { page: 0, size: 12, sort: "createdAt,desc" });
-      setAssignmentResults(sellers?.content ?? []);
-      if ((sellers?.content ?? []).length === 0) {
-        setAssignmentSearchError("No sellers matched that query.");
-      }
-    } catch (e) {
-      setAssignmentResults([]);
-      setAssignmentSearchError(e?.message || "Failed to search sellers.");
-    } finally {
-      setAssignmentSearching(false);
-    }
-  }
-
-  async function handleAssignmentSave(sellerId) {
-    const property = assignmentModal.property;
-    if (!property?.id) return;
+  async function syncPropertyOwner(propertyId, sellerId) {
+    if (!propertyId) return;
+    const normalizedSellerId = sellerId === "" || sellerId === null || sellerId === undefined
+      ? null
+      : Number(sellerId);
+    const safeSellerId = Number.isFinite(normalizedSellerId) ? normalizedSellerId : null;
 
     const stop = startAdminTimer("admin.properties.assign_seller", {
-      propertyId: property.id,
-      sellerId: sellerId ?? null,
+      propertyId,
+      sellerId: safeSellerId,
     });
 
-    setAssignmentSaving(true);
-    setAssignmentSaveError("");
-
     try {
-      await assignPropertySeller(property.id, sellerId ?? null);
+      await assignPropertySeller(propertyId, safeSellerId);
       stop("success");
       signalAdminQueueRefresh();
-      setAssignmentModal({ open: false, property: null });
-      setAssignmentResults([]);
-      setRefreshKey((k) => k + 1);
     } catch (e) {
-      setAssignmentSaveError(e?.message || "Failed to assign seller.");
       stop("error", { error: e?.message || "unknown" });
-    } finally {
-      setAssignmentSaving(false);
+      throw e;
     }
-  }
-
-  function openSellerReviewModal(property) {
-    setSellerReviewError("");
-    setSellerReviewModal({ open: true, property });
   }
 
   async function handleSellerReviewSubmit({ action, reviewNote }) {
@@ -612,6 +768,14 @@ export default function AdminPropertiesPage() {
     try {
       const dto = formToUpsertDto(form);
       await updateProperty(editId, dto);
+      const currentSellerId = editInitial?.sellerId ?? null;
+      const nextSellerId = form?.sellerId === "" || form?.sellerId === null || form?.sellerId === undefined
+        ? null
+        : Number(form.sellerId);
+      const normalizedNextSellerId = Number.isFinite(nextSellerId) ? nextSellerId : null;
+      if (currentSellerId !== normalizedNextSellerId) {
+        await syncPropertyOwner(editId, normalizedNextSellerId);
+      }
 
       setEditOpen(false);
       setEditId(null);
@@ -650,15 +814,20 @@ export default function AdminPropertiesPage() {
   }
 
   return (
-    <section className={`adminProps ${sidebarCollapsed ? "adminProps--sidebarCollapsed" : ""}`.trim()}>
-      <AdminFilterBar className="adminProps__filters" rowClassName="adminProps__filterRow" onSubmit={handleSearchSubmit}>
+    <section className={`adminProps ${showAdvancedInline ? "adminProps--filtersExpanded" : ""}`.trim()}>
+      <AdminFilterBar
+        className="adminProps__filters"
+        rowClassName={`adminProps__filterRow ${showPrimaryInline ? "adminProps__filterRow--primaryInline" : "adminProps__filterRow--searchOnly"}`.trim()}
+        onSubmit={handleSearchSubmit}
+        containerRef={setFilterBarRef}
+      >
         <label className="adminProps__filter">
           <span className="adminProps__label">Search</span>
           <div className="adminProps__searchWrap">
             <input
               className="adminProps__input adminProps__input--text adminProps__input--search"
               type="search"
-              placeholder="Address or title"
+              placeholder="Address"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
             />
@@ -668,54 +837,9 @@ export default function AdminPropertiesPage() {
           </div>
         </label>
 
-        <label className="adminProps__filter adminProps__filter--status">
-          <span className="adminProps__label">Status</span>
-          <select
-            className="adminProps__input"
-            value={filters.status}
-            onChange={(e) => updateFilter("status", e.target.value)}
-          >
-            {STATUSES.map((o) => (
-              <option key={o.label} value={o.value}>
-                {o.label}
-              </option>
-            ))}
-          </select>
-        </label>
+        {showPrimaryInline ? primaryFilters : null}
 
-        <label className="adminProps__filter adminProps__filter--asking">
-          <span className="adminProps__label">Asking Price</span>
-          <div className="adminProps__rangeInputs">
-            <div className="adminProps__moneyWrap">
-              <span className="adminProps__moneyPrefix">$</span>
-              <input
-                className="adminProps__input adminProps__input--text adminProps__input--money"
-                type="text"
-                inputMode="numeric"
-                placeholder="Min"
-                value={filters.minAskingPrice}
-                onChange={(e) =>
-                  updatePriceFilter("minAskingPrice", e.target.value)
-                }
-              />
-            </div>
-            <div className="adminProps__moneyWrap">
-              <span className="adminProps__moneyPrefix">$</span>
-              <input
-                className="adminProps__input adminProps__input--text adminProps__input--money"
-                type="text"
-                inputMode="numeric"
-                placeholder="Max"
-                value={filters.maxAskingPrice}
-                onChange={(e) =>
-                  updatePriceFilter("maxAskingPrice", e.target.value)
-                }
-              />
-            </div>
-          </div>
-        </label>
-
-        {sidebarCollapsed ? advancedFilters : (
+        {showAdvancedInline ? advancedFilters : (
           <AdminFilterMore
             className="adminProps__moreMenu"
             summaryClassName="adminProps__moreSummary"
@@ -724,6 +848,7 @@ export default function AdminPropertiesPage() {
             active={hasMoreFiltersSelected}
             summaryLabel="More"
           >
+            {!showPrimaryInline ? primaryFilters : null}
             {advancedFilters}
           </AdminFilterMore>
         )}
@@ -733,16 +858,39 @@ export default function AdminPropertiesPage() {
         <div className="adminProps__below">
           <div className="adminProps__sectionHead">
             <h3 className="adminProps__sectionTitle">Properties</h3>
-            <button
-              className="adminProps__addBtn"
-              type="button"
-              onClick={() => {
-                setAddOpen(true);
-              }}
-            >
-              <span className="material-symbols-outlined">add_home</span>
-              Add Property
-            </button>
+            <div className="adminProps__sectionActions">
+              {!isMobileView ? (
+                <details className="adminProps__columnsMenu">
+                  <summary className="adminProps__columnsBtn">
+                    <span className="material-symbols-outlined">view_column</span>
+                    Columns
+                    {secondaryColumns.length ? ` (${secondaryColumns.length})` : ""}
+                  </summary>
+                  <div className="adminProps__columnsBody">
+                    {SECONDARY_COLUMN_OPTIONS.map((column) => (
+                      <label key={column.key} className="adminProps__columnOption">
+                        <input
+                          type="checkbox"
+                          checked={secondaryColumnSet.has(column.key)}
+                          onChange={() => toggleSecondaryColumn(column.key)}
+                        />
+                        <span>{column.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                </details>
+              ) : null}
+              <button
+                className="adminProps__addBtn"
+                type="button"
+                onClick={() => {
+                  setAddOpen(true);
+                }}
+              >
+                <span className="material-symbols-outlined">add_home</span>
+                Add Property
+              </button>
+            </div>
           </div>
           {!hasRows ? (
             <div
@@ -756,80 +904,141 @@ export default function AdminPropertiesPage() {
                 <table className="adminProps__table">
                   <thead>
                     <tr>
-                      <th>Address</th>
-                      <th className="adminProps__thRight">Asking</th>
-                      <th className="adminProps__thRight">ARV</th>
-                      <th className="adminProps__thRight">Repairs</th>
-                      <th className="adminProps__thRight">FMR</th>
-                      <th className="adminProps__thCenter">Exit</th>
-                      <th className="adminProps__thRight">SqFt</th>
-                      <th className="adminProps__thCenter">Bed</th>
-                      <th className="adminProps__thCenter">Bath</th>
-                      <th className="adminProps__thCenter">Year</th>
-                      <th className="adminProps__thCenter">Seller Owner</th>
-                      <th className="adminProps__thCenter">Seller Workflow</th>
-                      <th className="adminProps__thCenter">Review Note</th>
-                      <th className="adminProps__thCenter">Status</th>
-                      <th className="adminProps__thIcon"></th>
+                      {isMobileView ? (
+                        <>
+                          <th>Address</th>
+                          <th className="adminProps__thRight">Asking Price</th>
+                        </>
+                      ) : (
+                        <>
+                          <th>Address</th>
+                          <th className="adminProps__thRight">Asking Price</th>
+                          {secondaryColumnSet.has("arv") ? <th className="adminProps__thRight">After Repair Value (ARV)</th> : null}
+                          {secondaryColumnSet.has("repairs") ? <th className="adminProps__thRight">Estimated Repairs</th> : null}
+                          {secondaryColumnSet.has("fmr") ? <th className="adminProps__thRight">Fair Market Rent (FMR)</th> : null}
+                          {secondaryColumnSet.has("exit") ? <th className="adminProps__thCenter">Exit Strategy</th> : null}
+                          {secondaryColumnSet.has("sqft") ? <th className="adminProps__thRight">Square Footage</th> : null}
+                          {secondaryColumnSet.has("beds") ? <th className="adminProps__thCenter">Beds</th> : null}
+                          {secondaryColumnSet.has("baths") ? <th className="adminProps__thCenter">Baths</th> : null}
+                          {secondaryColumnSet.has("year") ? <th className="adminProps__thCenter">Year Built</th> : null}
+                          <th className="adminProps__thCenter">Seller Owner</th>
+                          <th className="adminProps__thCenter">Seller Workflow</th>
+                          {secondaryColumnSet.has("reviewNote") ? <th className="adminProps__thCenter">Review Note</th> : null}
+                          <th className="adminProps__thCenter">Status</th>
+                          <th className="adminProps__thIcon"></th>
+                        </>
+                      )}
                     </tr>
                   </thead>
 
                   <tbody>
-                    {rows.map((p) => (
-                      <tr key={p.id}>
+                    {sortedRows.map((p) => {
+                      const lineOne = propertyAddressLineOne(p);
+                      const lineTwo = propertyAddressLineTwo(p);
+                      const statusKey = String(p?.status ?? "").trim().toUpperCase();
+                      const statusTone = ["ACTIVE", "DRAFT", "CLOSED"].includes(statusKey)
+                        ? statusKey.toLowerCase()
+                        : "unknown";
+
+                      if (isMobileView) {
+                        return (
+                          <tr
+                            key={p.id}
+                            className={`adminProps__row adminProps__row--${statusTone} adminProps__row--mobileInteractive`}
+                            role="button"
+                            tabIndex={0}
+                            aria-label={`Edit property ${lineOne || `#${p.id}`}`}
+                            onClick={() => openEditModal(p.id)}
+                            onKeyDown={(event) => {
+                              if (event.key === "Enter" || event.key === " ") {
+                                event.preventDefault();
+                                openEditModal(p.id);
+                              }
+                            }}
+                          >
+                            <td className="adminProps__tdAddress">
+                              <div className="adminProps__addrMain">{lineOne || "—"}</div>
+                              <div className="adminProps__addrSub">{lineTwo || "—"}</div>
+                            </td>
+                            <td className="adminProps__tdRight">
+                              {money(p.askingPrice)}
+                            </td>
+                          </tr>
+                        );
+                      }
+
+                      return (
+                      <tr key={p.id} className={`adminProps__row adminProps__row--${statusTone}`}>
                         <td className="adminProps__tdAddress">
-                          <div className="adminProps__addrMain">
-                            {fullAddress(p)}
-                          </div>
-                          <div className="adminProps__addrSub">
-                            {p.title}
-                          </div>
+                          <div className="adminProps__addrMain">{lineOne || "—"}</div>
+                          <div className="adminProps__addrSub">{lineTwo || "—"}</div>
                         </td>
 
                         <td className="adminProps__tdRight">
                           {money(p.askingPrice)}
                         </td>
-                        <td className="adminProps__tdRight">{money(p.arv)}</td>
-                        <td className="adminProps__tdRight">
-                          {money(p.estRepairs)}
-                        </td>
-                        <td className="adminProps__tdRight">{money(p.fmr)}</td>
+                        {secondaryColumnSet.has("arv") ? <td className="adminProps__tdRight">{money(p.arv)}</td> : null}
+                        {secondaryColumnSet.has("repairs") ? (
+                          <td className="adminProps__tdRight">
+                            {money(p.estRepairs)}
+                          </td>
+                        ) : null}
+                        {secondaryColumnSet.has("fmr") ? <td className="adminProps__tdRight">{money(p.fmr)}</td> : null}
+                        {secondaryColumnSet.has("exit") ? (
+                          <td className="adminProps__tdCenter">
+                            {prettyEnum(p.exitStrategy)}
+                          </td>
+                        ) : null}
+                        {secondaryColumnSet.has("sqft") ? (
+                          <td className="adminProps__tdRight">
+                            {p.livingAreaSqft?.toLocaleString("en-US") ?? "—"}
+                          </td>
+                        ) : null}
+                        {secondaryColumnSet.has("beds") ? (
+                          <td className="adminProps__tdCenter">
+                            {p.beds ?? "—"}
+                          </td>
+                        ) : null}
+                        {secondaryColumnSet.has("baths") ? (
+                          <td className="adminProps__tdCenter">
+                            {p.baths ?? "—"}
+                          </td>
+                        ) : null}
+                        {secondaryColumnSet.has("year") ? (
+                          <td className="adminProps__tdCenter">
+                            {p.yearBuilt ?? "—"}
+                          </td>
+                        ) : null}
                         <td className="adminProps__tdCenter">
-                          {prettyEnum(p.exitStrategy)}
-                        </td>
-                        <td className="adminProps__tdRight">
-                          {p.livingAreaSqft?.toLocaleString("en-US") ?? "—"}
-                        </td>
-                        <td className="adminProps__tdCenter">
-                          {p.beds ?? "—"}
-                        </td>
-                        <td className="adminProps__tdCenter">
-                          {p.baths ?? "—"}
-                        </td>
-                        <td className="adminProps__tdCenter">
-                          {p.yearBuilt ?? "—"}
-                        </td>
-                        <td className="adminProps__tdCenter">
-                          {p.sellerId ?? "—"}
+                          {ownerNameForProperty(p)}
                         </td>
                         <td className="adminProps__tdCenter">
                           {prettyEnum(p.sellerWorkflowStatus)}
                         </td>
+                        {secondaryColumnSet.has("reviewNote") ? (
+                          <td className="adminProps__tdCenter">
+                            {p.sellerReviewNote ? (
+                              <button
+                                className="adminProps__textBtn"
+                                type="button"
+                                onClick={() => setReviewNoteModal({
+                                  open: true,
+                                  note: p.sellerReviewNote,
+                                  sellerId: p.sellerId ?? null,
+                                  sellerLabel: sellerDisplayLabel(p),
+                                })}
+                              >
+                                View
+                              </button>
+                            ) : (
+                              "—"
+                            )}
+                          </td>
+                        ) : null}
                         <td className="adminProps__tdCenter">
-                          {p.sellerReviewNote ? (
-                            <button
-                              className="adminProps__textBtn"
-                              type="button"
-                              onClick={() => setReviewNoteModal({ open: true, note: p.sellerReviewNote })}
-                            >
-                              View
-                            </button>
-                          ) : (
-                            "—"
-                          )}
-                        </td>
-                        <td className="adminProps__tdCenter">
-                          {prettyEnum(p.status)}
+                          <span className={`adminProps__statusBadge adminProps__statusBadge--${statusTone}`}>
+                            {prettyEnum(p.status)}
+                          </span>
                         </td>
 
                         <td className="adminProps__tdIcon">
@@ -845,28 +1054,11 @@ export default function AdminPropertiesPage() {
                                 edit
                               </span>
                             </button>
-
-                            <button
-                              className="adminProps__textBtn"
-                              type="button"
-                              onClick={() => openAssignSellerModal(p)}
-                            >
-                              Assign
-                            </button>
-
-                            {p.sellerWorkflowStatus === "SUBMITTED" ? (
-                              <button
-                                className="adminProps__textBtn"
-                                type="button"
-                                onClick={() => openSellerReviewModal(p)}
-                              >
-                                Review
-                              </button>
-                            ) : null}
                           </div>
                         </td>
                       </tr>
-                    ))}
+                    );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -885,7 +1077,7 @@ export default function AdminPropertiesPage() {
                 metaValueClassName="adminProps__pageMetaNum"
               />
               <div className="adminProps__meta">
-                {rows.length.toLocaleString("en-US")} on page • {pageMeta.totalElements.toLocaleString("en-US")} total
+                {sortedRows.length.toLocaleString("en-US")} on page • {pageMeta.totalElements.toLocaleString("en-US")} total
               </div>
             </>
           )}
@@ -900,6 +1092,7 @@ export default function AdminPropertiesPage() {
         }}
         onSubmit={handleAddSubmit}
         onUploadPhoto={handlePhotoUpload}
+        onAddPhotoByUrl={handlePhotoUrlAdd}
         onDeleteUploadedPhoto={handlePhotoUploadDelete}
         submitting={addSubmitting}
         submitError={addError}
@@ -914,9 +1107,6 @@ export default function AdminPropertiesPage() {
       <section className="adminProps__changeReqSection">
         <div className="adminProps__changeReqHead">
           <h3>Open Seller Change Requests</h3>
-          <Link className="adminProps__queueLink" to="/admin/queue">
-            Open Full Queue
-          </Link>
         </div>
 
         {changeRequestsLoading ? (
@@ -964,32 +1154,13 @@ export default function AdminPropertiesPage() {
         }}
         onSubmit={handleEditSubmit}
         onUploadPhoto={handlePhotoUpload}
+        onAddPhotoByUrl={handlePhotoUrlAdd}
         onDeleteUploadedPhoto={handlePhotoUploadDelete}
         submitting={editSubmitting}
         submitError={editError}
         onDelete={handleEditDelete}
         deleting={editDeleting}
         deleteError={editDeleteError}
-      />
-
-      <SellerAssignmentModal
-        open={assignmentModal.open}
-        property={assignmentModal.property}
-        searching={assignmentSearching}
-        searchError={assignmentSearchError}
-        results={assignmentResults}
-        saving={assignmentSaving}
-        saveError={assignmentSaveError}
-        onClose={() => {
-          if (assignmentSaving) return;
-          setAssignmentModal({ open: false, property: null });
-          setAssignmentResults([]);
-          setAssignmentSearchError("");
-          setAssignmentSaveError("");
-        }}
-        onSearch={handleAssignmentSearch}
-        onAssign={(sellerId) => handleAssignmentSave(sellerId)}
-        onUnassign={() => handleAssignmentSave(null)}
       />
 
       <SellerReviewModal
@@ -1018,23 +1189,20 @@ export default function AdminPropertiesPage() {
         onSubmit={handleChangeDecisionSubmit}
       />
 
-      {reviewNoteModal.open ? (
-        <div
-          className="adminProps__noteOverlay"
-          role="presentation"
-          onMouseDown={() => setReviewNoteModal({ open: false, note: "" })}
-        >
-          <div className="adminProps__noteModal" onMouseDown={(e) => e.stopPropagation()}>
-            <h3>Seller Review Note</h3>
-            <p>{reviewNoteModal.note}</p>
-            <div className="adminProps__noteActions">
-              <button type="button" onClick={() => setReviewNoteModal({ open: false, note: "" })}>
-                Close
-              </button>
-            </div>
-          </div>
+      <Modal
+        open={reviewNoteModal.open}
+        onClose={() => setReviewNoteModal({ open: false, note: "", sellerId: null, sellerLabel: "" })}
+        title={`Seller Review Note • ${
+          reviewNoteModal.sellerId !== null && reviewNoteModal.sellerId !== undefined
+            ? (sellerNameById[reviewNoteModal.sellerId] || reviewNoteModal.sellerLabel || "Loading...")
+            : "Unassigned"
+        }`}
+        width={620}
+      >
+        <div className="adminProps__noteBody">
+          <p>{reviewNoteModal.note}</p>
         </div>
-      ) : null}
+      </Modal>
     </section>
   );
 }

@@ -10,13 +10,17 @@ import "@/features/seller/pages/SellerListingsPage.css";
 
 const PAGE_SIZE = 20;
 const EDITABLE_WORKFLOWS = new Set(["DRAFT", "CHANGES_REQUESTED"]);
+const PROPERTY_STATUS_ORDER = {
+  ACTIVE: 0,
+  DRAFT: 1,
+  CLOSED: 2,
+};
 
-const OCCUPANCY_OPTIONS = ["", "VACANT", "TENANT"];
+const OCCUPANCY_OPTIONS = ["", "YES", "NO"];
 const EXIT_STRATEGY_OPTIONS = ["", "FLIP", "RENTAL", "WHOLESALE"];
 const CLOSING_TERMS_OPTIONS = ["", "CASH_ONLY", "HARD_MONEY", "CONVENTIONAL", "SELLER_FINANCE"];
 
 const EMPTY_FORM = {
-  title: "",
   street1: "",
   street2: "",
   city: "",
@@ -32,6 +36,7 @@ const EMPTY_FORM = {
   roofAge: "",
   hvac: "",
   occupancyStatus: "",
+  currentRent: "",
   exitStrategy: "",
   closingTerms: "",
 };
@@ -87,7 +92,6 @@ function addressLine(row) {
 function toPayload(form) {
   return {
     status: "DRAFT",
-    title: String(form.title ?? "").trim(),
     street1: String(form.street1 ?? "").trim() || null,
     street2: String(form.street2 ?? "").trim() || null,
     city: String(form.city ?? "").trim() || null,
@@ -103,6 +107,7 @@ function toPayload(form) {
     roofAge: parseInteger(form.roofAge),
     hvac: parseInteger(form.hvac),
     occupancyStatus: form.occupancyStatus || null,
+    currentRent: form.occupancyStatus === "YES" ? parseDecimal(form.currentRent) : null,
     exitStrategy: form.exitStrategy || null,
     closingTerms: form.closingTerms || null,
     photos: null,
@@ -113,7 +118,6 @@ function toPayload(form) {
 function formFromRow(row) {
   if (!row) return { ...EMPTY_FORM };
   return {
-    title: row.title ?? "",
     street1: row.street1 ?? "",
     street2: row.street2 ?? "",
     city: row.city ?? "",
@@ -129,6 +133,7 @@ function formFromRow(row) {
     roofAge: row.roofAge ?? "",
     hvac: row.hvac ?? "",
     occupancyStatus: row.occupancyStatus ?? "",
+    currentRent: row.currentRent ?? "",
     exitStrategy: row.exitStrategy ?? "",
     closingTerms: row.closingTerms ?? "",
   };
@@ -183,6 +188,17 @@ export default function SellerListingsPage() {
     if (error) return error;
     return `${meta.totalElements.toLocaleString("en-US")} listings`;
   }, [loading, error, meta.totalElements]);
+  const sortedRows = useMemo(() => {
+    return rows
+      .map((row, idx) => ({ row, idx }))
+      .sort((a, b) => {
+        const rankA = PROPERTY_STATUS_ORDER[a.row?.status] ?? Number.MAX_SAFE_INTEGER;
+        const rankB = PROPERTY_STATUS_ORDER[b.row?.status] ?? Number.MAX_SAFE_INTEGER;
+        if (rankA !== rankB) return rankA - rankB;
+        return a.idx - b.idx;
+      })
+      .map((entry) => entry.row);
+  }, [rows]);
 
   function updateField(key, value) {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -204,11 +220,6 @@ export default function SellerListingsPage() {
 
   async function saveListing() {
     const payload = toPayload(form);
-
-    if (!payload.title) {
-      setSubmitError("Title is required.");
-      return;
-    }
 
     setSubmitting(true);
     setSubmitError("");
@@ -265,7 +276,6 @@ export default function SellerListingsPage() {
         <table className="sellerListings__table">
           <thead>
             <tr>
-              <th>Title</th>
               <th>Address</th>
               <th>Workflow</th>
               <th>Visibility</th>
@@ -277,12 +287,12 @@ export default function SellerListingsPage() {
           <tbody>
             {!loading && rows.length === 0 ? (
               <tr>
-                <td colSpan={7} className="sellerListings__empty">
+                <td colSpan={6} className="sellerListings__empty">
                   No listings yet.
                 </td>
               </tr>
             ) : null}
-            {rows.map((row) => {
+            {sortedRows.map((row) => {
               const workflow = row?.sellerWorkflowStatus || "DRAFT";
               const canEdit = EDITABLE_WORKFLOWS.has(workflow);
               const canSubmit = EDITABLE_WORKFLOWS.has(workflow);
@@ -290,7 +300,6 @@ export default function SellerListingsPage() {
 
               return (
                 <tr key={row.id}>
-                  <td>{row.title}</td>
                   <td>{addressLine(row)}</td>
                   <td>
                     <span className={`sellerStatus sellerStatus--${workflow.toLowerCase()}`}>
@@ -354,10 +363,6 @@ export default function SellerListingsPage() {
 
             <div className="sellerListingsModal__grid">
               <label>
-                Title *
-                <input value={form.title} onChange={(e) => updateField("title", e.target.value)} />
-              </label>
-              <label>
                 Street 1
                 <input value={form.street1} onChange={(e) => updateField("street1", e.target.value)} />
               </label>
@@ -415,7 +420,16 @@ export default function SellerListingsPage() {
               </label>
               <label>
                 Occupancy
-                <select value={form.occupancyStatus} onChange={(e) => updateField("occupancyStatus", e.target.value)}>
+                <select
+                  value={form.occupancyStatus}
+                  onChange={(e) => {
+                    const nextOccupancyStatus = e.target.value;
+                    updateField("occupancyStatus", nextOccupancyStatus);
+                    if (nextOccupancyStatus !== "YES") {
+                      updateField("currentRent", "");
+                    }
+                  }}
+                >
                   {OCCUPANCY_OPTIONS.map((value) => (
                     <option key={value || "empty"} value={value}>
                       {prettyEnum(value) || "Select"}
@@ -423,6 +437,12 @@ export default function SellerListingsPage() {
                   ))}
                 </select>
               </label>
+              {form.occupancyStatus === "YES" ? (
+                <label>
+                  Current Rent (Monthly)
+                  <input value={form.currentRent} onChange={(e) => updateField("currentRent", e.target.value)} />
+                </label>
+              ) : null}
               <label>
                 Exit Strategy
                 <select value={form.exitStrategy} onChange={(e) => updateField("exitStrategy", e.target.value)}>

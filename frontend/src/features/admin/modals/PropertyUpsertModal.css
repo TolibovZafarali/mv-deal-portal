@@ -101,6 +101,12 @@ body.mv-admin-layout .propModal {
   margin-bottom: 8px;
 }
 
+.propSection__headActions {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+
 .propSection__title {
   font-size: 14px;
   color: var(--text);
@@ -114,6 +120,7 @@ body.mv-admin-layout .propModal {
   gap: 6px;
 }
 
+
 .propField__label {
   font-size: 12px;
   color: var(--muted);
@@ -122,6 +129,10 @@ body.mv-admin-layout .propModal {
 .propField__help {
   font-size: 11px;
   color: var(--muted);
+}
+
+.propField__help--error {
+  color: rgba(255, 120, 120, 0.95);
 }
 
 .propField__input {
@@ -155,6 +166,10 @@ select.propField__input {
 
 .propField__input:focus {
   border-color: var(--text);
+}
+
+.propField__input--error {
+  border-color: rgba(255, 120, 120, 0.95);
 }
 
 .propAddressAutocomplete {
@@ -237,6 +252,43 @@ select.propField__input {
   box-sizing: border-box;
 }
 
+.propField__input--withInlineBtn {
+  padding-right: 88px;
+}
+
+.propField__inlineBtn {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: grid;
+  place-items: center;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  padding: 5px 8px;
+  cursor: pointer;
+}
+
+.propField__inlineBtn .material-symbols-outlined {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.propField__inlineBtn:hover:not(:disabled) {
+  color: #ffffff;
+}
+
+.propField__inlineBtn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.propField__input--profit {
+  color: #4ecb71;
+  font-weight: 600;
+}
+
 .propGrid {
   display: grid;
   gap: 10px;
@@ -251,12 +303,17 @@ select.propField__input {
 }
 
 .propGrid--address {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
 }
 
 .propField--addressStreet1,
-.propField--addressStreet2,
-.propField--addressCity {
+.propField--addressStreet2 {
+  grid-column: span 3;
+}
+
+.propField--addressCity,
+.propField--addressState,
+.propField--addressZip {
   grid-column: span 2;
 }
 
@@ -295,6 +352,97 @@ select.propField__input {
   display: none;
 }
 
+.propPhotoUrlRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.propPhotoUrlInput {
+  min-width: 0;
+}
+
+.propPhotoUrlBtn {
+  border: 1px solid var(--border-muted);
+  background: transparent;
+  color: var(--text);
+  padding: 0 12px;
+  cursor: pointer;
+  font-size: 12px;
+  white-space: nowrap;
+  transition:
+    border-color 180ms ease,
+    color 180ms ease;
+}
+
+.propPhotoUrlBtn:hover {
+  border-color: var(--text);
+}
+
+.propPhotoUrlBtn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.propOwnerSection {
+  display: grid;
+  gap: 10px;
+  width: 100%;
+}
+
+.propOwnerRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 132px;
+  gap: 10px;
+  align-items: stretch;
+  width: 100%;
+}
+
+.propOwnerAutocomplete {
+  position: relative;
+  width: 100%;
+}
+
+.propOwnerInput {
+  width: 100%;
+  box-sizing: border-box;
+  height: 100%;
+}
+
+.propOwnerActionBtn {
+  min-width: 120px;
+  height: 100%;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.propOwnerAssigned {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: stretch;
+}
+
+.propOwnerDisplayField {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 10px;
+  align-items: center;
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.propOwnerDisplayField span:nth-child(1) {
+  color: var(--text);
+}
+
+.propOwnerDisplayField span:nth-child(2),
+.propOwnerDisplayField span:nth-child(3) {
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
 /* photos */
 .propPhotos {
   display: grid;
@@ -329,6 +477,20 @@ select.propField__input {
   flex-direction: column;
   gap: 8px;
   padding: 8px;
+  cursor: grab;
+}
+
+.propPhotoCard:active {
+  cursor: grabbing;
+}
+
+.propPhotoCard--dragging {
+  opacity: 0.5;
+}
+
+.propPhotoCard--dropTarget {
+  border-color: var(--text);
+  box-shadow: inset 0 0 0 1px var(--text);
 }
 
 .propPhotoCard__image {
@@ -336,6 +498,17 @@ select.propField__input {
   aspect-ratio: 16 / 10;
   object-fit: cover;
   border: 1px solid rgba(242, 242, 242, 0.18);
+}
+
+.propPhotoCard__imageBtn {
+  border: none;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+}
+
+.propPhotoCard__imageBtn .propPhotoCard__image {
+  display: block;
 }
 
 .propPhotoCard__remove {
@@ -355,6 +528,70 @@ select.propField__input {
 .propPhotoCard__remove:disabled {
   opacity: 0.55;
   cursor: not-allowed;
+}
+
+.propPhotoPreview {
+  position: fixed;
+  inset: 0;
+  z-index: 10010;
+  background: rgba(0, 0, 0, 0.9);
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
+.propPhotoPreview__image {
+  max-width: 90vw;
+  max-height: 88vh;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+}
+
+.propPhotoPreview__close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  color: #f2f2f2;
+  cursor: pointer;
+  padding: 0;
+  font-size: 22px;
+  line-height: 1;
+}
+
+.propPhotoPreview__nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 44px;
+  height: 44px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(16, 16, 16, 0.62);
+  color: #f2f2f2;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  font-size: 34px;
+  line-height: 1;
+}
+
+.propPhotoPreview__nav--prev {
+  left: 14px;
+}
+
+.propPhotoPreview__nav--next {
+  right: 14px;
+}
+
+.propPhotoPreview__nav:hover,
+.propPhotoPreview__nav:focus-visible {
+  background: rgba(16, 16, 16, 0.8);
 }
 
 /* comps table */
@@ -442,6 +679,13 @@ select.propField__input {
   overflow-wrap: anywhere;
 }
 
+.propCompsTable__addressRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
 .propCompsTable__removeBtn {
   width: 28px;
   height: 28px;
@@ -458,6 +702,12 @@ select.propField__input {
 .propCompsTable__removeBtn:disabled {
   opacity: 0.55;
   cursor: not-allowed;
+}
+
+.propCompsTable__removeBtn--inline {
+  width: 24px;
+  height: 24px;
+  flex: 0 0 auto;
 }
 
 .tRight {
@@ -496,10 +746,65 @@ select.propField__input {
   border-color: var(--text);
 }
 
-.propStatus__btn--active {
-  background: var(--text);
-  color: var(--bg);
-  border-color: var(--text);
+.propStatus__btn--selected {
+  box-shadow: 0 0 0 1px currentColor inset;
+}
+
+.propStatus__btn--status-active,
+.propStatus__btn--status-draft,
+.propStatus__btn--status-closed {
+  font-weight: 600;
+}
+
+.propStatus__btn--status-active {
+  color: #00e676;
+  border-color: #00c853;
+  background: transparent;
+}
+
+.propStatus__btn--status-active:hover {
+  border-color: #00e676;
+  background: transparent;
+}
+
+.propStatus__btn--status-draft {
+  color: #ffb300;
+  border-color: #ff9800;
+  background: transparent;
+}
+
+.propStatus__btn--status-draft:hover {
+  border-color: #ffb300;
+  background: transparent;
+}
+
+.propStatus__btn--status-closed {
+  color: #c7d1db;
+  border-color: #5f6b7a;
+  background: transparent;
+}
+
+.propStatus__btn--status-closed:hover {
+  border-color: #c7d1db;
+  background: transparent;
+}
+
+.propStatus__btn--status-active.propStatus__btn--selected {
+  background: #00e676;
+  color: #003d1b;
+  border-color: #00e676;
+}
+
+.propStatus__btn--status-draft.propStatus__btn--selected {
+  background: #ffb300;
+  color: #4a2a00;
+  border-color: #ffb300;
+}
+
+.propStatus__btn--status-closed.propStatus__btn--selected {
+  background: #c7d1db;
+  color: #1f2933;
+  border-color: #c7d1db;
 }
 
 /* actions */
@@ -534,6 +839,29 @@ select.propField__input {
 
 /* responsive */
 @media (max-width: 1000px) {
+  .propModalOverlay {
+    padding: 0;
+    place-items: stretch;
+  }
+
+  body.mv-admin-layout .propModalOverlay {
+    left: 0;
+  }
+
+  .propModal,
+  body.mv-admin-layout .propModal {
+    width: 100vw;
+    max-width: none;
+    height: 100dvh;
+    max-height: 100dvh;
+    border: 0;
+    box-shadow: none;
+  }
+
+  .propModal__body {
+    padding-bottom: calc(14px + env(safe-area-inset-bottom));
+  }
+
   .propGrid--4 {
     grid-template-columns: 1fr 1fr;
   }
@@ -567,8 +895,26 @@ select.propField__input {
 }
 
 @media (max-width: 640px) {
+  .propGrid--3 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .propGrid--3 .propField {
+    min-width: 0;
+  }
+
+  .propGrid--3 .propField__input {
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+.propField--propOccupied,
+.propField--propExit,
+.propField--propClosingTerms {
+  grid-column: 1 / -1;
+}
+
   .propGrid--2,
-  .propGrid--3,
   .propGrid--4,
   .propGrid--address,
   .propGrid--price {
@@ -587,8 +933,32 @@ select.propField__input {
     grid-auto-columns: minmax(190px, 84vw);
   }
 
+  .propPhotoUrlRow {
+    grid-template-columns: 1fr;
+  }
+
+  .propOwnerRow,
+  .propOwnerAssigned {
+    grid-template-columns: 1fr;
+  }
+
+  .propOwnerDisplayField {
+    grid-template-columns: 1fr;
+    white-space: normal;
+  }
+
+  .propPhotoUrlBtn {
+    min-height: 40px;
+  }
+
   .propCompActions {
     flex-direction: column;
+  }
+
+  .propPhotoPreview__nav {
+    width: 40px;
+    height: 40px;
+    font-size: 30px;
   }
 }
 

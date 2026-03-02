@@ -32,6 +32,8 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -225,6 +227,29 @@ public class PhotoAssetService {
         hardDeleteAssetNow(asset);
     }
 
+    @Transactional
+    public PropertyPhotoUploadCompleteResponseDto createFromUrl(String rawUrl, long adminId) {
+        String normalizedUrl = normalizeExternalPhotoUrl(rawUrl);
+
+        PhotoAsset asset = new PhotoAsset();
+        asset.setId(UUID.randomUUID().toString());
+        asset.setCreatedByAdminId(adminId);
+        asset.setStatus(PhotoAssetStatus.READY);
+        asset.setUrl(normalizedUrl);
+        asset.setThumbnailUrl(normalizedUrl);
+        photoAssetRepository.save(asset);
+
+        return new PropertyPhotoUploadCompleteResponseDto(
+                asset.getId(),
+                asset.getUrl(),
+                asset.getThumbnailUrl(),
+                null,
+                null,
+                null,
+                null
+        );
+    }
+
     @Transactional(readOnly = true)
     public Map<String, PhotoAsset> resolveReadyAssetsOrThrow(Collection<String> assetIds, Long currentPropertyId, long adminId) {
         Set<String> uniqueIds = assetIds == null
@@ -365,6 +390,32 @@ public class PhotoAssetService {
             return value;
         }
         return value.substring(0, max);
+    }
+
+    private String normalizeExternalPhotoUrl(String rawUrl) {
+        if (!StringUtils.hasText(rawUrl)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Photo URL is required");
+        }
+
+        String trimmed = rawUrl.trim();
+        final URI uri;
+        try {
+            uri = new URI(trimmed);
+        } catch (URISyntaxException ex) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Photo URL is invalid");
+        }
+
+        String scheme = uri.getScheme();
+        if (!StringUtils.hasText(scheme)
+                || (!"http".equalsIgnoreCase(scheme) && !"https".equalsIgnoreCase(scheme))) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Photo URL must use http or https");
+        }
+
+        if (!uri.isAbsolute() || !StringUtils.hasText(uri.getHost())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Photo URL is invalid");
+        }
+
+        return uri.toString();
     }
 
     private boolean adminIdMatches(PhotoAsset asset, long adminId) {
