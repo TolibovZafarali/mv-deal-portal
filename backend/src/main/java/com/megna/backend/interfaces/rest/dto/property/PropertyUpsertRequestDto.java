@@ -16,11 +16,11 @@ public record PropertyUpsertRequestDto(
         @NotNull PropertyStatus status,
         @NotBlank @Size(max = 120) String title,
 
-        @Size(max = 120) String street1,
+        @NotBlank @Size(max = 120) String street1,
         @Size(max = 120) String street2,
-        @Size(max = 80) String city,
-        @Size(max = 40) String state,
-        @Size(max = 15) String zip,
+        @NotBlank @Size(max = 80) String city,
+        @NotBlank @Size(max = 40) String state,
+        @NotBlank @Size(max = 15) String zip,
 
         BigDecimal askingPrice,
         BigDecimal arv,

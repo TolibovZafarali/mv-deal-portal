@@ -91,6 +91,12 @@ const US_STATE_OPTIONS = [
 const US_STATE_VALUES = new Set(US_STATE_OPTIONS.map((option) => option.value));
 const ADDRESS_SUGGESTION_MIN_CHARS = 3;
 const ADDRESS_SUGGESTION_DEBOUNCE_MS = 280;
+const REQUIRED_ADDRESS_FIELD_LABELS = new Set([
+  "Street Address",
+  "City",
+  "State",
+  "ZIP / postcode",
+]);
 
 function createEmptyCompForm() {
   return {
@@ -635,11 +641,39 @@ export default function PropertyUpsertModal({
     return missing;
   }, [form]);
 
+  const missingAddressFields = useMemo(() => {
+    const missing = [];
+    const requiredAddressFields = [
+      ["street1", "Street Address"],
+      ["city", "City"],
+      ["state", "State"],
+      ["zip", "ZIP / postcode"],
+    ];
+
+    requiredAddressFields.forEach(([key, label]) => {
+      if (!String(form[key] ?? "").trim()) {
+        missing.push(label);
+      }
+    });
+
+    return missing;
+  }, [form]);
+
+  const activeMissingRequiredFieldsForMessage = useMemo(
+    () =>
+      activeMissingRequiredFields.filter(
+        (field) => !REQUIRED_ADDRESS_FIELD_LABELS.has(field),
+      ),
+    [activeMissingRequiredFields],
+  );
+
   const isActiveWithMissingRequired =
-    form.status === "ACTIVE" && activeMissingRequiredFields.length > 0;
+    form.status === "ACTIVE" && activeMissingRequiredFieldsForMessage.length > 0;
+  const hasMissingAddressFields = missingAddressFields.length > 0;
 
   const isSubmitDisabled =
     !form.title.trim() ||
+    hasMissingAddressFields ||
     submitting ||
     deleting ||
     photoUploading ||
@@ -1295,6 +1329,7 @@ export default function PropertyUpsertModal({
                     onBlur={handleStreetAddressBlur}
                     placeholder="123 Main St"
                     autoComplete="off"
+                    required
                   />
 
                   {shouldShowAddressSuggestions ? (
@@ -1375,6 +1410,7 @@ export default function PropertyUpsertModal({
                   value={form.city}
                   onChange={(e) => setField("city", e.target.value)}
                   placeholder="Saint Louis"
+                  required
                 />
               </div>
 
@@ -1384,6 +1420,7 @@ export default function PropertyUpsertModal({
                   className="propField__input"
                   value={form.state}
                   onChange={(e) => setField("state", e.target.value)}
+                  required
                 >
                   {US_STATE_OPTIONS.map((option) => (
                     <option key={option.value || "empty"} value={option.value}>
@@ -1400,6 +1437,7 @@ export default function PropertyUpsertModal({
                   value={form.zip}
                   onChange={(e) => setField("zip", e.target.value)}
                   placeholder="63128"
+                  required
                 />
               </div>
             </div>
@@ -2085,9 +2123,14 @@ export default function PropertyUpsertModal({
           </div>
 
           {/* errors */}
+          {hasMissingAddressFields ? (
+            <div className="propModal__error">
+              Address fields are required. Missing: {missingAddressFields.join(", ")}
+            </div>
+          ) : null}
           {isActiveWithMissingRequired ? (
             <div className="propModal__error">
-              Active properties require all required fields. Missing: {activeMissingRequiredFields.join(", ")}
+              Active properties require all required fields. Missing: {activeMissingRequiredFieldsForMessage.join(", ")}
             </div>
           ) : null}
           {submitError ? (
