@@ -9,6 +9,10 @@
   padding: 16px;
 }
 
+body.mv-admin-layout .propModalOverlay {
+  left: var(--mv-admin-sidebar-width, 320px);
+}
+
 .propModal {
   /* Force correct colors inside modal (fixes invisible title) */
   --text: #f2f2f2;
@@ -28,6 +32,10 @@
   scrollbar-width: none; /* Firefox */
 }
 
+body.mv-admin-layout .propModal {
+  width: min(980px, calc(100vw - var(--mv-admin-sidebar-width, 320px) - 32px));
+}
+
 .propModal::-webkit-scrollbar {
   width: 0;
   height: 0;
@@ -36,7 +44,7 @@
 .propModal__header {
   position: sticky;
   top: 0;
-  z-index: 2;
+  z-index: 80;
 
   /* blur the background behind header */
   background: rgba(16, 16, 16, 0.72);
@@ -151,7 +159,7 @@ select.propField__input {
 
 .propAddressAutocomplete {
   position: relative;
-  z-index: 40;
+  z-index: 1;
 }
 
 .propAddressAutocomplete > .propField__input {
@@ -164,7 +172,7 @@ select.propField__input {
   top: calc(100% + 4px);
   left: 0;
   right: 0;
-  z-index: 30;
+  z-index: 5;
   border: 1px solid var(--border-muted);
   background: rgba(16, 16, 16, 0.98);
   max-height: 240px;
