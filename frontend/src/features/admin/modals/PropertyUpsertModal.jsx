@@ -3,6 +3,7 @@ import "@/features/admin/modals/PropertyUpsertModal.css";
 import { formatPriceInput } from "@/shared/utils/priceFormatting";
 import { numOrEmpty } from "@/shared/utils/formValue";
 import { getAddressSuggestions } from "@/api/modules/propertyApi";
+import { getSellerById, searchAdminSellers } from "@/api/modules/sellerApi";
 import { acquireModalBodyLock } from "@/shared/ui/modal/bodyLock";
 
 const STATUS = [
@@ -259,6 +260,23 @@ function formatCompPricePerSqft(comp) {
   return `$${pricePerSqft.toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
 }
 
+function sellerDisplayName(seller) {
+  const full = [seller?.firstName, seller?.lastName].filter(Boolean).join(" ").trim();
+  return full || seller?.email || `Seller #${seller?.id ?? "—"}`;
+}
+
+function sellerDisplayLabelFromProperty(property) {
+  const fromParts = [property?.sellerFirstName, property?.sellerLastName].filter(Boolean).join(" ").trim();
+  return (
+    property?.sellerName ||
+    property?.sellerFullName ||
+    property?.sellerDisplayName ||
+    fromParts ||
+    property?.sellerEmail ||
+    ""
+  );
+}
+
 const DEFAULT_FORM = {
   status: "DRAFT",
   title: "",
@@ -277,6 +295,7 @@ const DEFAULT_FORM = {
   yearBuilt: "",
   roofAge: "",
   hvac: "",
+  sellerId: "",
   occupancyStatus: "",
   exitStrategy: "",
   closingTerms: "",
@@ -323,6 +342,13 @@ export default function PropertyUpsertModal({
   const [compAddressSuggestHasSearched, setCompAddressSuggestHasSearched] =
     useState(false);
   const [compAddressSuggestOpen, setCompAddressSuggestOpen] = useState(false);
+  const [ownerSearchQuery, setOwnerSearchQuery] = useState("");
+  const [ownerSearchResults, setOwnerSearchResults] = useState([]);
+  const [ownerSearchOpen, setOwnerSearchOpen] = useState(false);
+  const [ownerSearchError, setOwnerSearchError] = useState("");
+  const [ownerSearching, setOwnerSearching] = useState(false);
+  const [selectedOwnerCandidate, setSelectedOwnerCandidate] = useState(null);
+  const [assignedOwner, setAssignedOwner] = useState(null);
   const photoInputRef = useRef(null);
   const photoUrlInputRef = useRef(null);
   const addressInputRef = useRef(null);
@@ -335,6 +361,9 @@ export default function PropertyUpsertModal({
   const compAddressBlurTimeoutRef = useRef(null);
   const compAddressLookupRequestSeqRef = useRef(0);
   const suppressCompAddressLookupRef = useRef(false);
+  const ownerBlurTimeoutRef = useRef(null);
+  const ownerLookupRequestSeqRef = useRef(0);
+  const isOwnerAssigned = String(form.sellerId ?? "").trim().length > 0;
 
   useEffect(() => {
     if (!open) setShowDeleteConfirm(false);
@@ -367,6 +396,18 @@ export default function PropertyUpsertModal({
       if (compAddressBlurTimeoutRef.current) {
         clearTimeout(compAddressBlurTimeoutRef.current);
         compAddressBlurTimeoutRef.current = null;
+      }
+      setOwnerSearchQuery("");
+      setOwnerSearchResults([]);
+      setOwnerSearchOpen(false);
+      setOwnerSearchError("");
+      setOwnerSearching(false);
+      setSelectedOwnerCandidate(null);
+      setAssignedOwner(null);
+      ownerLookupRequestSeqRef.current += 1;
+      if (ownerBlurTimeoutRef.current) {
+        clearTimeout(ownerBlurTimeoutRef.current);
+        ownerBlurTimeoutRef.current = null;
       }
     }
   }, [open]);
@@ -416,12 +457,29 @@ export default function PropertyUpsertModal({
       yearBuilt: numOrEmpty(initialValue.yearBuilt),
       roofAge: numOrEmpty(initialValue.roofAge),
       hvac: numOrEmpty(initialValue.hvac),
+      sellerId: numOrEmpty(initialValue.sellerId),
       occupancyStatus: initialValue.occupancyStatus ?? "",
       exitStrategy: initialValue.exitStrategy ?? "",
       closingTerms: initialValue.closingTerms ?? "",
       photos: normalizedPhotos,
       saleComps: normalizedSaleComps,
     });
+    setOwnerSearchQuery(
+      sellerDisplayLabelFromProperty(initialValue) ||
+        (initialValue.sellerId ? `Seller #${initialValue.sellerId}` : ""),
+    );
+    setAssignedOwner(initialValue.sellerId ? {
+      id: initialValue.sellerId,
+      displayName:
+        sellerDisplayLabelFromProperty(initialValue) ||
+        `Seller #${initialValue.sellerId}`,
+      email: initialValue.sellerEmail || "",
+      companyName: initialValue.sellerCompanyName || "",
+    } : null);
+    setSelectedOwnerCandidate(null);
+    setOwnerSearchResults([]);
+    setOwnerSearchOpen(false);
+    setOwnerSearchError("");
   }, [open, initialValue]);
 
   // esc + scroll lock
@@ -454,6 +512,10 @@ export default function PropertyUpsertModal({
         clearTimeout(compAddressBlurTimeoutRef.current);
         compAddressBlurTimeoutRef.current = null;
       }
+      if (ownerBlurTimeoutRef.current) {
+        clearTimeout(ownerBlurTimeoutRef.current);
+        ownerBlurTimeoutRef.current = null;
+      }
     };
   }, []);
 
@@ -466,6 +528,66 @@ export default function PropertyUpsertModal({
     }
     photoWheelTargetRef.current = 0;
   }, [open]);
+
+  useEffect(() => {
+    if (!open || isOwnerAssigned || !ownerSearchOpen) return undefined;
+
+    const requestSeq = ownerLookupRequestSeqRef.current + 1;
+    ownerLookupRequestSeqRef.current = requestSeq;
+    const timer = setTimeout(async () => {
+      setOwnerSearching(true);
+      setOwnerSearchError("");
+      try {
+        const query = String(ownerSearchQuery ?? "").trim();
+        const data = await searchAdminSellers(
+          query ? { q: query } : {},
+          { page: 0, size: 8, sort: "createdAt,desc" },
+        );
+        if (ownerLookupRequestSeqRef.current !== requestSeq) return;
+        const results = data?.content ?? [];
+        setOwnerSearchResults(results);
+        if (results.length === 0 && query) {
+          setOwnerSearchError("No sellers matched that query.");
+        }
+      } catch (error) {
+        if (ownerLookupRequestSeqRef.current !== requestSeq) return;
+        setOwnerSearchResults([]);
+        setOwnerSearchError(error?.message || "Failed to search sellers.");
+      } finally {
+        if (ownerLookupRequestSeqRef.current === requestSeq) {
+          setOwnerSearching(false);
+        }
+      }
+    }, 220);
+
+    return () => clearTimeout(timer);
+  }, [open, isOwnerAssigned, ownerSearchOpen, ownerSearchQuery]);
+
+  useEffect(() => {
+    if (!open || !isOwnerAssigned || assignedOwner?.email || assignedOwner?.companyName) return undefined;
+    const sellerId = Number(form.sellerId);
+    if (!Number.isFinite(sellerId)) return undefined;
+    let cancelled = false;
+
+    async function hydrateAssignedOwner() {
+      try {
+        const seller = await getSellerById(sellerId);
+        if (cancelled) return;
+        setAssignedOwner({
+          id: sellerId,
+          displayName: sellerDisplayName(seller),
+          email: seller?.email || "",
+          companyName: seller?.companyName || "",
+        });
+      } catch {
+        // keep fallback label from initial value if fetch fails
+      }
+    }
+    hydrateAssignedOwner();
+    return () => {
+      cancelled = true;
+    };
+  }, [open, isOwnerAssigned, assignedOwner?.email, assignedOwner?.companyName, form.sellerId]);
 
   const titleText = useMemo(
     () => (isEdit ? "Edit Property" : "Add Property"),
@@ -554,6 +676,66 @@ export default function PropertyUpsertModal({
 
   function setCompPriceField(key, value) {
     setCompDraft((prev) => ({ ...prev, [key]: formatPriceInput(value) }));
+  }
+
+  function clearOwnerBlurTimer() {
+    if (ownerBlurTimeoutRef.current) {
+      clearTimeout(ownerBlurTimeoutRef.current);
+      ownerBlurTimeoutRef.current = null;
+    }
+  }
+
+  function handleOwnerInputFocus() {
+    clearOwnerBlurTimer();
+    setOwnerSearchOpen(true);
+  }
+
+  function handleOwnerInputBlur() {
+    clearOwnerBlurTimer();
+    ownerBlurTimeoutRef.current = setTimeout(() => {
+      setOwnerSearchOpen(false);
+      ownerBlurTimeoutRef.current = null;
+    }, 120);
+  }
+
+  function handleOwnerInputChange(nextValue) {
+    setOwnerSearchQuery(nextValue);
+    setSelectedOwnerCandidate(null);
+    setOwnerSearchError("");
+    setOwnerSearchOpen(true);
+  }
+
+  function pickOwnerCandidate(seller) {
+    clearOwnerBlurTimer();
+    setSelectedOwnerCandidate(seller);
+    setOwnerSearchQuery(sellerDisplayName(seller));
+    setOwnerSearchOpen(false);
+    setOwnerSearchError("");
+  }
+
+  function applySelectedOwner() {
+    if (!selectedOwnerCandidate?.id) return;
+    setField("sellerId", String(selectedOwnerCandidate.id));
+    setAssignedOwner({
+      id: selectedOwnerCandidate.id,
+      displayName: sellerDisplayName(selectedOwnerCandidate),
+      email: selectedOwnerCandidate.email || "",
+      companyName: selectedOwnerCandidate.companyName || "",
+    });
+    setSelectedOwnerCandidate(null);
+    setOwnerSearchResults([]);
+    setOwnerSearchOpen(false);
+    setOwnerSearchError("");
+  }
+
+  function clearOwnerAssignment() {
+    setField("sellerId", "");
+    setAssignedOwner(null);
+    setSelectedOwnerCandidate(null);
+    setOwnerSearchQuery("");
+    setOwnerSearchResults([]);
+    setOwnerSearchOpen(false);
+    setOwnerSearchError("");
   }
 
   function clearCompEditorAddressState() {
@@ -1778,6 +1960,108 @@ export default function PropertyUpsertModal({
                 </tbody>
               </table>
             </div>
+          </div>
+
+          {/* Seller Owner */}
+          <div className="propSection">
+            <div className="propSection__head">
+              <div className="propSection__title">Seller Owner</div>
+            </div>
+
+            {!isOwnerAssigned ? (
+              <div className="propOwnerSection">
+                <div className="propOwnerRow">
+                  <div className="propOwnerAutocomplete">
+                    <input
+                      className="propField__input propOwnerInput"
+                      value={ownerSearchQuery}
+                      onChange={(event) => handleOwnerInputChange(event.target.value)}
+                      onFocus={handleOwnerInputFocus}
+                      onBlur={handleOwnerInputBlur}
+                      placeholder="Search seller by name or email"
+                      name="seller_owner_lookup"
+                      autoComplete="new-password"
+                      autoCorrect="off"
+                      autoCapitalize="none"
+                      spellCheck={false}
+                      disabled={submitting || deleting}
+                    />
+
+                    {ownerSearchOpen ? (
+                      <div className="propAddressSuggest" role="listbox">
+                        {ownerSearching ? (
+                          <div className="propAddressSuggest__status">
+                            Searching sellers...
+                          </div>
+                        ) : null}
+
+                        {!ownerSearching && ownerSearchError ? (
+                          <div className="propAddressSuggest__status propAddressSuggest__status--error">
+                            {ownerSearchError}
+                          </div>
+                        ) : null}
+
+                        {!ownerSearching &&
+                        !ownerSearchError &&
+                        ownerSearchResults.length === 0 ? (
+                          <div className="propAddressSuggest__status">
+                            No sellers found.
+                          </div>
+                        ) : null}
+
+                        {!ownerSearching && !ownerSearchError
+                          ? ownerSearchResults.map((seller) => (
+                              <button
+                                key={`owner-option-${seller.id}`}
+                                type="button"
+                                className="propAddressSuggest__item"
+                                onMouseDown={(event) => {
+                                  event.preventDefault();
+                                  pickOwnerCandidate(seller);
+                                }}
+                              >
+                                <span className="propAddressSuggest__title">
+                                  {sellerDisplayName(seller)}
+                                </span>
+                                <span className="propAddressSuggest__meta">
+                                  {[seller.email, seller.companyName]
+                                    .filter(Boolean)
+                                    .join(" • ") || "—"}
+                                </span>
+                              </button>
+                            ))
+                          : null}
+                      </div>
+                    ) : null}
+                  </div>
+
+                  <button
+                    type="button"
+                    className="propBtn propBtn--primary propOwnerActionBtn"
+                    onClick={applySelectedOwner}
+                    disabled={submitting || deleting || !selectedOwnerCandidate}
+                  >
+                    Assign
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="propOwnerAssigned">
+                <div className="propField__input propOwnerDisplayField">
+                  <span>{assignedOwner?.displayName || `Seller #${form.sellerId}`}</span>
+                  <span>{assignedOwner?.email || "—"}</span>
+                  <span>{assignedOwner?.companyName || "—"}</span>
+                </div>
+                <button
+                  type="button"
+                  className="propBtn propOwnerActionBtn"
+                  onClick={clearOwnerAssignment}
+                  disabled={submitting || deleting}
+                >
+                  Unassign
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Status */}

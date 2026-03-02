@@ -10,7 +10,7 @@ import {
   uploadPropertyPhoto,
   updateProperty,
 } from "@/api/modules/propertyApi";
-import { getSellerById, searchAdminSellers } from "@/api/modules/sellerApi";
+import { getSellerById } from "@/api/modules/sellerApi";
 import {
   assignPropertySeller,
   getAdminPropertyChangeRequests,
@@ -20,7 +20,6 @@ import {
 import "@/features/admin/pages/AdminPropertiesPage.css";
 import AdminFilterBar, { AdminFilterMore } from "@/features/admin/components/AdminFilterBar";
 import AdminPagination from "@/features/admin/components/AdminPagination";
-import SellerAssignmentModal from "@/features/admin/modals/SellerAssignmentModal";
 import SellerReviewModal from "@/features/admin/modals/SellerReviewModal";
 import ChangeRequestDecisionModal from "@/features/admin/modals/ChangeRequestDecisionModal";
 import PropertyUpsertModal from "@/features/admin/modals/PropertyUpsertModal";
@@ -153,13 +152,6 @@ export default function AdminPropertiesPage() {
   const [editDeleting, setEditDeleting] = useState(false);
   const [editDeleteError, setEditDeleteError] = useState("");
   const [reviewNoteModal, setReviewNoteModal] = useState({ open: false, note: "", sellerId: null, sellerLabel: "" });
-
-  const [assignmentModal, setAssignmentModal] = useState({ open: false, property: null });
-  const [assignmentResults, setAssignmentResults] = useState([]);
-  const [assignmentSearching, setAssignmentSearching] = useState(false);
-  const [assignmentSearchError, setAssignmentSearchError] = useState("");
-  const [assignmentSaving, setAssignmentSaving] = useState(false);
-  const [assignmentSaveError, setAssignmentSaveError] = useState("");
 
   const [sellerReviewModal, setSellerReviewModal] = useState({ open: false, property: null });
   const [sellerReviewSubmitting, setSellerReviewSubmitting] = useState(false);
@@ -520,7 +512,10 @@ export default function AdminPropertiesPage() {
         saleComps: mapSaleCompsForUpsert(form.saleComps),
       };
 
-      await createProperty(dto);
+      const created = await createProperty(dto);
+      if (form?.sellerId !== "" && form?.sellerId !== null && form?.sellerId !== undefined) {
+        await syncPropertyOwner(created?.id, form.sellerId);
+      }
 
       setAddOpen(false);
       setPage(0);
@@ -577,57 +572,25 @@ export default function AdminPropertiesPage() {
     }
   }
 
-  function openAssignSellerModal(property) {
-    setAssignmentSearchError("");
-    setAssignmentSaveError("");
-    setAssignmentResults([]);
-    setAssignmentModal({ open: true, property });
-  }
-
-  async function handleAssignmentSearch(query) {
-    if (!query?.trim()) return;
-
-    setAssignmentSearching(true);
-    setAssignmentSearchError("");
-
-    try {
-      const sellers = await searchAdminSellers({ q: query.trim() }, { page: 0, size: 12, sort: "createdAt,desc" });
-      setAssignmentResults(sellers?.content ?? []);
-      if ((sellers?.content ?? []).length === 0) {
-        setAssignmentSearchError("No sellers matched that query.");
-      }
-    } catch (e) {
-      setAssignmentResults([]);
-      setAssignmentSearchError(e?.message || "Failed to search sellers.");
-    } finally {
-      setAssignmentSearching(false);
-    }
-  }
-
-  async function handleAssignmentSave(sellerId) {
-    const property = assignmentModal.property;
-    if (!property?.id) return;
+  async function syncPropertyOwner(propertyId, sellerId) {
+    if (!propertyId) return;
+    const normalizedSellerId = sellerId === "" || sellerId === null || sellerId === undefined
+      ? null
+      : Number(sellerId);
+    const safeSellerId = Number.isFinite(normalizedSellerId) ? normalizedSellerId : null;
 
     const stop = startAdminTimer("admin.properties.assign_seller", {
-      propertyId: property.id,
-      sellerId: sellerId ?? null,
+      propertyId,
+      sellerId: safeSellerId,
     });
 
-    setAssignmentSaving(true);
-    setAssignmentSaveError("");
-
     try {
-      await assignPropertySeller(property.id, sellerId ?? null);
+      await assignPropertySeller(propertyId, safeSellerId);
       stop("success");
       signalAdminQueueRefresh();
-      setAssignmentModal({ open: false, property: null });
-      setAssignmentResults([]);
-      setRefreshKey((k) => k + 1);
     } catch (e) {
-      setAssignmentSaveError(e?.message || "Failed to assign seller.");
       stop("error", { error: e?.message || "unknown" });
-    } finally {
-      setAssignmentSaving(false);
+      throw e;
     }
   }
 
@@ -702,6 +665,14 @@ export default function AdminPropertiesPage() {
     try {
       const dto = formToUpsertDto(form);
       await updateProperty(editId, dto);
+      const currentSellerId = editInitial?.sellerId ?? null;
+      const nextSellerId = form?.sellerId === "" || form?.sellerId === null || form?.sellerId === undefined
+        ? null
+        : Number(form.sellerId);
+      const normalizedNextSellerId = Number.isFinite(nextSellerId) ? nextSellerId : null;
+      if (currentSellerId !== normalizedNextSellerId) {
+        await syncPropertyOwner(editId, normalizedNextSellerId);
+      }
 
       setEditOpen(false);
       setEditId(null);
@@ -868,7 +839,7 @@ export default function AdminPropertiesPage() {
                   <thead>
                     <tr>
                       <th>Address</th>
-                      <th className="adminProps__thRight">Asking</th>
+                      <th className="adminProps__thRight">Asking Price</th>
                       {secondaryColumnSet.has("arv") ? <th className="adminProps__thRight">ARV</th> : null}
                       {secondaryColumnSet.has("repairs") ? <th className="adminProps__thRight">Repairs</th> : null}
                       {secondaryColumnSet.has("fmr") ? <th className="adminProps__thRight">FMR</th> : null}
@@ -975,24 +946,6 @@ export default function AdminPropertiesPage() {
                                 edit
                               </span>
                             </button>
-
-                            <button
-                              className="adminProps__textBtn"
-                              type="button"
-                              onClick={() => openAssignSellerModal(p)}
-                            >
-                              Assign
-                            </button>
-
-                            {p.sellerWorkflowStatus === "SUBMITTED" ? (
-                              <button
-                                className="adminProps__textBtn"
-                                type="button"
-                                onClick={() => openSellerReviewModal(p)}
-                              >
-                                Review
-                              </button>
-                            ) : null}
                           </div>
                         </td>
                       </tr>
@@ -1102,26 +1055,6 @@ export default function AdminPropertiesPage() {
         onDelete={handleEditDelete}
         deleting={editDeleting}
         deleteError={editDeleteError}
-      />
-
-      <SellerAssignmentModal
-        open={assignmentModal.open}
-        property={assignmentModal.property}
-        searching={assignmentSearching}
-        searchError={assignmentSearchError}
-        results={assignmentResults}
-        saving={assignmentSaving}
-        saveError={assignmentSaveError}
-        onClose={() => {
-          if (assignmentSaving) return;
-          setAssignmentModal({ open: false, property: null });
-          setAssignmentResults([]);
-          setAssignmentSearchError("");
-          setAssignmentSaveError("");
-        }}
-        onSearch={handleAssignmentSearch}
-        onAssign={(sellerId) => handleAssignmentSave(sellerId)}
-        onUnassign={() => handleAssignmentSave(null)}
       />
 
       <SellerReviewModal

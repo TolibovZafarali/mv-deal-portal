@@ -120,6 +120,7 @@ body.mv-admin-layout .propModal {
   gap: 6px;
 }
 
+
 .propField__label {
   font-size: 12px;
   color: var(--muted);
@@ -332,6 +333,64 @@ select.propField__input {
 .propPhotoUrlBtn:disabled {
   opacity: 0.55;
   cursor: not-allowed;
+}
+
+.propOwnerSection {
+  display: grid;
+  gap: 10px;
+  width: 100%;
+}
+
+.propOwnerRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 132px;
+  gap: 10px;
+  align-items: stretch;
+  width: 100%;
+}
+
+.propOwnerAutocomplete {
+  position: relative;
+  width: 100%;
+}
+
+.propOwnerInput {
+  width: 100%;
+  box-sizing: border-box;
+  height: 100%;
+}
+
+.propOwnerActionBtn {
+  min-width: 120px;
+  height: 100%;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.propOwnerAssigned {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: stretch;
+}
+
+.propOwnerDisplayField {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 10px;
+  align-items: center;
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.propOwnerDisplayField span:nth-child(1) {
+  color: var(--text);
+}
+
+.propOwnerDisplayField span:nth-child(2),
+.propOwnerDisplayField span:nth-child(3) {
+  color: var(--muted);
+  overflow-wrap: anywhere;
 }
 
 /* photos */
@@ -628,6 +687,16 @@ select.propField__input {
 
   .propPhotoUrlRow {
     grid-template-columns: 1fr;
+  }
+
+  .propOwnerRow,
+  .propOwnerAssigned {
+    grid-template-columns: 1fr;
+  }
+
+  .propOwnerDisplayField {
+    grid-template-columns: 1fr;
+    white-space: normal;
   }
 
   .propPhotoUrlBtn {
