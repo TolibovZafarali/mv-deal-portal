@@ -34,6 +34,7 @@ import { formatPriceInput } from "@/shared/utils/priceFormatting";
 const PAGE_SIZE = 20;
 const PROPERTIES_PRIMARY_INLINE_MIN_WIDTH = 980;
 const PROPERTIES_INLINE_FILTERS_MIN_WIDTH = 1420;
+const ADMIN_PROPERTIES_MOBILE_QUERY = "(max-width: 980px)";
 const PROPERTY_STATUS_ORDER = {
   ACTIVE: 0,
   DRAFT: 1,
@@ -90,9 +91,13 @@ function money(v) {
   });
 }
 
-function fullAddress(p) {
-  const line1 = [p.street1, p.street2].filter(Boolean).join(", ");
-  return `${line1}, ${p.city}, ${p.state} ${p.zip}`;
+function propertyAddressLineOne(property) {
+  return [property?.street1, property?.street2].filter(Boolean).join(", ");
+}
+
+function propertyAddressLineTwo(property) {
+  const stateZip = [property?.state, property?.zip].filter(Boolean).join(" ");
+  return [property?.city, stateZip].filter(Boolean).join(", ");
 }
 
 function prettyEnum(v) {
@@ -175,6 +180,31 @@ export default function AdminPropertiesPage() {
   const [changeRequestsError, setChangeRequestsError] = useState("");
   const [secondaryColumns, setSecondaryColumns] = useState([]);
   const [sellerNameById, setSellerNameById] = useState({});
+  const [isMobileView, setIsMobileView] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return window.matchMedia(ADMIN_PROPERTIES_MOBILE_QUERY).matches;
+  });
+
+  useEffect(() => {
+    if (typeof window === "undefined") return undefined;
+    const media = window.matchMedia(ADMIN_PROPERTIES_MOBILE_QUERY);
+    const handleMediaChange = (event) => setIsMobileView(event.matches);
+    const supportsModernListener = typeof media.addEventListener === "function";
+
+    if (supportsModernListener) {
+      media.addEventListener("change", handleMediaChange);
+    } else {
+      media.addListener(handleMediaChange);
+    }
+
+    return () => {
+      if (supportsModernListener) {
+        media.removeEventListener("change", handleMediaChange);
+        return;
+      }
+      media.removeListener(handleMediaChange);
+    };
+  }, []);
 
   function updateFilter(key, value) {
     setFilters((prev) => ({ ...prev, [key]: value }));
@@ -829,25 +859,27 @@ export default function AdminPropertiesPage() {
           <div className="adminProps__sectionHead">
             <h3 className="adminProps__sectionTitle">Properties</h3>
             <div className="adminProps__sectionActions">
-              <details className="adminProps__columnsMenu">
-                <summary className="adminProps__columnsBtn">
-                  <span className="material-symbols-outlined">view_column</span>
-                  Columns
-                  {secondaryColumns.length ? ` (${secondaryColumns.length})` : ""}
-                </summary>
-                <div className="adminProps__columnsBody">
-                  {SECONDARY_COLUMN_OPTIONS.map((column) => (
-                    <label key={column.key} className="adminProps__columnOption">
-                      <input
-                        type="checkbox"
-                        checked={secondaryColumnSet.has(column.key)}
-                        onChange={() => toggleSecondaryColumn(column.key)}
-                      />
-                      <span>{column.label}</span>
-                    </label>
-                  ))}
-                </div>
-              </details>
+              {!isMobileView ? (
+                <details className="adminProps__columnsMenu">
+                  <summary className="adminProps__columnsBtn">
+                    <span className="material-symbols-outlined">view_column</span>
+                    Columns
+                    {secondaryColumns.length ? ` (${secondaryColumns.length})` : ""}
+                  </summary>
+                  <div className="adminProps__columnsBody">
+                    {SECONDARY_COLUMN_OPTIONS.map((column) => (
+                      <label key={column.key} className="adminProps__columnOption">
+                        <input
+                          type="checkbox"
+                          checked={secondaryColumnSet.has(column.key)}
+                          onChange={() => toggleSecondaryColumn(column.key)}
+                        />
+                        <span>{column.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                </details>
+              ) : null}
               <button
                 className="adminProps__addBtn"
                 type="button"
@@ -872,37 +904,73 @@ export default function AdminPropertiesPage() {
                 <table className="adminProps__table">
                   <thead>
                     <tr>
-                      <th>Address</th>
-                      <th className="adminProps__thRight">Asking Price</th>
-                      {secondaryColumnSet.has("arv") ? <th className="adminProps__thRight">ARV</th> : null}
-                      {secondaryColumnSet.has("repairs") ? <th className="adminProps__thRight">Repairs</th> : null}
-                      {secondaryColumnSet.has("fmr") ? <th className="adminProps__thRight">FMR</th> : null}
-                      {secondaryColumnSet.has("exit") ? <th className="adminProps__thCenter">Exit</th> : null}
-                      {secondaryColumnSet.has("sqft") ? <th className="adminProps__thRight">SqFt</th> : null}
-                      {secondaryColumnSet.has("beds") ? <th className="adminProps__thCenter">Bed</th> : null}
-                      {secondaryColumnSet.has("baths") ? <th className="adminProps__thCenter">Bath</th> : null}
-                      {secondaryColumnSet.has("year") ? <th className="adminProps__thCenter">Year</th> : null}
-                      <th className="adminProps__thCenter">Seller Owner</th>
-                      <th className="adminProps__thCenter">Seller Workflow</th>
-                      {secondaryColumnSet.has("reviewNote") ? <th className="adminProps__thCenter">Review Note</th> : null}
-                      <th className="adminProps__thCenter">Status</th>
-                      <th className="adminProps__thIcon"></th>
+                      {isMobileView ? (
+                        <>
+                          <th>Address</th>
+                          <th className="adminProps__thIcon">Edit</th>
+                        </>
+                      ) : (
+                        <>
+                          <th>Address</th>
+                          <th className="adminProps__thRight">Asking Price</th>
+                          {secondaryColumnSet.has("arv") ? <th className="adminProps__thRight">ARV</th> : null}
+                          {secondaryColumnSet.has("repairs") ? <th className="adminProps__thRight">Repairs</th> : null}
+                          {secondaryColumnSet.has("fmr") ? <th className="adminProps__thRight">FMR</th> : null}
+                          {secondaryColumnSet.has("exit") ? <th className="adminProps__thCenter">Exit</th> : null}
+                          {secondaryColumnSet.has("sqft") ? <th className="adminProps__thRight">SqFt</th> : null}
+                          {secondaryColumnSet.has("beds") ? <th className="adminProps__thCenter">Bed</th> : null}
+                          {secondaryColumnSet.has("baths") ? <th className="adminProps__thCenter">Bath</th> : null}
+                          {secondaryColumnSet.has("year") ? <th className="adminProps__thCenter">Year</th> : null}
+                          <th className="adminProps__thCenter">Seller Owner</th>
+                          <th className="adminProps__thCenter">Seller Workflow</th>
+                          {secondaryColumnSet.has("reviewNote") ? <th className="adminProps__thCenter">Review Note</th> : null}
+                          <th className="adminProps__thCenter">Status</th>
+                          <th className="adminProps__thIcon"></th>
+                        </>
+                      )}
                     </tr>
                   </thead>
 
                   <tbody>
                     {sortedRows.map((p) => {
+                      const lineOne = propertyAddressLineOne(p);
+                      const lineTwo = propertyAddressLineTwo(p);
                       const statusKey = String(p?.status ?? "").trim().toUpperCase();
                       const statusTone = ["ACTIVE", "DRAFT", "CLOSED"].includes(statusKey)
                         ? statusKey.toLowerCase()
                         : "unknown";
 
+                      if (isMobileView) {
+                        return (
+                          <tr key={p.id} className={`adminProps__row adminProps__row--${statusTone}`}>
+                            <td className="adminProps__tdAddress">
+                              <div className="adminProps__addrMain">{lineOne || "—"}</div>
+                              <div className="adminProps__addrSub">{lineTwo || "—"}</div>
+                            </td>
+                            <td className="adminProps__tdIcon">
+                              <div className="adminProps__actionsCol">
+                                <button
+                                  className="adminProps__editBtn"
+                                  type="button"
+                                  title="Edit"
+                                  aria-label={`Edit property ${p.id}`}
+                                  onClick={() => openEditModal(p.id)}
+                                >
+                                  <span className="material-symbols-outlined">
+                                    edit
+                                  </span>
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      }
+
                       return (
                       <tr key={p.id} className={`adminProps__row adminProps__row--${statusTone}`}>
                         <td className="adminProps__tdAddress">
-                          <div className="adminProps__addrMain">
-                            {fullAddress(p)}
-                          </div>
+                          <div className="adminProps__addrMain">{lineOne || "—"}</div>
+                          <div className="adminProps__addrSub">{lineTwo || "—"}</div>
                         </td>
 
                         <td className="adminProps__tdRight">
