@@ -3,14 +3,19 @@
   --admin-ink: #101010;
   --admin-muted: rgba(16, 16, 16, 0.65);
   --admin-border: rgba(16, 16, 16, 0.28);
+  --admin-filter-bg: #101010;
+  --admin-filter-ink: #f2f2f2;
+  --admin-filter-muted: #b8b8b8;
+  --admin-filter-border: #5a5a5a;
   color: var(--admin-ink);
   display: grid;
   gap: 14px;
 }
 
 .adminQueue__header {
-  border: 1px solid var(--admin-border);
-  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid var(--admin-filter-border);
+  background: var(--admin-filter-bg);
+  color: var(--admin-filter-ink);
   padding: 12px;
   display: grid;
   gap: 4px;
@@ -23,7 +28,7 @@
 
 .adminQueue__meta {
   font-size: 12px;
-  color: var(--admin-muted);
+  color: var(--admin-filter-muted);
 }
 
 .adminQueue__notice {
@@ -121,6 +126,7 @@
   display: grid;
   gap: 6px;
   flex-shrink: 0;
+  width: 140px;
 }
 
 .adminQueue__btn {
@@ -128,6 +134,9 @@
   background: transparent;
   color: var(--admin-ink);
   padding: 7px 10px;
+  width: 100%;
+  min-width: 0;
+  text-align: center;
   cursor: pointer;
   transition: background 180ms ease, color 180ms ease, border-color 180ms ease;
 }

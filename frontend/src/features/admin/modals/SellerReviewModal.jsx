@@ -2,16 +2,20 @@ import { useMemo, useState } from "react";
 import Modal from "@/shared/ui/modal/Modal";
 import "@/features/admin/modals/SellerReviewModal.css";
 
+const MAX_REVIEW_NOTE_CHARS = 200;
+
 function SellerReviewModalBody({ property, submitting, submitError, onClose, onSubmit }) {
-  const [action, setAction] = useState("PUBLISH");
+  const [action, setAction] = useState("");
   const [reviewNote, setReviewNote] = useState("");
   const address = [property.street1, property.street2, property.city, property.state, property.zip]
     .filter((value) => String(value ?? "").trim().length > 0)
     .join(", ");
 
   const requiresNote = useMemo(() => action === "REQUEST_CHANGES", [action]);
+  const remainingNoteChars = Math.max(0, MAX_REVIEW_NOTE_CHARS - reviewNote.length);
 
   function handleSubmit() {
+    if (!action) return;
     if (requiresNote && !reviewNote.trim()) return;
     onSubmit?.({ action, reviewNote });
   }
@@ -35,7 +39,7 @@ function SellerReviewModalBody({ property, submitting, submitError, onClose, onS
           Publish
         </button>
         <button
-          className={`sellerReview__choice sellerReview__choice--warning ${action === "REQUEST_CHANGES" ? "sellerReview__choice--active" : ""}`}
+          className={`sellerReview__choice sellerReview__choice--warning ${action === "REQUEST_CHANGES" ? "sellerReview__choice--warningActive" : ""}`}
           type="button"
           onClick={() => setAction("REQUEST_CHANGES")}
           disabled={submitting}
@@ -45,12 +49,15 @@ function SellerReviewModalBody({ property, submitting, submitError, onClose, onS
       </div>
 
       <label className="sellerReview__noteWrap">
-        <span>Review note {requiresNote ? "(required)" : "(optional)"}</span>
+        <span className="sellerReview__noteHead">
+          <span>Review note {requiresNote ? "(required)" : "(optional)"}</span>
+          <span className="sellerReview__noteHint">{remainingNoteChars}/{MAX_REVIEW_NOTE_CHARS}</span>
+        </span>
         <textarea
           value={reviewNote}
           onChange={(e) => setReviewNote(e.target.value)}
           rows={4}
-          maxLength={1000}
+          maxLength={MAX_REVIEW_NOTE_CHARS}
           disabled={submitting}
           placeholder={requiresNote ? "Explain what must be changed" : "Optional context for seller"}
         />
@@ -64,9 +71,9 @@ function SellerReviewModalBody({ property, submitting, submitError, onClose, onS
         </button>
         <button
           type="button"
-          className="sellerReview__btn sellerReview__btn--primary"
+          className="sellerReview__btn"
           onClick={handleSubmit}
-          disabled={submitting || (requiresNote && !reviewNote.trim())}
+          disabled={submitting || !action || (requiresNote && !reviewNote.trim())}
         >
           {submitting ? "Saving..." : "Save Decision"}
         </button>
