@@ -733,10 +733,65 @@ select.propField__input {
   border-color: var(--text);
 }
 
-.propStatus__btn--active {
-  background: var(--text);
-  color: var(--bg);
-  border-color: var(--text);
+.propStatus__btn--selected {
+  box-shadow: 0 0 0 1px currentColor inset;
+}
+
+.propStatus__btn--status-active,
+.propStatus__btn--status-draft,
+.propStatus__btn--status-closed {
+  font-weight: 600;
+}
+
+.propStatus__btn--status-active {
+  color: #00e676;
+  border-color: #00c853;
+  background: transparent;
+}
+
+.propStatus__btn--status-active:hover {
+  border-color: #00e676;
+  background: transparent;
+}
+
+.propStatus__btn--status-draft {
+  color: #ffb300;
+  border-color: #ff9800;
+  background: transparent;
+}
+
+.propStatus__btn--status-draft:hover {
+  border-color: #ffb300;
+  background: transparent;
+}
+
+.propStatus__btn--status-closed {
+  color: #c7d1db;
+  border-color: #5f6b7a;
+  background: transparent;
+}
+
+.propStatus__btn--status-closed:hover {
+  border-color: #c7d1db;
+  background: transparent;
+}
+
+.propStatus__btn--status-active.propStatus__btn--selected {
+  background: #00e676;
+  color: #003d1b;
+  border-color: #00e676;
+}
+
+.propStatus__btn--status-draft.propStatus__btn--selected {
+  background: #ffb300;
+  color: #4a2a00;
+  border-color: #ffb300;
+}
+
+.propStatus__btn--status-closed.propStatus__btn--selected {
+  background: #c7d1db;
+  color: #1f2933;
+  border-color: #c7d1db;
 }
 
 /* actions */

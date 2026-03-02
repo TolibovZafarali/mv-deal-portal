@@ -2399,7 +2399,7 @@ export default function PropertyUpsertModal({
                 <button
                   key={s.value}
                   type="button"
-                  className={`propStatus__btn ${form.status === s.value ? "propStatus__btn--active" : ""}`}
+                  className={`propStatus__btn propStatus__btn--status-${String(s.value).toLowerCase()} ${form.status === s.value ? "propStatus__btn--selected" : ""}`}
                   onClick={() => setField("status", s.value)}
                 >
                   {s.label}
