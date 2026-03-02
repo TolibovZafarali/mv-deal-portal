@@ -284,7 +284,7 @@ export default function SignUpModal() {
           className={`signupModal__form ${step === STEP_DONE ? "signupModal__form--done" : ""}`}
           onSubmit={handleSubmit}
         >
-          {step !== STEP_DONE && (
+          {step === STEP_INFO && (
             <div
               className={[
                 "signupModal__roleToggle",

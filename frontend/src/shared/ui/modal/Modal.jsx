@@ -1,5 +1,6 @@
 import { useEffect } from "react";
-import "@/shared/ui/modal/Modal.css"
+import "@/shared/ui/modal/Modal.css";
+import { acquireModalBodyLock } from "@/shared/ui/modal/bodyLock";
 
 export default function Modal({ open, title, children, onClose, width = 640 }) {
     useEffect(() => {
@@ -10,14 +11,11 @@ export default function Modal({ open, title, children, onClose, width = 640 }) {
         }
 
         document.addEventListener("keydown", onKeyDown);
-
-        // lock scroll
-        const prev = document.body.style.overflow;
-        document.body.style.overflow = "hidden";
+        const releaseBodyLock = acquireModalBodyLock();
 
         return () => {
             document.removeEventListener("keydown", onKeyDown);
-            document.body.style.overflow = prev;
+            releaseBodyLock();
         };
     }, [open, onClose]);
 

@@ -9,6 +9,10 @@
     padding: 16px;
 }
 
+body.mv-admin-layout .mv-modal-backdrop {
+    left: var(--mv-admin-sidebar-width, 320px);
+}
+
 .mv-modal {
     border: 1px solid var(--border-muted, rgba(242, 242, 242, 0.28));
     background: rgba(16, 16, 16, 0.96);
@@ -16,6 +20,10 @@
     max-width: 92vw;
     max-height: 86vh;
     overflow: hidden;
+}
+
+body.mv-admin-layout .mv-modal {
+    max-width: min(92vw, calc(100vw - var(--mv-admin-sidebar-width, 320px) - 32px));
 }
 
 .mv-modal__header {

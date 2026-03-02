@@ -5,6 +5,8 @@ import useAdminQueue from "@/features/admin/hooks/useAdminQueue";
 import "@/features/admin/layout/AdminLayout.css";
 
 const ADMIN_SIDEBAR_COLLAPSED_KEY = "adminSidebarCollapsed";
+const ADMIN_SIDEBAR_WIDTH_EXPANDED = "320px";
+const ADMIN_SIDEBAR_WIDTH_COLLAPSED = "88px";
 
 export default function AdminLayout() {
   const { signOut } = useAuth();
@@ -18,6 +20,21 @@ export default function AdminLayout() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     window.localStorage.setItem(ADMIN_SIDEBAR_COLLAPSED_KEY, sidebarCollapsed ? "1" : "0");
+  }, [sidebarCollapsed]);
+
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+
+    document.body.classList.add("mv-admin-layout");
+    document.body.style.setProperty(
+      "--mv-admin-sidebar-width",
+      sidebarCollapsed ? ADMIN_SIDEBAR_WIDTH_COLLAPSED : ADMIN_SIDEBAR_WIDTH_EXPANDED,
+    );
+
+    return () => {
+      document.body.classList.remove("mv-admin-layout");
+      document.body.style.removeProperty("--mv-admin-sidebar-width");
+    };
   }, [sidebarCollapsed]);
 
   const badges = {
@@ -59,9 +76,9 @@ export default function AdminLayout() {
           >
             <span className="adminNav__content">
               <span className="adminNav__label">Queue</span>
+              {badges.queue > 0 ? <span className="adminNav__badge">{badges.queue}</span> : null}
               <span className="adminNav__icon material-symbols-outlined" aria-hidden="true">task_alt</span>
             </span>
-            {badges.queue > 0 ? <span className="adminNav__badge">{badges.queue}</span> : null}
           </NavLink>
           <NavLink
             to="properties"
@@ -72,9 +89,9 @@ export default function AdminLayout() {
           >
             <span className="adminNav__content">
               <span className="adminNav__label">Properties</span>
+              {badges.properties > 0 ? <span className="adminNav__badge">{badges.properties}</span> : null}
               <span className="adminNav__icon material-symbols-outlined" aria-hidden="true">home_work</span>
             </span>
-            {badges.properties > 0 ? <span className="adminNav__badge">{badges.properties}</span> : null}
           </NavLink>
           <NavLink
             to="investors"
@@ -85,9 +102,9 @@ export default function AdminLayout() {
           >
             <span className="adminNav__content">
               <span className="adminNav__label">Investors</span>
+              {badges.investors > 0 ? <span className="adminNav__badge">{badges.investors}</span> : null}
               <span className="adminNav__icon material-symbols-outlined" aria-hidden="true">groups</span>
             </span>
-            {badges.investors > 0 ? <span className="adminNav__badge">{badges.investors}</span> : null}
           </NavLink>
           <NavLink
             to="sellers"
@@ -110,9 +127,9 @@ export default function AdminLayout() {
           >
             <span className="adminNav__content">
               <span className="adminNav__label">Inquiries</span>
+              {badges.inquiries > 0 ? <span className="adminNav__badge">{badges.inquiries}</span> : null}
               <span className="adminNav__icon material-symbols-outlined" aria-hidden="true">mail</span>
             </span>
-            {badges.inquiries > 0 ? <span className="adminNav__badge">{badges.inquiries}</span> : null}
           </NavLink>
         </nav>
 

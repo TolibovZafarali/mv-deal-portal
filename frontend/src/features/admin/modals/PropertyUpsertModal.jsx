@@ -3,6 +3,7 @@ import "@/features/admin/modals/PropertyUpsertModal.css";
 import { formatPriceInput } from "@/shared/utils/priceFormatting";
 import { numOrEmpty } from "@/shared/utils/formValue";
 import { getAddressSuggestions } from "@/api/modules/propertyApi";
+import { acquireModalBodyLock } from "@/shared/ui/modal/bodyLock";
 
 const STATUS = [
   { label: "Draft", value: "DRAFT" },
@@ -418,13 +419,11 @@ export default function PropertyUpsertModal({
       if (e.key === "Escape") onClose?.();
     }
     window.addEventListener("keydown", onKeyDown);
-
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    const releaseBodyLock = acquireModalBodyLock();
 
     return () => {
       window.removeEventListener("keydown", onKeyDown);
-      document.body.style.overflow = prev;
+      releaseBodyLock();
     };
   }, [open, onClose]);
 
