@@ -31,6 +31,12 @@ const RANGE_OPTIONS = [
 const INVESTOR_STATUS_INLINE_MIN_WIDTH = 760;
 const INVESTOR_INLINE_FILTERS_MIN_WIDTH = 1040;
 const INVESTOR_INLINE_FILTERS_APPROVED_MIN_WIDTH = 1220;
+const ADMIN_INVESTORS_MOBILE_QUERY = "(max-width: 900px)";
+const INVESTOR_STATUS_ORDER = {
+  PENDING: 0,
+  APPROVED: 1,
+  REJECTED: 2,
+};
 
 function toRange(days) {
   if (!days) return { from: null, to: null };
@@ -45,6 +51,14 @@ function prettyDate(value) {
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return "—";
   return d.toLocaleString("en-US", { month: "short", day: "2-digit", year: "numeric" });
+}
+
+function prettyEnum(value) {
+  if (!value) return "—";
+  return String(value)
+    .toLowerCase()
+    .replaceAll("_", " ")
+    .replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
 export default function AdminInvestorsPage() {
@@ -66,6 +80,10 @@ export default function AdminInvestorsPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [isMobileView, setIsMobileView] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return window.matchMedia(ADMIN_INVESTORS_MOBILE_QUERY).matches;
+  });
 
   const hasApprovedFilter = filters.status === "APPROVED";
   const inlineMinWidth = hasApprovedFilter
@@ -87,6 +105,17 @@ export default function AdminInvestorsPage() {
       showStatusInline ? "" : filters.status,
     ].some(Boolean);
   }, [filters.createdRange, filters.updatedRange, filters.approvedRange, filters.status, showStatusInline]);
+  const sortedRows = useMemo(() => {
+    return rows
+      .map((row, idx) => ({ row, idx }))
+      .sort((a, b) => {
+        const rankA = INVESTOR_STATUS_ORDER[a.row?.status] ?? Number.MAX_SAFE_INTEGER;
+        const rankB = INVESTOR_STATUS_ORDER[b.row?.status] ?? Number.MAX_SAFE_INTEGER;
+        if (rankA !== rankB) return rankA - rankB;
+        return a.idx - b.idx;
+      })
+      .map((entry) => entry.row);
+  }, [rows]);
 
   const advancedFilters = (
     <>
@@ -166,6 +195,27 @@ export default function AdminInvestorsPage() {
       alive = false;
     };
   }, [filters, page]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return undefined;
+    const media = window.matchMedia(ADMIN_INVESTORS_MOBILE_QUERY);
+    const handleMediaChange = (event) => setIsMobileView(event.matches);
+    const supportsModernListener = typeof media.addEventListener === "function";
+
+    if (supportsModernListener) {
+      media.addEventListener("change", handleMediaChange);
+    } else {
+      media.addListener(handleMediaChange);
+    }
+
+    return () => {
+      if (supportsModernListener) {
+        media.removeEventListener("change", handleMediaChange);
+        return;
+      }
+      media.removeListener(handleMediaChange);
+    };
+  }, []);
 
   function updateFilter(key, value) {
     setFilters((prev) => ({ ...prev, [key]: value }));
@@ -260,35 +310,76 @@ export default function AdminInvestorsPage() {
               <table className="adminInv__table">
                 <thead>
                   <tr>
-                    <th>Name</th>
-                    <th>Company</th>
-                    <th>Email</th>
-                    <th>Phone</th>
-                    <th>Status</th>
-                    {filters.status === "REJECTED" ? <th>Rejection Reason</th> : null}
-                    <th>Created</th>
-                    <th>Updated</th>
-                    <th className="adminInv__thAction"></th>
+                    {isMobileView ? (
+                      <>
+                        <th>Name</th>
+                        <th>Email</th>
+                      </>
+                    ) : (
+                      <>
+                        <th>Name</th>
+                        <th>Company</th>
+                        <th>Email</th>
+                        <th>Phone</th>
+                        <th>Status</th>
+                        {filters.status === "REJECTED" ? <th>Rejection Reason</th> : null}
+                        <th>Created</th>
+                        <th>Updated</th>
+                        <th className="adminInv__thAction"></th>
+                      </>
+                    )}
                   </tr>
                 </thead>
                 <tbody>
-                  {rows.map((investor) => (
-                    <tr key={investor.id}>
-                      <td>{investor.firstName} {investor.lastName}</td>
-                      <td>{investor.companyName || "—"}</td>
-                      <td>{investor.email || "—"}</td>
-                      <td>{investor.phone || "—"}</td>
-                      <td>{investor.status}</td>
-                      {filters.status === "REJECTED" ? <td>{investor.rejectionReason || "—"}</td> : null}
-                      <td>{prettyDate(investor.createdAt)}</td>
-                      <td>{prettyDate(investor.updatedAt)}</td>
-                      <td className="adminInv__tdAction">
-                        <button type="button" className="adminInv__actionBtn" onClick={() => openModal(investor.id)}>
-                          {investor.status === "PENDING" ? "Review" : "View"}
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
+                  {sortedRows.map((investor) => {
+                    const statusKey = String(investor?.status ?? "").trim().toUpperCase();
+                    const statusTone = ["PENDING", "APPROVED", "REJECTED"].includes(statusKey)
+                      ? statusKey.toLowerCase()
+                      : "unknown";
+                    const investorName = [investor.firstName, investor.lastName].filter(Boolean).join(" ").trim() || "—";
+                    return (
+                      <tr
+                        key={investor.id}
+                        className={`adminInv__row adminInv__row--${statusTone} ${isMobileView ? "adminInv__row--clickable" : ""}`}
+                        onClick={isMobileView ? () => openModal(investor.id) : undefined}
+                        onKeyDown={isMobileView ? (event) => {
+                          if (event.key === "Enter" || event.key === " ") {
+                            event.preventDefault();
+                            openModal(investor.id);
+                          }
+                        } : undefined}
+                        tabIndex={isMobileView ? 0 : undefined}
+                        role={isMobileView ? "button" : undefined}
+                      >
+                        {isMobileView ? (
+                          <>
+                            <td>{investorName}</td>
+                            <td>{investor.email || "—"}</td>
+                          </>
+                        ) : (
+                          <>
+                            <td>{investorName}</td>
+                            <td>{investor.companyName || "—"}</td>
+                            <td>{investor.email || "—"}</td>
+                            <td>{investor.phone || "—"}</td>
+                            <td>
+                              <span className={`adminInv__statusBadge adminInv__statusBadge--${statusTone}`}>
+                                {prettyEnum(investor.status)}
+                              </span>
+                            </td>
+                            {filters.status === "REJECTED" ? <td>{investor.rejectionReason || "—"}</td> : null}
+                            <td>{prettyDate(investor.createdAt)}</td>
+                            <td>{prettyDate(investor.updatedAt)}</td>
+                            <td className="adminInv__tdAction">
+                              <button type="button" className="adminInv__actionBtn" onClick={() => openModal(investor.id)}>
+                                {investor.status === "PENDING" ? "Review" : "View"}
+                              </button>
+                            </td>
+                          </>
+                        )}
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -306,7 +397,7 @@ export default function AdminInvestorsPage() {
               metaValueClassName="adminInv__pageMetaNum"
             />
             <div className="adminInv__meta">
-              {rows.length.toLocaleString("en-US")} on page • {meta.totalElements.toLocaleString("en-US")} total
+              {sortedRows.length.toLocaleString("en-US")} on page • {meta.totalElements.toLocaleString("en-US")} total
             </div>
           </>
         ) : null}

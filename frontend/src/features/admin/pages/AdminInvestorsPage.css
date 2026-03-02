@@ -153,6 +153,73 @@
 .adminInv__table th { font-size:12px; color: var(--admin-muted); font-weight:400; }
 .adminInv__thAction,
 .adminInv__tdAction { width: 132px; }
+.adminInv__table tbody tr:hover { background: rgba(16, 16, 16, 0.04); }
+
+.adminInv__row td:first-child {
+  position: relative;
+}
+
+.adminInv__row td:first-child::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 3px;
+  height: 35px;
+  transform: translateY(-50%);
+}
+
+.adminInv__row--approved td:first-child::before {
+  background: #00c853;
+}
+
+.adminInv__row--pending td:first-child::before {
+  background: #ff9800;
+}
+
+.adminInv__row--rejected td:first-child::before {
+  background: #dc2626;
+}
+
+.adminInv__row--clickable {
+  cursor: pointer;
+}
+
+.adminInv__row--clickable:focus-visible {
+  outline: 2px solid var(--admin-ink);
+  outline-offset: -2px;
+}
+
+.adminInv__statusBadge {
+  display: inline-block;
+  min-width: 84px;
+  padding: 4px 10px;
+  border-radius: 0;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-align: center;
+}
+
+.adminInv__statusBadge--approved {
+  background: #00e676;
+  color: #003d1b;
+}
+
+.adminInv__statusBadge--pending {
+  background: #ffb300;
+  color: #4a2a00;
+}
+
+.adminInv__statusBadge--rejected {
+  background: #dc2626;
+  color: #ffffff;
+}
+
+.adminInv__statusBadge--unknown {
+  background: #f1f3f5;
+  color: #495057;
+}
 
 .adminInv__actionBtn, .adminInv__pageBtn { border:1px solid var(--admin-ink); background:transparent; color:var(--admin-ink); padding:7px 10px; cursor:pointer; }
 .adminInv__actionBtn {
