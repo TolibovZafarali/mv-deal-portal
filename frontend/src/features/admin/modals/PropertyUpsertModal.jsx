@@ -283,6 +283,46 @@ function sellerDisplayLabelFromProperty(property) {
   );
 }
 
+function ensureImageIsReachable(url, timeoutMs = 9000) {
+  return new Promise((resolve, reject) => {
+    const candidateUrl = String(url ?? "").trim();
+    if (!candidateUrl) {
+      reject(new Error("Photo URL is required."));
+      return;
+    }
+
+    const img = new Image();
+    let settled = false;
+    const timeoutId = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      reject(new Error("Photo URL did not load in time."));
+    }, timeoutMs);
+
+    function finishSuccess() {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeoutId);
+      if (img.naturalWidth > 0 && img.naturalHeight > 0) {
+        resolve(true);
+        return;
+      }
+      reject(new Error("No valid photo found at the provided URL."));
+    }
+
+    function finishError() {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeoutId);
+      reject(new Error("No valid photo found at the provided URL."));
+    }
+
+    img.onload = finishSuccess;
+    img.onerror = finishError;
+    img.src = candidateUrl;
+  });
+}
+
 const DEFAULT_FORM = {
   status: "DRAFT",
   street1: "",
@@ -332,6 +372,7 @@ export default function PropertyUpsertModal({
   const [photoUrlOpen, setPhotoUrlOpen] = useState(false);
   const [photoUrlAdding, setPhotoUrlAdding] = useState(false);
   const [photoUrlInput, setPhotoUrlInput] = useState("");
+  const [photoUrlFieldError, setPhotoUrlFieldError] = useState(false);
   const [photoUploadError, setPhotoUploadError] = useState("");
   const [photoPreviewOpen, setPhotoPreviewOpen] = useState(false);
   const [photoPreviewIndex, setPhotoPreviewIndex] = useState(0);
@@ -387,6 +428,7 @@ export default function PropertyUpsertModal({
     if (!open) setPhotoUrlOpen(false);
     if (!open) setPhotoUrlAdding(false);
     if (!open) setPhotoUrlInput("");
+    if (!open) setPhotoUrlFieldError(false);
     if (!open) setPhotoPreviewOpen(false);
     if (!open) setPhotoPreviewIndex(0);
     if (!open) setDraggedPhotoIndex(null);
@@ -1112,6 +1154,7 @@ export default function PropertyUpsertModal({
     setPhotoUrlOpen(nextOpen);
     if (!nextOpen) {
       setPhotoUrlInput("");
+      setPhotoUrlFieldError(false);
     }
   }
 
@@ -1264,15 +1307,18 @@ export default function PropertyUpsertModal({
 
     if (!onAddPhotoByUrl) {
       setPhotoUploadError("Photo URL import is not configured.");
+      setPhotoUrlFieldError(true);
       return;
     }
 
     const url = String(photoUrlInput ?? "").trim();
     if (!url) {
       setPhotoUploadError("Photo URL is required.");
+      setPhotoUrlFieldError(true);
       return;
     }
 
+    setPhotoUrlFieldError(false);
     setPhotoUploadError("");
     setPhotoUrlAdding(true);
 
@@ -1287,6 +1333,8 @@ export default function PropertyUpsertModal({
       if (!photoAssetId || !uploadedUrl) {
         throw new Error("Photo URL import failed to return a valid photo.");
       }
+
+      await ensureImageIsReachable(thumbnailUrl || uploadedUrl);
 
       setForm((prev) => ({
         ...prev,
@@ -1307,8 +1355,10 @@ export default function PropertyUpsertModal({
       }));
 
       setPhotoUrlInput("");
+      setPhotoUrlFieldError(false);
     } catch (error) {
       setPhotoUploadError(error?.message || "Failed to add photo URL.");
+      setPhotoUrlFieldError(true);
     } finally {
       setPhotoUrlAdding(false);
     }
@@ -1844,10 +1894,17 @@ export default function PropertyUpsertModal({
               <div className="propPhotoUrlRow">
                 <input
                   ref={photoUrlInputRef}
-                  className="propField__input propPhotoUrlInput"
+                  className={`propField__input propPhotoUrlInput ${
+                    photoUrlFieldError ? "propField__input--error" : ""
+                  }`}
                   type="url"
                   value={photoUrlInput}
-                  onChange={(event) => setPhotoUrlInput(event.target.value)}
+                  onChange={(event) => {
+                    setPhotoUrlInput(event.target.value);
+                    if (photoUrlFieldError) {
+                      setPhotoUrlFieldError(false);
+                    }
+                  }}
                   onKeyDown={(event) => {
                     if (event.key === "Enter") {
                       event.preventDefault();
