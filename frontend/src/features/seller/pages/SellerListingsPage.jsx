@@ -10,6 +10,11 @@ import "@/features/seller/pages/SellerListingsPage.css";
 
 const PAGE_SIZE = 20;
 const EDITABLE_WORKFLOWS = new Set(["DRAFT", "CHANGES_REQUESTED"]);
+const PROPERTY_STATUS_ORDER = {
+  ACTIVE: 0,
+  DRAFT: 1,
+  CLOSED: 2,
+};
 
 const OCCUPANCY_OPTIONS = ["", "YES", "NO"];
 const EXIT_STRATEGY_OPTIONS = ["", "FLIP", "RENTAL", "WHOLESALE"];
@@ -183,6 +188,17 @@ export default function SellerListingsPage() {
     if (error) return error;
     return `${meta.totalElements.toLocaleString("en-US")} listings`;
   }, [loading, error, meta.totalElements]);
+  const sortedRows = useMemo(() => {
+    return rows
+      .map((row, idx) => ({ row, idx }))
+      .sort((a, b) => {
+        const rankA = PROPERTY_STATUS_ORDER[a.row?.status] ?? Number.MAX_SAFE_INTEGER;
+        const rankB = PROPERTY_STATUS_ORDER[b.row?.status] ?? Number.MAX_SAFE_INTEGER;
+        if (rankA !== rankB) return rankA - rankB;
+        return a.idx - b.idx;
+      })
+      .map((entry) => entry.row);
+  }, [rows]);
 
   function updateField(key, value) {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -276,7 +292,7 @@ export default function SellerListingsPage() {
                 </td>
               </tr>
             ) : null}
-            {rows.map((row) => {
+            {sortedRows.map((row) => {
               const workflow = row?.sellerWorkflowStatus || "DRAFT";
               const canEdit = EDITABLE_WORKFLOWS.has(workflow);
               const canSubmit = EDITABLE_WORKFLOWS.has(workflow);

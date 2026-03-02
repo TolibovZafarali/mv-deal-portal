@@ -31,6 +31,11 @@ import {
 import { formatPriceInput } from "@/shared/utils/priceFormatting";
 
 const PAGE_SIZE = 20;
+const PROPERTY_STATUS_ORDER = {
+  ACTIVE: 0,
+  DRAFT: 1,
+  CLOSED: 2,
+};
 
 const OCCUPANCY = [
   { label: "All", value: "" },
@@ -292,6 +297,17 @@ export default function AdminPropertiesPage() {
   }, [rows, sellerNameById]);
 
   const hasRows = rows.length > 0;
+  const sortedRows = useMemo(() => {
+    return rows
+      .map((row, idx) => ({ row, idx }))
+      .sort((a, b) => {
+        const rankA = PROPERTY_STATUS_ORDER[a.row?.status] ?? Number.MAX_SAFE_INTEGER;
+        const rankB = PROPERTY_STATUS_ORDER[b.row?.status] ?? Number.MAX_SAFE_INTEGER;
+        if (rankA !== rankB) return rankA - rankB;
+        return a.idx - b.idx;
+      })
+      .map((entry) => entry.row);
+  }, [rows]);
 
   const tableCaption = useMemo(() => {
     if (loading) return "Loading properties…";
@@ -360,7 +376,7 @@ export default function AdminPropertiesPage() {
       </label>
 
       <label className="adminProps__filter adminProps__filter--occupancy">
-        <span className="adminProps__label">Occupancy Status</span>
+        <span className="adminProps__label">Occupied</span>
         <select
           className="adminProps__input"
           value={filters.occupancyStatus}
@@ -857,8 +873,14 @@ export default function AdminPropertiesPage() {
                   </thead>
 
                   <tbody>
-                    {rows.map((p) => (
-                      <tr key={p.id}>
+                    {sortedRows.map((p) => {
+                      const statusKey = String(p?.status ?? "").trim().toUpperCase();
+                      const statusTone = ["ACTIVE", "DRAFT", "CLOSED"].includes(statusKey)
+                        ? statusKey.toLowerCase()
+                        : "unknown";
+
+                      return (
+                      <tr key={p.id} className={`adminProps__row adminProps__row--${statusTone}`}>
                         <td className="adminProps__tdAddress">
                           <div className="adminProps__addrMain">
                             {fullAddress(p)}
@@ -927,7 +949,9 @@ export default function AdminPropertiesPage() {
                           </td>
                         ) : null}
                         <td className="adminProps__tdCenter">
-                          {prettyEnum(p.status)}
+                          <span className={`adminProps__statusBadge adminProps__statusBadge--${statusTone}`}>
+                            {prettyEnum(p.status)}
+                          </span>
                         </td>
 
                         <td className="adminProps__tdIcon">
@@ -946,7 +970,8 @@ export default function AdminPropertiesPage() {
                           </div>
                         </td>
                       </tr>
-                    ))}
+                    );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -965,7 +990,7 @@ export default function AdminPropertiesPage() {
                 metaValueClassName="adminProps__pageMetaNum"
               />
               <div className="adminProps__meta">
-                {rows.length.toLocaleString("en-US")} on page • {pageMeta.totalElements.toLocaleString("en-US")} total
+                {sortedRows.length.toLocaleString("en-US")} on page • {pageMeta.totalElements.toLocaleString("en-US")} total
               </div>
             </>
           )}

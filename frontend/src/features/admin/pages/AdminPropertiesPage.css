@@ -416,6 +416,32 @@
   background: rgba(16, 16, 16, 0.04);
 }
 
+.adminProps__row td:first-child {
+  position: relative;
+}
+
+.adminProps__row td:first-child::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 3px;
+  height: 35px;
+  transform: translateY(-50%);
+}
+
+.adminProps__row--active td:first-child::before {
+  background: #00c853;
+}
+
+.adminProps__row--draft td:first-child::before {
+  background: #ff9800;
+}
+
+.adminProps__row--closed td:first-child::before {
+  background: #5f6b7a;
+}
+
 .adminProps__tdAddress {
   min-width: 320px;
   white-space: normal;
@@ -437,6 +463,37 @@
 
 .adminProps__tdCenter {
   text-align: center;
+}
+
+.adminProps__statusBadge {
+  display: inline-block;
+  min-width: 76px;
+  padding: 4px 10px;
+  border-radius: 0;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-align: center;
+}
+
+.adminProps__statusBadge--active {
+  background: #00e676;
+  color: #003d1b;
+}
+
+.adminProps__statusBadge--draft {
+  background: #ffb300;
+  color: #4a2a00;
+}
+
+.adminProps__statusBadge--closed {
+  background: #c7d1db;
+  color: #1f2933;
+}
+
+.adminProps__statusBadge--unknown {
+  background: #f1f3f5;
+  color: #495057;
 }
 
 .adminProps__tdIcon {
