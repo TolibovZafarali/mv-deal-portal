@@ -9,8 +9,8 @@ import "@/features/investor/pages/InvestorDashboard.css";
 
 const OCCUPANCY_OPTIONS = [
   { label: "Occupancy", value: "" },
-  { label: "Vacant", value: "VACANT" },
-  { label: "Tenant", value: "TENANT" },
+  { label: "Yes", value: "YES" },
+  { label: "No", value: "NO" },
 ];
 
 const EXIT_STRATEGY_OPTIONS = [

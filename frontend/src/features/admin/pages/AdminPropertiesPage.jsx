@@ -34,8 +34,8 @@ const PAGE_SIZE = 20;
 
 const OCCUPANCY = [
   { label: "All", value: "" },
-  { label: "Vacant", value: "VACANT" },
-  { label: "Tenant", value: "TENANT" },
+  { label: "Yes", value: "YES" },
+  { label: "No", value: "NO" },
 ];
 
 const EXIT_STRATEGIES = [
@@ -505,6 +505,7 @@ export default function AdminPropertiesPage() {
         hvac: parseIntNum(form.hvac),
 
         occupancyStatus: cleanStr(form.occupancyStatus),
+        currentRent: cleanStr(form.occupancyStatus) === "YES" ? parseNum(form.currentRent) : null,
         exitStrategy: cleanStr(form.exitStrategy),
         closingTerms: cleanStr(form.closingTerms),
 
@@ -549,6 +550,7 @@ export default function AdminPropertiesPage() {
       hvac: parseIntNum(form.hvac),
 
       occupancyStatus: cleanStr(form.occupancyStatus),
+      currentRent: cleanStr(form.occupancyStatus) === "YES" ? parseNum(form.currentRent) : null,
       exitStrategy: cleanStr(form.exitStrategy),
       closingTerms: cleanStr(form.closingTerms),
 

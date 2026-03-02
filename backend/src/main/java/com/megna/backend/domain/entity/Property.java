@@ -89,6 +89,9 @@ public class Property {
     @Column(name = "occupancy_status", length = 20)
     private OccupancyStatus occupancyStatus;
 
+    @Column(name = "current_rent", precision = 12, scale = 2)
+    private BigDecimal currentRent;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "exit_strategy", length = 20)
     private ExitStrategy exitStrategy;

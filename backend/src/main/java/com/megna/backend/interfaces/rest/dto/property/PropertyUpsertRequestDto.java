@@ -34,6 +34,7 @@ public record PropertyUpsertRequestDto(
         Integer hvac,
 
         OccupancyStatus occupancyStatus,
+        BigDecimal currentRent,
         ExitStrategy exitStrategy,
         ClosingTerms closingTerms,
 

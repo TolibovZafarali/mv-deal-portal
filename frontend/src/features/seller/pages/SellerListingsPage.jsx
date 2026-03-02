@@ -11,7 +11,7 @@ import "@/features/seller/pages/SellerListingsPage.css";
 const PAGE_SIZE = 20;
 const EDITABLE_WORKFLOWS = new Set(["DRAFT", "CHANGES_REQUESTED"]);
 
-const OCCUPANCY_OPTIONS = ["", "VACANT", "TENANT"];
+const OCCUPANCY_OPTIONS = ["", "YES", "NO"];
 const EXIT_STRATEGY_OPTIONS = ["", "FLIP", "RENTAL", "WHOLESALE"];
 const CLOSING_TERMS_OPTIONS = ["", "CASH_ONLY", "HARD_MONEY", "CONVENTIONAL", "SELLER_FINANCE"];
 
@@ -32,6 +32,7 @@ const EMPTY_FORM = {
   roofAge: "",
   hvac: "",
   occupancyStatus: "",
+  currentRent: "",
   exitStrategy: "",
   closingTerms: "",
 };
@@ -103,6 +104,7 @@ function toPayload(form) {
     roofAge: parseInteger(form.roofAge),
     hvac: parseInteger(form.hvac),
     occupancyStatus: form.occupancyStatus || null,
+    currentRent: form.occupancyStatus === "YES" ? parseDecimal(form.currentRent) : null,
     exitStrategy: form.exitStrategy || null,
     closingTerms: form.closingTerms || null,
     photos: null,
@@ -129,6 +131,7 @@ function formFromRow(row) {
     roofAge: row.roofAge ?? "",
     hvac: row.hvac ?? "",
     occupancyStatus: row.occupancyStatus ?? "",
+    currentRent: row.currentRent ?? "",
     exitStrategy: row.exitStrategy ?? "",
     closingTerms: row.closingTerms ?? "",
   };
@@ -415,7 +418,16 @@ export default function SellerListingsPage() {
               </label>
               <label>
                 Occupancy
-                <select value={form.occupancyStatus} onChange={(e) => updateField("occupancyStatus", e.target.value)}>
+                <select
+                  value={form.occupancyStatus}
+                  onChange={(e) => {
+                    const nextOccupancyStatus = e.target.value;
+                    updateField("occupancyStatus", nextOccupancyStatus);
+                    if (nextOccupancyStatus !== "YES") {
+                      updateField("currentRent", "");
+                    }
+                  }}
+                >
                   {OCCUPANCY_OPTIONS.map((value) => (
                     <option key={value || "empty"} value={value}>
                       {prettyEnum(value) || "Select"}
@@ -423,6 +435,12 @@ export default function SellerListingsPage() {
                   ))}
                 </select>
               </label>
+              {form.occupancyStatus === "YES" ? (
+                <label>
+                  Current Rent (Monthly)
+                  <input value={form.currentRent} onChange={(e) => updateField("currentRent", e.target.value)} />
+                </label>
+              ) : null}
               <label>
                 Exit Strategy
                 <select value={form.exitStrategy} onChange={(e) => updateField("exitStrategy", e.target.value)}>

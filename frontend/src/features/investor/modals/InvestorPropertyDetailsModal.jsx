@@ -251,6 +251,10 @@ export default function InvestorPropertyDetailsModal({
                 <strong>{money(property.fmr)}</strong>
               </div>
               <div>
+                <span>Current Rent (Monthly)</span>
+                <strong>{money(property.currentRent)}</strong>
+              </div>
+              <div>
                 <span>Potential Profit</span>
                 <strong className="invPropDetail__profit">
                   {nextPotentialProfit === null ? "—" : money(nextPotentialProfit)}

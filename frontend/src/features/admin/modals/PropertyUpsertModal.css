@@ -244,6 +244,11 @@ select.propField__input {
   box-sizing: border-box;
 }
 
+.propField__input--profit {
+  color: #4ecb71;
+  font-weight: 600;
+}
+
 .propGrid {
   display: grid;
   gap: 10px;
@@ -258,12 +263,17 @@ select.propField__input {
 }
 
 .propGrid--address {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
 }
 
 .propField--addressStreet1,
-.propField--addressStreet2,
-.propField--addressCity {
+.propField--addressStreet2 {
+  grid-column: span 3;
+}
+
+.propField--addressCity,
+.propField--addressState,
+.propField--addressZip {
   grid-column: span 2;
 }
 

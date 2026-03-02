@@ -65,6 +65,7 @@ public class PropertyService {
 
     public PropertyResponseDto create(PropertyUpsertRequestDto dto) {
         Property property = PropertyMapper.toEntity(dto);
+        normalizeCurrentRentForOccupancy(property);
         if (dto.photos() != null) {
             long adminId = requireAdminId();
             hydratePhotoAssets(property, null, adminId);
@@ -111,6 +112,7 @@ public class PropertyService {
         Integer originalBeds = property.getBeds();
         List<String> originalPhotoAssetIds = photoAssetService.collectPhotoAssetIds(property.getPhotos());
         PropertyMapper.applyUpsert(dto, property);
+        normalizeCurrentRentForOccupancy(property);
 
         if (dto.photos() != null) {
             long adminId = requireAdminId();
@@ -286,6 +288,7 @@ public class PropertyService {
         property.setSubmittedAt(null);
         property.setReviewedAt(null);
         property.setPublishedAt(null);
+        normalizeCurrentRentForOccupancy(property);
 
         refreshCoordinates(property, true);
         refreshFmr(property);
@@ -316,6 +319,7 @@ public class PropertyService {
 
         PropertyMapper.applyUpsert(dto, property);
         property.setStatus(PropertyStatus.DRAFT);
+        normalizeCurrentRentForOccupancy(property);
 
         boolean addressChanged = !Objects.equals(originalAddressFingerprint, addressFingerprint(property));
         boolean coordinatesMissing = property.getLatitude() == null || property.getLongitude() == null;
@@ -598,6 +602,9 @@ public class PropertyService {
         requireNotNull(property.getLivingAreaSqft(), "livingAreaSqft", missingFields);
         requireNotNull(property.getYearBuilt(), "yearBuilt", missingFields);
         requireNotNull(property.getOccupancyStatus(), "occupancyStatus", missingFields);
+        if (property.getOccupancyStatus() == OccupancyStatus.YES) {
+            requireNotNull(property.getCurrentRent(), "currentRent", missingFields);
+        }
         requireNotNull(property.getExitStrategy(), "exitStrategy", missingFields);
         requireNotNull(property.getClosingTerms(), "closingTerms", missingFields);
 
@@ -629,6 +636,12 @@ public class PropertyService {
         if (value == null) {
             missingFields.add(fieldName);
         }
+    }
+
+    private static void normalizeCurrentRentForOccupancy(Property property) {
+        if (property == null) return;
+        if (property.getOccupancyStatus() == OccupancyStatus.YES) return;
+        property.setCurrentRent(null);
     }
 
     private void refreshCoordinates(Property property, boolean clearWhenUnavailable) {

@@ -52,6 +52,7 @@ public final class PropertyMapper {
                 entity.getHvac(),
 
                 entity.getOccupancyStatus(),
+                entity.getCurrentRent(),
                 entity.getExitStrategy(),
                 entity.getClosingTerms(),
 
@@ -112,6 +113,7 @@ public final class PropertyMapper {
         entity.setHvac(dto.hvac());
 
         entity.setOccupancyStatus(dto.occupancyStatus());
+        entity.setCurrentRent(dto.currentRent());
         entity.setExitStrategy(dto.exitStrategy());
         entity.setClosingTerms(dto.closingTerms());
 

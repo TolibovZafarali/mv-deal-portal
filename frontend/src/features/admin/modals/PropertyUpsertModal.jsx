@@ -14,8 +14,8 @@ const STATUS = [
 
 const OCCUPANCY = [
   { label: "—", value: "" },
-  { label: "Vacant", value: "VACANT" },
-  { label: "Tenant", value: "TENANT" },
+  { label: "Yes", value: "YES" },
+  { label: "No", value: "NO" },
 ];
 
 const EXIT = [
@@ -303,6 +303,7 @@ const DEFAULT_FORM = {
   hvac: "",
   sellerId: "",
   occupancyStatus: "",
+  currentRent: "",
   exitStrategy: "",
   closingTerms: "",
   photos: [],
@@ -465,6 +466,7 @@ export default function PropertyUpsertModal({
       hvac: numOrEmpty(initialValue.hvac),
       sellerId: numOrEmpty(initialValue.sellerId),
       occupancyStatus: initialValue.occupancyStatus ?? "",
+      currentRent: formatPriceInput(numOrEmpty(initialValue.currentRent)),
       exitStrategy: initialValue.exitStrategy ?? "",
       closingTerms: initialValue.closingTerms ?? "",
       photos: normalizedPhotos,
@@ -599,6 +601,19 @@ export default function PropertyUpsertModal({
     () => (isEdit ? "Edit Property" : "Add Property"),
     [isEdit],
   );
+  const isOccupied = String(form.occupancyStatus ?? "").trim().toUpperCase() === "YES";
+  const potentialProfit = useMemo(() => {
+    const arv = parseNumericValue(form.arv);
+    const askingPrice = parseNumericValue(form.askingPrice);
+    const estRepairs = parseNumericValue(form.estRepairs);
+    if (arv === null || askingPrice === null || estRepairs === null) return "";
+
+    const value = arv - askingPrice - estRepairs;
+    const abs = Math.abs(value).toLocaleString("en-US", {
+      maximumFractionDigits: 0,
+    });
+    return value < 0 ? `-${abs}` : abs;
+  }, [form.arv, form.askingPrice, form.estRepairs]);
 
   const activeMissingRequiredFields = useMemo(() => {
     const missing = [];
@@ -607,7 +622,7 @@ export default function PropertyUpsertModal({
       ["city", "City"],
       ["state", "State"],
       ["zip", "ZIP / postcode"],
-      ["occupancyStatus", "Occupancy Status"],
+      ["occupancyStatus", "Occupied"],
       ["exitStrategy", "Exit Strategy"],
       ["closingTerms", "Closing Terms"],
     ];
@@ -634,12 +649,16 @@ export default function PropertyUpsertModal({
       }
     });
 
+    if (isOccupied && !String(form.currentRent ?? "").trim()) {
+      missing.push("Current Rent");
+    }
+
     if (normalizePhotos(form.photos).length === 0) {
       missing.push("At least 1 Photo");
     }
 
     return missing;
-  }, [form]);
+  }, [form, isOccupied]);
 
   const missingAddressFields = useMemo(() => {
     const missing = [];
@@ -697,7 +716,12 @@ export default function PropertyUpsertModal({
       compAddressSuggestHasSearched);
 
   function setField(key, value) {
-    setForm((p) => ({ ...p, [key]: value }));
+    setForm((prev) => {
+      if (key === "occupancyStatus" && value !== "YES") {
+        return { ...prev, occupancyStatus: value, currentRent: "" };
+      }
+      return { ...prev, [key]: value };
+    });
   }
 
   function setPriceField(key, value) {
@@ -1443,72 +1467,6 @@ export default function PropertyUpsertModal({
             </div>
           </div>
 
-          {/* Price */}
-          <div className="propSection">
-            <div className="propSection__head">
-              <div className="propSection__title">Price Details</div>
-            </div>
-
-            <div className="propGrid propGrid--price">
-              <div className="propField">
-                <div className="propField__label">Asking Price</div>
-                <div className="propField__moneyWrap">
-                  <span className="propField__moneyPrefix">$</span>
-                  <input
-                    className="propField__input propField__input--money"
-                    value={form.askingPrice}
-                    onChange={(e) =>
-                      setPriceField("askingPrice", e.target.value)
-                    }
-                    inputMode="numeric"
-                  />
-                </div>
-              </div>
-
-              <div className="propField">
-                <div className="propField__label">ARV</div>
-                <div className="propField__moneyWrap">
-                  <span className="propField__moneyPrefix">$</span>
-                  <input
-                    className="propField__input propField__input--money"
-                    value={form.arv}
-                    onChange={(e) => setPriceField("arv", e.target.value)}
-                    inputMode="numeric"
-                  />
-                </div>
-              </div>
-
-              <div className="propField">
-                <div className="propField__label">Estimated Repairs</div>
-                <div className="propField__moneyWrap">
-                  <span className="propField__moneyPrefix">$</span>
-                  <input
-                    className="propField__input propField__input--money"
-                    value={form.estRepairs}
-                    onChange={(e) =>
-                      setPriceField("estRepairs", e.target.value)
-                    }
-                    inputMode="numeric"
-                  />
-                </div>
-              </div>
-
-              <div className="propField">
-                <div className="propField__label">FMR (Monthly)</div>
-                <div className="propField__moneyWrap">
-                  <span className="propField__moneyPrefix">$</span>
-                  <input
-                    className="propField__input propField__input--money"
-                    value={form.fmr}
-                    readOnly
-                    placeholder="Auto after save"
-                  />
-                </div>
-                <div className="propField__help">Auto from ZIP + beds</div>
-              </div>
-            </div>
-          </div>
-
           {/* Property info */}
           <div className="propSection">
             <div className="propSection__head">
@@ -1577,7 +1535,7 @@ export default function PropertyUpsertModal({
               </div>
 
               <div className="propField">
-                <div className="propField__label">Occupancy Status</div>
+                <div className="propField__label">Occupied</div>
                 <select
                   className="propField__input"
                   value={form.occupancyStatus}
@@ -1619,6 +1577,99 @@ export default function PropertyUpsertModal({
                     </option>
                   ))}
                 </select>
+              </div>
+            </div>
+          </div>
+
+          {/* Price */}
+          <div className="propSection">
+            <div className="propSection__head">
+              <div className="propSection__title">Price Details</div>
+            </div>
+
+            <div className="propGrid propGrid--price">
+              <div className="propField">
+                <div className="propField__label">Asking Price</div>
+                <div className="propField__moneyWrap">
+                  <span className="propField__moneyPrefix">$</span>
+                  <input
+                    className="propField__input propField__input--money"
+                    value={form.askingPrice}
+                    onChange={(e) =>
+                      setPriceField("askingPrice", e.target.value)
+                    }
+                    inputMode="numeric"
+                  />
+                </div>
+              </div>
+
+              <div className="propField">
+                <div className="propField__label">ARV</div>
+                <div className="propField__moneyWrap">
+                  <span className="propField__moneyPrefix">$</span>
+                  <input
+                    className="propField__input propField__input--money"
+                    value={form.arv}
+                    onChange={(e) => setPriceField("arv", e.target.value)}
+                    inputMode="numeric"
+                  />
+                </div>
+              </div>
+
+              <div className="propField">
+                <div className="propField__label">Estimated Repairs</div>
+                <div className="propField__moneyWrap">
+                  <span className="propField__moneyPrefix">$</span>
+                  <input
+                    className="propField__input propField__input--money"
+                    value={form.estRepairs}
+                    onChange={(e) =>
+                      setPriceField("estRepairs", e.target.value)
+                    }
+                    inputMode="numeric"
+                  />
+                </div>
+              </div>
+
+              <div className="propField">
+                <div className="propField__label">FMR (Monthly)</div>
+                <div className="propField__moneyWrap">
+                  <span className="propField__moneyPrefix">$</span>
+                  <input
+                    className="propField__input propField__input--money"
+                    value={form.fmr}
+                    readOnly
+                    placeholder="Auto after save"
+                  />
+                </div>
+                <div className="propField__help">Auto from ZIP + beds</div>
+              </div>
+
+              <div className="propField">
+                <div className="propField__label">Current Rent (Monthly)</div>
+                <div className="propField__moneyWrap">
+                  <span className="propField__moneyPrefix">$</span>
+                  <input
+                    className="propField__input propField__input--money"
+                    value={form.currentRent}
+                    onChange={(e) => setPriceField("currentRent", e.target.value)}
+                    inputMode="numeric"
+                    disabled={!isOccupied}
+                  />
+                </div>
+              </div>
+
+              <div className="propField">
+                <div className="propField__label">Potential Profit</div>
+                <div className="propField__moneyWrap">
+                  <span className="propField__moneyPrefix">$</span>
+                  <input
+                    className="propField__input propField__input--money propField__input--profit"
+                    value={potentialProfit}
+                    readOnly
+                    placeholder="Auto from ARV - Asking - Repairs"
+                  />
+                </div>
               </div>
             </div>
           </div>

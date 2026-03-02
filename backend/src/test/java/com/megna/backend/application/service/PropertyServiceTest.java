@@ -207,6 +207,7 @@ class PropertyServiceTest {
                 null,
                 null,
                 null,
+                null,
                 null
         );
     }

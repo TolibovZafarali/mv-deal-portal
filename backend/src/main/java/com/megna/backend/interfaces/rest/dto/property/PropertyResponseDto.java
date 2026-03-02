@@ -36,6 +36,7 @@ public record PropertyResponseDto(
         Integer hvac,
 
         OccupancyStatus occupancyStatus,
+        BigDecimal currentRent,
         ExitStrategy exitStrategy,
         ClosingTerms closingTerms,
 
