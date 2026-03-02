@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useOutletContext } from "react-router-dom";
+import { Link } from "react-router-dom";
 import {
   createPropertyPhotoFromUrl,
   createProperty,
@@ -20,6 +20,7 @@ import {
 import "@/features/admin/pages/AdminPropertiesPage.css";
 import AdminFilterBar, { AdminFilterMore } from "@/features/admin/components/AdminFilterBar";
 import AdminPagination from "@/features/admin/components/AdminPagination";
+import useFilterBarMinWidth from "@/features/admin/hooks/useFilterBarMinWidth";
 import SellerReviewModal from "@/features/admin/modals/SellerReviewModal";
 import ChangeRequestDecisionModal from "@/features/admin/modals/ChangeRequestDecisionModal";
 import PropertyUpsertModal from "@/features/admin/modals/PropertyUpsertModal";
@@ -31,6 +32,8 @@ import {
 import { formatPriceInput } from "@/shared/utils/priceFormatting";
 
 const PAGE_SIZE = 20;
+const PROPERTIES_PRIMARY_INLINE_MIN_WIDTH = 980;
+const PROPERTIES_INLINE_FILTERS_MIN_WIDTH = 1420;
 const PROPERTY_STATUS_ORDER = {
   ACTIVE: 0,
   DRAFT: 1,
@@ -119,8 +122,6 @@ function sellerDisplayName(seller) {
 }
 
 export default function AdminPropertiesPage() {
-  const outletContext = useOutletContext();
-  const sidebarCollapsed = Boolean(outletContext?.sidebarCollapsed);
   const [filters, setFilters] = useState({
     q: "",
     minAskingPrice: "",
@@ -132,6 +133,9 @@ export default function AdminPropertiesPage() {
     status: "",
     sellerWorkflowStatus: "",
   });
+  const { setFilterBarRef, width: filterBarWidth } = useFilterBarMinWidth(PROPERTIES_INLINE_FILTERS_MIN_WIDTH);
+  const showAdvancedInline = filterBarWidth >= PROPERTIES_INLINE_FILTERS_MIN_WIDTH;
+  const showPrimaryInline = filterBarWidth >= PROPERTIES_PRIMARY_INLINE_MIN_WIDTH;
   const [searchInput, setSearchInput] = useState("");
 
   const [page, setPage] = useState(0);
@@ -323,6 +327,9 @@ export default function AdminPropertiesPage() {
       filters.occupancyStatus,
       filters.exitStrategy,
       filters.sellerWorkflowStatus,
+      showPrimaryInline ? "" : filters.status,
+      showPrimaryInline ? "" : filters.minAskingPrice,
+      showPrimaryInline ? "" : filters.maxAskingPrice,
     ].some((value) => String(value ?? "").trim().length > 0);
   }, [
     filters.minBeds,
@@ -330,6 +337,10 @@ export default function AdminPropertiesPage() {
     filters.occupancyStatus,
     filters.exitStrategy,
     filters.sellerWorkflowStatus,
+    filters.status,
+    filters.minAskingPrice,
+    filters.maxAskingPrice,
+    showPrimaryInline,
   ]);
 
   const secondaryColumnSet = useMemo(() => {
@@ -347,6 +358,57 @@ export default function AdminPropertiesPage() {
     if (property?.sellerId === null || property?.sellerId === undefined) return "Unassigned";
     return sellerNameById[property.sellerId] || sellerDisplayLabel(property) || "Loading...";
   }
+
+  const primaryFilters = (
+    <>
+      <label className="adminProps__filter adminProps__filter--status">
+        <span className="adminProps__label">Status</span>
+        <select
+          className="adminProps__input"
+          value={filters.status}
+          onChange={(e) => updateFilter("status", e.target.value)}
+        >
+          {STATUSES.map((o) => (
+            <option key={o.label} value={o.value}>
+              {o.label}
+            </option>
+          ))}
+        </select>
+      </label>
+
+      <label className="adminProps__filter adminProps__filter--asking">
+        <span className="adminProps__label">Asking Price</span>
+        <div className="adminProps__rangeInputs">
+          <div className="adminProps__moneyWrap">
+            <span className="adminProps__moneyPrefix">$</span>
+            <input
+              className="adminProps__input adminProps__input--text adminProps__input--money"
+              type="text"
+              inputMode="numeric"
+              placeholder="Min"
+              value={filters.minAskingPrice}
+              onChange={(e) =>
+                updatePriceFilter("minAskingPrice", e.target.value)
+              }
+            />
+          </div>
+          <div className="adminProps__moneyWrap">
+            <span className="adminProps__moneyPrefix">$</span>
+            <input
+              className="adminProps__input adminProps__input--text adminProps__input--money"
+              type="text"
+              inputMode="numeric"
+              placeholder="Max"
+              value={filters.maxAskingPrice}
+              onChange={(e) =>
+                updatePriceFilter("maxAskingPrice", e.target.value)
+              }
+            />
+          </div>
+        </div>
+      </label>
+    </>
+  );
 
   const advancedFilters = (
     <>
@@ -610,11 +672,6 @@ export default function AdminPropertiesPage() {
     }
   }
 
-  function openSellerReviewModal(property) {
-    setSellerReviewError("");
-    setSellerReviewModal({ open: true, property });
-  }
-
   async function handleSellerReviewSubmit({ action, reviewNote }) {
     const property = sellerReviewModal.property;
     if (!property?.id) return;
@@ -727,8 +784,13 @@ export default function AdminPropertiesPage() {
   }
 
   return (
-    <section className={`adminProps ${sidebarCollapsed ? "adminProps--sidebarCollapsed" : ""}`.trim()}>
-      <AdminFilterBar className="adminProps__filters" rowClassName="adminProps__filterRow" onSubmit={handleSearchSubmit}>
+    <section className={`adminProps ${showAdvancedInline ? "adminProps--filtersExpanded" : ""}`.trim()}>
+      <AdminFilterBar
+        className="adminProps__filters"
+        rowClassName={`adminProps__filterRow ${showPrimaryInline ? "adminProps__filterRow--primaryInline" : "adminProps__filterRow--searchOnly"}`.trim()}
+        onSubmit={handleSearchSubmit}
+        containerRef={setFilterBarRef}
+      >
         <label className="adminProps__filter">
           <span className="adminProps__label">Search</span>
           <div className="adminProps__searchWrap">
@@ -745,54 +807,9 @@ export default function AdminPropertiesPage() {
           </div>
         </label>
 
-        <label className="adminProps__filter adminProps__filter--status">
-          <span className="adminProps__label">Status</span>
-          <select
-            className="adminProps__input"
-            value={filters.status}
-            onChange={(e) => updateFilter("status", e.target.value)}
-          >
-            {STATUSES.map((o) => (
-              <option key={o.label} value={o.value}>
-                {o.label}
-              </option>
-            ))}
-          </select>
-        </label>
+        {showPrimaryInline ? primaryFilters : null}
 
-        <label className="adminProps__filter adminProps__filter--asking">
-          <span className="adminProps__label">Asking Price</span>
-          <div className="adminProps__rangeInputs">
-            <div className="adminProps__moneyWrap">
-              <span className="adminProps__moneyPrefix">$</span>
-              <input
-                className="adminProps__input adminProps__input--text adminProps__input--money"
-                type="text"
-                inputMode="numeric"
-                placeholder="Min"
-                value={filters.minAskingPrice}
-                onChange={(e) =>
-                  updatePriceFilter("minAskingPrice", e.target.value)
-                }
-              />
-            </div>
-            <div className="adminProps__moneyWrap">
-              <span className="adminProps__moneyPrefix">$</span>
-              <input
-                className="adminProps__input adminProps__input--text adminProps__input--money"
-                type="text"
-                inputMode="numeric"
-                placeholder="Max"
-                value={filters.maxAskingPrice}
-                onChange={(e) =>
-                  updatePriceFilter("maxAskingPrice", e.target.value)
-                }
-              />
-            </div>
-          </div>
-        </label>
-
-        {sidebarCollapsed ? advancedFilters : (
+        {showAdvancedInline ? advancedFilters : (
           <AdminFilterMore
             className="adminProps__moreMenu"
             summaryClassName="adminProps__moreSummary"
@@ -801,6 +818,7 @@ export default function AdminPropertiesPage() {
             active={hasMoreFiltersSelected}
             summaryLabel="More"
           >
+            {!showPrimaryInline ? primaryFilters : null}
             {advancedFilters}
           </AdminFilterMore>
         )}

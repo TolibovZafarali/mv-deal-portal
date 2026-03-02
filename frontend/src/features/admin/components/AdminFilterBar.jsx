@@ -2,10 +2,11 @@ export default function AdminFilterBar({
   className = "",
   rowClassName = "",
   onSubmit,
+  containerRef,
   children,
 }) {
   return (
-    <form className={className} onSubmit={onSubmit ?? ((e) => e.preventDefault())}>
+    <form ref={containerRef} className={className} onSubmit={onSubmit ?? ((e) => e.preventDefault())}>
       <div className={rowClassName}>{children}</div>
     </form>
   );

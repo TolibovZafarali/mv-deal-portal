@@ -1,14 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
-import { useOutletContext } from "react-router-dom";
 import {
   getInquiries,
 } from "@/api/modules/inquiryApi";
 import { getPropertyId } from "@/api/modules/propertyApi";
-import AdminFilterBar from "@/features/admin/components/AdminFilterBar";
+import AdminFilterBar, { AdminFilterMore } from "@/features/admin/components/AdminFilterBar";
 import AdminPagination from "@/features/admin/components/AdminPagination";
+import useFilterBarMinWidth from "@/features/admin/hooks/useFilterBarMinWidth";
 import "@/features/admin/pages/AdminInquiriesPage.css";
 
 const PAGE_SIZE = 20;
+const INQUIRIES_INLINE_STATUS_MIN_WIDTH = 980;
 
 const EMAIL_STATUS_OPTIONS = [
   { label: "All", value: "" },
@@ -38,12 +39,11 @@ function propertyAddress(property) {
 }
 
 export default function AdminInquiriesPage() {
-  const outletContext = useOutletContext();
-  const sidebarCollapsed = Boolean(outletContext?.sidebarCollapsed);
   const [filters, setFilters] = useState({
     q: "",
     emailStatus: "",
   });
+  const { setFilterBarRef, isWideEnough: showStatusInline } = useFilterBarMinWidth(INQUIRIES_INLINE_STATUS_MIN_WIDTH);
   const [searchInput, setSearchInput] = useState("");
   const [page, setPage] = useState(0);
   const [rawRows, setRawRows] = useState([]);
@@ -52,7 +52,9 @@ export default function AdminInquiriesPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const filterRowClassName = "adminInq__filterRow";
+  const filterRowClassName = showStatusInline
+    ? "adminInq__filterRow adminInq__filterRow--statusInline"
+    : "adminInq__filterRow adminInq__filterRow--withMore";
 
   useEffect(() => {
     let alive = true;
@@ -171,12 +173,18 @@ export default function AdminInquiriesPage() {
       return haystack.includes(q);
     });
   }, [rawRows, filters, propertyAddressById]);
+  const hasMoreFiltersSelected = Boolean(filters.emailStatus);
 
   const showPagination = !loading && !error && meta.totalPages > 1;
 
   return (
-    <section className={`adminInq ${sidebarCollapsed ? "adminInq--sidebarCollapsed" : ""}`.trim()}>
-      <AdminFilterBar className="adminInq__filters" rowClassName={filterRowClassName} onSubmit={handleSearchSubmit}>
+    <section className="adminInq">
+      <AdminFilterBar
+        className="adminInq__filters"
+        rowClassName={filterRowClassName}
+        onSubmit={handleSearchSubmit}
+        containerRef={setFilterBarRef}
+      >
         <label className="adminInq__filter adminInq__filter--search">
           <span className="adminInq__label">Search</span>
           <div className="adminInq__searchWrap">
@@ -193,20 +201,46 @@ export default function AdminInquiriesPage() {
           </div>
         </label>
 
-        <label className="adminInq__filter adminInq__filter--status">
-          <span className="adminInq__label">Email Status</span>
-          <select
-            className="adminInq__input"
-            value={filters.emailStatus}
-            onChange={(e) => updateFilter("emailStatus", e.target.value)}
+        {showStatusInline ? (
+          <label className="adminInq__filter adminInq__filter--status">
+            <span className="adminInq__label">Email Status</span>
+            <select
+              className="adminInq__input"
+              value={filters.emailStatus}
+              onChange={(e) => updateFilter("emailStatus", e.target.value)}
+            >
+              {EMAIL_STATUS_OPTIONS.map((option) => (
+                <option key={option.label} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : (
+          <AdminFilterMore
+            className="adminInq__moreMenu"
+            summaryClassName="adminInq__moreSummary"
+            summaryActiveClassName="adminInq__moreSummary--active"
+            bodyClassName="adminInq__moreBody"
+            active={hasMoreFiltersSelected}
+            summaryLabel="More"
           >
-            {EMAIL_STATUS_OPTIONS.map((option) => (
-              <option key={option.label} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </label>
+            <label className="adminInq__filter adminInq__filter--status">
+              <span className="adminInq__label">Email Status</span>
+              <select
+                className="adminInq__input"
+                value={filters.emailStatus}
+                onChange={(e) => updateFilter("emailStatus", e.target.value)}
+              >
+                {EMAIL_STATUS_OPTIONS.map((option) => (
+                  <option key={option.label} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </AdminFilterMore>
+        )}
       </AdminFilterBar>
 
       <div className="adminInq__tableSection">

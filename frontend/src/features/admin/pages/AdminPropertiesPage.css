@@ -26,10 +26,23 @@
   align-items: end;
 }
 
+.adminProps__filterRow--primaryInline {
+  grid-template-columns: minmax(0, 2.2fr) minmax(0, 1fr) minmax(0, 1.4fr) auto;
+}
+
+.adminProps__filterRow--searchOnly {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.adminProps__filterRow--searchOnly .adminProps__moreMenu {
+  justify-self: end;
+}
+
 .adminProps__filter {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  min-width: 0;
 }
 
 .adminProps__label {
@@ -46,6 +59,8 @@
   border: 1px solid var(--admin-filter-border);
   padding: 10px 34px 10px 10px;
   background: var(--admin-filter-input-bg);
+  width: 100%;
+  box-sizing: border-box;
   appearance: none;
   -webkit-appearance: none;
   -moz-appearance: none;
@@ -99,12 +114,13 @@
 
 .adminProps__rangeInputs {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 8px;
 }
 
 .adminProps__moneyWrap {
   position: relative;
+  min-width: 0;
 }
 
 .adminProps__moneyPrefix {
@@ -179,7 +195,7 @@
   border-color: var(--admin-filter-ink);
 }
 
-.adminProps--sidebarCollapsed .adminProps__filterRow {
+.adminProps--filtersExpanded .adminProps__filterRow {
   display: grid;
   grid-template-columns:
     minmax(0, 1.7fr)
@@ -194,40 +210,40 @@
   gap: 8px;
 }
 
-.adminProps--sidebarCollapsed .adminProps__filter {
+.adminProps--filtersExpanded .adminProps__filter {
   min-width: 0;
 }
 
-.adminProps--sidebarCollapsed .adminProps__label {
+.adminProps--filtersExpanded .adminProps__label {
   font-size: 12px;
 }
 
-.adminProps--sidebarCollapsed .adminProps__input {
+.adminProps--filtersExpanded .adminProps__input {
   width: 100%;
   padding: 9px 26px 9px 9px;
   background-size: 14px;
   background-position: right 8px center;
 }
 
-.adminProps--sidebarCollapsed .adminProps__input--text {
+.adminProps--filtersExpanded .adminProps__input--text {
   padding-right: 9px;
 }
 
-.adminProps--sidebarCollapsed .adminProps__input--search {
+.adminProps--filtersExpanded .adminProps__input--search {
   padding-right: 26px;
 }
 
-.adminProps--sidebarCollapsed .adminProps__searchBtn {
+.adminProps--filtersExpanded .adminProps__searchBtn {
   right: 3px;
   width: 24px;
   height: 24px;
 }
 
-.adminProps--sidebarCollapsed .adminProps__input--money {
+.adminProps--filtersExpanded .adminProps__input--money {
   padding-left: 18px;
 }
 
-.adminProps--sidebarCollapsed .adminProps__moneyPrefix {
+.adminProps--filtersExpanded .adminProps__moneyPrefix {
   left: 7px;
   font-size: 12px;
 }
@@ -352,7 +368,7 @@
 }
 
 @media (max-width: 1100px) {
-  .adminProps__filterRow {
+  .adminProps__filterRow--primaryInline {
     grid-template-columns: 1fr 1fr;
   }
 

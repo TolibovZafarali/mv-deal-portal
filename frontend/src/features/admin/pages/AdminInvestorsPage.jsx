@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from "react";
-import { useOutletContext } from "react-router-dom";
 import {
   approveInvestor,
   getAdminInvestorById,
@@ -9,6 +8,7 @@ import {
 } from "@/api/modules/adminInvestorApi";
 import AdminFilterBar, { AdminFilterMore } from "@/features/admin/components/AdminFilterBar";
 import AdminPagination from "@/features/admin/components/AdminPagination";
+import useFilterBarMinWidth from "@/features/admin/hooks/useFilterBarMinWidth";
 import AdminInvestorReviewModal from "@/features/admin/modals/AdminInvestorReviewModal";
 import { signalAdminQueueRefresh } from "@/features/admin/utils/adminTelemetry";
 import "@/features/admin/pages/AdminInvestorsPage.css";
@@ -28,6 +28,9 @@ const RANGE_OPTIONS = [
   { label: "Last 30 days", value: "30" },
   { label: "Last 90 days", value: "90" },
 ];
+const INVESTOR_STATUS_INLINE_MIN_WIDTH = 760;
+const INVESTOR_INLINE_FILTERS_MIN_WIDTH = 1040;
+const INVESTOR_INLINE_FILTERS_APPROVED_MIN_WIDTH = 1220;
 
 function toRange(days) {
   if (!days) return { from: null, to: null };
@@ -45,8 +48,6 @@ function prettyDate(value) {
 }
 
 export default function AdminInvestorsPage() {
-  const outletContext = useOutletContext();
-  const sidebarCollapsed = Boolean(outletContext?.sidebarCollapsed);
   const [filters, setFilters] = useState({
     q: "",
     status: "",
@@ -66,14 +67,26 @@ export default function AdminInvestorsPage() {
   const [submitError, setSubmitError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  const hasMoreFiltersSelected = useMemo(() => {
-    return [filters.createdRange, filters.updatedRange, filters.approvedRange].some(Boolean);
-  }, [filters.createdRange, filters.updatedRange, filters.approvedRange]);
-
   const hasApprovedFilter = filters.status === "APPROVED";
-  const filterRowClassName = sidebarCollapsed
+  const inlineMinWidth = hasApprovedFilter
+    ? INVESTOR_INLINE_FILTERS_APPROVED_MIN_WIDTH
+    : INVESTOR_INLINE_FILTERS_MIN_WIDTH;
+  const { setFilterBarRef, width: filterBarWidth } = useFilterBarMinWidth(inlineMinWidth);
+  const showAdvancedInline = filterBarWidth >= inlineMinWidth;
+  const showStatusInline = filterBarWidth >= INVESTOR_STATUS_INLINE_MIN_WIDTH;
+  const filterRowClassName = showAdvancedInline
     ? `adminInv__filterRow ${hasApprovedFilter ? "adminInv__filterRow--collapsedApproved" : "adminInv__filterRow--collapsed"}`
-    : "adminInv__filterRow";
+    : showStatusInline
+      ? "adminInv__filterRow adminInv__filterRow--statusInline"
+      : "adminInv__filterRow adminInv__filterRow--searchOnly";
+  const hasMoreFiltersSelected = useMemo(() => {
+    return [
+      filters.createdRange,
+      filters.updatedRange,
+      filters.approvedRange,
+      showStatusInline ? "" : filters.status,
+    ].some(Boolean);
+  }, [filters.createdRange, filters.updatedRange, filters.approvedRange, filters.status, showStatusInline]);
 
   const advancedFilters = (
     <>
@@ -100,6 +113,16 @@ export default function AdminInvestorsPage() {
         </label>
       ) : null}
     </>
+  );
+  const statusFilter = (
+    <label className="adminInv__filter adminInv__filter--status">
+      <span className="adminInv__label">Status</span>
+      <select className="adminInv__input" value={filters.status} onChange={(e) => updateFilter("status", e.target.value)}>
+        {STATUS_OPTIONS.map((option) => (
+          <option key={option.label} value={option.value}>{option.label}</option>
+        ))}
+      </select>
+    </label>
   );
 
   useEffect(() => {
@@ -185,8 +208,13 @@ export default function AdminInvestorsPage() {
   }
 
   return (
-    <section className={`adminInv ${sidebarCollapsed ? "adminInv--sidebarCollapsed" : ""}`.trim()}>
-      <AdminFilterBar className="adminInv__filters" rowClassName={filterRowClassName} onSubmit={handleSearchSubmit}>
+    <section className="adminInv">
+      <AdminFilterBar
+        className="adminInv__filters"
+        rowClassName={filterRowClassName}
+        onSubmit={handleSearchSubmit}
+        containerRef={setFilterBarRef}
+      >
         <label className="adminInv__filter adminInv__filter--search">
           <span className="adminInv__label">Search</span>
           <div className="adminInv__searchWrap">
@@ -203,16 +231,9 @@ export default function AdminInvestorsPage() {
           </div>
         </label>
 
-        <label className="adminInv__filter adminInv__filter--status">
-          <span className="adminInv__label">Status</span>
-          <select className="adminInv__input" value={filters.status} onChange={(e) => updateFilter("status", e.target.value)}>
-            {STATUS_OPTIONS.map((option) => (
-              <option key={option.label} value={option.value}>{option.label}</option>
-            ))}
-          </select>
-        </label>
+        {showStatusInline ? statusFilter : null}
 
-        {sidebarCollapsed ? advancedFilters : (
+        {showAdvancedInline ? advancedFilters : (
           <AdminFilterMore
             className="adminInv__moreMenu"
             summaryClassName="adminInv__moreSummary"
@@ -221,6 +242,7 @@ export default function AdminInvestorsPage() {
             active={hasMoreFiltersSelected}
             summaryLabel="More"
           >
+            {!showStatusInline ? statusFilter : null}
             {advancedFilters}
           </AdminFilterMore>
         )}
