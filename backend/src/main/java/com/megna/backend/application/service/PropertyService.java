@@ -27,6 +27,7 @@ import com.megna.backend.interfaces.rest.dto.property.AdminPropertySellerReviewA
 import com.megna.backend.interfaces.rest.dto.property.PropertyChangeRequestResponseDto;
 import com.megna.backend.interfaces.rest.dto.property.PropertyResponseDto;
 import com.megna.backend.interfaces.rest.dto.property.PropertyUpsertRequestDto;
+import com.megna.backend.interfaces.rest.dto.property.PropertyPhotoRequestDto;
 import com.megna.backend.interfaces.rest.mapper.PropertyChangeRequestMapper;
 import com.megna.backend.interfaces.rest.mapper.PropertyMapper;
 import lombok.RequiredArgsConstructor;
@@ -44,6 +45,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
+import java.util.HashSet;
 
 import static com.megna.backend.domain.enums.PropertyStatus.ACTIVE;
 
@@ -64,6 +67,7 @@ public class PropertyService {
     private final PhotoAssetService photoAssetService;
 
     public PropertyResponseDto create(PropertyUpsertRequestDto dto) {
+        validateUniquePhotoAssetIds(dto.photos());
         Property property = PropertyMapper.toEntity(dto);
         normalizeCurrentRentForOccupancy(property);
         if (dto.photos() != null) {
@@ -104,6 +108,7 @@ public class PropertyService {
     }
 
     public PropertyResponseDto update(Long id, PropertyUpsertRequestDto dto) {
+        validateUniquePhotoAssetIds(dto.photos());
         Property property = propertyRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Property not found: " + id));
 
@@ -743,5 +748,22 @@ public class PropertyService {
         if (value == null) return null;
         String trimmed = value.trim();
         return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    private void validateUniquePhotoAssetIds(List<PropertyPhotoRequestDto> photos) {
+        if (photos == null || photos.isEmpty()) return;
+
+        Set<String> seen = new HashSet<>();
+        for (PropertyPhotoRequestDto photo : photos) {
+            if (photo == null) continue;
+            String assetId = photo.photoAssetId();
+            if (!StringUtils.hasText(assetId)) continue;
+            if (!seen.add(assetId)) {
+                throw new ResponseStatusException(
+                        HttpStatus.BAD_REQUEST,
+                        "Duplicate photoAssetId in photos payload: " + assetId
+                );
+            }
+        }
     }
 }

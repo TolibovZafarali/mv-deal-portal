@@ -333,6 +333,10 @@ export default function PropertyUpsertModal({
   const [photoUrlAdding, setPhotoUrlAdding] = useState(false);
   const [photoUrlInput, setPhotoUrlInput] = useState("");
   const [photoUploadError, setPhotoUploadError] = useState("");
+  const [photoPreviewOpen, setPhotoPreviewOpen] = useState(false);
+  const [photoPreviewIndex, setPhotoPreviewIndex] = useState(0);
+  const [draggedPhotoIndex, setDraggedPhotoIndex] = useState(null);
+  const [photoDropTargetIndex, setPhotoDropTargetIndex] = useState(null);
   const [addressSuggestions, setAddressSuggestions] = useState([]);
   const [addressSuggesting, setAddressSuggesting] = useState(false);
   const [addressSuggestError, setAddressSuggestError] = useState("");
@@ -383,6 +387,10 @@ export default function PropertyUpsertModal({
     if (!open) setPhotoUrlOpen(false);
     if (!open) setPhotoUrlAdding(false);
     if (!open) setPhotoUrlInput("");
+    if (!open) setPhotoPreviewOpen(false);
+    if (!open) setPhotoPreviewIndex(0);
+    if (!open) setDraggedPhotoIndex(null);
+    if (!open) setPhotoDropTargetIndex(null);
     if (!open) {
       setAddressSuggestions([]);
       setAddressSuggesting(false);
@@ -502,7 +510,37 @@ export default function PropertyUpsertModal({
     if (!open) return;
 
     function onKeyDown(e) {
-      if (e.key === "Escape") onClose?.();
+      if (e.key === "Escape") {
+        if (photoPreviewOpen) {
+          e.preventDefault();
+          e.stopPropagation();
+          if (typeof e.stopImmediatePropagation === "function") {
+            e.stopImmediatePropagation();
+          }
+          setPhotoPreviewOpen(false);
+          return;
+        }
+        onClose?.();
+        return;
+      }
+      if (!photoPreviewOpen) return;
+      if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        if (form.photos.length > 1) {
+          setPhotoPreviewIndex(
+            (prevIndex) =>
+              (prevIndex - 1 + form.photos.length) % form.photos.length,
+          );
+        }
+      }
+      if (e.key === "ArrowRight") {
+        e.preventDefault();
+        if (form.photos.length > 1) {
+          setPhotoPreviewIndex(
+            (prevIndex) => (prevIndex + 1) % form.photos.length,
+          );
+        }
+      }
     }
     window.addEventListener("keydown", onKeyDown);
     const releaseBodyLock = acquireModalBodyLock();
@@ -511,7 +549,7 @@ export default function PropertyUpsertModal({
       window.removeEventListener("keydown", onKeyDown);
       releaseBodyLock();
     };
-  }, [open, onClose]);
+  }, [open, onClose, photoPreviewOpen, form.photos]);
 
   useEffect(() => {
     return () => {
@@ -1126,6 +1164,48 @@ export default function PropertyUpsertModal({
     photoWheelRafRef.current = requestAnimationFrame(animate);
   }
 
+  function openPhotoPreview(index) {
+    const photoCount = Array.isArray(form.photos) ? form.photos.length : 0;
+    if (photoCount === 0) return;
+    const boundedIndex = index >= 0 && index < photoCount ? index : 0;
+    setPhotoPreviewIndex(boundedIndex);
+    setPhotoPreviewOpen(true);
+  }
+
+  function movePreviewPhoto(step) {
+    const photoCount = Array.isArray(form.photos) ? form.photos.length : 0;
+    if (photoCount <= 1) return;
+    setPhotoPreviewIndex((prevIndex) => (prevIndex + step + photoCount) % photoCount);
+  }
+
+  function reorderPhotos(fromIndex, toIndex) {
+    if (!Number.isInteger(fromIndex) || !Number.isInteger(toIndex)) return;
+    if (fromIndex === toIndex) return;
+
+    setForm((prev) => {
+      const photos = Array.isArray(prev.photos) ? [...prev.photos] : [];
+      if (
+        fromIndex < 0 ||
+        toIndex < 0 ||
+        fromIndex >= photos.length ||
+        toIndex >= photos.length
+      ) {
+        return prev;
+      }
+
+      const [movedPhoto] = photos.splice(fromIndex, 1);
+      photos.splice(toIndex, 0, movedPhoto);
+
+      return {
+        ...prev,
+        photos: photos.map((photo, index) => ({
+          ...photo,
+          sortOrder: index,
+        })),
+      };
+    });
+  }
+
   async function handlePhotoFileSelection(event) {
     const files = Array.from(event.target.files ?? []);
     event.target.value = "";
@@ -1338,6 +1418,14 @@ export default function PropertyUpsertModal({
   }, [compDraft.address, compEditorOpen, open]);
 
   if (!open) return null;
+
+  const canNavigatePreview = form.photos.length > 1;
+  const previewPhoto =
+    form.photos[
+      photoPreviewIndex >= 0 && photoPreviewIndex < form.photos.length
+        ? photoPreviewIndex
+        : 0
+    ] ?? null;
 
   return (
     <div
@@ -1793,13 +1881,57 @@ export default function PropertyUpsertModal({
                   onWheel={handlePhotoStripWheel}
                 >
                   {form.photos.map((photo, index) => (
-                    <div key={`photo-${photo.photoAssetId || index}`} className="propPhotoCard">
-                      <img
-                        className="propPhotoCard__image"
-                        src={photo.thumbnailUrl || photo.url}
-                        alt={`Property photo ${index + 1}`}
-                        loading="lazy"
-                      />
+                    <div
+                      key={`photo-${photo.photoAssetId || index}`}
+                      className={`propPhotoCard ${
+                        draggedPhotoIndex === index ? "propPhotoCard--dragging" : ""
+                      } ${photoDropTargetIndex === index ? "propPhotoCard--dropTarget" : ""}`}
+                      draggable
+                      onDragStart={(event) => {
+                        setDraggedPhotoIndex(index);
+                        setPhotoDropTargetIndex(index);
+                        event.dataTransfer.effectAllowed = "move";
+                        event.dataTransfer.setData("text/plain", String(index));
+                      }}
+                      onDragOver={(event) => {
+                        event.preventDefault();
+                        if (photoDropTargetIndex !== index) {
+                          setPhotoDropTargetIndex(index);
+                        }
+                        event.dataTransfer.dropEffect = "move";
+                      }}
+                      onDrop={(event) => {
+                        event.preventDefault();
+                        const fallbackIndex = Number.parseInt(
+                          event.dataTransfer.getData("text/plain"),
+                          10,
+                        );
+                        const fromIndex =
+                          Number.isInteger(draggedPhotoIndex)
+                            ? draggedPhotoIndex
+                            : fallbackIndex;
+                        reorderPhotos(fromIndex, index);
+                        setDraggedPhotoIndex(null);
+                        setPhotoDropTargetIndex(null);
+                      }}
+                      onDragEnd={() => {
+                        setDraggedPhotoIndex(null);
+                        setPhotoDropTargetIndex(null);
+                      }}
+                    >
+                      <button
+                        type="button"
+                        className="propPhotoCard__imageBtn"
+                        onClick={() => openPhotoPreview(index)}
+                        aria-label={`View full size photo ${index + 1}`}
+                      >
+                        <img
+                          className="propPhotoCard__image"
+                          src={photo.thumbnailUrl || photo.url}
+                          alt={`Property photo ${index + 1}`}
+                          loading="lazy"
+                        />
+                      </button>
                       <button
                         type="button"
                         className="propPhotoCard__remove"
@@ -2315,6 +2447,55 @@ export default function PropertyUpsertModal({
           </div>
         </form>
       </div>
+
+      {photoPreviewOpen && previewPhoto?.url ? (
+        <div
+          className="propPhotoPreview"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Full size property photo"
+          onMouseDown={(event) => {
+            event.stopPropagation();
+            if (event.target === event.currentTarget) setPhotoPreviewOpen(false);
+          }}
+        >
+          {canNavigatePreview ? (
+            <button
+              type="button"
+              className="propPhotoPreview__nav propPhotoPreview__nav--prev"
+              aria-label="Previous photo"
+              onClick={() => movePreviewPhoto(-1)}
+            >
+              ‹
+            </button>
+          ) : null}
+
+          <button
+            type="button"
+            className="propPhotoPreview__close"
+            aria-label="Close full size photo"
+            onClick={() => setPhotoPreviewOpen(false)}
+          >
+            ✕
+          </button>
+          <img
+            src={previewPhoto.url}
+            alt={`Property photo ${photoPreviewIndex + 1}`}
+            className="propPhotoPreview__image"
+          />
+
+          {canNavigatePreview ? (
+            <button
+              type="button"
+              className="propPhotoPreview__nav propPhotoPreview__nav--next"
+              aria-label="Next photo"
+              onClick={() => movePreviewPhoto(1)}
+            >
+              ›
+            </button>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   );
 }
