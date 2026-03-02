@@ -70,7 +70,6 @@ export default function AdminLayout() {
   }, [effectiveSidebarCollapsed, isMobileView]);
 
   const badges = {
-    queue: counts.submittedProperties + counts.openChangeRequests + counts.pendingInvestors,
     properties: counts.draftProperties,
     investors: counts.pendingInvestors,
     inquiries: counts.failedInquiries,
@@ -100,19 +99,6 @@ export default function AdminLayout() {
         </div>
 
         <nav className="adminNav" aria-label="Admin navigation">
-          <NavLink
-            to="queue"
-            className={({ isActive }) =>
-              `adminNav__link ${isActive ? "adminNav__link--active" : ""}`
-            }
-            aria-label="Queue"
-          >
-            <span className="adminNav__content">
-              <span className="adminNav__label">Queue</span>
-              {badges.queue > 0 ? <span className="adminNav__badge">{badges.queue}</span> : null}
-              <span className="adminNav__icon material-symbols-outlined" aria-hidden="true">task_alt</span>
-            </span>
-          </NavLink>
           <NavLink
             to="properties"
             className={({ isActive }) =>

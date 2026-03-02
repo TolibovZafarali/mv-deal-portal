@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
 import {
   createPropertyPhotoFromUrl,
   createProperty,
@@ -1108,9 +1107,6 @@ export default function AdminPropertiesPage() {
       <section className="adminProps__changeReqSection">
         <div className="adminProps__changeReqHead">
           <h3>Open Seller Change Requests</h3>
-          <Link className="adminProps__queueLink" to="/admin/queue">
-            Open Full Queue
-          </Link>
         </div>
 
         {changeRequestsLoading ? (

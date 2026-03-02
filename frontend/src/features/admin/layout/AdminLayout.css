@@ -309,7 +309,7 @@
   .adminNav {
     padding-top: 0;
     gap: 8px;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
   .adminNav__link {
