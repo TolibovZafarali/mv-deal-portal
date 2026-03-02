@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useOutletContext } from "react-router-dom";
 import {
+  createPropertyPhotoFromUrl,
   createProperty,
   deletePropertyPhotoUpload,
   deleteProperty,
@@ -386,6 +387,10 @@ export default function AdminPropertiesPage() {
 
   async function handlePhotoUpload(file) {
     return uploadPropertyPhoto(file);
+  }
+
+  async function handlePhotoUrlAdd(url) {
+    return createPropertyPhotoFromUrl(url);
   }
 
   async function handlePhotoUploadDelete(uploadId) {
@@ -900,6 +905,7 @@ export default function AdminPropertiesPage() {
         }}
         onSubmit={handleAddSubmit}
         onUploadPhoto={handlePhotoUpload}
+        onAddPhotoByUrl={handlePhotoUrlAdd}
         onDeleteUploadedPhoto={handlePhotoUploadDelete}
         submitting={addSubmitting}
         submitError={addError}
@@ -964,6 +970,7 @@ export default function AdminPropertiesPage() {
         }}
         onSubmit={handleEditSubmit}
         onUploadPhoto={handlePhotoUpload}
+        onAddPhotoByUrl={handlePhotoUrlAdd}
         onDeleteUploadedPhoto={handlePhotoUploadDelete}
         submitting={editSubmitting}
         submitError={editError}

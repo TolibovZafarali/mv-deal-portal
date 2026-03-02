@@ -61,6 +61,13 @@ export async function completePropertyPhotoUpload(uploadId, uploadToken) {
     return data;
 }
 
+export async function createPropertyPhotoFromUrl(url) {
+    const { data } = await apiClient.post(`${BASE}/photos/urls`, {
+        url: String(url ?? "").trim(),
+    });
+    return data;
+}
+
 export async function uploadPropertyPhoto(file) {
     const init = await initPropertyPhotoUpload(file);
 

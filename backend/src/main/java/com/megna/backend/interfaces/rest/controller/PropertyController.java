@@ -5,6 +5,7 @@ import com.megna.backend.interfaces.rest.dto.property.PropertyPhotoUploadComplet
 import com.megna.backend.interfaces.rest.dto.property.PropertyPhotoUploadInitRequestDto;
 import com.megna.backend.interfaces.rest.dto.property.PropertyPhotoUploadInitResponseDto;
 import com.megna.backend.interfaces.rest.dto.property.PropertyAddressSuggestionResponseDto;
+import com.megna.backend.interfaces.rest.dto.property.PropertyPhotoUrlCreateRequestDto;
 import com.megna.backend.interfaces.rest.dto.property.PropertyResponseDto;
 import com.megna.backend.interfaces.rest.dto.property.PropertyUpsertRequestDto;
 import com.megna.backend.domain.enums.ClosingTerms;
@@ -90,6 +91,16 @@ public class PropertyController {
         long adminId = SecurityUtils.requirePrincipal().userId();
         PropertyPhotoUploadCompleteResponseDto completed = photoAssetService.completeUpload(uploadId, dto, adminId);
         return ResponseEntity.ok(completed);
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping("/photos/urls")
+    public ResponseEntity<PropertyPhotoUploadCompleteResponseDto> createPhotoFromUrl(
+            @Valid @RequestBody PropertyPhotoUrlCreateRequestDto dto
+    ) {
+        long adminId = SecurityUtils.requirePrincipal().userId();
+        PropertyPhotoUploadCompleteResponseDto created = photoAssetService.createFromUrl(dto.url(), adminId);
+        return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
     @PreAuthorize("hasRole('ADMIN')")

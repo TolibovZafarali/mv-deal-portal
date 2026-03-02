@@ -291,6 +291,7 @@ export default function PropertyUpsertModal({
   onClose,
   onSubmit,
   onUploadPhoto,
+  onAddPhotoByUrl,
   onDeleteUploadedPhoto,
   onDelete,
   submitting = false,
@@ -303,6 +304,9 @@ export default function PropertyUpsertModal({
   const [form, setForm] = useState(DEFAULT_FORM);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [photoUploading, setPhotoUploading] = useState(false);
+  const [photoUrlOpen, setPhotoUrlOpen] = useState(false);
+  const [photoUrlAdding, setPhotoUrlAdding] = useState(false);
+  const [photoUrlInput, setPhotoUrlInput] = useState("");
   const [photoUploadError, setPhotoUploadError] = useState("");
   const [addressSuggestions, setAddressSuggestions] = useState([]);
   const [addressSuggesting, setAddressSuggesting] = useState(false);
@@ -320,6 +324,7 @@ export default function PropertyUpsertModal({
     useState(false);
   const [compAddressSuggestOpen, setCompAddressSuggestOpen] = useState(false);
   const photoInputRef = useRef(null);
+  const photoUrlInputRef = useRef(null);
   const addressInputRef = useRef(null);
   const compAddressInputRef = useRef(null);
   const photoWheelRafRef = useRef(null);
@@ -334,6 +339,9 @@ export default function PropertyUpsertModal({
   useEffect(() => {
     if (!open) setShowDeleteConfirm(false);
     if (!open) setPhotoUploadError("");
+    if (!open) setPhotoUrlOpen(false);
+    if (!open) setPhotoUrlAdding(false);
+    if (!open) setPhotoUrlInput("");
     if (!open) {
       setAddressSuggestions([]);
       setAddressSuggesting(false);
@@ -366,6 +374,11 @@ export default function PropertyUpsertModal({
   useEffect(() => {
     if (mode !== "edit") setShowDeleteConfirm(false);
   }, [mode]);
+
+  useEffect(() => {
+    if (!photoUrlOpen) return;
+    photoUrlInputRef.current?.focus();
+  }, [photoUrlOpen]);
 
   // hydrate for edit mode (later)
   useEffect(() => {
@@ -508,6 +521,7 @@ export default function PropertyUpsertModal({
     submitting ||
     deleting ||
     photoUploading ||
+    photoUrlAdding ||
     isActiveWithMissingRequired;
 
   const shouldShowAddressSuggestions =
@@ -768,8 +782,17 @@ export default function PropertyUpsertModal({
   }
 
   function openPhotoPicker() {
-    if (submitting || deleting || photoUploading) return;
+    if (submitting || deleting || photoUploading || photoUrlAdding) return;
     photoInputRef.current?.click();
+  }
+
+  function togglePhotoUrlField() {
+    if (submitting || deleting || photoUploading || photoUrlAdding) return;
+    const nextOpen = !photoUrlOpen;
+    setPhotoUrlOpen(nextOpen);
+    if (!nextOpen) {
+      setPhotoUrlInput("");
+    }
   }
 
   function handlePhotoStripWheel(event) {
@@ -874,9 +897,64 @@ export default function PropertyUpsertModal({
     }
   }
 
+  async function handlePhotoUrlAdd() {
+    if (submitting || deleting || photoUploading || photoUrlAdding) return;
+
+    if (!onAddPhotoByUrl) {
+      setPhotoUploadError("Photo URL import is not configured.");
+      return;
+    }
+
+    const url = String(photoUrlInput ?? "").trim();
+    if (!url) {
+      setPhotoUploadError("Photo URL is required.");
+      return;
+    }
+
+    setPhotoUploadError("");
+    setPhotoUrlAdding(true);
+
+    try {
+      const uploadedPhoto = await onAddPhotoByUrl(url);
+      const photoAssetId = String(uploadedPhoto?.photoAssetId ?? "").trim();
+      const uploadedUrl = String(uploadedPhoto?.url ?? "").trim();
+      const thumbnailUrl = String(
+        uploadedPhoto?.thumbnailUrl ?? uploadedPhoto?.url ?? "",
+      ).trim();
+
+      if (!photoAssetId || !uploadedUrl) {
+        throw new Error("Photo URL import failed to return a valid photo.");
+      }
+
+      setForm((prev) => ({
+        ...prev,
+        photos: [
+          ...(prev.photos ?? []),
+          {
+            photoAssetId,
+            uploadId: photoAssetId,
+            url: uploadedUrl,
+            thumbnailUrl: thumbnailUrl || uploadedUrl,
+            caption: null,
+            isExisting: false,
+          },
+        ].map((photo, index) => ({
+          ...photo,
+          sortOrder: index,
+        })),
+      }));
+
+      setPhotoUrlInput("");
+    } catch (error) {
+      setPhotoUploadError(error?.message || "Failed to add photo URL.");
+    } finally {
+      setPhotoUrlAdding(false);
+    }
+  }
+
   function handleSubmit(e) {
     e.preventDefault();
-    if (submitting || photoUploading) return;
+    if (submitting || photoUploading || photoUrlAdding) return;
     onSubmit?.(form);
   }
 
@@ -1329,14 +1407,24 @@ export default function PropertyUpsertModal({
           <div className="propSection">
             <div className="propSection__head propSection__head--row">
               <div className="propSection__title">Photos</div>
-              <button
-                type="button"
-                className="propLinkBtn"
-                onClick={openPhotoPicker}
-                disabled={submitting || deleting || photoUploading}
-              >
-                {photoUploading ? "Uploading..." : "Upload Photo +"}
-              </button>
+              <div className="propSection__headActions">
+                <button
+                  type="button"
+                  className="propLinkBtn"
+                  onClick={togglePhotoUrlField}
+                  disabled={submitting || deleting || photoUploading || photoUrlAdding}
+                >
+                  {photoUrlOpen ? "Hide URL" : "Add by URL"}
+                </button>
+                <button
+                  type="button"
+                  className="propLinkBtn"
+                  onClick={openPhotoPicker}
+                  disabled={submitting || deleting || photoUploading || photoUrlAdding}
+                >
+                  {photoUploading ? "Uploading..." : "Upload Photo +"}
+                </button>
+              </div>
             </div>
             <input
               ref={photoInputRef}
@@ -1346,6 +1434,36 @@ export default function PropertyUpsertModal({
               multiple
               onChange={handlePhotoFileSelection}
             />
+
+            {photoUrlOpen ? (
+              <div className="propPhotoUrlRow">
+                <input
+                  ref={photoUrlInputRef}
+                  className="propField__input propPhotoUrlInput"
+                  type="url"
+                  value={photoUrlInput}
+                  onChange={(event) => setPhotoUrlInput(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      event.preventDefault();
+                      handlePhotoUrlAdd();
+                    }
+                  }}
+                  placeholder="https://example.com/photo.jpg"
+                  inputMode="url"
+                  autoComplete="off"
+                  disabled={submitting || deleting || photoUploading || photoUrlAdding}
+                />
+                <button
+                  type="button"
+                  className="propPhotoUrlBtn"
+                  onClick={handlePhotoUrlAdd}
+                  disabled={submitting || deleting || photoUploading || photoUrlAdding}
+                >
+                  {photoUrlAdding ? "Adding..." : "Add URL"}
+                </button>
+              </div>
+            ) : null}
 
             {form.photos.length === 0 ? (
               <div className="propPhotos__empty">
@@ -1369,7 +1487,7 @@ export default function PropertyUpsertModal({
                         type="button"
                         className="propPhotoCard__remove"
                         onClick={() => removePhoto(index)}
-                        disabled={photoUploading || submitting || deleting}
+                        disabled={photoUploading || photoUrlAdding || submitting || deleting}
                       >
                         Remove
                       </button>

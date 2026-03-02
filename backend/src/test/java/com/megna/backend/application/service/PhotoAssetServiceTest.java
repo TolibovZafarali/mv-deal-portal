@@ -1,0 +1,107 @@
+package com.megna.backend.application.service;
+
+import com.megna.backend.application.service.photo.PhotoObjectStorage;
+import com.megna.backend.application.service.photo.PhotoUploadTokenService;
+import com.megna.backend.domain.entity.PhotoAsset;
+import com.megna.backend.domain.enums.PhotoAssetStatus;
+import com.megna.backend.domain.repository.PhotoAssetRepository;
+import com.megna.backend.domain.repository.PropertyPhotoRepository;
+import com.megna.backend.infrastructure.config.PhotoStorageProperties;
+import com.megna.backend.interfaces.rest.dto.property.PropertyPhotoUploadCompleteResponseDto;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
+
+import java.util.UUID;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+@ExtendWith(MockitoExtension.class)
+class PhotoAssetServiceTest {
+
+    @Mock
+    private PhotoAssetRepository photoAssetRepository;
+
+    @Mock
+    private PropertyPhotoRepository propertyPhotoRepository;
+
+    @Mock
+    private PhotoObjectStorage photoObjectStorage;
+
+    @Mock
+    private PhotoStorageProperties photoStorageProperties;
+
+    @Mock
+    private PhotoUploadTokenService photoUploadTokenService;
+
+    @InjectMocks
+    private PhotoAssetService photoAssetService;
+
+    @Test
+    void createFromUrlCreatesReadyAssetOwnedByAdmin() {
+        when(photoAssetRepository.save(any(PhotoAsset.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        PropertyPhotoUploadCompleteResponseDto response = photoAssetService.createFromUrl(" https://example.com/photo.jpg ", 77L);
+
+        ArgumentCaptor<PhotoAsset> assetCaptor = ArgumentCaptor.forClass(PhotoAsset.class);
+        verify(photoAssetRepository).save(assetCaptor.capture());
+        PhotoAsset saved = assetCaptor.getValue();
+
+        assertNotNull(saved.getId());
+        assertEquals(36, saved.getId().length());
+        assertEquals(UUID.fromString(saved.getId()).toString(), saved.getId());
+        assertEquals(77L, saved.getCreatedByAdminId());
+        assertEquals(PhotoAssetStatus.READY, saved.getStatus());
+        assertEquals("https://example.com/photo.jpg", saved.getUrl());
+        assertEquals("https://example.com/photo.jpg", saved.getThumbnailUrl());
+
+        assertEquals(saved.getId(), response.photoAssetId());
+        assertEquals(saved.getUrl(), response.url());
+        assertEquals(saved.getThumbnailUrl(), response.thumbnailUrl());
+        assertNull(response.width());
+        assertNull(response.height());
+        assertNull(response.contentType());
+        assertNull(response.sizeBytes());
+    }
+
+    @Test
+    void createFromUrlRejectsBlankUrl() {
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class, () ->
+                photoAssetService.createFromUrl("   ", 7L)
+        );
+
+        assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
+        assertEquals("Photo URL is required", ex.getReason());
+    }
+
+    @Test
+    void createFromUrlRejectsInvalidUrl() {
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class, () ->
+                photoAssetService.createFromUrl("https://example .com/photo.jpg", 7L)
+        );
+
+        assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
+        assertEquals("Photo URL is invalid", ex.getReason());
+    }
+
+    @Test
+    void createFromUrlRejectsUnsupportedScheme() {
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class, () ->
+                photoAssetService.createFromUrl("ftp://example.com/photo.jpg", 7L)
+        );
+
+        assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
+        assertEquals("Photo URL must use http or https", ex.getReason());
+    }
+}
