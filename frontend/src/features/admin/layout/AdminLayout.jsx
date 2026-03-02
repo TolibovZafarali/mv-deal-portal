@@ -71,7 +71,7 @@ export default function AdminLayout() {
 
   const badges = {
     queue: counts.submittedProperties + counts.openChangeRequests + counts.pendingInvestors,
-    properties: counts.submittedProperties + counts.openChangeRequests,
+    properties: counts.draftProperties,
     investors: counts.pendingInvestors,
     inquiries: counts.failedInquiries,
   };
