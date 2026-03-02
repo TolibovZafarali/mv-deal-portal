@@ -83,6 +83,7 @@
 
 .adminInv__moreSummary {
   list-style: none;
+  box-sizing: border-box;
   height: 41px;
   min-width: 88px;
   border: 1px solid var(--admin-filter-border);

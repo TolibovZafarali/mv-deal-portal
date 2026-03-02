@@ -126,6 +126,7 @@
 
 .invDash__moreSummary {
   list-style: none;
+  box-sizing: border-box;
   height: 42px;
   width: 100%;
   border-radius: 20px;
