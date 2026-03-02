@@ -273,7 +273,6 @@
   padding: 22px;
   overflow: auto;
   position: relative;
-  z-index: 0;
 }
 
 .adminMain a {

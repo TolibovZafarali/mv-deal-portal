@@ -91,6 +91,7 @@ const US_STATE_OPTIONS = [
 const US_STATE_VALUES = new Set(US_STATE_OPTIONS.map((option) => option.value));
 const ADDRESS_SUGGESTION_MIN_CHARS = 3;
 const ADDRESS_SUGGESTION_DEBOUNCE_MS = 280;
+const PROPERTY_MODAL_MOBILE_QUERY = "(max-width: 980px)";
 const REQUIRED_ADDRESS_FIELD_LABELS = new Set([
   "Street Address",
   "City",
@@ -400,6 +401,10 @@ export default function PropertyUpsertModal({
   const [ownerSearching, setOwnerSearching] = useState(false);
   const [selectedOwnerCandidate, setSelectedOwnerCandidate] = useState(null);
   const [assignedOwner, setAssignedOwner] = useState(null);
+  const [isMobileView, setIsMobileView] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return window.matchMedia(PROPERTY_MODAL_MOBILE_QUERY).matches;
+  });
   const [fmrLookupLoading, setFmrLookupLoading] = useState(false);
   const [fmrLookupError, setFmrLookupError] = useState("");
   const [fmrFieldErrors, setFmrFieldErrors] = useState({
@@ -421,6 +426,28 @@ export default function PropertyUpsertModal({
   const ownerBlurTimeoutRef = useRef(null);
   const ownerLookupRequestSeqRef = useRef(0);
   const isOwnerAssigned = String(form.sellerId ?? "").trim().length > 0;
+
+  useEffect(() => {
+    if (typeof window === "undefined") return undefined;
+
+    const media = window.matchMedia(PROPERTY_MODAL_MOBILE_QUERY);
+    const handleMediaChange = (event) => setIsMobileView(event.matches);
+    const supportsModernListener = typeof media.addEventListener === "function";
+
+    if (supportsModernListener) {
+      media.addEventListener("change", handleMediaChange);
+    } else {
+      media.addListener(handleMediaChange);
+    }
+
+    return () => {
+      if (supportsModernListener) {
+        media.removeEventListener("change", handleMediaChange);
+        return;
+      }
+      media.removeListener(handleMediaChange);
+    };
+  }, []);
 
   useEffect(() => {
     if (!open) setShowDeleteConfirm(false);
@@ -1476,6 +1503,7 @@ export default function PropertyUpsertModal({
         ? photoPreviewIndex
         : 0
     ] ?? null;
+  const saleCompColumnCount = isMobileView ? 3 : 9;
 
   return (
     <div
@@ -1703,7 +1731,7 @@ export default function PropertyUpsertModal({
                 />
               </div>
 
-              <div className="propField">
+              <div className="propField propField--propOccupied">
                 <div className="propField__label">Occupied</div>
                 <select
                   className="propField__input"
@@ -1718,7 +1746,7 @@ export default function PropertyUpsertModal({
                 </select>
               </div>
 
-              <div className="propField">
+              <div className="propField propField--propExit">
                 <div className="propField__label">Exit Strategy</div>
                 <select
                   className="propField__input"
@@ -1733,7 +1761,7 @@ export default function PropertyUpsertModal({
                 </select>
             </div>
 
-              <div className="propField">
+              <div className="propField propField--propClosingTerms">
                 <div className="propField__label">Closing Terms</div>
                 <select
                   className="propField__input"
@@ -2211,73 +2239,114 @@ export default function PropertyUpsertModal({
 
             <div className="propCompsTableWrap">
               <table className="propCompsTable">
-                <colgroup>
-                  <col style={{ width: "28%" }} />
-                  <col style={{ width: "12%" }} />
-                  <col style={{ width: "12%" }} />
-                  <col style={{ width: "11%" }} />
-                  <col style={{ width: "10%" }} />
-                  <col style={{ width: "7%" }} />
-                  <col style={{ width: "7%" }} />
-                  <col style={{ width: "9%" }} />
-                  <col style={{ width: "4%" }} />
-                </colgroup>
+                {isMobileView ? (
+                  <colgroup>
+                    <col style={{ width: "52%" }} />
+                    <col style={{ width: "24%" }} />
+                    <col style={{ width: "24%" }} />
+                  </colgroup>
+                ) : (
+                  <colgroup>
+                    <col style={{ width: "28%" }} />
+                    <col style={{ width: "12%" }} />
+                    <col style={{ width: "12%" }} />
+                    <col style={{ width: "11%" }} />
+                    <col style={{ width: "10%" }} />
+                    <col style={{ width: "7%" }} />
+                    <col style={{ width: "7%" }} />
+                    <col style={{ width: "9%" }} />
+                    <col style={{ width: "4%" }} />
+                  </colgroup>
+                )}
                 <thead>
                   <tr>
-                    <th>Address</th>
-                    <th>Sold Date</th>
-                    <th className="tRight">Price</th>
-                    <th className="tRight">Price/ft²</th>
-                    <th className="tRight">Distance</th>
-                    <th className="tRight">Bed</th>
-                    <th className="tRight">Bath</th>
-                    <th className="tRight">Sq Ft</th>
-                    <th className="tIcon"></th>
+                    {isMobileView ? (
+                      <>
+                        <th>Address</th>
+                        <th>Sold Date</th>
+                        <th className="tRight">Price</th>
+                      </>
+                    ) : (
+                      <>
+                        <th>Address</th>
+                        <th>Sold Date</th>
+                        <th className="tRight">Price</th>
+                        <th className="tRight">Price/ft²</th>
+                        <th className="tRight">Distance</th>
+                        <th className="tRight">Bed</th>
+                        <th className="tRight">Bath</th>
+                        <th className="tRight">Sq Ft</th>
+                        <th className="tIcon"></th>
+                      </>
+                    )}
                   </tr>
                 </thead>
                 <tbody>
                   {(form.saleComps ?? []).length === 0 ? (
                     <tr>
-                      <td colSpan={9} className="propCompsEmpty">
+                      <td colSpan={saleCompColumnCount} className="propCompsEmpty">
                         No comps added yet.
                       </td>
                     </tr>
                   ) : (
                     (form.saleComps ?? []).map((comp, idx) => (
                       <tr key={`comp-row-${comp.id ?? idx}`}>
-                        <td className="propCompsTable__address">
-                          {String(comp.address ?? "").trim() || "—"}
-                        </td>
-                        <td className="tNowrap">{formatCompDate(comp.soldDate)}</td>
-                        <td className="tRight tNowrap">
-                          {formatCompMoney(comp.soldPrice)}
-                        </td>
-                        <td className="tRight tNowrap">
-                          {formatCompPricePerSqft(comp)}
-                        </td>
-                        <td className="tRight tNowrap">
-                          {formatCompDistance(comp.distanceMiles)}
-                        </td>
-                        <td className="tRight tNowrap">
-                          {formatCompBeds(comp.beds)}
-                        </td>
-                        <td className="tRight tNowrap">
-                          {formatCompBaths(comp.baths)}
-                        </td>
-                        <td className="tRight tNowrap">
-                          {formatCompSqft(comp.livingAreaSqft)}
-                        </td>
-                        <td className="tIcon">
-                          <button
-                            type="button"
-                            className="propCompsTable__removeBtn"
-                            onClick={() => removeSaleComp(idx)}
-                            aria-label={`Remove comp ${idx + 1}`}
-                            disabled={submitting || deleting || photoUploading}
-                          >
-                            ✕
-                          </button>
-                        </td>
+                        {isMobileView ? (
+                          <>
+                            <td className="propCompsTable__address">
+                              <div className="propCompsTable__addressRow">
+                                <span>{String(comp.address ?? "").trim() || "—"}</span>
+                                <button
+                                  type="button"
+                                  className="propCompsTable__removeBtn propCompsTable__removeBtn--inline"
+                                  onClick={() => removeSaleComp(idx)}
+                                  aria-label={`Remove comp ${idx + 1}`}
+                                  disabled={submitting || deleting || photoUploading}
+                                >
+                                  ✕
+                                </button>
+                              </div>
+                            </td>
+                            <td className="tNowrap">{formatCompDate(comp.soldDate)}</td>
+                            <td className="tRight tNowrap">{formatCompMoney(comp.soldPrice)}</td>
+                          </>
+                        ) : (
+                          <>
+                            <td className="propCompsTable__address">
+                              {String(comp.address ?? "").trim() || "—"}
+                            </td>
+                            <td className="tNowrap">{formatCompDate(comp.soldDate)}</td>
+                            <td className="tRight tNowrap">
+                              {formatCompMoney(comp.soldPrice)}
+                            </td>
+                            <td className="tRight tNowrap">
+                              {formatCompPricePerSqft(comp)}
+                            </td>
+                            <td className="tRight tNowrap">
+                              {formatCompDistance(comp.distanceMiles)}
+                            </td>
+                            <td className="tRight tNowrap">
+                              {formatCompBeds(comp.beds)}
+                            </td>
+                            <td className="tRight tNowrap">
+                              {formatCompBaths(comp.baths)}
+                            </td>
+                            <td className="tRight tNowrap">
+                              {formatCompSqft(comp.livingAreaSqft)}
+                            </td>
+                            <td className="tIcon">
+                              <button
+                                type="button"
+                                className="propCompsTable__removeBtn"
+                                onClick={() => removeSaleComp(idx)}
+                                aria-label={`Remove comp ${idx + 1}`}
+                                disabled={submitting || deleting || photoUploading}
+                              >
+                                ✕
+                              </button>
+                            </td>
+                          </>
+                        )}
                       </tr>
                     ))
                   )}

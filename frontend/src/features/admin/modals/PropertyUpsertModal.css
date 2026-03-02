@@ -679,6 +679,13 @@ select.propField__input {
   overflow-wrap: anywhere;
 }
 
+.propCompsTable__addressRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
 .propCompsTable__removeBtn {
   width: 28px;
   height: 28px;
@@ -695,6 +702,12 @@ select.propField__input {
 .propCompsTable__removeBtn:disabled {
   opacity: 0.55;
   cursor: not-allowed;
+}
+
+.propCompsTable__removeBtn--inline {
+  width: 24px;
+  height: 24px;
+  flex: 0 0 auto;
 }
 
 .tRight {
@@ -826,6 +839,29 @@ select.propField__input {
 
 /* responsive */
 @media (max-width: 1000px) {
+  .propModalOverlay {
+    padding: 0;
+    place-items: stretch;
+  }
+
+  body.mv-admin-layout .propModalOverlay {
+    left: 0;
+  }
+
+  .propModal,
+  body.mv-admin-layout .propModal {
+    width: 100vw;
+    max-width: none;
+    height: 100dvh;
+    max-height: 100dvh;
+    border: 0;
+    box-shadow: none;
+  }
+
+  .propModal__body {
+    padding-bottom: calc(14px + env(safe-area-inset-bottom));
+  }
+
   .propGrid--4 {
     grid-template-columns: 1fr 1fr;
   }
@@ -859,8 +895,26 @@ select.propField__input {
 }
 
 @media (max-width: 640px) {
+  .propGrid--3 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .propGrid--3 .propField {
+    min-width: 0;
+  }
+
+  .propGrid--3 .propField__input {
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+.propField--propOccupied,
+.propField--propExit,
+.propField--propClosingTerms {
+  grid-column: 1 / -1;
+}
+
   .propGrid--2,
-  .propGrid--3,
   .propGrid--4,
   .propGrid--address,
   .propGrid--price {
