@@ -71,16 +71,17 @@ const SELLER_WORKFLOWS = [
 ];
 
 const SECONDARY_COLUMN_OPTIONS = [
-  { key: "arv", label: "ARV" },
-  { key: "repairs", label: "Repairs" },
-  { key: "fmr", label: "FMR" },
+  { key: "arv", label: "After Repair Value (ARV)" },
+  { key: "repairs", label: "Estimated Repairs" },
+  { key: "fmr", label: "Fair Market Rent (FMR)" },
   { key: "exit", label: "Exit Strategy" },
-  { key: "sqft", label: "SqFt" },
+  { key: "sqft", label: "Square Footage" },
   { key: "beds", label: "Beds" },
   { key: "baths", label: "Baths" },
   { key: "year", label: "Year Built" },
   { key: "reviewNote", label: "Review Note" },
 ];
+const DEFAULT_SECONDARY_COLUMNS = ["arv", "repairs", "exit", "beds", "baths"];
 
 function money(v) {
   if (v === null || v === undefined || Number.isNaN(Number(v))) return "—";
@@ -178,7 +179,7 @@ export default function AdminPropertiesPage() {
   const [changeRequests, setChangeRequests] = useState([]);
   const [changeRequestsLoading, setChangeRequestsLoading] = useState(false);
   const [changeRequestsError, setChangeRequestsError] = useState("");
-  const [secondaryColumns, setSecondaryColumns] = useState([]);
+  const [secondaryColumns, setSecondaryColumns] = useState(DEFAULT_SECONDARY_COLUMNS);
   const [sellerNameById, setSellerNameById] = useState({});
   const [isMobileView, setIsMobileView] = useState(() => {
     if (typeof window === "undefined") return false;
@@ -907,20 +908,20 @@ export default function AdminPropertiesPage() {
                       {isMobileView ? (
                         <>
                           <th>Address</th>
-                          <th className="adminProps__thIcon">Edit</th>
+                          <th className="adminProps__thRight">Asking Price</th>
                         </>
                       ) : (
                         <>
                           <th>Address</th>
                           <th className="adminProps__thRight">Asking Price</th>
-                          {secondaryColumnSet.has("arv") ? <th className="adminProps__thRight">ARV</th> : null}
-                          {secondaryColumnSet.has("repairs") ? <th className="adminProps__thRight">Repairs</th> : null}
-                          {secondaryColumnSet.has("fmr") ? <th className="adminProps__thRight">FMR</th> : null}
-                          {secondaryColumnSet.has("exit") ? <th className="adminProps__thCenter">Exit</th> : null}
-                          {secondaryColumnSet.has("sqft") ? <th className="adminProps__thRight">SqFt</th> : null}
-                          {secondaryColumnSet.has("beds") ? <th className="adminProps__thCenter">Bed</th> : null}
-                          {secondaryColumnSet.has("baths") ? <th className="adminProps__thCenter">Bath</th> : null}
-                          {secondaryColumnSet.has("year") ? <th className="adminProps__thCenter">Year</th> : null}
+                          {secondaryColumnSet.has("arv") ? <th className="adminProps__thRight">After Repair Value (ARV)</th> : null}
+                          {secondaryColumnSet.has("repairs") ? <th className="adminProps__thRight">Estimated Repairs</th> : null}
+                          {secondaryColumnSet.has("fmr") ? <th className="adminProps__thRight">Fair Market Rent (FMR)</th> : null}
+                          {secondaryColumnSet.has("exit") ? <th className="adminProps__thCenter">Exit Strategy</th> : null}
+                          {secondaryColumnSet.has("sqft") ? <th className="adminProps__thRight">Square Footage</th> : null}
+                          {secondaryColumnSet.has("beds") ? <th className="adminProps__thCenter">Beds</th> : null}
+                          {secondaryColumnSet.has("baths") ? <th className="adminProps__thCenter">Baths</th> : null}
+                          {secondaryColumnSet.has("year") ? <th className="adminProps__thCenter">Year Built</th> : null}
                           <th className="adminProps__thCenter">Seller Owner</th>
                           <th className="adminProps__thCenter">Seller Workflow</th>
                           {secondaryColumnSet.has("reviewNote") ? <th className="adminProps__thCenter">Review Note</th> : null}
@@ -942,25 +943,26 @@ export default function AdminPropertiesPage() {
 
                       if (isMobileView) {
                         return (
-                          <tr key={p.id} className={`adminProps__row adminProps__row--${statusTone}`}>
+                          <tr
+                            key={p.id}
+                            className={`adminProps__row adminProps__row--${statusTone} adminProps__row--mobileInteractive`}
+                            role="button"
+                            tabIndex={0}
+                            aria-label={`Edit property ${lineOne || `#${p.id}`}`}
+                            onClick={() => openEditModal(p.id)}
+                            onKeyDown={(event) => {
+                              if (event.key === "Enter" || event.key === " ") {
+                                event.preventDefault();
+                                openEditModal(p.id);
+                              }
+                            }}
+                          >
                             <td className="adminProps__tdAddress">
                               <div className="adminProps__addrMain">{lineOne || "—"}</div>
                               <div className="adminProps__addrSub">{lineTwo || "—"}</div>
                             </td>
-                            <td className="adminProps__tdIcon">
-                              <div className="adminProps__actionsCol">
-                                <button
-                                  className="adminProps__editBtn"
-                                  type="button"
-                                  title="Edit"
-                                  aria-label={`Edit property ${p.id}`}
-                                  onClick={() => openEditModal(p.id)}
-                                >
-                                  <span className="material-symbols-outlined">
-                                    edit
-                                  </span>
-                                </button>
-                              </div>
+                            <td className="adminProps__tdRight">
+                              {money(p.askingPrice)}
                             </td>
                           </tr>
                         );

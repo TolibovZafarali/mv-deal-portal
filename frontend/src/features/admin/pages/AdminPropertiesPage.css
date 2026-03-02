@@ -751,4 +751,13 @@
   .adminProps__actionsCol {
     justify-content: center;
   }
+
+  .adminProps__row--mobileInteractive {
+    cursor: pointer;
+  }
+
+  .adminProps__row--mobileInteractive:focus-visible {
+    outline: 2px solid var(--admin-ink);
+    outline-offset: -2px;
+  }
 }
