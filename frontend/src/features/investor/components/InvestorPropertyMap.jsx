@@ -30,18 +30,36 @@ function toCoordinate(value) {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+function compactPriceLabel(value) {
+  const amount = Number(value);
+  if (!Number.isFinite(amount) || amount <= 0) return "N/A";
+
+  if (amount >= 1_000_000) {
+    const millions = amount / 1_000_000;
+    const rounded = Math.round(millions * 10) / 10;
+    return `${String(rounded).replace(/\\.0$/, "")}M`;
+  }
+
+  if (amount >= 1_000) {
+    return `${Math.round(amount / 1_000)}K`;
+  }
+
+  return String(Math.round(amount));
+}
+
 function toMapPoints(properties) {
   return (Array.isArray(properties) ? properties : [])
     .map((property) => {
       const lat = toCoordinate(property?.latitude);
       const lng = toCoordinate(property?.longitude);
       const id = property?.id;
+      const priceLabel = compactPriceLabel(property?.askingPrice);
 
       if (lat === null || lng === null || id === null || id === undefined) {
         return null;
       }
 
-      return { id, lat, lng };
+      return { id, lat, lng, priceLabel };
     })
     .filter(Boolean);
 }
@@ -50,6 +68,7 @@ export default function InvestorPropertyMap({
   properties,
   selectedPropertyId,
   onSelectProperty,
+  onVisiblePropertyIdsChange,
   loading,
 }) {
   const mapContainerRef = useRef(null);
@@ -113,14 +132,19 @@ export default function InvestorPropertyMap({
     points.forEach((point) => {
       const latLng = [point.lat, point.lng];
       const isSelected = point.id === selectedPropertyId;
-      const marker = L.circleMarker(latLng, {
-        radius: isSelected ? 10 : 8,
-        color: isSelected ? "#101010" : "#ffffff",
-        weight: 3,
-        fillColor: isSelected ? "#ffffff" : "#101010",
-        fillOpacity: 1,
-        opacity: 1,
+      const marker = L.marker(latLng, {
+        icon: L.divIcon({
+          className: "",
+          html: `
+            <span class="invMap__pricePin ${isSelected ? "invMap__pricePin--selected" : ""}">
+              ${point.priceLabel}
+            </span>
+          `,
+        }),
+        keyboard: true,
       }).addTo(markerLayer);
+
+      marker.setZIndexOffset(isSelected ? 1000 : 0);
 
       marker.off("click");
       marker.on("click", () => {
@@ -148,6 +172,26 @@ export default function InvestorPropertyMap({
 
     requestAnimationFrame(() => map.invalidateSize());
   }, [points]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+
+    function emitVisiblePropertyIds() {
+      const bounds = map.getBounds();
+      const visibleIds = points
+        .filter((point) => bounds.contains([point.lat, point.lng]))
+        .map((point) => point.id);
+      onVisiblePropertyIdsChange?.(visibleIds);
+    }
+
+    emitVisiblePropertyIds();
+    map.on("moveend zoomend", emitVisiblePropertyIds);
+
+    return () => {
+      map.off("moveend zoomend", emitVisiblePropertyIds);
+    };
+  }, [onVisiblePropertyIdsChange, points]);
 
   useEffect(() => {
     if (selectedPropertyId === null || selectedPropertyId === undefined) return;

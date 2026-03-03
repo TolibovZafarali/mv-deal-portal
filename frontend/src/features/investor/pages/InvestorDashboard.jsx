@@ -70,6 +70,18 @@ function fullAddress(property) {
   return [line1, property.city, property.state, property.zip].filter(Boolean).join(", ");
 }
 
+function potentialProfit(property) {
+  const arv = Number(property?.arv);
+  const asking = Number(property?.askingPrice);
+  const repairs = Number(property?.estRepairs);
+
+  if (!Number.isFinite(arv) || !Number.isFinite(asking) || !Number.isFinite(repairs)) {
+    return null;
+  }
+
+  return arv - asking - repairs;
+}
+
 export default function InvestorDashboard() {
   const { user } = useAuth();
   const [filters, setFilters] = useState({
@@ -91,6 +103,8 @@ export default function InvestorDashboard() {
   const [favoritePropertyIds, setFavoritePropertyIds] = useState([]);
   const [favoritesError, setFavoritesError] = useState("");
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
+  const [cardPhotoIndexByPropertyId, setCardPhotoIndexByPropertyId] = useState({});
+  const [cardPhotoDirectionByPropertyId, setCardPhotoDirectionByPropertyId] = useState({});
   const [investorProfile, setInvestorProfile] = useState(null);
   const [investorProfileError, setInvestorProfileError] = useState("");
   const [inquiryMessageBody, setInquiryMessageBody] = useState(DEFAULT_INQUIRY_MESSAGE);
@@ -293,6 +307,23 @@ export default function InvestorDashboard() {
     }
 
     setSelectedPropertyId(property.id);
+  }
+
+  function moveCardPhoto(propertyId, totalPhotos, step) {
+    if (!Number.isFinite(totalPhotos) || totalPhotos <= 1) return;
+
+    setCardPhotoDirectionByPropertyId((prev) => ({
+      ...prev,
+      [propertyId]: step > 0 ? "next" : "prev",
+    }));
+
+    setCardPhotoIndexByPropertyId((prev) => {
+      const current = Number(prev[propertyId] ?? 0);
+      const safeCurrent =
+        Number.isFinite(current) && current >= 0 && current < totalPhotos ? current : 0;
+      const next = (safeCurrent + step + totalPhotos) % totalPhotos;
+      return { ...prev, [propertyId]: next };
+    });
   }
 
   function closePropertyDetails() {
@@ -509,10 +540,26 @@ export default function InvestorDashboard() {
           {!loading && !error && visibleRows.length > 0 ? (
             <div className="invDash__cards">
               {visibleRows.map((property) => {
+                const cardPhotos = Array.isArray(property.photos)
+                  ? property.photos
+                    .map((photo) => ({
+                      thumb: String(photo?.thumbnailUrl ?? photo?.url ?? "").trim(),
+                      full: String(photo?.url ?? photo?.thumbnailUrl ?? "").trim(),
+                    }))
+                    .filter((photo) => photo.thumb || photo.full)
+                  : [];
+                const totalPhotos = cardPhotos.length;
+                const rawPhotoIndex = Number(cardPhotoIndexByPropertyId[property.id] ?? 0);
+                const boundedPhotoIndex =
+                  totalPhotos > 0 && Number.isFinite(rawPhotoIndex)
+                    ? ((rawPhotoIndex % totalPhotos) + totalPhotos) % totalPhotos
+                    : 0;
+                const photoDirection = cardPhotoDirectionByPropertyId[property.id] || "next";
                 const leadPhoto =
-                  property.photos?.[0]?.thumbnailUrl ||
-                  property.photos?.[0]?.url ||
+                  cardPhotos[boundedPhotoIndex]?.thumb ||
+                  cardPhotos[boundedPhotoIndex]?.full ||
                   "";
+                const estimatedProfit = potentialProfit(property);
                 const isActive = selectedPropertyId === property.id;
                 const isFavorite = favoritePropertyIdSet.has(String(property.id));
 
@@ -549,11 +596,50 @@ export default function InvestorDashboard() {
                       onClick={() => handleCardClick(property)}
                     >
                       {leadPhoto ? (
-                        <img
-                          src={leadPhoto}
-                          alt={fullAddress(property) || `Property ${property.id}`}
-                          className="invDash__cardImg"
-                        />
+                        <div className="invDash__cardImgWrap">
+                          <img
+                            key={`${property.id}-${boundedPhotoIndex}`}
+                            src={leadPhoto}
+                            alt={fullAddress(property) || `Property ${property.id}`}
+                            className={`invDash__cardImg ${
+                              photoDirection === "prev"
+                                ? "invDash__cardImg--slidePrev"
+                                : "invDash__cardImg--slideNext"
+                            }`}
+                          />
+                          {totalPhotos > 1 ? (
+                            <>
+                              <button
+                                type="button"
+                                className="invDash__photoNav invDash__photoNav--prev"
+                                aria-label="Previous photo"
+                                onClick={(event) => {
+                                  event.preventDefault();
+                                  event.stopPropagation();
+                                  moveCardPhoto(property.id, totalPhotos, -1);
+                                }}
+                              >
+                                <span className="material-symbols-outlined" aria-hidden="true">
+                                  chevron_left
+                                </span>
+                              </button>
+                              <button
+                                type="button"
+                                className="invDash__photoNav invDash__photoNav--next"
+                                aria-label="Next photo"
+                                onClick={(event) => {
+                                  event.preventDefault();
+                                  event.stopPropagation();
+                                  moveCardPhoto(property.id, totalPhotos, 1);
+                                }}
+                              >
+                                <span className="material-symbols-outlined" aria-hidden="true">
+                                  chevron_right
+                                </span>
+                              </button>
+                            </>
+                          ) : null}
+                        </div>
                       ) : (
                         <div className="invDash__cardImgFallback">
                           <span className="material-symbols-outlined">home</span>
@@ -565,11 +651,21 @@ export default function InvestorDashboard() {
                         <div className="invDash__cardPrices">
                           <div>
                             <span className="invDash__cardLabel">Asking</span>
-                            <span className="invDash__cardValue">{money(property.askingPrice)}</span>
+                            <span className="invDash__cardValue invDash__cardValue--neutral">
+                              {money(property.askingPrice)}
+                            </span>
                           </div>
                           <div>
                             <span className="invDash__cardLabel">ARV</span>
-                            <span className="invDash__cardValue">{money(property.arv)}</span>
+                            <span className="invDash__cardValue invDash__cardValue--neutral">
+                              {money(property.arv)}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="invDash__cardLabel">Potential Profit</span>
+                            <span className="invDash__cardValue invDash__cardValue--positive">
+                              {estimatedProfit === null ? "—" : money(estimatedProfit)}
+                            </span>
                           </div>
                         </div>
 
