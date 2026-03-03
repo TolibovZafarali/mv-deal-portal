@@ -44,6 +44,12 @@ function fullAddress(property) {
   return [line1, cityStateZip].filter(Boolean).join(", ");
 }
 
+function formatCompAddress(value) {
+  const raw = String(value ?? "").trim();
+  if (!raw) return "—";
+  return raw.replace(/,\s*([A-Za-z]{2})\s*,\s*(\d{5}(?:-\d{4})?)$/, ", $1 $2");
+}
+
 function potentialProfit(property) {
   const arv = Number(property?.arv);
   const asking = Number(property?.askingPrice);
@@ -492,7 +498,7 @@ export default function InvestorPropertyDetailsModal({
                       const pricePerSqft = compPricePerSqft(comp);
                       return (
                         <tr key={comp.id ?? `${property.id}-comp-${idx}`}>
-                          <td>{comp.address || "—"}</td>
+                          <td>{formatCompAddress(comp.address)}</td>
                           <td>{formatDate(comp.soldDate)}</td>
                           <td>{money(comp.soldPrice)}</td>
                           <td>{pricePerSqft === null ? "—" : money(pricePerSqft)}</td>

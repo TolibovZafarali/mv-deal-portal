@@ -574,12 +574,14 @@
 
 @media (max-width: 640px) {
   .invPropDetail__backdrop {
-    padding: 10px;
+    padding: 0;
   }
 
   .invPropDetail {
-    width: 100%;
-    height: 93vh;
+    width: 100vw;
+    max-width: none;
+    height: 100dvh;
+    max-height: none;
     border-radius: 0;
   }
 
@@ -594,12 +596,86 @@
   }
 
   .invPropDetail__facts {
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .invPropDetail__metrics {
     grid-template-columns: 1fr;
+  }
+
+  .invPropDetail__tableWrap {
+    overflow-x: hidden;
+  }
+
+  .invPropDetail__table {
+    min-width: 0;
+    table-layout: fixed;
+  }
+
+  .invPropDetail__table th,
+  .invPropDetail__table td {
+    padding: 7px 6px;
+    font-size: 11px;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  .invPropDetail__table th:first-child,
+  .invPropDetail__table td:first-child {
+    width: 52%;
+    text-align: left;
+    padding-right: 10px;
+  }
+
+  .invPropDetail__table th:nth-child(2),
+  .invPropDetail__table td:nth-child(2),
+  .invPropDetail__table th:nth-child(3),
+  .invPropDetail__table td:nth-child(3),
+  .invPropDetail__table th:nth-child(5),
+  .invPropDetail__table td:nth-child(5) {
+    text-align: right;
+    white-space: nowrap;
+    padding-left: 2px;
+    padding-right: 4px;
+    position: relative;
+    left: 1px;
+  }
+
+  .invPropDetail__table th:nth-child(2),
+  .invPropDetail__table td:nth-child(2) {
+    width: 16%;
+  }
+
+  .invPropDetail__table th:nth-child(3),
+  .invPropDetail__table td:nth-child(3) {
+    width: 18%;
+  }
+
+  .invPropDetail__table th:nth-child(5),
+  .invPropDetail__table td:nth-child(5) {
+    width: 14%;
+  }
+
+  .invPropDetail__table th:nth-child(4),
+  .invPropDetail__table th:nth-child(6),
+  .invPropDetail__table th:nth-child(7),
+  .invPropDetail__table th:nth-child(8),
+  .invPropDetail__table td:nth-child(4),
+  .invPropDetail__table td:nth-child(6),
+  .invPropDetail__table td:nth-child(7),
+  .invPropDetail__table td:nth-child(8) {
+    display: none;
   }
 
   .invPropDetail__photoSlideImg,
   .invPropDetail__photoFallback {
     height: clamp(220px, 34vh, 340px);
+  }
+
+  .invPropDetail__photoScroller {
+    touch-action: pan-x;
+    -webkit-overflow-scrolling: touch;
   }
 
   .invPropDetail__photoSlide {
@@ -610,5 +686,20 @@
     width: 40px;
     height: 40px;
     font-size: 30px;
+  }
+
+  .invPropDetail__previewBackdrop {
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .invPropDetail__previewPhoto {
+    display: block;
+    margin: 0 auto;
+    max-width: 100vw;
+    max-height: 100dvh;
+    object-position: center;
   }
 }

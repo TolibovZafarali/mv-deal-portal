@@ -477,6 +477,20 @@ export default function InvestorDashboard() {
   }
 
   function handleCardClick(property) {
+    const mobileView =
+      typeof window !== "undefined"
+      && typeof window.matchMedia === "function"
+      && window.matchMedia("(max-width: 720px)").matches;
+
+    if (mobileView) {
+      setSelectedPropertyId(property.id);
+      setDetailPropertyId(property.id);
+      setInquiryMessageBody(DEFAULT_INQUIRY_MESSAGE);
+      setInquiryError("");
+      setInquirySuccess("");
+      return;
+    }
+
     if (selectedPropertyId === property.id) {
       setDetailPropertyId(property.id);
       setInquiryMessageBody(DEFAULT_INQUIRY_MESSAGE);
