@@ -136,7 +136,7 @@ export default function SellerInboxPage() {
             {!loading && rows.length === 0 ? (
               <tr>
                 <td colSpan={5} className="sellerInbox__empty">
-                  No inquiries yet.
+                  Investor messages are handled by Megna Team.
                 </td>
               </tr>
             ) : null}

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import "@/features/investor/modals/InvestorPropertyDetailsModal.css";
 
 function money(value) {
@@ -54,6 +54,13 @@ function potentialProfit(property) {
   return arv - asking - repairs;
 }
 
+function propertyPricePerSqft(property) {
+  const asking = Number(property?.askingPrice);
+  const sqft = Number(property?.livingAreaSqft);
+  if (!Number.isFinite(asking) || !Number.isFinite(sqft) || sqft <= 0) return null;
+  return asking / sqft;
+}
+
 function compPricePerSqft(comp) {
   const soldPrice = Number(comp?.soldPrice);
   const sqft = Number(comp?.livingAreaSqft);
@@ -75,8 +82,11 @@ export default function InvestorPropertyDetailsModal({
   onToggleFavorite,
   onClose,
 }) {
-  const [photoSelection, setPhotoSelection] = useState({ propertyId: null, index: 0 });
+  const [photoPreviewIndex, setPhotoPreviewIndex] = useState(0);
   const [photoPreviewOpen, setPhotoPreviewOpen] = useState(false);
+  const photoScrollerRef = useRef(null);
+  const photoProgressFillRef = useRef(null);
+  const messageSectionRef = useRef(null);
   const closeModal = useCallback(() => {
     setPhotoPreviewOpen(false);
     onClose?.();
@@ -104,9 +114,7 @@ export default function InvestorPropertyDetailsModal({
     };
   }, [open, photoPreviewOpen, closeModal]);
 
-  if (!open || !property) return null;
-
-  const photos = Array.isArray(property.photos)
+  const photos = Array.isArray(property?.photos)
     ? property.photos
       .map((photo) => ({
         full: String(photo?.url ?? "").trim(),
@@ -114,26 +122,69 @@ export default function InvestorPropertyDetailsModal({
       }))
       .filter((photo) => photo.full)
     : [];
-  const activePhotoIndex =
-    photoSelection.propertyId === property.id ? photoSelection.index : 0;
-  const boundedPhotoIndex =
-    activePhotoIndex >= 0 && activePhotoIndex < photos.length ? activePhotoIndex : 0;
-  const activePhoto = photos[boundedPhotoIndex]?.full || "";
+  const boundedPreviewIndex =
+    photoPreviewIndex >= 0 && photoPreviewIndex < photos.length ? photoPreviewIndex : 0;
+  const activePhoto = photos[boundedPreviewIndex]?.full || "";
   const nextPotentialProfit = potentialProfit(property);
-  const saleComps = Array.isArray(property.saleComps) ? property.saleComps : [];
+  const saleComps = Array.isArray(property?.saleComps) ? property.saleComps : [];
   const propertyAddress = fullAddress(property);
   const canNavigatePreview = photos.length > 1;
+  const showCurrentRent = String(property?.occupancyStatus ?? "").toUpperCase() === "YES";
+  const priceMetricCount = showCurrentRent ? 6 : 5;
+  const askingPricePerSqft = propertyPricePerSqft(property);
+  const askingMetricStyle = { backgroundColor: "#101010", borderColor: "#101010" };
+  const askingMetricLabelStyle = { color: "rgba(242, 242, 242, 0.82)", fontWeight: 700 };
+  const askingMetricValueStyle = { color: "#ffffff", fontSize: "21px" };
+  const profitMetricStyle = { backgroundColor: "#0a7d2c", borderColor: "#0a7d2c" };
+  const profitMetricLabelStyle = { color: "#ffffff" };
+  const profitMetricValueStyle = { color: "#ffffff", fontSize: "21px" };
+
+  useEffect(() => {
+    const rail = photoScrollerRef.current;
+    const progressFill = photoProgressFillRef.current;
+    if (!rail || !open || photos.length === 0) {
+      if (progressFill) {
+        progressFill.style.transform = "scaleX(0)";
+      }
+      return undefined;
+    }
+
+    function updatePhotoScrollProgress() {
+      const maxScrollLeft = Math.max(rail.scrollWidth - rail.clientWidth, 0);
+      if (!progressFill) return;
+      if (maxScrollLeft <= 0) {
+        progressFill.style.transform = "scaleX(1)";
+        return;
+      }
+      const next = Math.min(Math.max(rail.scrollLeft / maxScrollLeft, 0), 1);
+      progressFill.style.transform = `scaleX(${next})`;
+    }
+
+    updatePhotoScrollProgress();
+    rail.addEventListener("scroll", updatePhotoScrollProgress, { passive: true });
+    window.addEventListener("resize", updatePhotoScrollProgress, { passive: true });
+
+    return () => {
+      rail.removeEventListener("scroll", updatePhotoScrollProgress);
+      window.removeEventListener("resize", updatePhotoScrollProgress);
+    };
+  }, [open, photos.length]);
+
+  if (!open || !property) return null;
 
   function movePreviewPhoto(step) {
     if (!canNavigatePreview) return;
 
-    setPhotoSelection((prev) => {
-      const currentIndex =
-        prev.propertyId === property.id && prev.index >= 0 && prev.index < photos.length
-          ? prev.index
-          : 0;
-      const nextIndex = (currentIndex + step + photos.length) % photos.length;
-      return { propertyId: property.id, index: nextIndex };
+    setPhotoPreviewIndex((prev) => {
+      const currentIndex = prev >= 0 && prev < photos.length ? prev : 0;
+      return (currentIndex + step + photos.length) % photos.length;
+    });
+  }
+
+  function scrollToMessageSection() {
+    messageSectionRef.current?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
     });
   }
 
@@ -148,70 +199,71 @@ export default function InvestorPropertyDetailsModal({
       }}
     >
       <div className="invPropDetail">
-        <button
-          type="button"
-          className="invPropDetail__close"
-          aria-label="Close property details"
-          onClick={closeModal}
-        >
-          ✕
-        </button>
+        <div className="invPropDetail__topBar">
+          <h2 className="invPropDetail__modalTitle">Property Details</h2>
+          <button
+            type="button"
+            className="invPropDetail__close"
+            aria-label="Close property details"
+            onClick={closeModal}
+          >
+            ✕
+          </button>
+        </div>
 
         <div className="invPropDetail__left">
           <div className="invPropDetail__gallery">
-            <div
-              className={
-                photos.length > 1
-                  ? "invPropDetail__photoRow"
-                  : "invPropDetail__photoRow invPropDetail__photoRow--single"
-              }
-            >
-              {activePhoto ? (
-                <button
-                  type="button"
-                  className="invPropDetail__leadPhotoBtn"
-                  onClick={() => setPhotoPreviewOpen(true)}
-                  aria-label="View full size property photo"
+            {photos.length > 0 ? (
+              <>
+                <div
+                  className="invPropDetail__photoScroller"
+                  role="list"
+                  aria-label="Property photos"
+                  ref={photoScrollerRef}
                 >
-                  <img
-                    src={activePhoto}
-                    alt={propertyAddress || `Property ${property.id}`}
-                    className="invPropDetail__leadPhoto"
-                  />
-                </button>
-              ) : (
-                <div className="invPropDetail__photoFallback">
-                  <span className="material-symbols-outlined">home</span>
-                </div>
-              )}
-
-              {photos.length > 1 ? (
-                <div className="invPropDetail__thumbs" role="list" aria-label="Property photos">
                   {photos.map((photo, idx) => (
                     <button
                       key={`${property.id}-photo-${idx}`}
                       type="button"
                       role="listitem"
-                      className={`invPropDetail__thumbBtn ${
-                        idx === boundedPhotoIndex ? "invPropDetail__thumbBtn--active" : ""
-                      }`}
-                      onClick={() => setPhotoSelection({ propertyId: property.id, index: idx })}
+                      className="invPropDetail__photoSlide"
+                      onClick={() => {
+                        setPhotoPreviewIndex(idx);
+                        setPhotoPreviewOpen(true);
+                      }}
+                      aria-label={`View photo ${idx + 1}`}
                     >
                       <img
-                        src={photo.thumb || photo.full}
-                        alt={`Property photo ${idx + 1}`}
-                        className="invPropDetail__thumbImg"
+                        src={photo.full}
+                        alt={`${propertyAddress || `Property ${property.id}`} photo ${idx + 1}`}
+                        className="invPropDetail__photoSlideImg"
                       />
                     </button>
                   ))}
                 </div>
-              ) : null}
-            </div>
+                {photos.length > 1 ? (
+                  <div className="invPropDetail__photoProgress" aria-hidden="true">
+                    <span className="invPropDetail__photoProgressFill" ref={photoProgressFillRef} />
+                  </div>
+                ) : null}
+              </>
+            ) : (
+              <div className="invPropDetail__photoFallback">
+                <span className="material-symbols-outlined">home</span>
+              </div>
+            )}
           </div>
 
-          <section className="invPropDetail__section">
+          <section className="invPropDetail__section invPropDetail__section--address">
             <div className="invPropDetail__addressRow">
               <h3 className="invPropDetail__sectionTitle">Address</h3>
+              <button
+                type="button"
+                className="invPropDetail__messageJump"
+                onClick={scrollToMessageSection}
+              >
+                Message
+              </button>
               {onToggleFavorite ? (
                 <button
                   type="button"
@@ -233,10 +285,13 @@ export default function InvestorPropertyDetailsModal({
 
           <section className="invPropDetail__section">
             <h3 className="invPropDetail__sectionTitle">Price Details</h3>
-            <div className="invPropDetail__metrics">
-              <div>
-                <span>Asking Price</span>
-                <strong>{money(property.askingPrice)}</strong>
+            <div
+              className="invPropDetail__metrics"
+              style={{ "--invPropMetricCols": String(priceMetricCount) }}
+            >
+              <div className="invPropDetail__metric invPropDetail__metric--asking" style={askingMetricStyle}>
+                <span style={askingMetricLabelStyle}>Asking Price</span>
+                <strong style={askingMetricValueStyle}>{money(property.askingPrice)}</strong>
               </div>
               <div>
                 <span>ARV</span>
@@ -250,13 +305,15 @@ export default function InvestorPropertyDetailsModal({
                 <span>FMR (Monthly)</span>
                 <strong>{money(property.fmr)}</strong>
               </div>
-              <div>
-                <span>Current Rent (Monthly)</span>
-                <strong>{money(property.currentRent)}</strong>
-              </div>
-              <div>
-                <span>Potential Profit</span>
-                <strong className="invPropDetail__profit">
+              {showCurrentRent ? (
+                <div>
+                  <span>Current Rent (Monthly)</span>
+                  <strong>{money(property.currentRent)}</strong>
+                </div>
+              ) : null}
+              <div className="invPropDetail__metric invPropDetail__metric--profit" style={profitMetricStyle}>
+                <span style={profitMetricLabelStyle}>Potential Profit</span>
+                <strong className="invPropDetail__profit" style={profitMetricValueStyle}>
                   {nextPotentialProfit === null ? "—" : money(nextPotentialProfit)}
                 </strong>
               </div>
@@ -283,8 +340,20 @@ export default function InvestorPropertyDetailsModal({
                 <strong>{property.livingAreaSqft ? `${numberLabel(property.livingAreaSqft)} sqft` : "—"}</strong>
               </div>
               <div>
-                <span>Occupancy</span>
+                <span>Price / sqft</span>
+                <strong>{askingPricePerSqft === null ? "—" : money(askingPricePerSqft)}</strong>
+              </div>
+              <div>
+                <span>Occupied</span>
                 <strong>{enumLabel(property.occupancyStatus)}</strong>
+              </div>
+              <div>
+                <span>Exit Strategy</span>
+                <strong>{enumLabel(property.exitStrategy)}</strong>
+              </div>
+              <div>
+                <span>Closing Terms</span>
+                <strong>{enumLabel(property.closingTerms)}</strong>
               </div>
             </div>
           </section>
@@ -334,49 +403,34 @@ export default function InvestorPropertyDetailsModal({
               </div>
             )}
           </section>
+
+          <aside className="invPropDetail__right" ref={messageSectionRef}>
+            <h3 className="invPropDetail__sideTitle">Message Megna Team</h3>
+            <p className="invPropDetail__sideHelp">
+              Ask follow-up questions here. This message goes to the Megna team, not the seller.
+            </p>
+            <textarea
+              className="invPropDetail__message"
+              value={messageBody}
+              onChange={(event) => onMessageBodyChange?.(event.target.value)}
+              placeholder="Write your message"
+              rows={6}
+            />
+
+            {profileError ? <div className="invPropDetail__msg invPropDetail__msg--error">{profileError}</div> : null}
+            {inquiryError ? <div className="invPropDetail__msg invPropDetail__msg--error">{inquiryError}</div> : null}
+            {inquirySuccess ? <div className="invPropDetail__msg invPropDetail__msg--ok">{inquirySuccess}</div> : null}
+
+            <button
+              type="button"
+              className="invPropDetail__send"
+              onClick={onSubmitInquiry}
+              disabled={inquirySending}
+            >
+              {inquirySending ? "Sending..." : "Send to Megna Team"}
+            </button>
+          </aside>
         </div>
-
-        <aside className="invPropDetail__right">
-          <h3 className="invPropDetail__sideTitle">Message to the Owner</h3>
-          <p className="invPropDetail__sideHelp">
-            Ask follow-up questions and submit your inquiry directly from this listing.
-          </p>
-          <textarea
-            className="invPropDetail__message"
-            value={messageBody}
-            onChange={(event) => onMessageBodyChange?.(event.target.value)}
-            placeholder="Write your message"
-            rows={6}
-          />
-
-          {profileError ? <div className="invPropDetail__msg invPropDetail__msg--error">{profileError}</div> : null}
-          {inquiryError ? <div className="invPropDetail__msg invPropDetail__msg--error">{inquiryError}</div> : null}
-          {inquirySuccess ? <div className="invPropDetail__msg invPropDetail__msg--ok">{inquirySuccess}</div> : null}
-
-          <button
-            type="button"
-            className="invPropDetail__send"
-            onClick={onSubmitInquiry}
-            disabled={inquirySending}
-          >
-            {inquirySending ? "Sending..." : "Send"}
-          </button>
-
-          <div className="invPropDetail__chipGroup">
-            <div className="invPropDetail__chip">
-              <span>Exit Strategy</span>
-              <strong>{enumLabel(property.exitStrategy)}</strong>
-            </div>
-            <div className="invPropDetail__chip">
-              <span>Closing Terms</span>
-              <strong>{enumLabel(property.closingTerms)}</strong>
-            </div>
-            <div className="invPropDetail__chip">
-              <span>Status</span>
-              <strong>{enumLabel(property.status)}</strong>
-            </div>
-          </div>
-        </aside>
       </div>
 
       {photoPreviewOpen && activePhoto ? (

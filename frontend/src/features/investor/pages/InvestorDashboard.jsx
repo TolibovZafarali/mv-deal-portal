@@ -377,14 +377,14 @@ export default function InvestorDashboard() {
       await createInquiry({
         propertyId: detailProperty.id,
         investorId,
-        subject: `Property inquiry: ${subjectAddress}`,
+        subject: `Megna team message: ${subjectAddress}`,
         messageBody,
         contactName,
         companyName,
         contactEmail,
         contactPhone,
       });
-      setInquirySuccess("Inquiry sent.");
+      setInquirySuccess("Message sent to Megna Team.");
     } catch (nextError) {
       setInquiryError(nextError?.message || "Failed to send inquiry.");
     } finally {
