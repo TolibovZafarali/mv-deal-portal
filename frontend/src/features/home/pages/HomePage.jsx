@@ -20,11 +20,18 @@ export default function HomePage({ location, isAuthed, bootstrapping }) {
     }
 
     const homeRef = useRef(null);
+    const homeWhyRef = useRef(null);
+    const homeDealsRef = useRef(null);
+    const dealsRailRef = useRef(null);
     const homeHowRef = useRef(null);
     const [closedDeals, setClosedDeals] = useState([]);
     const [closedDealsLoading, setClosedDealsLoading] = useState(true);
     const [closedDealsError, setClosedDealsError] = useState("");
     const [homeHowVisible, setHomeHowVisible] = useState(false);
+    const [homeDealsVisible, setHomeDealsVisible] = useState(false);
+    const [activeDealIndex, setActiveDealIndex] = useState(0);
+    const [dealsHintHidden, setDealsHintHidden] = useState(false);
+    const [whyStats, setWhyStats] = useState({ hours: 0, multiplier: 0, percent: 0 });
 
     useEffect(() => {
         document.documentElement.classList.add("homeHideScrollbar");
@@ -41,8 +48,19 @@ export default function HomePage({ location, isAuthed, bootstrapping }) {
                 return;
             }
             const heroHeight = window.innerHeight || 1;
-            const progress = Math.min(window.scrollY / (heroHeight * 0.9), 1);
+            const scrollY = window.scrollY || 0;
+            const progress = Math.min(scrollY / (heroHeight * 0.9), 1);
+            const heroScroll = Math.min(scrollY, heroHeight);
+            const pageMaxScroll = Math.max((document.documentElement?.scrollHeight || 0) - window.innerHeight, 1);
+            const pageProgress = Math.min(scrollY / pageMaxScroll, 1);
+            const zoomProgress = Math.min(scrollY / 360, 1);
+            const heroZoomScale = 1.04 - (zoomProgress * 0.04);
+
             homeEl.style.setProperty("--hero-darken-opacity", (progress * 0.6).toFixed(3));
+            homeEl.style.setProperty("--hero-parallax-y", `${Math.round(heroScroll * 0.2)}px`);
+            homeEl.style.setProperty("--hero-overlay-parallax-y", `${Math.round(heroScroll * 0.1)}px`);
+            homeEl.style.setProperty("--home-scroll-progress", pageProgress.toFixed(4));
+            homeEl.style.setProperty("--hero-zoom-scale", heroZoomScale.toFixed(4));
         };
 
         const onScroll = () => {
@@ -95,6 +113,131 @@ export default function HomePage({ location, isAuthed, bootstrapping }) {
     }, []);
 
     useEffect(() => {
+        const sectionEl = homeWhyRef.current;
+        if (!sectionEl) return undefined;
+
+        const targets = { hours: 48, multiplier: 3, percent: 100 };
+        const durationMs = 1450;
+        let rafId = 0;
+
+        const observer = new IntersectionObserver(
+            (entries) => {
+                const entry = entries[0];
+                if (!entry?.isIntersecting) return;
+
+                const startedAt = performance.now();
+                const step = (now) => {
+                    const progress = Math.min((now - startedAt) / durationMs, 1);
+                    const eased = 1 - Math.pow(1 - progress, 3);
+
+                    setWhyStats({
+                        hours: Math.round(targets.hours * eased),
+                        multiplier: Math.round(targets.multiplier * eased),
+                        percent: Math.round(targets.percent * eased),
+                    });
+
+                    if (progress < 1) {
+                        rafId = window.requestAnimationFrame(step);
+                    } else {
+                        setWhyStats(targets);
+                    }
+                };
+
+                rafId = window.requestAnimationFrame(step);
+                observer.disconnect();
+            },
+            {
+                threshold: 0.42,
+                rootMargin: "0px 0px -8% 0px",
+            },
+        );
+
+        observer.observe(sectionEl);
+        return () => {
+            observer.disconnect();
+            window.cancelAnimationFrame(rafId);
+        };
+    }, []);
+
+    useEffect(() => {
+        const sectionEl = homeDealsRef.current;
+        if (!sectionEl) return undefined;
+
+        const observer = new IntersectionObserver(
+            (entries) => {
+                const entry = entries[0];
+                if (!entry?.isIntersecting) return;
+                setHomeDealsVisible(true);
+                observer.disconnect();
+            },
+            {
+                threshold: 0.22,
+                rootMargin: "0px 0px -10% 0px",
+            },
+        );
+
+        observer.observe(sectionEl);
+        return () => observer.disconnect();
+    }, []);
+
+    useEffect(() => {
+        const railEl = dealsRailRef.current;
+        if (!railEl) return undefined;
+
+        const updateActiveCard = () => {
+            const cards = Array.from(railEl.querySelectorAll(".homeDeals__card"));
+            if (!cards.length) return;
+
+            const railCenter = railEl.scrollLeft + (railEl.clientWidth / 2);
+            let bestIndex = 0;
+            let bestDistance = Number.POSITIVE_INFINITY;
+
+            cards.forEach((card, index) => {
+                const cardCenter = card.offsetLeft + (card.clientWidth / 2);
+                const distance = Math.abs(cardCenter - railCenter);
+                if (distance < bestDistance) {
+                    bestDistance = distance;
+                    bestIndex = index;
+                }
+            });
+
+            setActiveDealIndex(bestIndex);
+        };
+
+        const onRailScroll = () => {
+            if (!dealsHintHidden && railEl.scrollLeft > 12) {
+                setDealsHintHidden(true);
+            }
+            updateActiveCard();
+        };
+
+        const hideHint = () => {
+            if (!dealsHintHidden) setDealsHintHidden(true);
+        };
+
+        updateActiveCard();
+        railEl.addEventListener("scroll", onRailScroll, { passive: true });
+        railEl.addEventListener("wheel", hideHint, { passive: true });
+        railEl.addEventListener("touchstart", hideHint, { passive: true });
+        railEl.addEventListener("pointerdown", hideHint, { passive: true });
+        window.addEventListener("resize", updateActiveCard, { passive: true });
+
+        return () => {
+            railEl.removeEventListener("scroll", onRailScroll);
+            railEl.removeEventListener("wheel", hideHint);
+            railEl.removeEventListener("touchstart", hideHint);
+            railEl.removeEventListener("pointerdown", hideHint);
+            window.removeEventListener("resize", updateActiveCard);
+        };
+    }, [closedDeals.length, dealsHintHidden]);
+
+    useEffect(() => {
+        if (!closedDeals.length) return;
+        setDealsHintHidden(false);
+        setActiveDealIndex(0);
+    }, [closedDeals.length]);
+
+    useEffect(() => {
         const sectionEl = homeHowRef.current;
         if (!sectionEl) return undefined;
 
@@ -122,6 +265,7 @@ export default function HomePage({ location, isAuthed, bootstrapping }) {
 
     return (
         <div ref={homeRef} className="home">
+            <div className="homeScrollProgress" aria-hidden="true" />
             <header className="homeHeader">
                 <div className="homeHeader__inner">
                     <Link
@@ -190,7 +334,7 @@ export default function HomePage({ location, isAuthed, bootstrapping }) {
                     </div>
                 </section>
 
-                <section className="homeWhyUs" aria-label="Why Us">
+                <section ref={homeWhyRef} className="homeWhyUs" aria-label="Why Us">
                     <div className="homeWhyUs__ambient" aria-hidden="true" />
                     <div className="homeWhyUs__inner">
                         <div className="homeWhyUs__top">
@@ -205,15 +349,15 @@ export default function HomePage({ location, isAuthed, bootstrapping }) {
 
                             <div className="homeWhyUs__stats" aria-label="Platform metrics">
                                 <div className="homeWhyUs__stat">
-                                    <p className="homeWhyUs__statValue">48h</p>
+                                    <p className="homeWhyUs__statValue">{whyStats.hours}h</p>
                                     <p className="homeWhyUs__statLabel">avg. response window</p>
                                 </div>
                                 <div className="homeWhyUs__stat">
-                                    <p className="homeWhyUs__statValue">3x</p>
+                                    <p className="homeWhyUs__statValue">{whyStats.multiplier}x</p>
                                     <p className="homeWhyUs__statLabel">faster deal triage</p>
                                 </div>
                                 <div className="homeWhyUs__stat">
-                                    <p className="homeWhyUs__statValue">100%</p>
+                                    <p className="homeWhyUs__statValue">{whyStats.percent}%</p>
                                     <p className="homeWhyUs__statLabel">focused on off-market flow</p>
                                 </div>
                             </div>
@@ -245,7 +389,11 @@ export default function HomePage({ location, isAuthed, bootstrapping }) {
                     </div>
                 </section>
 
-                <section className="homeDeals" aria-label="Featured Deals Preview">
+                <section
+                    ref={homeDealsRef}
+                    className={`homeDeals ${homeDealsVisible ? "homeDeals--visible" : ""}`}
+                    aria-label="Featured Deals Preview"
+                >
                     <div className="homeDeals__inner">
                         <div className="homeDeals__head">
                             <div>
@@ -266,12 +414,16 @@ export default function HomePage({ location, isAuthed, bootstrapping }) {
                         ) : null}
 
                         {!closedDealsLoading && !closedDealsError && closedDeals.length > 0 ? (
-                            <div className="homeDeals__grid">
-                                {closedDeals.map((property) => {
+                            <div ref={dealsRailRef} className="homeDeals__grid">
+                                {closedDeals.map((property, index) => {
                                     const leadPhoto = property?.photos?.[0]?.thumbnailUrl || property?.photos?.[0]?.url || "";
 
                                     return (
-                                        <article key={property.id} className="homeDeals__card">
+                                        <article
+                                            key={property.id}
+                                            className={`homeDeals__card ${activeDealIndex === index ? "homeDeals__card--active" : ""}`}
+                                            style={{ "--deal-stagger": `${Math.min(index, 8) * 90}ms` }}
+                                        >
                                             <div className="homeDeals__mediaWrap">
                                                 {leadPhoto ? (
                                                     <img
@@ -309,6 +461,9 @@ export default function HomePage({ location, isAuthed, bootstrapping }) {
                                     );
                                 })}
                             </div>
+                        ) : null}
+                        {!closedDealsLoading && !closedDealsError && closedDeals.length > 1 && !dealsHintHidden ? (
+                            <div className="homeDeals__swipeHint" aria-hidden="true">Swipe to see more</div>
                         ) : null}
 
                     </div>

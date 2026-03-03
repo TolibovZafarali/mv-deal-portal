@@ -2,6 +2,10 @@
   min-height: 100%;
   --home-header-height: 76px;
   --hero-darken-opacity: 0;
+  --hero-zoom-scale: 1.04;
+  --hero-parallax-y: 0px;
+  --hero-overlay-parallax-y: 0px;
+  --home-scroll-progress: 0;
 }
 
 html.homeHideScrollbar,
@@ -32,6 +36,20 @@ body.homeHideScrollbar::-webkit-scrollbar {
 
   z-index: 50;
   box-shadow: 0 1px 10px rgba(0, 0, 0, 0.18); /* barely-there shadow */
+}
+
+.homeScrollProgress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 2px;
+  width: 100%;
+  z-index: 70;
+  pointer-events: none;
+  transform-origin: left center;
+  transform: scaleX(var(--home-scroll-progress));
+  background: linear-gradient(90deg, rgba(242, 242, 242, 0.92) 0%, rgba(242, 242, 242, 0.56) 100%);
+  box-shadow: 0 0 10px rgba(242, 242, 242, 0.35);
 }
 
 
@@ -99,13 +117,24 @@ body.homeHideScrollbar::-webkit-scrollbar {
 .homeHero {
   position: relative;
   height: 100vh;
-  background-image: url("/hero.jpg");
-  background-size: cover;
-  background-position: center;
+  overflow: hidden;
 
   display: flex;
   align-items: flex-end;
   justify-content: flex-start;
+}
+
+.homeHero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: url("/hero.jpg");
+  background-size: cover;
+  background-position: center;
+  transform: translateY(var(--hero-parallax-y)) scale(var(--hero-zoom-scale));
+  transform-origin: center top;
+  will-change: transform;
+  z-index: 0;
 }
 
 .homeHero::after {
@@ -136,6 +165,8 @@ body.homeHideScrollbar::-webkit-scrollbar {
     rgba(0, 0, 0, 0.10) 55%,
     rgba(0, 0, 0, 0.40) 100%
   );
+  transform: translateY(var(--hero-overlay-parallax-y));
+  z-index: 1;
 }
 
 .homeHero__darken {
@@ -145,6 +176,8 @@ body.homeHideScrollbar::-webkit-scrollbar {
   opacity: var(--hero-darken-opacity);
   will-change: opacity;
   pointer-events: none;
+  transform: translateY(calc(var(--hero-overlay-parallax-y) * 0.65));
+  z-index: 2;
 }
 
 .homeHero__content {
@@ -286,6 +319,7 @@ body.homeHideScrollbar::-webkit-scrollbar {
     radial-gradient(800px 300px at 12% 0%, rgba(242, 242, 242, 0.09) 0%, rgba(242, 242, 242, 0) 70%),
     radial-gradient(640px 280px at 88% 8%, rgba(242, 242, 242, 0.07) 0%, rgba(242, 242, 242, 0) 72%);
   opacity: 0.75;
+  animation: homeSweepFloat 14s ease-in-out infinite;
 }
 
 .homeWhyUs__inner {
@@ -349,6 +383,7 @@ body.homeHideScrollbar::-webkit-scrollbar {
   font-size: clamp(34px, 4.8vw, 52px);
   line-height: 1;
   letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
 }
 
 .homeWhyUs__statLabel {
@@ -426,11 +461,14 @@ body.homeHideScrollbar::-webkit-scrollbar {
 .homeDeals::before {
   content: "";
   position: absolute;
-  inset: 0;
+  inset: -18% -12%;
   pointer-events: none;
   background:
     radial-gradient(900px 280px at 18% 0%, rgba(242, 242, 242, 0.08) 0%, rgba(242, 242, 242, 0) 72%),
     radial-gradient(720px 260px at 92% 8%, rgba(242, 242, 242, 0.06) 0%, rgba(242, 242, 242, 0) 75%);
+  -webkit-mask-image: radial-gradient(120% 95% at 50% 45%, #000 62%, transparent 100%);
+  mask-image: radial-gradient(120% 95% at 50% 45%, #000 62%, transparent 100%);
+  animation: homeSweepFloat 16s ease-in-out infinite reverse;
 }
 
 .homeDeals__inner {
@@ -523,6 +561,11 @@ body.homeHideScrollbar::-webkit-scrollbar {
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.28);
 }
 
+.homeDeals__card--active {
+  border-color: rgba(242, 242, 242, 0.34);
+  box-shadow: 0 22px 46px rgba(0, 0, 0, 0.34), 0 0 0 1px rgba(242, 242, 242, 0.08) inset;
+}
+
 .homeDeals__mediaWrap {
   position: relative;
   aspect-ratio: 16 / 10;
@@ -569,6 +612,8 @@ body.homeHideScrollbar::-webkit-scrollbar {
   font-size: 16px;
   line-height: 1.45;
   min-height: 46px;
+  opacity: 0;
+  transform: translateY(18px);
 }
 
 .homeDeals__stats {
@@ -576,6 +621,8 @@ body.homeHideScrollbar::-webkit-scrollbar {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
+  opacity: 0;
+  transform: translateY(18px);
 }
 
 .homeDeals__label {
@@ -601,6 +648,32 @@ body.homeHideScrollbar::-webkit-scrollbar {
   gap: 14px;
   color: rgba(242, 242, 242, 0.75);
   font-size: 13px;
+  opacity: 0;
+  transform: translateY(18px);
+}
+
+.homeDeals--visible .homeDeals__card .homeDeals__address {
+  animation: homeDealMetaIn 720ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation-delay: calc(var(--deal-stagger, 0ms) + 20ms);
+}
+
+.homeDeals--visible .homeDeals__card .homeDeals__stats {
+  animation: homeDealMetaIn 720ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation-delay: calc(var(--deal-stagger, 0ms) + 140ms);
+}
+
+.homeDeals--visible .homeDeals__card .homeDeals__meta {
+  animation: homeDealMetaIn 720ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation-delay: calc(var(--deal-stagger, 0ms) + 260ms);
+}
+
+.homeDeals__swipeHint {
+  margin-top: 10px;
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(242, 242, 242, 0.72);
+  animation: homeSwipeHintPulse 1400ms ease-in-out infinite;
 }
 
 .homeDeals__ctaRow {
@@ -716,6 +789,47 @@ body.homeHideScrollbar::-webkit-scrollbar {
   line-height: 1.55;
 }
 
+@keyframes homeSweepFloat {
+  0% {
+    transform: translateX(-2%) translateY(0);
+    opacity: 0.5;
+  }
+  50% {
+    transform: translateX(2%) translateY(-1%);
+    opacity: 0.85;
+  }
+  100% {
+    transform: translateX(-1%) translateY(0.5%);
+    opacity: 0.6;
+  }
+}
+
+@keyframes homeDealMetaIn {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes homeSwipeHintPulse {
+  0% {
+    transform: translateX(0);
+    opacity: 0.72;
+  }
+  40% {
+    transform: translateX(8px);
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(0);
+    opacity: 0.72;
+  }
+}
+
 @media (min-width: 769px) {
   .homeWhyUs__inner {
     display: flex;
@@ -805,8 +919,33 @@ body.homeHideScrollbar::-webkit-scrollbar {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .homeHero__overlay,
+  .homeHero__darken,
+  .homeHero::before,
+  .homeWhyUs__ambient,
+  .homeDeals::before {
+    animation: none;
+    transform: none;
+  }
+
+  .homeScrollProgress {
+    transition: none;
+  }
+
   .homeWhyUs__card {
     transition: none;
+  }
+
+  .homeDeals__address,
+  .homeDeals__stats,
+  .homeDeals__meta {
+    opacity: 1;
+    transform: none;
+    animation: none !important;
+  }
+
+  .homeDeals__swipeHint {
+    animation: none;
   }
 
   .homeHow__card {
