@@ -68,6 +68,8 @@ function compPricePerSqft(comp) {
   return soldPrice / sqft;
 }
 
+const MESSAGE_CHAR_LIMIT = 200;
+
 export default function InvestorPropertyDetailsModal({
   open,
   property,
@@ -78,6 +80,7 @@ export default function InvestorPropertyDetailsModal({
   inquiryError,
   inquirySuccess,
   profileError,
+  alreadyMessaged = false,
   isFavorite = false,
   onToggleFavorite,
   onClose,
@@ -131,6 +134,8 @@ export default function InvestorPropertyDetailsModal({
   const canNavigatePreview = photos.length > 1;
   const showCurrentRent = String(property?.occupancyStatus ?? "").toUpperCase() === "YES";
   const priceMetricCount = showCurrentRent ? 6 : 5;
+  const messageCharsUsed = String(messageBody ?? "").length;
+  const messageCharsRemaining = Math.max(MESSAGE_CHAR_LIMIT - messageCharsUsed, 0);
   const askingPricePerSqft = propertyPricePerSqft(property);
   const askingMetricStyle = { backgroundColor: "#101010", borderColor: "#101010" };
   const askingMetricLabelStyle = { color: "rgba(242, 242, 242, 0.82)", fontWeight: 700 };
@@ -256,31 +261,39 @@ export default function InvestorPropertyDetailsModal({
 
           <section className="invPropDetail__section invPropDetail__section--address">
             <div className="invPropDetail__addressRow">
-              <h3 className="invPropDetail__sectionTitle">Address</h3>
-              <button
-                type="button"
-                className="invPropDetail__messageJump"
-                onClick={scrollToMessageSection}
-              >
-                Message
-              </button>
-              {onToggleFavorite ? (
-                <button
-                  type="button"
-                  className={`invPropDetail__bookmarkToggle ${
-                    isFavorite ? "invPropDetail__bookmarkToggle--active" : ""
-                  }`}
-                  onClick={onToggleFavorite}
-                  aria-label={isFavorite ? "Remove bookmark" : "Save bookmark"}
-                  aria-pressed={isFavorite}
-                >
-                  <svg className="invPropDetail__bookmarkIcon" viewBox="0 0 24 24" aria-hidden="true">
-                    <path d="M6 3h12a1 1 0 0 1 1 1v17l-7-3-7 3V4a1 1 0 0 1 1-1z" />
-                  </svg>
-                </button>
+              <div className="invPropDetail__addressInfo">
+                <h3 className="invPropDetail__sectionTitle">Address</h3>
+                <p className="invPropDetail__address">{propertyAddress || "Address unavailable"}</p>
+              </div>
+              {!alreadyMessaged || onToggleFavorite ? (
+                <div className="invPropDetail__addressActions">
+                  {!alreadyMessaged ? (
+                    <button
+                      type="button"
+                      className="invPropDetail__messageJump"
+                      onClick={scrollToMessageSection}
+                    >
+                      Interested
+                    </button>
+                  ) : null}
+                  {onToggleFavorite ? (
+                    <button
+                      type="button"
+                      className={`invPropDetail__bookmarkToggle ${
+                        isFavorite ? "invPropDetail__bookmarkToggle--active" : ""
+                      }`}
+                      onClick={onToggleFavorite}
+                      aria-label={isFavorite ? "Remove bookmark" : "Save bookmark"}
+                      aria-pressed={isFavorite}
+                    >
+                      <svg className="invPropDetail__bookmarkIcon" viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M6 3h12a1 1 0 0 1 1 1v17l-7-3-7 3V4a1 1 0 0 1 1-1z" />
+                      </svg>
+                    </button>
+                  ) : null}
+                </div>
               ) : null}
             </div>
-            <p className="invPropDetail__address">{propertyAddress || "Address unavailable"}</p>
           </section>
 
           <section className="invPropDetail__section">
@@ -405,30 +418,49 @@ export default function InvestorPropertyDetailsModal({
           </section>
 
           <aside className="invPropDetail__right" ref={messageSectionRef}>
-            <h3 className="invPropDetail__sideTitle">Message Megna Team</h3>
-            <p className="invPropDetail__sideHelp">
-              Ask follow-up questions here. This message goes to the Megna team, not the seller.
-            </p>
-            <textarea
-              className="invPropDetail__message"
-              value={messageBody}
-              onChange={(event) => onMessageBodyChange?.(event.target.value)}
-              placeholder="Write your message"
-              rows={6}
-            />
+            {alreadyMessaged ? (
+              <>
+                <h3 className="invPropDetail__sideTitle">Already Messaged Megna Team</h3>
+                <p className="invPropDetail__sideHelp">
+                  You already sent a message for this property. Check Messages in your profile for status.
+                </p>
+              </>
+            ) : (
+              <>
+                <h3 className="invPropDetail__sideTitle">Message Megna Team</h3>
+                <p className="invPropDetail__sideHelp">
+                  Ask follow-up questions here. This message goes to the Megna team, not the seller.
+                </p>
+                <div className="invPropDetail__messageWrap">
+                  <span className="invPropDetail__charCount" aria-live="polite">
+                    {messageCharsRemaining}/{MESSAGE_CHAR_LIMIT}
+                  </span>
+                  <textarea
+                    className="invPropDetail__message"
+                    value={messageBody}
+                    onChange={(event) =>
+                      onMessageBodyChange?.(String(event.target.value ?? "").slice(0, MESSAGE_CHAR_LIMIT))
+                    }
+                    placeholder="Write your message"
+                    rows={6}
+                    maxLength={MESSAGE_CHAR_LIMIT}
+                  />
+                </div>
 
-            {profileError ? <div className="invPropDetail__msg invPropDetail__msg--error">{profileError}</div> : null}
-            {inquiryError ? <div className="invPropDetail__msg invPropDetail__msg--error">{inquiryError}</div> : null}
-            {inquirySuccess ? <div className="invPropDetail__msg invPropDetail__msg--ok">{inquirySuccess}</div> : null}
+                {profileError ? <div className="invPropDetail__msg invPropDetail__msg--error">{profileError}</div> : null}
+                {inquiryError ? <div className="invPropDetail__msg invPropDetail__msg--error">{inquiryError}</div> : null}
+                {inquirySuccess ? <div className="invPropDetail__msg invPropDetail__msg--ok">{inquirySuccess}</div> : null}
 
-            <button
-              type="button"
-              className="invPropDetail__send"
-              onClick={onSubmitInquiry}
-              disabled={inquirySending}
-            >
-              {inquirySending ? "Sending..." : "Send to Megna Team"}
-            </button>
+                <button
+                  type="button"
+                  className="invPropDetail__send"
+                  onClick={onSubmitInquiry}
+                  disabled={inquirySending}
+                >
+                  {inquirySending ? "Sending..." : "Send to Megna Team"}
+                </button>
+              </>
+            )}
           </aside>
         </div>
       </div>

@@ -225,21 +225,34 @@
   gap: 10px;
 }
 
+.invPropDetail__addressInfo {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
 .invPropDetail__addressRow .invPropDetail__sectionTitle {
   line-height: 1;
 }
 
 .invPropDetail__address {
-  margin: 3px 0 0;
+  margin: 2px 0 0;
   font-size: clamp(18px, 2vw, 24px);
   font-weight: 700;
   line-height: 1.25;
   color: #101010;
 }
 
+.invPropDetail__addressActions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 0 0 auto;
+}
+
 .invPropDetail__bookmarkToggle {
-  width: 32px;
-  height: 32px;
+  width: 46px;
+  height: 46px;
   border: none;
   background: transparent;
   color: rgba(16, 16, 16, 0.72);
@@ -251,14 +264,14 @@
 }
 
 .invPropDetail__messageJump {
-  margin-left: auto;
-  height: 30px;
+  height: 44px;
   border: 1px solid rgba(16, 16, 16, 0.28);
   background: transparent;
   color: #101010;
-  padding: 0 10px;
+  padding: 0 18px;
   cursor: pointer;
-  font-size: 12px;
+  font-size: 15px;
+  font-weight: 600;
 }
 
 .invPropDetail__messageJump:hover,
@@ -269,8 +282,8 @@
 }
 
 .invPropDetail__bookmarkIcon {
-  width: 22px;
-  height: 22px;
+  width: 29px;
+  height: 29px;
 }
 
 .invPropDetail__bookmarkIcon path {
@@ -421,8 +434,8 @@
 
 .invPropDetail__right {
   margin: 14px calc(-1 * var(--invPropDetailPad)) calc(-1 * var(--invPropDetailPad));
-  border-top: 1px solid rgba(236, 236, 236, 0.3);
-  background: #2f2f32;
+  border-top: 1px solid #111111;
+  background: linear-gradient(180deg, #262626 0%, #171717 100%);
   color: #ececec;
   padding: 16px var(--invPropDetailPad);
 }
@@ -433,15 +446,29 @@
 }
 
 .invPropDetail__sideHelp {
-  margin: 8px 0 10px;
+  margin: 6px 0 4px;
   font-size: 12px;
   color: rgba(236, 236, 236, 0.72);
+}
+
+.invPropDetail__messageWrap {
+  position: relative;
+}
+
+.invPropDetail__charCount {
+  position: absolute;
+  top: -18px;
+  right: 0;
+  pointer-events: none;
+  font-size: 12px;
+  color: rgba(236, 236, 236, 0.84);
+  letter-spacing: 0.02em;
 }
 
 .invPropDetail__message {
   width: 100%;
   min-height: 125px;
-  resize: vertical;
+  resize: none;
   border: 1px solid rgba(236, 236, 236, 0.32);
   background: rgba(15, 15, 15, 0.24);
   color: #ececec;
@@ -462,6 +489,17 @@
   background: #101010;
   color: #ffffff;
   cursor: pointer;
+  transition:
+    background-color 180ms ease,
+    color 180ms ease,
+    border-color 180ms ease;
+}
+
+.invPropDetail__send:hover,
+.invPropDetail__send:focus-visible {
+  background: #f2f2f2;
+  color: #101010;
+  border-color: #f2f2f2;
 }
 
 .invPropDetail__send:disabled {

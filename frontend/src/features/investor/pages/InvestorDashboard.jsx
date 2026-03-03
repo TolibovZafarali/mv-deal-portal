@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { searchProperties } from "@/api/modules/propertyApi";
-import { createInquiry } from "@/api/modules/inquiryApi";
+import { createInquiry, getInquiryByInvestor } from "@/api/modules/inquiryApi";
 import {
   addInvestorFavoriteProperty,
   getInvestorById,
@@ -111,10 +111,14 @@ export default function InvestorDashboard() {
   const [inquirySending, setInquirySending] = useState(false);
   const [inquiryError, setInquiryError] = useState("");
   const [inquirySuccess, setInquirySuccess] = useState("");
+  const [messagedPropertyIds, setMessagedPropertyIds] = useState([]);
 
   const favoritePropertyIdSet = useMemo(() => {
     return new Set(favoritePropertyIds);
   }, [favoritePropertyIds]);
+  const messagedPropertyIdSet = useMemo(() => {
+    return new Set(messagedPropertyIds);
+  }, [messagedPropertyIds]);
 
   const visibleRows = useMemo(() => {
     if (!showFavoritesOnly) return rows;
@@ -243,6 +247,51 @@ export default function InvestorDashboard() {
     };
   }, [detailPropertyId, user?.investorId]);
 
+  useEffect(() => {
+    const investorId = user?.investorId;
+    if (!investorId) {
+      setMessagedPropertyIds([]);
+      return undefined;
+    }
+
+    let alive = true;
+
+    (async () => {
+      try {
+        let page = 0;
+        let totalPages = 1;
+        const allInquiries = [];
+
+        while (page < totalPages) {
+          const data = await getInquiryByInvestor(investorId, {
+            page,
+            size: 100,
+            sort: "createdAt,desc",
+          });
+          if (!alive) return;
+
+          const pageRows = Array.isArray(data?.content) ? data.content : [];
+          allInquiries.push(...pageRows);
+          totalPages = Math.max(Number(data?.totalPages ?? 1), 1);
+          page += 1;
+        }
+
+        if (!alive) return;
+        const nextMessaged = Array.from(
+          new Set(allInquiries.map((inquiry) => String(inquiry?.propertyId ?? "")).filter(Boolean)),
+        );
+        setMessagedPropertyIds(nextMessaged);
+      } catch {
+        if (!alive) return;
+        setMessagedPropertyIds([]);
+      }
+    })();
+
+    return () => {
+      alive = false;
+    };
+  }, [user?.investorId]);
+
   const hasMoreFiltersSelected = useMemo(() => {
     return [
       filters.minBeds,
@@ -336,8 +385,15 @@ export default function InvestorDashboard() {
     if (!detailProperty) return;
 
     const investorId = user?.investorId;
+    const detailPropertyKey = String(detailProperty.id ?? "");
     if (!investorId) {
       setInquiryError("Missing investor identity. Please log out and log in again.");
+      setInquirySuccess("");
+      return;
+    }
+
+    if (messagedPropertyIdSet.has(detailPropertyKey)) {
+      setInquiryError("You already messaged Megna Team about this property.");
       setInquirySuccess("");
       return;
     }
@@ -384,6 +440,7 @@ export default function InvestorDashboard() {
         contactEmail,
         contactPhone,
       });
+      setMessagedPropertyIds((prev) => (prev.includes(detailPropertyKey) ? prev : [...prev, detailPropertyKey]));
       setInquirySuccess("Message sent to Megna Team.");
     } catch (nextError) {
       setInquiryError(nextError?.message || "Failed to send inquiry.");
@@ -706,6 +763,7 @@ export default function InvestorDashboard() {
         inquiryError={inquiryError}
         inquirySuccess={inquirySuccess}
         profileError={investorProfileError}
+        alreadyMessaged={detailProperty ? messagedPropertyIdSet.has(String(detailProperty.id)) : false}
         isFavorite={detailProperty ? favoritePropertyIdSet.has(String(detailProperty.id)) : false}
         onToggleFavorite={() => {
           if (!detailProperty) return;
