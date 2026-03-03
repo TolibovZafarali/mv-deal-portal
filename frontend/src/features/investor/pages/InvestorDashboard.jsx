@@ -1,7 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { searchProperties } from "@/api/modules/propertyApi";
 import { createInquiry } from "@/api/modules/inquiryApi";
-import { getInvestorById } from "@/api/modules/investorApi";
+import {
+  addInvestorFavoriteProperty,
+  getInvestorById,
+  getInvestorFavoritePropertyIds,
+  removeInvestorFavoriteProperty,
+} from "@/api/modules/investorApi";
 import { useAuth } from "@/features/auth";
 import InvestorPropertyMap from "@/features/investor/components/InvestorPropertyMap";
 import InvestorPropertyDetailsModal from "@/features/investor/modals/InvestorPropertyDetailsModal";
@@ -28,7 +33,6 @@ const CLOSING_TERMS_OPTIONS = [
   { label: "Seller Finance", value: "SELLER_FINANCE" },
 ];
 
-const FAVORITES_STORAGE_KEY = "investor.favoritePropertyIds";
 const DEFAULT_INQUIRY_MESSAGE = "Hi, I'm interested in this property. Can you provide more details?";
 
 function money(value) {
@@ -66,21 +70,6 @@ function fullAddress(property) {
   return [line1, property.city, property.state, property.zip].filter(Boolean).join(", ");
 }
 
-function loadFavoritePropertyIds() {
-  if (typeof window === "undefined") return [];
-  try {
-    const raw = window.localStorage.getItem(FAVORITES_STORAGE_KEY);
-    if (!raw) return [];
-
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [];
-
-    return Array.from(new Set(parsed.map((value) => String(value)).filter(Boolean)));
-  } catch {
-    return [];
-  }
-}
-
 export default function InvestorDashboard() {
   const { user } = useAuth();
   const [filters, setFilters] = useState({
@@ -99,7 +88,8 @@ export default function InvestorDashboard() {
   const [error, setError] = useState("");
   const [selectedPropertyId, setSelectedPropertyId] = useState(null);
   const [detailPropertyId, setDetailPropertyId] = useState(null);
-  const [favoritePropertyIds, setFavoritePropertyIds] = useState(loadFavoritePropertyIds);
+  const [favoritePropertyIds, setFavoritePropertyIds] = useState([]);
+  const [favoritesError, setFavoritesError] = useState("");
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
   const [investorProfile, setInvestorProfile] = useState(null);
   const [investorProfileError, setInvestorProfileError] = useState("");
@@ -181,9 +171,39 @@ export default function InvestorDashboard() {
   }, [detailProperty, detailPropertyId]);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    window.localStorage.setItem(FAVORITES_STORAGE_KEY, JSON.stringify(favoritePropertyIds));
-  }, [favoritePropertyIds]);
+    const investorId = user?.investorId;
+    if (!investorId) {
+      setFavoritePropertyIds([]);
+      setFavoritesError("");
+      return undefined;
+    }
+
+    let alive = true;
+    setFavoritesError("");
+
+    (async () => {
+      try {
+        const favoriteIds = await getInvestorFavoritePropertyIds(investorId);
+        if (!alive) return;
+        const normalized = Array.from(
+          new Set(
+            (Array.isArray(favoriteIds) ? favoriteIds : [])
+              .map((value) => String(value))
+              .filter(Boolean),
+          ),
+        );
+        setFavoritePropertyIds(normalized);
+      } catch (nextError) {
+        if (!alive) return;
+        setFavoritePropertyIds([]);
+        setFavoritesError(nextError?.message || "Failed to load favorites.");
+      }
+    })();
+
+    return () => {
+      alive = false;
+    };
+  }, [user?.investorId]);
 
   useEffect(() => {
     const investorId = user?.investorId;
@@ -227,14 +247,40 @@ export default function InvestorDashboard() {
     setFilters((prev) => ({ ...prev, q: searchInput }));
   }
 
-  function toggleFavoriteProperty(propertyId) {
+  async function toggleFavoriteProperty(propertyId) {
+    const investorId = user?.investorId;
+    if (!investorId) {
+      setFavoritesError("Missing investor identity. Please log out and log in again.");
+      return;
+    }
+
     const propertyIdKey = String(propertyId);
+    const wasFavorite = favoritePropertyIdSet.has(propertyIdKey);
+    setFavoritesError("");
+
     setFavoritePropertyIds((prev) => {
-      if (prev.includes(propertyIdKey)) {
+      if (wasFavorite) {
         return prev.filter((id) => id !== propertyIdKey);
       }
       return [...prev, propertyIdKey];
     });
+
+    try {
+      if (wasFavorite) {
+        await removeInvestorFavoriteProperty(investorId, propertyId);
+      } else {
+        await addInvestorFavoriteProperty(investorId, propertyId);
+      }
+    } catch (nextError) {
+      setFavoritePropertyIds((prev) => {
+        if (wasFavorite) {
+          if (prev.includes(propertyIdKey)) return prev;
+          return [...prev, propertyIdKey];
+        }
+        return prev.filter((id) => id !== propertyIdKey);
+      });
+      setFavoritesError(nextError?.message || "Failed to update favorites.");
+    }
   }
 
   function handleCardClick(property) {
@@ -455,6 +501,7 @@ export default function InvestorDashboard() {
         </div>
 
         <div className="invDash__listPane">
+          {favoritesError ? <div className="invDash__notice invDash__notice--error">{favoritesError}</div> : null}
           {loading ? <div className="invDash__notice">Loading properties...</div> : null}
           {!loading && error ? <div className="invDash__notice invDash__notice--error">{error}</div> : null}
           {!loading && !error && visibleRows.length === 0 ? <div className="invDash__notice">{emptyMessage}</div> : null}
@@ -482,7 +529,7 @@ export default function InvestorDashboard() {
                       onClick={(event) => {
                         event.preventDefault();
                         event.stopPropagation();
-                        toggleFavoriteProperty(property.id);
+                        void toggleFavoriteProperty(property.id);
                       }}
                       aria-label={isFavorite ? "Remove bookmark" : "Save bookmark"}
                       aria-pressed={isFavorite}
@@ -566,7 +613,7 @@ export default function InvestorDashboard() {
         isFavorite={detailProperty ? favoritePropertyIdSet.has(String(detailProperty.id)) : false}
         onToggleFavorite={() => {
           if (!detailProperty) return;
-          toggleFavoriteProperty(detailProperty.id);
+          void toggleFavoriteProperty(detailProperty.id);
         }}
         onClose={closePropertyDetails}
       />
