@@ -39,3 +39,18 @@ export async function searchInvestors(filters = {}, pageOpts = {}) {
     const { data } = await apiClient.get(`${BASE}/search`, { params });
     return data;
 }
+
+export async function getInvestorFavoritePropertyIds(investorId) {
+    const { data } = await apiClient.get(`${BASE}/${investorId}/favorites`);
+    return Array.isArray(data) ? data : [];
+}
+
+export async function addInvestorFavoriteProperty(investorId, propertyId) {
+    await apiClient.put(`${BASE}/${investorId}/favorites/${propertyId}`);
+    return true;
+}
+
+export async function removeInvestorFavoriteProperty(investorId, propertyId) {
+    await apiClient.delete(`${BASE}/${investorId}/favorites/${propertyId}`);
+    return true;
+}

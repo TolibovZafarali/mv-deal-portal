@@ -4,6 +4,7 @@ import com.megna.backend.interfaces.rest.dto.investor.InvestorResponseDto;
 import com.megna.backend.interfaces.rest.dto.investor.InvestorStatusUpdateRequestDto;
 import com.megna.backend.interfaces.rest.dto.investor.InvestorUpdateRequestDto;
 import com.megna.backend.domain.enums.InvestorStatus;
+import com.megna.backend.application.service.InvestorFavoriteService;
 import com.megna.backend.application.service.InvestorService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -17,6 +18,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/investors")
@@ -24,6 +26,7 @@ import java.time.LocalDateTime;
 public class InvestorController {
 
     private final InvestorService investorService;
+    private final InvestorFavoriteService investorFavoriteService;
 
     @GetMapping("/{id}")
     public InvestorResponseDto getById(@PathVariable Long id) {
@@ -41,6 +44,23 @@ public class InvestorController {
     @PutMapping("/{id}")
     public InvestorResponseDto update(@PathVariable Long id, @Valid @RequestBody InvestorUpdateRequestDto dto) {
         return investorService.update(id, dto);
+    }
+
+    @GetMapping("/{id}/favorites")
+    public List<Long> getFavoritePropertyIds(@PathVariable Long id) {
+        return investorFavoriteService.getFavoritePropertyIds(id);
+    }
+
+    @PutMapping("/{id}/favorites/{propertyId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void addFavoriteProperty(@PathVariable Long id, @PathVariable Long propertyId) {
+        investorFavoriteService.addFavorite(id, propertyId);
+    }
+
+    @DeleteMapping("/{id}/favorites/{propertyId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void removeFavoriteProperty(@PathVariable Long id, @PathVariable Long propertyId) {
+        investorFavoriteService.removeFavorite(id, propertyId);
     }
 
     @PreAuthorize("hasRole('ADMIN')")

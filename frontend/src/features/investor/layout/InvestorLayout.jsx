@@ -5,7 +5,7 @@ import InvestorAccountCenterModal from "@/features/investor/modals/InvestorAccou
 import "@/features/investor/layout/InvestorLayout.css";
 
 const PROFILE_TAB = "profile";
-const INQUIRIES_TAB = "inquiries";
+const MESSAGES_TAB = "messages";
 
 export default function InvestorLayout() {
   const { user, signOut } = useAuth();
@@ -35,15 +35,21 @@ export default function InvestorLayout() {
           <button
             className="investorHeader__actionBtn"
             type="button"
-            onClick={() => openAccount(INQUIRIES_TAB)}
+            onClick={() => openAccount(MESSAGES_TAB)}
           >
-            Inquiries
+            <span className="material-symbols-outlined investorHeader__actionIcon" aria-hidden="true">
+              forum
+            </span>
+            Messages
           </button>
           <button
             className="investorHeader__actionBtn"
             type="button"
             onClick={() => openAccount(PROFILE_TAB)}
           >
+            <span className="material-symbols-outlined investorHeader__actionIcon" aria-hidden="true">
+              person
+            </span>
             Profile
           </button>
         </div>

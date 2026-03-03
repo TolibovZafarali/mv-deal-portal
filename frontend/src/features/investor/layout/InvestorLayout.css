@@ -21,8 +21,8 @@
 }
 
 .investorBrand__logo {
-  width: 34px;
-  height: 34px;
+  width: 42px;
+  height: 42px;
 }
 
 .investorHeader__actions {
@@ -33,32 +33,31 @@
 }
 
 .investorHeader__actionBtn {
-  border: none;
+  border: 0.5px solid #f2f2f2;
   background: transparent;
   color: #f2f2f2;
   font-size: 14px;
   letter-spacing: 0.01em;
-  padding: 6px 4px;
+  padding: 10px 16px;
+  min-width: 132px;
   cursor: pointer;
-  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: background-color 180ms ease, color 180ms ease, border-color 180ms ease;
 }
 
-.investorHeader__actionBtn::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 1px;
-  height: 1px;
-  background: currentColor;
-  transform: scaleX(0);
-  transform-origin: center;
-  transition: transform 180ms ease;
+.investorHeader__actionBtn:hover,
+.investorHeader__actionBtn:focus-visible {
+  background: #f2f2f2;
+  color: #101010;
+  border-color: #f2f2f2;
 }
 
-.investorHeader__actionBtn:hover::after,
-.investorHeader__actionBtn:focus-visible::after {
-  transform: scaleX(1);
+.investorHeader__actionIcon {
+  font-size: 18px;
+  line-height: 1;
 }
 
 .investorMain {

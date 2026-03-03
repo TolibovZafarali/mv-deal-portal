@@ -5,7 +5,7 @@ import { getPropertyId } from "@/api/modules/propertyApi";
 import "@/features/investor/modals/InvestorAccountCenterModal.css";
 
 const PROFILE_TAB = "profile";
-const INQUIRIES_TAB = "inquiries";
+const MESSAGES_TAB = "messages";
 
 function cleanString(value) {
   return String(value ?? "").trim();
@@ -117,7 +117,7 @@ export default function InvestorAccountCenterModal({
   }, [open, investorId]);
 
   useEffect(() => {
-    if (!open || activeTab !== INQUIRIES_TAB || !investorId) return;
+    if (!open || activeTab !== MESSAGES_TAB || !investorId) return;
     let alive = true;
 
     async function loadInquiries() {
@@ -161,7 +161,7 @@ export default function InvestorAccountCenterModal({
         if (!alive) return;
         setInquiries([]);
         setPropertyAddressById({});
-        setInquiryError(error?.message || "Failed to load inquiries.");
+        setInquiryError(error?.message || "Failed to load messages.");
       } finally {
         if (alive) setInquiryLoading(false);
       }
@@ -248,13 +248,13 @@ export default function InvestorAccountCenterModal({
             <button
               type="button"
               role="tab"
-              aria-selected={activeTab === INQUIRIES_TAB}
+              aria-selected={activeTab === MESSAGES_TAB}
               className={`invAccountModal__tab ${
-                activeTab === INQUIRIES_TAB ? "invAccountModal__tab--active" : ""
+                activeTab === MESSAGES_TAB ? "invAccountModal__tab--active" : ""
               }`}
-              onClick={() => onTabChange(INQUIRIES_TAB)}
+              onClick={() => onTabChange(MESSAGES_TAB)}
             >
-              Inquiries
+              Messages
             </button>
           </div>
 
@@ -350,11 +350,11 @@ export default function InvestorAccountCenterModal({
             </section>
           ) : null}
 
-          {!missingInvestor && activeTab === INQUIRIES_TAB ? (
-            <section className="invAccountModal__panel" aria-label="Inquiries">
-              <h3 className="invAccountModal__panelTitle">Inquiries</h3>
+          {!missingInvestor && activeTab === MESSAGES_TAB ? (
+            <section className="invAccountModal__panel" aria-label="Messages">
+              <h3 className="invAccountModal__panelTitle">Messages</h3>
 
-              {inquiryLoading ? <div className="invAccountModal__notice">Loading inquiries...</div> : null}
+              {inquiryLoading ? <div className="invAccountModal__notice">Loading messages...</div> : null}
               {!inquiryLoading && inquiryError ? (
                 <div className="invAccountModal__notice invAccountModal__notice--error">
                   {inquiryError}
@@ -366,7 +366,7 @@ export default function InvestorAccountCenterModal({
                   <div className="invAccountModal__group">
                     <h4>Active</h4>
                     {activeInquiries.length === 0 ? (
-                      <div className="invAccountModal__empty">No active inquiries.</div>
+                      <div className="invAccountModal__empty">No active messages.</div>
                     ) : (
                       <div className="invAccountModal__rows">
                         <div className="invAccountModal__row invAccountModal__row--head">
@@ -390,7 +390,7 @@ export default function InvestorAccountCenterModal({
                   <div className="invAccountModal__group">
                     <h4>Responded (check email)</h4>
                     {respondedInquiries.length === 0 ? (
-                      <div className="invAccountModal__empty">No responded inquiries.</div>
+                      <div className="invAccountModal__empty">No responded messages.</div>
                     ) : (
                       <div className="invAccountModal__rows">
                         <div className="invAccountModal__row invAccountModal__row--head">
