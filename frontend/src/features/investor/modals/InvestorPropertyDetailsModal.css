@@ -87,6 +87,12 @@
   overflow-y: hidden;
   scrollbar-width: none;
   -ms-overflow-style: none;
+  cursor: grab;
+  touch-action: pan-y;
+}
+
+.invPropDetail__photoScroller--dragging {
+  cursor: grabbing;
 }
 
 .invPropDetail__photoScroller::-webkit-scrollbar {
@@ -99,13 +105,15 @@
   padding: 0;
   border: none;
   background: transparent;
-  cursor: zoom-in;
+  cursor: inherit;
 }
 
 .invPropDetail__photoSlideImg {
   object-fit: cover;
   object-position: center;
   display: block;
+  user-select: none;
+  -webkit-user-drag: none;
 }
 
 .invPropDetail__photoProgress {

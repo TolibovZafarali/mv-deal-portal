@@ -39,7 +39,9 @@ function enumLabel(value) {
 function fullAddress(property) {
   if (!property) return "";
   const line1 = [property.street1, property.street2].filter(Boolean).join(", ");
-  return [line1, property.city, property.state, property.zip].filter(Boolean).join(", ");
+  const cityState = [property.city, property.state].filter(Boolean).join(", ");
+  const cityStateZip = [cityState, property.zip].filter(Boolean).join(" ");
+  return [line1, cityStateZip].filter(Boolean).join(", ");
 }
 
 function potentialProfit(property) {
@@ -90,6 +92,16 @@ export default function InvestorPropertyDetailsModal({
   const photoScrollerRef = useRef(null);
   const photoProgressFillRef = useRef(null);
   const messageSectionRef = useRef(null);
+  const photoDragStateRef = useRef({
+    active: false,
+    pointerId: null,
+    startX: 0,
+    startScrollLeft: 0,
+    moved: false,
+    captured: false,
+  });
+  const suppressPhotoClickRef = useRef(false);
+
   const closeModal = useCallback(() => {
     setPhotoPreviewOpen(false);
     onClose?.();
@@ -175,6 +187,21 @@ export default function InvestorPropertyDetailsModal({
     };
   }, [open, photos.length]);
 
+  useEffect(() => {
+    if (open) return;
+    const rail = photoScrollerRef.current;
+    photoDragStateRef.current = {
+      active: false,
+      pointerId: null,
+      startX: 0,
+      startScrollLeft: 0,
+      moved: false,
+      captured: false,
+    };
+    suppressPhotoClickRef.current = false;
+    rail?.classList.remove("invPropDetail__photoScroller--dragging");
+  }, [open]);
+
   if (!open || !property) return null;
 
   function movePreviewPhoto(step) {
@@ -184,6 +211,65 @@ export default function InvestorPropertyDetailsModal({
       const currentIndex = prev >= 0 && prev < photos.length ? prev : 0;
       return (currentIndex + step + photos.length) % photos.length;
     });
+  }
+
+  function handlePhotoScrollerPointerDown(event) {
+    if (event.pointerType !== "mouse" || event.button !== 0) return;
+
+    const rail = photoScrollerRef.current;
+    if (!rail) return;
+    if (rail.scrollWidth <= rail.clientWidth) return;
+
+    photoDragStateRef.current = {
+      active: true,
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startScrollLeft: rail.scrollLeft,
+      moved: false,
+      captured: false,
+    };
+    suppressPhotoClickRef.current = false;
+  }
+
+  function handlePhotoScrollerPointerMove(event) {
+    const rail = photoScrollerRef.current;
+    const drag = photoDragStateRef.current;
+    if (!rail || !drag.active || event.pointerId !== drag.pointerId) return;
+
+    const deltaX = event.clientX - drag.startX;
+    if (!drag.moved && Math.abs(deltaX) > 6) {
+      drag.moved = true;
+      suppressPhotoClickRef.current = true;
+      rail.setPointerCapture(event.pointerId);
+      drag.captured = true;
+      rail.classList.add("invPropDetail__photoScroller--dragging");
+    }
+
+    if (!drag.moved) return;
+
+    rail.scrollLeft = drag.startScrollLeft - deltaX;
+    event.preventDefault();
+  }
+
+  function finishPhotoScrollerPointerDrag(event) {
+    const rail = photoScrollerRef.current;
+    const drag = photoDragStateRef.current;
+    if (!rail || !drag.active || event.pointerId !== drag.pointerId) return;
+
+    suppressPhotoClickRef.current = drag.moved;
+    photoDragStateRef.current = {
+      active: false,
+      pointerId: null,
+      startX: 0,
+      startScrollLeft: 0,
+      moved: false,
+      captured: false,
+    };
+    rail.classList.remove("invPropDetail__photoScroller--dragging");
+
+    if (drag.captured && rail.hasPointerCapture(event.pointerId)) {
+      rail.releasePointerCapture(event.pointerId);
+    }
   }
 
   function scrollToMessageSection() {
@@ -225,6 +311,16 @@ export default function InvestorPropertyDetailsModal({
                   role="list"
                   aria-label="Property photos"
                   ref={photoScrollerRef}
+                  onPointerDown={handlePhotoScrollerPointerDown}
+                  onPointerMove={handlePhotoScrollerPointerMove}
+                  onPointerUp={finishPhotoScrollerPointerDrag}
+                  onPointerCancel={finishPhotoScrollerPointerDrag}
+                  onClickCapture={(event) => {
+                    if (!suppressPhotoClickRef.current) return;
+                    event.preventDefault();
+                    event.stopPropagation();
+                    suppressPhotoClickRef.current = false;
+                  }}
                 >
                   {photos.map((photo, idx) => (
                     <button
