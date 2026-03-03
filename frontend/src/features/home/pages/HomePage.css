@@ -667,15 +667,6 @@ body.homeHideScrollbar::-webkit-scrollbar {
   animation-delay: calc(var(--deal-stagger, 0ms) + 260ms);
 }
 
-.homeDeals__swipeHint {
-  margin-top: 10px;
-  font-size: 12px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: rgba(242, 242, 242, 0.72);
-  animation: homeSwipeHintPulse 1400ms ease-in-out infinite;
-}
-
 .homeDeals__ctaRow {
   margin-top: clamp(18px, 2.2vw, 30px);
   display: flex;
@@ -789,6 +780,179 @@ body.homeHideScrollbar::-webkit-scrollbar {
   line-height: 1.55;
 }
 
+.homeReady {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(180deg, #121212 0%, #0f0f0f 100%);
+  border-top: 1px solid rgba(242, 242, 242, 0.1);
+}
+
+.homeReady__ambient {
+  position: absolute;
+  inset: -18% -12%;
+  pointer-events: none;
+  background:
+    radial-gradient(900px 320px at 14% 0%, rgba(242, 242, 242, 0.09) 0%, rgba(242, 242, 242, 0) 75%),
+    radial-gradient(760px 300px at 86% 10%, rgba(242, 242, 242, 0.07) 0%, rgba(242, 242, 242, 0) 78%);
+  -webkit-mask-image: radial-gradient(120% 95% at 50% 45%, #000 62%, transparent 100%);
+  mask-image: radial-gradient(120% 95% at 50% 45%, #000 62%, transparent 100%);
+  animation: homeSweepFloat 18s ease-in-out infinite;
+}
+
+.homeReady__inner {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  padding: clamp(22px, 2.6vw, 36px);
+}
+
+.homeReady__head {
+  width: 100%;
+}
+
+.homeReady__eyebrow {
+  margin: 0;
+  color: rgba(242, 242, 242, 0.72);
+  font-size: 13px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.homeReady__title {
+  margin: 12px 0 0;
+  width: 100%;
+  font-size: clamp(34px, 5vw, 66px);
+  line-height: 1.04;
+  letter-spacing: -0.03em;
+}
+
+.homeReady__lead {
+  margin: 14px 0 0;
+  color: rgba(242, 242, 242, 0.8);
+  font-size: clamp(17px, 2vw, 22px);
+  line-height: 1.5;
+}
+
+.homeReady__roles {
+  margin-top: 24px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.homeReady__roleCard {
+  border: 1px solid rgba(242, 242, 242, 0.14);
+  background: linear-gradient(160deg, rgba(242, 242, 242, 0.1) 0%, rgba(242, 242, 242, 0.03) 86%);
+  padding: 22px;
+}
+
+.homeReady__roleCard--investor {
+  box-shadow: inset 0 1px 0 rgba(242, 242, 242, 0.1);
+}
+
+.homeReady__roleCard--seller {
+  box-shadow: inset 0 1px 0 rgba(242, 242, 242, 0.08);
+}
+
+.homeReady__roleTag {
+  margin: 0;
+  color: rgba(242, 242, 242, 0.66);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.homeReady__roleTitle {
+  margin: 10px 0 0;
+  font-size: 28px;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+}
+
+.homeReady__roleText {
+  margin: 12px 0 0;
+  color: rgba(242, 242, 242, 0.78);
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+.homeReady__roleCard .homeReady__btn {
+  margin-top: 16px;
+}
+
+.homeReady__authed {
+  margin-top: 24px;
+  border: 1px solid rgba(242, 242, 242, 0.16);
+  background: linear-gradient(160deg, rgba(242, 242, 242, 0.1) 0%, rgba(242, 242, 242, 0.03) 86%);
+  padding: 22px;
+  max-width: 620px;
+}
+
+.homeReady__authedText {
+  margin: 0 0 14px;
+  color: rgba(242, 242, 242, 0.8);
+  font-size: 16px;
+  letter-spacing: 0.02em;
+}
+
+.homeReady__foot {
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.homeReady__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(242, 242, 242, 0.32);
+  background: rgba(242, 242, 242, 0.14);
+  color: rgba(242, 242, 242, 0.95);
+  padding: 12px 18px;
+  font-size: 14px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  transition:
+    transform 180ms ease,
+    background 180ms ease,
+    border-color 180ms ease,
+    box-shadow 180ms ease,
+    color 180ms ease;
+}
+
+.homeReady__btn--wide {
+  width: 100%;
+}
+
+.homeReady__btn--ghost {
+  background: transparent;
+}
+
+.homeReady__btn:hover {
+  transform: translateY(-2px);
+  background: rgba(242, 242, 242, 0.24);
+  border-color: rgba(242, 242, 242, 0.52);
+  box-shadow: 0 12px 22px rgba(0, 0, 0, 0.24);
+}
+
+.homeReady__btn--ghost:hover {
+  background: rgba(242, 242, 242, 0.12);
+}
+
+.homeReady__btn:active {
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+.homeReady__btn:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 2px rgba(16, 16, 16, 0.95),
+    0 0 0 3px rgba(242, 242, 242, 0.62);
+}
+
 @keyframes homeSweepFloat {
   0% {
     transform: translateX(-2%) translateY(0);
@@ -812,21 +976,6 @@ body.homeHideScrollbar::-webkit-scrollbar {
   to {
     opacity: 1;
     transform: translateY(0);
-  }
-}
-
-@keyframes homeSwipeHintPulse {
-  0% {
-    transform: translateX(0);
-    opacity: 0.72;
-  }
-  40% {
-    transform: translateX(8px);
-    opacity: 1;
-  }
-  100% {
-    transform: translateX(0);
-    opacity: 0.72;
   }
 }
 
@@ -916,6 +1065,26 @@ body.homeHideScrollbar::-webkit-scrollbar {
     min-height: auto;
     padding: 20px 18px;
   }
+
+  .homeReady__roles {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .homeReady__roleTitle {
+    font-size: 24px;
+  }
+
+  .homeReady__foot {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .homeReady__btn,
+  .homeReady__btn--wide {
+    width: 100%;
+    text-align: center;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -942,10 +1111,6 @@ body.homeHideScrollbar::-webkit-scrollbar {
     opacity: 1;
     transform: none;
     animation: none !important;
-  }
-
-  .homeDeals__swipeHint {
-    animation: none;
   }
 
   .homeHow__card {

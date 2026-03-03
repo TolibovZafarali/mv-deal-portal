@@ -30,7 +30,6 @@ export default function HomePage({ location, isAuthed, bootstrapping }) {
     const [homeHowVisible, setHomeHowVisible] = useState(false);
     const [homeDealsVisible, setHomeDealsVisible] = useState(false);
     const [activeDealIndex, setActiveDealIndex] = useState(0);
-    const [dealsHintHidden, setDealsHintHidden] = useState(false);
     const [whyStats, setWhyStats] = useState({ hours: 0, multiplier: 0, percent: 0 });
 
     useEffect(() => {
@@ -205,36 +204,17 @@ export default function HomePage({ location, isAuthed, bootstrapping }) {
         };
 
         const onRailScroll = () => {
-            if (!dealsHintHidden && railEl.scrollLeft > 12) {
-                setDealsHintHidden(true);
-            }
             updateActiveCard();
-        };
-
-        const hideHint = () => {
-            if (!dealsHintHidden) setDealsHintHidden(true);
         };
 
         updateActiveCard();
         railEl.addEventListener("scroll", onRailScroll, { passive: true });
-        railEl.addEventListener("wheel", hideHint, { passive: true });
-        railEl.addEventListener("touchstart", hideHint, { passive: true });
-        railEl.addEventListener("pointerdown", hideHint, { passive: true });
         window.addEventListener("resize", updateActiveCard, { passive: true });
 
         return () => {
             railEl.removeEventListener("scroll", onRailScroll);
-            railEl.removeEventListener("wheel", hideHint);
-            railEl.removeEventListener("touchstart", hideHint);
-            railEl.removeEventListener("pointerdown", hideHint);
             window.removeEventListener("resize", updateActiveCard);
         };
-    }, [closedDeals.length, dealsHintHidden]);
-
-    useEffect(() => {
-        if (!closedDeals.length) return;
-        setDealsHintHidden(false);
-        setActiveDealIndex(0);
     }, [closedDeals.length]);
 
     useEffect(() => {
@@ -462,10 +442,6 @@ export default function HomePage({ location, isAuthed, bootstrapping }) {
                                 })}
                             </div>
                         ) : null}
-                        {!closedDealsLoading && !closedDealsError && closedDeals.length > 1 && !dealsHintHidden ? (
-                            <div className="homeDeals__swipeHint" aria-hidden="true">Swipe to see more</div>
-                        ) : null}
-
                     </div>
                 </section>
 
@@ -506,6 +482,73 @@ export default function HomePage({ location, isAuthed, bootstrapping }) {
                                 </p>
                             </article>
                         </div>
+                    </div>
+                </section>
+
+                <section className="homeReady" aria-label="Get Started">
+                    <div className="homeReady__ambient" aria-hidden="true" />
+                    <div className="homeReady__inner">
+                        <div className="homeReady__head">
+                            <p className="homeReady__eyebrow">Get Started</p>
+                            <h2 className="homeReady__title">Choose your role. Move deals forward faster.</h2>
+                            <p className="homeReady__lead">
+                                One platform for both sides of the transaction, built to keep momentum from first
+                                conversation to close.
+                            </p>
+                        </div>
+
+                        {isAuthed ? (
+                            <div className="homeReady__authed">
+                                <p className="homeReady__authedText">Your workspace is ready.</p>
+                                <Link to="/app" className="homeReady__btn homeReady__btn--wide">
+                                    Open Dashboard
+                                </Link>
+                            </div>
+                        ) : (
+                            <div className="homeReady__roles">
+                                <article className="homeReady__roleCard homeReady__roleCard--investor">
+                                    <p className="homeReady__roleTag">Investor</p>
+                                    <h3 className="homeReady__roleTitle">Source vetted opportunities</h3>
+                                    <p className="homeReady__roleText">
+                                        Get matched with active opportunities and evaluate them in a clean pipeline.
+                                    </p>
+                                    <Link
+                                        to="/signup"
+                                        className="homeReady__btn homeReady__btn--wide"
+                                        state={{ backgroundLocation: location, modal: true, signupRole: "INVESTOR" }}
+                                    >
+                                        Join as Investor
+                                    </Link>
+                                </article>
+
+                                <article className="homeReady__roleCard homeReady__roleCard--seller">
+                                    <p className="homeReady__roleTag">Seller</p>
+                                    <h3 className="homeReady__roleTitle">Present deals with clarity</h3>
+                                    <p className="homeReady__roleText">
+                                        Share your properties, manage updates, and connect with serious buyers faster.
+                                    </p>
+                                    <Link
+                                        to="/signup/seller"
+                                        className="homeReady__btn homeReady__btn--wide"
+                                        state={{ backgroundLocation: location, modal: true, signupRole: "SELLER" }}
+                                    >
+                                        Join as Seller
+                                    </Link>
+                                </article>
+                            </div>
+                        )}
+
+                        {!isAuthed ? (
+                            <div className="homeReady__foot">
+                                <Link
+                                    to="/login"
+                                    className="homeReady__btn homeReady__btn--ghost"
+                                    state={{ backgroundLocation: location, modal: true }}
+                                >
+                                    Sign In
+                                </Link>
+                            </div>
+                        ) : null}
                     </div>
                 </section>
             </main>
