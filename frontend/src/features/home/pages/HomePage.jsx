@@ -3,26 +3,149 @@ import "@/features/home/pages/HomePage.css"
 import { useEffect, useRef, useState } from "react";
 import { getClosedPropertyPreviews } from "@/api/modules/propertyApi";
 
+const ROLE_INVESTOR = "INVESTOR";
+const ROLE_SELLER = "SELLER";
+const HOME_ROLE_STORAGE_KEY = "home.selectedRole";
+const WHY_STATS_TARGETS = { hours: 24, multiplier: 3, percent: 100 };
+const HERO_CTA_ROW_STYLE = { display: "flex", gap: "12px", flexWrap: "wrap" };
+
+const ROLE_CONTENT = {
+    [ROLE_SELLER]: {
+        heroTitle: "Sell with more clarity. Close with serious buyers.",
+        heroSubtitle: "Cleaner presentation. Faster buyer matching. Fewer dead-end conversations.",
+        heroCtaLabel: "Join as Seller",
+        heroCtaTo: "/signup/seller",
+        whyTitle: "Built for selling with speed and confidence.",
+        whyLead:
+            "Megna helps sellers present deals clearly, attract qualified buyers, and keep momentum to close.",
+        whyStatLabels: [
+            "avg. buyer response window",
+            "faster buyer matching",
+            "focused on qualified demand",
+        ],
+        whyCards: [
+            {
+                title: "Structured deal presentation",
+                text: "Show properties with consistent data so serious buyers can evaluate quickly.",
+            },
+            {
+                title: "Qualified buyer visibility",
+                text: "Reach active investors instead of wasting time with low-intent inquiries.",
+            },
+            {
+                title: "Clear decision workflow",
+                text: "Track updates, feedback, and next actions in one focused flow.",
+            },
+        ],
+        dealsTitle: "Recently closed outcomes from seller-side flow.",
+        dealsLead: "See how completed opportunities were positioned and closed through a cleaner process.",
+        howTitle: "From listing to close in three clear steps.",
+        howLead: "A no-noise seller workflow built for speed and qualified demand.",
+        howSteps: [
+            {
+                title: "Publish your deal",
+                text: "Share a clear deal profile so qualified buyers can evaluate it fast.",
+            },
+            {
+                title: "Connect with serious buyers",
+                text: "Review interest from active investors with cleaner context and fewer distractions.",
+            },
+            {
+                title: "Move to close confidently",
+                text: "Keep communication and decisions aligned until final execution.",
+            },
+        ],
+        readyTitle: "Start selling. Keep every deal moving.",
+        readyLead: "Present opportunities clearly and connect with qualified buyers faster.",
+    },
+    [ROLE_INVESTOR]: {
+        heroTitle: "Real estate deals that are worth your attention.",
+        heroSubtitle: "Clean pipeline. Serious opportunities. Zero noise.",
+        heroCtaLabel: "Join as Buyer",
+        heroCtaTo: "/signup",
+        whyTitle: "Built for buying with speed and clarity.",
+        whyLead:
+            "Megna gives buyers cleaner deal flow, faster evaluation, and a workflow built for real execution.",
+        whyStatLabels: [
+            "avg. response window",
+            "faster deal triage",
+            "focused on off-market flow",
+        ],
+        whyCards: [
+            {
+                title: "Vetted opportunities",
+                text: "Every listing is reviewed for core deal quality so you can focus on what matters.",
+            },
+            {
+                title: "Fast investor matching",
+                text: "Connect with active buyers quickly instead of wasting weeks chasing cold leads.",
+            },
+            {
+                title: "No-noise workflow",
+                text: "One clean pipeline to track opportunities, decisions, and next actions.",
+            },
+        ],
+        dealsTitle: "A look at recently closed deals.",
+        dealsLead: "Simple snapshots of completed opportunities. Active inventory remains private for approved members.",
+        howTitle: "From buy-box to closed deal in three clear steps.",
+        howLead: "No noise, no guesswork. A direct flow designed for buyers who need speed and clarity.",
+        howSteps: [
+            {
+                title: "Set your criteria",
+                text: "Define market, budget, and strategy so your deal flow matches your exact buy box.",
+            },
+            {
+                title: "Review matched deals",
+                text: "Analyze vetted opportunities quickly with clean property data and concise financial context.",
+            },
+            {
+                title: "Move to close faster",
+                text: "Engage directly and track decisions in one focused pipeline built for serious execution.",
+            },
+        ],
+        readyTitle: "Start buying. Move with confidence.",
+        readyLead: "Access vetted opportunities and evaluate them in a cleaner, faster flow.",
+    },
+};
+
+function money(value) {
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric)) return "—";
+    return numeric.toLocaleString("en-US", {
+        style: "currency",
+        currency: "USD",
+        maximumFractionDigits: 0,
+    });
+}
+
+function fullAddress(property) {
+    const line1 = [property?.street1, property?.street2].filter(Boolean).join(", ");
+    return [line1, property?.city, property?.state, property?.zip].filter(Boolean).join(", ");
+}
+
+function getInitialRole(location) {
+    const stateRole = location.state?.signupRole;
+    if (stateRole === ROLE_INVESTOR || stateRole === ROLE_SELLER) {
+        return stateRole;
+    }
+
+    if (typeof window === "undefined") {
+        return ROLE_INVESTOR;
+    }
+
+    try {
+        const storedRole = window.localStorage.getItem(HOME_ROLE_STORAGE_KEY);
+        if (storedRole === ROLE_INVESTOR || storedRole === ROLE_SELLER) {
+            return storedRole;
+        }
+    } catch {
+        // Ignore storage restrictions and keep default role.
+    }
+
+    return ROLE_INVESTOR;
+}
+
 export default function HomePage({ location, isAuthed, bootstrapping }) {
-    const ROLE_INVESTOR = "INVESTOR";
-    const ROLE_SELLER = "SELLER";
-    const HOME_ROLE_STORAGE_KEY = "home.selectedRole";
-
-    function money(value) {
-        const numeric = Number(value);
-        if (!Number.isFinite(numeric)) return "—";
-        return numeric.toLocaleString("en-US", {
-            style: "currency",
-            currency: "USD",
-            maximumFractionDigits: 0,
-        });
-    }
-
-    function fullAddress(property) {
-        const line1 = [property?.street1, property?.street2].filter(Boolean).join(", ");
-        return [line1, property?.city, property?.state, property?.zip].filter(Boolean).join(", ");
-    }
-
     const homeRef = useRef(null);
     const homeWhyRef = useRef(null);
     const homeDealsRef = useRef(null);
@@ -35,117 +158,8 @@ export default function HomePage({ location, isAuthed, bootstrapping }) {
     const [homeDealsVisible, setHomeDealsVisible] = useState(false);
     const [activeDealIndex, setActiveDealIndex] = useState(0);
     const [whyStats, setWhyStats] = useState({ hours: 0, multiplier: 0, percent: 0 });
-    const [selectedRole, setSelectedRole] = useState(() => {
-        const stateRole = location.state?.signupRole;
-        if (stateRole === ROLE_INVESTOR || stateRole === ROLE_SELLER) {
-            return stateRole;
-        }
-
-        const storedRole = window.localStorage.getItem(HOME_ROLE_STORAGE_KEY);
-        if (storedRole === ROLE_INVESTOR || storedRole === ROLE_SELLER) {
-            return storedRole;
-        }
-
-        return ROLE_INVESTOR;
-    });
-
-    const roleContent = selectedRole === ROLE_SELLER
-        ? {
-            heroTitle: "Sell with more clarity. Close with serious buyers.",
-            heroSubtitle: "Cleaner presentation. Faster buyer matching. Fewer dead-end conversations.",
-            heroCtaLabel: "Join as Seller",
-            heroCtaTo: "/signup/seller",
-            whyTitle: "Built for selling with speed and confidence.",
-            whyLead:
-                "Megna helps sellers present deals clearly, attract qualified buyers, and keep momentum to close.",
-            whyStatLabels: [
-                "avg. buyer response window",
-                "faster buyer matching",
-                "focused on qualified demand",
-            ],
-            whyCards: [
-                {
-                    title: "Structured deal presentation",
-                    text: "Show properties with consistent data so serious buyers can evaluate quickly.",
-                },
-                {
-                    title: "Qualified buyer visibility",
-                    text: "Reach active investors instead of wasting time with low-intent inquiries.",
-                },
-                {
-                    title: "Clear decision workflow",
-                    text: "Track updates, feedback, and next actions in one focused flow.",
-                },
-            ],
-            dealsTitle: "Recently closed outcomes from seller-side flow.",
-            dealsLead: "See how completed opportunities were positioned and closed through a cleaner process.",
-            howTitle: "From listing to close in three clear steps.",
-            howLead: "A no-noise seller workflow built for speed and qualified demand.",
-            howSteps: [
-                {
-                    title: "Publish your deal",
-                    text: "Share a clear deal profile so qualified buyers can evaluate it fast.",
-                },
-                {
-                    title: "Connect with serious buyers",
-                    text: "Review interest from active investors with cleaner context and fewer distractions.",
-                },
-                {
-                    title: "Move to close confidently",
-                    text: "Keep communication and decisions aligned until final execution.",
-                },
-            ],
-            readyTitle: "Start selling. Keep every deal moving.",
-            readyLead: "Present opportunities clearly and connect with qualified buyers faster.",
-        }
-        : {
-            heroTitle: "Real estate deals that are worth your attention.",
-            heroSubtitle: "Clean pipeline. Serious opportunities. Zero noise.",
-            heroCtaLabel: "Join as Buyer",
-            heroCtaTo: "/signup",
-            whyTitle: "Built for buying with speed and clarity.",
-            whyLead:
-                "Megna gives buyers cleaner deal flow, faster evaluation, and a workflow built for real execution.",
-            whyStatLabels: [
-                "avg. response window",
-                "faster deal triage",
-                "focused on off-market flow",
-            ],
-            whyCards: [
-                {
-                    title: "Vetted opportunities",
-                    text: "Every listing is reviewed for core deal quality so you can focus on what matters.",
-                },
-                {
-                    title: "Fast investor matching",
-                    text: "Connect with active buyers quickly instead of wasting weeks chasing cold leads.",
-                },
-                {
-                    title: "No-noise workflow",
-                    text: "One clean pipeline to track opportunities, decisions, and next actions.",
-                },
-            ],
-            dealsTitle: "A look at recently closed deals.",
-            dealsLead: "Simple snapshots of completed opportunities. Active inventory remains private for approved members.",
-            howTitle: "From buy-box to closed deal in three clear steps.",
-            howLead: "No noise, no guesswork. A direct flow designed for buyers who need speed and clarity.",
-            howSteps: [
-                {
-                    title: "Set your criteria",
-                    text: "Define market, budget, and strategy so your deal flow matches your exact buy box.",
-                },
-                {
-                    title: "Review matched deals",
-                    text: "Analyze vetted opportunities quickly with clean property data and concise financial context.",
-                },
-                {
-                    title: "Move to close faster",
-                    text: "Engage directly and track decisions in one focused pipeline built for serious execution.",
-                },
-            ],
-            readyTitle: "Start buying. Move with confidence.",
-            readyLead: "Access vetted opportunities and evaluate them in a cleaner, faster flow.",
-        };
+    const [selectedRole, setSelectedRole] = useState(() => getInitialRole(location));
+    const roleContent = ROLE_CONTENT[selectedRole] || ROLE_CONTENT[ROLE_INVESTOR];
 
     useEffect(() => {
         document.documentElement.classList.add("homeHideScrollbar");
@@ -230,7 +244,6 @@ export default function HomePage({ location, isAuthed, bootstrapping }) {
         const sectionEl = homeWhyRef.current;
         if (!sectionEl) return undefined;
 
-        const targets = { hours: 48, multiplier: 3, percent: 100 };
         const durationMs = 1450;
         let rafId = 0;
 
@@ -243,17 +256,27 @@ export default function HomePage({ location, isAuthed, bootstrapping }) {
                 const step = (now) => {
                     const progress = Math.min((now - startedAt) / durationMs, 1);
                     const eased = 1 - Math.pow(1 - progress, 3);
+                    const nextStats = {
+                        hours: Math.round(WHY_STATS_TARGETS.hours * eased),
+                        multiplier: Math.round(WHY_STATS_TARGETS.multiplier * eased),
+                        percent: Math.round(WHY_STATS_TARGETS.percent * eased),
+                    };
 
-                    setWhyStats({
-                        hours: Math.round(targets.hours * eased),
-                        multiplier: Math.round(targets.multiplier * eased),
-                        percent: Math.round(targets.percent * eased),
+                    setWhyStats((prev) => {
+                        if (
+                            prev.hours === nextStats.hours
+                            && prev.multiplier === nextStats.multiplier
+                            && prev.percent === nextStats.percent
+                        ) {
+                            return prev;
+                        }
+                        return nextStats;
                     });
 
                     if (progress < 1) {
                         rafId = window.requestAnimationFrame(step);
                     } else {
-                        setWhyStats(targets);
+                        setWhyStats(WHY_STATS_TARGETS);
                     }
                 };
 
@@ -297,11 +320,10 @@ export default function HomePage({ location, isAuthed, bootstrapping }) {
     useEffect(() => {
         const railEl = dealsRailRef.current;
         if (!railEl) return undefined;
+        const cards = Array.from(railEl.querySelectorAll(".homeDeals__card"));
+        if (!cards.length) return undefined;
 
         const updateActiveCard = () => {
-            const cards = Array.from(railEl.querySelectorAll(".homeDeals__card"));
-            if (!cards.length) return;
-
             const railCenter = railEl.scrollLeft + (railEl.clientWidth / 2);
             let bestIndex = 0;
             let bestDistance = Number.POSITIVE_INFINITY;
@@ -315,7 +337,7 @@ export default function HomePage({ location, isAuthed, bootstrapping }) {
                 }
             });
 
-            setActiveDealIndex(bestIndex);
+            setActiveDealIndex((prev) => (prev === bestIndex ? prev : bestIndex));
         };
 
         const onRailScroll = () => {
@@ -361,7 +383,14 @@ export default function HomePage({ location, isAuthed, bootstrapping }) {
     }, [location.state?.signupRole]);
 
     useEffect(() => {
-        window.localStorage.setItem(HOME_ROLE_STORAGE_KEY, selectedRole);
+        if (typeof window === "undefined") {
+            return;
+        }
+        try {
+            window.localStorage.setItem(HOME_ROLE_STORAGE_KEY, selectedRole);
+        } catch {
+            // Ignore storage restrictions and continue without persistence.
+        }
     }, [selectedRole]);
     
     // Don't flash homepage while the app is still checking the token
@@ -394,9 +423,9 @@ export default function HomePage({ location, isAuthed, bootstrapping }) {
                         ) : (
                             <>
                                 <Link
-                                    to={selectedRole === ROLE_SELLER ? "/signup/seller" : "/signup"}
+                                    to="/signup"
                                     className="homeHeader__link"
-                                    state={{ backgroundLocation: location, modal: true, signupRole: selectedRole }}
+                                    state={{ backgroundLocation: location, modal: true }}
                                 >
                                     Sign Up
                                 </Link>
@@ -453,7 +482,7 @@ export default function HomePage({ location, isAuthed, bootstrapping }) {
                             </p>
 
                             {!isAuthed && (
-                                <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
+                                <div style={HERO_CTA_ROW_STYLE}>
                                     <Link
                                         to={roleContent.heroCtaTo}
                                         className="homeHero__cta"

@@ -387,12 +387,15 @@ body.homeHideScrollbar::-webkit-scrollbar {
 
 .homeWhyUs__ambient {
   position: absolute;
-  inset: 0;
+  inset: -10% -4%;
   pointer-events: none;
   background:
     radial-gradient(800px 300px at 12% 0%, rgba(242, 242, 242, 0.09) 0%, rgba(242, 242, 242, 0) 70%),
     radial-gradient(640px 280px at 88% 8%, rgba(242, 242, 242, 0.07) 0%, rgba(242, 242, 242, 0) 72%);
   opacity: 0.75;
+  filter: blur(8px);
+  -webkit-mask-image: radial-gradient(120% 120% at 50% 45%, #000 62%, rgba(0, 0, 0, 0.32) 82%, transparent 100%);
+  mask-image: radial-gradient(120% 120% at 50% 45%, #000 62%, rgba(0, 0, 0, 0.32) 82%, transparent 100%);
   animation: homeSweepFloat 14s ease-in-out infinite;
 }
 
