@@ -1,9 +1,28 @@
 import { Link } from "react-router-dom";
 import "@/features/home/pages/HomePage.css"
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import { getClosedPropertyPreviews } from "@/api/modules/propertyApi";
 
 export default function HomePage({ location, isAuthed, bootstrapping }) {
+    function money(value) {
+        const numeric = Number(value);
+        if (!Number.isFinite(numeric)) return "—";
+        return numeric.toLocaleString("en-US", {
+            style: "currency",
+            currency: "USD",
+            maximumFractionDigits: 0,
+        });
+    }
+
+    function fullAddress(property) {
+        const line1 = [property?.street1, property?.street2].filter(Boolean).join(", ");
+        return [line1, property?.city, property?.state, property?.zip].filter(Boolean).join(", ");
+    }
+
     const homeRef = useRef(null);
+    const [closedDeals, setClosedDeals] = useState([]);
+    const [closedDealsLoading, setClosedDealsLoading] = useState(true);
+    const [closedDealsError, setClosedDealsError] = useState("");
 
     useEffect(() => {
         document.documentElement.classList.add("homeHideScrollbar");
@@ -43,6 +62,33 @@ export default function HomePage({ location, isAuthed, bootstrapping }) {
             document.documentElement.classList.remove("homeHideScrollbar");
             document.documentElement.classList.remove("homeSmoothScroll");
             document.body.classList.remove("homeHideScrollbar");
+        };
+    }, []);
+
+    useEffect(() => {
+        let alive = true;
+
+        (async () => {
+            setClosedDealsLoading(true);
+            setClosedDealsError("");
+
+            try {
+                const response = await getClosedPropertyPreviews({ page: 0, size: 6, sort: "createdAt,desc" });
+
+                if (!alive) return;
+                const rows = Array.isArray(response?.content) ? response.content : [];
+                setClosedDeals(rows);
+            } catch (error) {
+                if (!alive) return;
+                setClosedDeals([]);
+                setClosedDealsError(error?.message || "Failed to load featured deals.");
+            } finally {
+                if (alive) setClosedDealsLoading(false);
+            }
+        })();
+
+        return () => {
+            alive = false;
         };
     }, []);
     
@@ -173,6 +219,75 @@ export default function HomePage({ location, isAuthed, bootstrapping }) {
                                 </p>
                             </article>
                         </div>
+                    </div>
+                </section>
+
+                <section className="homeDeals" aria-label="Featured Deals Preview">
+                    <div className="homeDeals__inner">
+                        <div className="homeDeals__head">
+                            <div>
+                                <p className="homeDeals__eyebrow">Featured Deals Preview</p>
+                                <h2 className="homeDeals__title">A look at recently closed deals.</h2>
+                                <p className="homeDeals__lead">
+                                    Simple snapshots of completed opportunities. Active inventory remains private for approved investors.
+                                </p>
+                            </div>
+                        </div>
+
+                        {closedDealsLoading ? <div className="homeDeals__notice">Loading closed deals...</div> : null}
+                        {!closedDealsLoading && closedDealsError ? (
+                            <div className="homeDeals__notice homeDeals__notice--error">{closedDealsError}</div>
+                        ) : null}
+                        {!closedDealsLoading && !closedDealsError && closedDeals.length === 0 ? (
+                            <div className="homeDeals__notice">No closed deals available right now.</div>
+                        ) : null}
+
+                        {!closedDealsLoading && !closedDealsError && closedDeals.length > 0 ? (
+                            <div className="homeDeals__grid">
+                                {closedDeals.map((property) => {
+                                    const leadPhoto = property?.photos?.[0]?.thumbnailUrl || property?.photos?.[0]?.url || "";
+
+                                    return (
+                                        <article key={property.id} className="homeDeals__card">
+                                            <div className="homeDeals__mediaWrap">
+                                                {leadPhoto ? (
+                                                    <img
+                                                        src={leadPhoto}
+                                                        alt={fullAddress(property) || `Property ${property.id}`}
+                                                        className="homeDeals__media"
+                                                    />
+                                                ) : (
+                                                    <div className="homeDeals__mediaFallback">
+                                                        <span className="material-symbols-outlined">home</span>
+                                                    </div>
+                                                )}
+                                                <span className="homeDeals__status">Closed</span>
+                                            </div>
+
+                                            <div className="homeDeals__body">
+                                                <p className="homeDeals__address">{fullAddress(property) || "Address unavailable"}</p>
+                                                <div className="homeDeals__stats">
+                                                    <div>
+                                                        <span className="homeDeals__label">Asking</span>
+                                                        <span className="homeDeals__value">{money(property.askingPrice)}</span>
+                                                    </div>
+                                                    <div>
+                                                        <span className="homeDeals__label">ARV</span>
+                                                        <span className="homeDeals__value">{money(property.arv)}</span>
+                                                    </div>
+                                                </div>
+                                                <div className="homeDeals__meta">
+                                                    <span>{property?.beds ?? "—"} bd</span>
+                                                    <span>{property?.baths ?? "—"} ba</span>
+                                                    <span>{property?.livingAreaSqft?.toLocaleString("en-US") ?? "—"} sqft</span>
+                                                </div>
+                                            </div>
+                                        </article>
+                                    );
+                                })}
+                            </div>
+                        ) : null}
+
                     </div>
                 </section>
             </main>

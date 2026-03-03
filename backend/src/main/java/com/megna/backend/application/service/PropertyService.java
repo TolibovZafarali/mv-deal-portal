@@ -208,6 +208,31 @@ public class PropertyService {
                 .map(PropertyMapper::toDto);
     }
 
+    public Page<PropertyResponseDto> getClosedPreview(Pageable pageable) {
+        return propertyRepository.findAll(
+                        PropertySpecifications.withFilters(
+                                PropertyStatus.CLOSED,
+                                null,
+                                null,
+                                null,
+                                null,
+                                null,
+                                null,
+                                null,
+                                null,
+                                null,
+                                null,
+                                null,
+                                null,
+                                null,
+                                null,
+                                null
+                        ),
+                        pageable
+                )
+                .map(PropertyMapper::toDto);
+    }
+
     public BigDecimal lookupFmr(String zip, Integer beds) {
         return fmrLookupService.lookup(zip, beds);
     }

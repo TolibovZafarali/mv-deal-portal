@@ -158,4 +158,11 @@ public class PropertyController {
                 pageable
         );
     }
+
+    @GetMapping("/preview")
+    public Page<PropertyResponseDto> previewClosed(
+            @PageableDefault(size = 6, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
+    ) {
+        return propertyService.getClosedPreview(pageable);
+    }
 }
