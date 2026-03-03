@@ -34,6 +34,7 @@ const CLOSING_TERMS_OPTIONS = [
 ];
 
 const DEFAULT_INQUIRY_MESSAGE = "Hi, I'm interested in this property. Can you provide more details?";
+const NEW_ACTIVE_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
 
 function money(value) {
   const numeric = Number(value);
@@ -85,6 +86,23 @@ function potentialProfit(property) {
 function selectedOptionLabel(options, value) {
   const match = options.find((option) => option.value === value);
   return match?.label || options[0]?.label || "";
+}
+
+function parseDate(value) {
+  const raw = String(value ?? "").trim();
+  if (!raw) return null;
+  const parsed = new Date(raw);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return parsed;
+}
+
+function isNewlyActive(property, nowMs) {
+  if (String(property?.status ?? "").toUpperCase() !== "ACTIVE") return false;
+  const activeAt = parseDate(property?.publishedAt) ?? parseDate(property?.createdAt);
+  if (!activeAt) return false;
+
+  const activeAtMs = activeAt.getTime();
+  return activeAtMs <= nowMs && activeAtMs >= nowMs - NEW_ACTIVE_WINDOW_MS;
 }
 
 function FilterDropdown({
@@ -545,6 +563,7 @@ export default function InvestorDashboard() {
   }
 
   const emptyMessage = showFavoritesOnly ? "No favorite properties found." : "No properties found.";
+  const nowMs = Date.now();
 
   return (
     <section className="invDash">
@@ -712,12 +731,21 @@ export default function InvestorDashboard() {
                 const isActive = selectedPropertyId === property.id;
                 const isFavorite = favoritePropertyIdSet.has(String(property.id));
                 const isMessaged = messagedPropertyIdSet.has(String(property.id));
+                const showNewBadge = isNewlyActive(property, nowMs);
 
                 return (
                   <article
                     key={property.id}
-                    className={`invDash__card ${isActive ? "invDash__card--active" : ""}`}
+                    className={`invDash__card ${
+                      isActive ? "invDash__card--active" : ""
+                    } ${showNewBadge ? "invDash__card--new" : ""}`}
                   >
+                    {showNewBadge ? (
+                      <span className="invDash__newBadge" aria-label="New listing">
+                        <span className="invDash__newBadgeText">NEW</span>
+                      </span>
+                    ) : null}
+
                     <button
                       type="button"
                       className={`invDash__favoriteToggle ${
