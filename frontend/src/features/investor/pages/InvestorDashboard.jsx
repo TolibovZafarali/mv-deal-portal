@@ -192,6 +192,9 @@ export default function InvestorDashboard() {
   const occupancyMenuRef = useRef(null);
   const exitStrategyMenuRef = useRef(null);
   const closingTermsMenuRef = useRef(null);
+  const occupancyMobileMenuRef = useRef(null);
+  const exitStrategyMobileMenuRef = useRef(null);
+  const closingTermsMobileMenuRef = useRef(null);
 
   const favoritePropertyIdSet = useMemo(() => {
     return new Set(favoritePropertyIds);
@@ -379,6 +382,9 @@ export default function InvestorDashboard() {
       occupancyStatus: occupancyMenuRef,
       exitStrategy: exitStrategyMenuRef,
       closingTerms: closingTermsMenuRef,
+      occupancyStatusMobile: occupancyMobileMenuRef,
+      exitStrategyMobile: exitStrategyMobileMenuRef,
+      closingTermsMobile: closingTermsMobileMenuRef,
     };
     const activeMenuRef = menuRefsByKey[openFilterMenu];
 
@@ -407,12 +413,23 @@ export default function InvestorDashboard() {
 
   const hasMoreFiltersSelected = useMemo(() => {
     return [
+      filters.occupancyStatus,
+      filters.exitStrategy,
+      filters.closingTerms,
       filters.minBeds,
       filters.minBaths,
       filters.minAskingPrice,
       filters.maxAskingPrice,
     ].some((value) => String(value ?? "").trim().length > 0);
-  }, [filters.minBeds, filters.minBaths, filters.minAskingPrice, filters.maxAskingPrice]);
+  }, [
+    filters.occupancyStatus,
+    filters.exitStrategy,
+    filters.closingTerms,
+    filters.minBeds,
+    filters.minBaths,
+    filters.minAskingPrice,
+    filters.maxAskingPrice,
+  ]);
 
   function updateFilter(key, value) {
     setFilters((prev) => ({ ...prev, [key]: value }));
@@ -589,43 +606,53 @@ export default function InvestorDashboard() {
                 showFavoritesOnly ? "invDash__favoritesFilter--active" : ""
               }`}
               onClick={() => setShowFavoritesOnly((prev) => !prev)}
+              aria-label={showFavoritesOnly ? "Show all listings" : "Show favorite listings"}
               aria-pressed={showFavoritesOnly}
             >
-              Favorites
+              <span className="material-symbols-outlined invDash__favoritesIcon" aria-hidden="true">
+                bookmark
+              </span>
+              <span className="invDash__favoritesLabel">Favorites</span>
             </button>
 
-            <FilterDropdown
-              menuKey="occupancyStatus"
-              options={OCCUPANCY_OPTIONS}
-              value={filters.occupancyStatus}
-              onChange={(value) => updateFilter("occupancyStatus", value)}
-              openMenu={openFilterMenu}
-              onToggleMenu={setOpenFilterMenu}
-              menuRef={occupancyMenuRef}
-              ariaLabel="Occupancy filter"
-            />
+            <div className="invDash__desktopOnlyControl">
+              <FilterDropdown
+                menuKey="occupancyStatus"
+                options={OCCUPANCY_OPTIONS}
+                value={filters.occupancyStatus}
+                onChange={(value) => updateFilter("occupancyStatus", value)}
+                openMenu={openFilterMenu}
+                onToggleMenu={setOpenFilterMenu}
+                menuRef={occupancyMenuRef}
+                ariaLabel="Occupancy filter"
+              />
+            </div>
 
-            <FilterDropdown
-              menuKey="exitStrategy"
-              options={EXIT_STRATEGY_OPTIONS}
-              value={filters.exitStrategy}
-              onChange={(value) => updateFilter("exitStrategy", value)}
-              openMenu={openFilterMenu}
-              onToggleMenu={setOpenFilterMenu}
-              menuRef={exitStrategyMenuRef}
-              ariaLabel="Exit strategy filter"
-            />
+            <div className="invDash__desktopOnlyControl">
+              <FilterDropdown
+                menuKey="exitStrategy"
+                options={EXIT_STRATEGY_OPTIONS}
+                value={filters.exitStrategy}
+                onChange={(value) => updateFilter("exitStrategy", value)}
+                openMenu={openFilterMenu}
+                onToggleMenu={setOpenFilterMenu}
+                menuRef={exitStrategyMenuRef}
+                ariaLabel="Exit strategy filter"
+              />
+            </div>
 
-            <FilterDropdown
-              menuKey="closingTerms"
-              options={CLOSING_TERMS_OPTIONS}
-              value={filters.closingTerms}
-              onChange={(value) => updateFilter("closingTerms", value)}
-              openMenu={openFilterMenu}
-              onToggleMenu={setOpenFilterMenu}
-              menuRef={closingTermsMenuRef}
-              ariaLabel="Closing terms filter"
-            />
+            <div className="invDash__desktopOnlyControl">
+              <FilterDropdown
+                menuKey="closingTerms"
+                options={CLOSING_TERMS_OPTIONS}
+                value={filters.closingTerms}
+                onChange={(value) => updateFilter("closingTerms", value)}
+                openMenu={openFilterMenu}
+                onToggleMenu={setOpenFilterMenu}
+                menuRef={closingTermsMenuRef}
+                ariaLabel="Closing terms filter"
+              />
+            </div>
 
             <details className="invDash__moreMenu">
               <summary
@@ -637,6 +664,41 @@ export default function InvestorDashboard() {
               </summary>
 
               <div className="invDash__moreBody">
+                <div className="invDash__mobileOnlyFilters">
+                  <FilterDropdown
+                    menuKey="occupancyStatusMobile"
+                    options={OCCUPANCY_OPTIONS}
+                    value={filters.occupancyStatus}
+                    onChange={(value) => updateFilter("occupancyStatus", value)}
+                    openMenu={openFilterMenu}
+                    onToggleMenu={setOpenFilterMenu}
+                    menuRef={occupancyMobileMenuRef}
+                    ariaLabel="Occupancy filter"
+                  />
+
+                  <FilterDropdown
+                    menuKey="exitStrategyMobile"
+                    options={EXIT_STRATEGY_OPTIONS}
+                    value={filters.exitStrategy}
+                    onChange={(value) => updateFilter("exitStrategy", value)}
+                    openMenu={openFilterMenu}
+                    onToggleMenu={setOpenFilterMenu}
+                    menuRef={exitStrategyMobileMenuRef}
+                    ariaLabel="Exit strategy filter"
+                  />
+
+                  <FilterDropdown
+                    menuKey="closingTermsMobile"
+                    options={CLOSING_TERMS_OPTIONS}
+                    value={filters.closingTerms}
+                    onChange={(value) => updateFilter("closingTerms", value)}
+                    openMenu={openFilterMenu}
+                    onToggleMenu={setOpenFilterMenu}
+                    menuRef={closingTermsMobileMenuRef}
+                    ariaLabel="Closing terms filter"
+                  />
+                </div>
+
                 <label className="invDash__moreField">
                   <span className="invDash__moreLabel">Min Beds</span>
                   <input
