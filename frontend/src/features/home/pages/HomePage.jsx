@@ -4,6 +4,10 @@ import { useEffect, useRef, useState } from "react";
 import { getClosedPropertyPreviews } from "@/api/modules/propertyApi";
 
 export default function HomePage({ location, isAuthed, bootstrapping }) {
+    const ROLE_INVESTOR = "INVESTOR";
+    const ROLE_SELLER = "SELLER";
+    const HOME_ROLE_STORAGE_KEY = "home.selectedRole";
+
     function money(value) {
         const numeric = Number(value);
         if (!Number.isFinite(numeric)) return "—";
@@ -31,6 +35,117 @@ export default function HomePage({ location, isAuthed, bootstrapping }) {
     const [homeDealsVisible, setHomeDealsVisible] = useState(false);
     const [activeDealIndex, setActiveDealIndex] = useState(0);
     const [whyStats, setWhyStats] = useState({ hours: 0, multiplier: 0, percent: 0 });
+    const [selectedRole, setSelectedRole] = useState(() => {
+        const stateRole = location.state?.signupRole;
+        if (stateRole === ROLE_INVESTOR || stateRole === ROLE_SELLER) {
+            return stateRole;
+        }
+
+        const storedRole = window.localStorage.getItem(HOME_ROLE_STORAGE_KEY);
+        if (storedRole === ROLE_INVESTOR || storedRole === ROLE_SELLER) {
+            return storedRole;
+        }
+
+        return ROLE_INVESTOR;
+    });
+
+    const roleContent = selectedRole === ROLE_SELLER
+        ? {
+            heroTitle: "Sell with more clarity. Close with serious buyers.",
+            heroSubtitle: "Cleaner presentation. Faster buyer matching. Fewer dead-end conversations.",
+            heroCtaLabel: "Join as Seller",
+            heroCtaTo: "/signup/seller",
+            whyTitle: "Built for selling with speed and confidence.",
+            whyLead:
+                "Megna helps sellers present deals clearly, attract qualified buyers, and keep momentum to close.",
+            whyStatLabels: [
+                "avg. buyer response window",
+                "faster buyer matching",
+                "focused on qualified demand",
+            ],
+            whyCards: [
+                {
+                    title: "Structured deal presentation",
+                    text: "Show properties with consistent data so serious buyers can evaluate quickly.",
+                },
+                {
+                    title: "Qualified buyer visibility",
+                    text: "Reach active investors instead of wasting time with low-intent inquiries.",
+                },
+                {
+                    title: "Clear decision workflow",
+                    text: "Track updates, feedback, and next actions in one focused flow.",
+                },
+            ],
+            dealsTitle: "Recently closed outcomes from seller-side flow.",
+            dealsLead: "See how completed opportunities were positioned and closed through a cleaner process.",
+            howTitle: "From listing to close in three clear steps.",
+            howLead: "A no-noise seller workflow built for speed and qualified demand.",
+            howSteps: [
+                {
+                    title: "Publish your deal",
+                    text: "Share a clear deal profile so qualified buyers can evaluate it fast.",
+                },
+                {
+                    title: "Connect with serious buyers",
+                    text: "Review interest from active investors with cleaner context and fewer distractions.",
+                },
+                {
+                    title: "Move to close confidently",
+                    text: "Keep communication and decisions aligned until final execution.",
+                },
+            ],
+            readyTitle: "Start selling. Keep every deal moving.",
+            readyLead: "Present opportunities clearly and connect with qualified buyers faster.",
+        }
+        : {
+            heroTitle: "Real estate deals that are worth your attention.",
+            heroSubtitle: "Clean pipeline. Serious opportunities. Zero noise.",
+            heroCtaLabel: "Join as Buyer",
+            heroCtaTo: "/signup",
+            whyTitle: "Built for buying with speed and clarity.",
+            whyLead:
+                "Megna gives buyers cleaner deal flow, faster evaluation, and a workflow built for real execution.",
+            whyStatLabels: [
+                "avg. response window",
+                "faster deal triage",
+                "focused on off-market flow",
+            ],
+            whyCards: [
+                {
+                    title: "Vetted opportunities",
+                    text: "Every listing is reviewed for core deal quality so you can focus on what matters.",
+                },
+                {
+                    title: "Fast investor matching",
+                    text: "Connect with active buyers quickly instead of wasting weeks chasing cold leads.",
+                },
+                {
+                    title: "No-noise workflow",
+                    text: "One clean pipeline to track opportunities, decisions, and next actions.",
+                },
+            ],
+            dealsTitle: "A look at recently closed deals.",
+            dealsLead: "Simple snapshots of completed opportunities. Active inventory remains private for approved members.",
+            howTitle: "From buy-box to closed deal in three clear steps.",
+            howLead: "No noise, no guesswork. A direct flow designed for buyers who need speed and clarity.",
+            howSteps: [
+                {
+                    title: "Set your criteria",
+                    text: "Define market, budget, and strategy so your deal flow matches your exact buy box.",
+                },
+                {
+                    title: "Review matched deals",
+                    text: "Analyze vetted opportunities quickly with clean property data and concise financial context.",
+                },
+                {
+                    title: "Move to close faster",
+                    text: "Engage directly and track decisions in one focused pipeline built for serious execution.",
+                },
+            ],
+            readyTitle: "Start buying. Move with confidence.",
+            readyLead: "Access vetted opportunities and evaluate them in a cleaner, faster flow.",
+        };
 
     useEffect(() => {
         document.documentElement.classList.add("homeHideScrollbar");
@@ -237,6 +352,17 @@ export default function HomePage({ location, isAuthed, bootstrapping }) {
         observer.observe(sectionEl);
         return () => observer.disconnect();
     }, []);
+
+    useEffect(() => {
+        const nextRole = location.state?.signupRole;
+        if (nextRole === ROLE_INVESTOR || nextRole === ROLE_SELLER) {
+            setSelectedRole(nextRole);
+        }
+    }, [location.state?.signupRole]);
+
+    useEffect(() => {
+        window.localStorage.setItem(HOME_ROLE_STORAGE_KEY, selectedRole);
+    }, [selectedRole]);
     
     // Don't flash homepage while the app is still checking the token
     if (bootstrapping) {
@@ -268,9 +394,9 @@ export default function HomePage({ location, isAuthed, bootstrapping }) {
                         ) : (
                             <>
                                 <Link
-                                    to="/signup"
+                                    to={selectedRole === ROLE_SELLER ? "/signup/seller" : "/signup"}
                                     className="homeHeader__link"
-                                    state={{ backgroundLocation: location, modal: true }}
+                                    state={{ backgroundLocation: location, modal: true, signupRole: selectedRole }}
                                 >
                                     Sign Up
                                 </Link>
@@ -292,25 +418,53 @@ export default function HomePage({ location, isAuthed, bootstrapping }) {
                     <div className="homeHero__overlay" />
                     <div className="homeHero__darken" />
                     <div className="homeHero__content">
-                        <h1 className="homeHero__title">
-                            Real estate deals that are worth your attention.
-                        </h1>
-                        <p className="homeHero__subtitle">
-                            Clean pipeline. Serious investors. Zero noise.
-                        </p>
+                        <div
+                            className={`homeRoleToggle ${selectedRole === ROLE_SELLER ? "homeRoleToggle--sell" : "homeRoleToggle--buy"}`}
+                            role="tablist"
+                            aria-label="Choose your role"
+                        >
+                            <button
+                                type="button"
+                                className={`homeRoleToggle__btn ${selectedRole === ROLE_INVESTOR ? "homeRoleToggle__btn--active" : ""}`}
+                                onClick={() => setSelectedRole(ROLE_INVESTOR)}
+                                aria-pressed={selectedRole === ROLE_INVESTOR}
+                            >
+                                Buy
+                            </button>
+                            <button
+                                type="button"
+                                className={`homeRoleToggle__btn ${selectedRole === ROLE_SELLER ? "homeRoleToggle__btn--active" : ""}`}
+                                onClick={() => setSelectedRole(ROLE_SELLER)}
+                                aria-pressed={selectedRole === ROLE_SELLER}
+                            >
+                                Sell
+                            </button>
+                        </div>
 
-                        {!isAuthed && (
-                            <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
-                                <Link
-                                    to="/signup"
-                                    className="homeHero__cta"
-                                    state={{ backgroundLocation: location, modal: true }}
-                                >
-                                    <span className="homeHero__ctaText">Get Started</span>
-                                    <span className="homeHero__ctaArrow" aria-hidden="true"></span>
-                                </Link>
-                            </div>
-                        )}
+                        <div
+                            key={selectedRole}
+                            className="homeHero__copy"
+                        >
+                            <h1 className="homeHero__title">
+                                {roleContent.heroTitle}
+                            </h1>
+                            <p className="homeHero__subtitle">
+                                {roleContent.heroSubtitle}
+                            </p>
+
+                            {!isAuthed && (
+                                <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
+                                    <Link
+                                        to={roleContent.heroCtaTo}
+                                        className="homeHero__cta"
+                                        state={{ backgroundLocation: location, modal: true, signupRole: selectedRole }}
+                                    >
+                                        <span className="homeHero__ctaText">{roleContent.heroCtaLabel}</span>
+                                        <span className="homeHero__ctaArrow" aria-hidden="true"></span>
+                                    </Link>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </section>
 
@@ -320,51 +474,36 @@ export default function HomePage({ location, isAuthed, bootstrapping }) {
                         <div className="homeWhyUs__top">
                             <div className="homeWhyUs__intro">
                                 <p className="homeWhyUs__eyebrow">Why Us</p>
-                                <h2 className="homeWhyUs__title">Built for speed, clarity, and serious outcomes.</h2>
+                                <h2 className="homeWhyUs__title">{roleContent.whyTitle}</h2>
                                 <p className="homeWhyUs__lead">
-                                    Megna is designed for real estate investors and operators who want fewer clicks,
-                                    better deals, and faster decisions.
+                                    {roleContent.whyLead}
                                 </p>
                             </div>
 
                             <div className="homeWhyUs__stats" aria-label="Platform metrics">
                                 <div className="homeWhyUs__stat">
                                     <p className="homeWhyUs__statValue">{whyStats.hours}h</p>
-                                    <p className="homeWhyUs__statLabel">avg. response window</p>
+                                    <p className="homeWhyUs__statLabel">{roleContent.whyStatLabels[0]}</p>
                                 </div>
                                 <div className="homeWhyUs__stat">
                                     <p className="homeWhyUs__statValue">{whyStats.multiplier}x</p>
-                                    <p className="homeWhyUs__statLabel">faster deal triage</p>
+                                    <p className="homeWhyUs__statLabel">{roleContent.whyStatLabels[1]}</p>
                                 </div>
                                 <div className="homeWhyUs__stat">
                                     <p className="homeWhyUs__statValue">{whyStats.percent}%</p>
-                                    <p className="homeWhyUs__statLabel">focused on off-market flow</p>
+                                    <p className="homeWhyUs__statLabel">{roleContent.whyStatLabels[2]}</p>
                                 </div>
                             </div>
                         </div>
 
                         <div className="homeWhyUs__grid">
-                            <article className="homeWhyUs__card">
-                                <p className="homeWhyUs__cardIndex">01</p>
-                                <h3 className="homeWhyUs__cardTitle">Vetted opportunities</h3>
-                                <p className="homeWhyUs__cardText">
-                                    Every listing is reviewed for core deal quality so you can focus on what matters.
-                                </p>
-                            </article>
-                            <article className="homeWhyUs__card">
-                                <p className="homeWhyUs__cardIndex">02</p>
-                                <h3 className="homeWhyUs__cardTitle">Fast investor matching</h3>
-                                <p className="homeWhyUs__cardText">
-                                    Connect with active buyers quickly instead of wasting weeks chasing cold leads.
-                                </p>
-                            </article>
-                            <article className="homeWhyUs__card">
-                                <p className="homeWhyUs__cardIndex">03</p>
-                                <h3 className="homeWhyUs__cardTitle">No-noise workflow</h3>
-                                <p className="homeWhyUs__cardText">
-                                    One clean pipeline to track opportunities, decisions, and next actions.
-                                </p>
-                            </article>
+                            {roleContent.whyCards.map((card, index) => (
+                                <article className="homeWhyUs__card" key={card.title}>
+                                    <p className="homeWhyUs__cardIndex">{String(index + 1).padStart(2, "0")}</p>
+                                    <h3 className="homeWhyUs__cardTitle">{card.title}</h3>
+                                    <p className="homeWhyUs__cardText">{card.text}</p>
+                                </article>
+                            ))}
                         </div>
                     </div>
                 </section>
@@ -378,9 +517,9 @@ export default function HomePage({ location, isAuthed, bootstrapping }) {
                         <div className="homeDeals__head">
                             <div>
                                 <p className="homeDeals__eyebrow">Featured Deals Preview</p>
-                                <h2 className="homeDeals__title">A look at recently closed deals.</h2>
+                                <h2 className="homeDeals__title">{roleContent.dealsTitle}</h2>
                                 <p className="homeDeals__lead">
-                                    Simple snapshots of completed opportunities. Active inventory remains private for approved investors.
+                                    {roleContent.dealsLead}
                                 </p>
                             </div>
                         </div>
@@ -452,35 +591,19 @@ export default function HomePage({ location, isAuthed, bootstrapping }) {
                 >
                     <div className="homeHow__inner">
                         <p className="homeHow__eyebrow">How It Works</p>
-                        <h2 className="homeHow__title">From buy-box to closed deal in three clear steps.</h2>
+                        <h2 className="homeHow__title">{roleContent.howTitle}</h2>
                         <p className="homeHow__lead">
-                            No noise, no guesswork. A direct flow designed for investors who need speed and clarity.
+                            {roleContent.howLead}
                         </p>
 
                         <div className="homeHow__grid">
-                            <article className="homeHow__card">
-                                <p className="homeHow__index">01</p>
-                                <h3 className="homeHow__cardTitle">Set your criteria</h3>
-                                <p className="homeHow__cardText">
-                                    Define market, budget, and strategy so your deal flow matches your exact buy box.
-                                </p>
-                            </article>
-
-                            <article className="homeHow__card">
-                                <p className="homeHow__index">02</p>
-                                <h3 className="homeHow__cardTitle">Review matched deals</h3>
-                                <p className="homeHow__cardText">
-                                    Analyze vetted opportunities quickly with clean property data and concise financial context.
-                                </p>
-                            </article>
-
-                            <article className="homeHow__card">
-                                <p className="homeHow__index">03</p>
-                                <h3 className="homeHow__cardTitle">Move to close faster</h3>
-                                <p className="homeHow__cardText">
-                                    Engage directly and track decisions in one focused pipeline built for serious execution.
-                                </p>
-                            </article>
+                            {roleContent.howSteps.map((step, index) => (
+                                <article className="homeHow__card" key={step.title}>
+                                    <p className="homeHow__index">{String(index + 1).padStart(2, "0")}</p>
+                                    <h3 className="homeHow__cardTitle">{step.title}</h3>
+                                    <p className="homeHow__cardText">{step.text}</p>
+                                </article>
+                            ))}
                         </div>
                     </div>
                 </section>
@@ -490,10 +613,9 @@ export default function HomePage({ location, isAuthed, bootstrapping }) {
                     <div className="homeReady__inner">
                         <div className="homeReady__head">
                             <p className="homeReady__eyebrow">Get Started</p>
-                            <h2 className="homeReady__title">Choose your role. Move deals forward faster.</h2>
+                            <h2 className="homeReady__title">{roleContent.readyTitle}</h2>
                             <p className="homeReady__lead">
-                                One platform for both sides of the transaction, built to keep momentum from first
-                                conversation to close.
+                                {roleContent.readyLead}
                             </p>
                         </div>
 
@@ -506,9 +628,11 @@ export default function HomePage({ location, isAuthed, bootstrapping }) {
                             </div>
                         ) : (
                             <div className="homeReady__roles">
-                                <article className="homeReady__roleCard homeReady__roleCard--investor">
-                                    <p className="homeReady__roleTag">Investor</p>
-                                    <h3 className="homeReady__roleTitle">Source vetted opportunities</h3>
+                                <article
+                                    className={`homeReady__roleCard homeReady__roleCard--investor ${selectedRole === ROLE_INVESTOR ? "homeReady__roleCard--selected" : ""}`}
+                                >
+                                    <p className="homeReady__roleTag">Buy</p>
+                                    <h3 className="homeReady__roleTitle">Source and buy vetted opportunities</h3>
                                     <p className="homeReady__roleText">
                                         Get matched with active opportunities and evaluate them in a clean pipeline.
                                     </p>
@@ -517,12 +641,14 @@ export default function HomePage({ location, isAuthed, bootstrapping }) {
                                         className="homeReady__btn homeReady__btn--wide"
                                         state={{ backgroundLocation: location, modal: true, signupRole: "INVESTOR" }}
                                     >
-                                        Join as Investor
+                                        Join as Buyer
                                     </Link>
                                 </article>
 
-                                <article className="homeReady__roleCard homeReady__roleCard--seller">
-                                    <p className="homeReady__roleTag">Seller</p>
+                                <article
+                                    className={`homeReady__roleCard homeReady__roleCard--seller ${selectedRole === ROLE_SELLER ? "homeReady__roleCard--selected" : ""}`}
+                                >
+                                    <p className="homeReady__roleTag">Sell</p>
                                     <h3 className="homeReady__roleTitle">Present deals with clarity</h3>
                                     <p className="homeReady__roleText">
                                         Share your properties, manage updates, and connect with serious buyers faster.

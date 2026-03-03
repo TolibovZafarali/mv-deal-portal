@@ -117,10 +117,12 @@ body.homeHideScrollbar::-webkit-scrollbar {
 .homeHero {
   position: relative;
   height: 100vh;
+  padding-top: var(--home-header-height);
+  box-sizing: border-box;
   overflow: hidden;
 
   display: flex;
-  align-items: flex-end;
+  align-items: flex-start;
   justify-content: flex-start;
 }
 
@@ -184,13 +186,69 @@ body.homeHideScrollbar::-webkit-scrollbar {
   position: relative;
   z-index: 3;
 
-  width: min(970px, 92vw);
-  padding: 0 22px 400px;
+  width: min(1040px, 93vw);
+  padding: 14px 22px 400px;
 
   display: flex;
   flex-direction: column;
   align-items: flex-start; /* hard-lock left alignment */
   text-align: left;
+}
+
+.homeRoleToggle {
+  position: relative;
+  isolation: isolate;
+  display: inline-grid;
+  grid-template-columns: 1fr 1fr;
+  width: min(440px, 100%);
+  padding: 2px;
+  margin-bottom: 18px;
+  border: 1px solid rgba(242, 242, 242, 0.36);
+  background: rgba(16, 16, 16, 0.52);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  overflow: hidden;
+}
+
+.homeRoleToggle::before {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: calc(50% - 2px);
+  height: calc(100% - 4px);
+  background: rgba(242, 242, 242, 0.95);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.2);
+  transform: translateX(0);
+  transition: transform 340ms cubic-bezier(0.22, 0.61, 0.36, 1);
+  z-index: 0;
+}
+
+.homeRoleToggle--sell::before {
+  transform: translateX(100%);
+}
+
+.homeRoleToggle__btn {
+  position: relative;
+  z-index: 1;
+  border: none;
+  background: transparent;
+  color: rgba(242, 242, 242, 0.78);
+  padding: 9px 14px;
+  font: inherit;
+  font-size: 13px;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: color 220ms ease, transform 220ms ease;
+}
+
+.homeRoleToggle__btn--active {
+  color: #101010;
+}
+
+.homeRoleToggle__btn:hover {
+  transform: translateY(-1px);
 }
 
 .homeHero__title {
@@ -199,6 +257,22 @@ body.homeHideScrollbar::-webkit-scrollbar {
   line-height: 1.02;
   letter-spacing: -0.03em;
   text-shadow: 0 10px 30px rgba(0, 0, 0, 0.55);
+}
+
+.homeHero__copy .homeHero__title,
+.homeHero__copy .homeHero__subtitle,
+.homeHero__copy .homeHero__cta {
+  opacity: 0;
+  transform: translateY(16px);
+  animation: homeHeroCopyIn 520ms cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+}
+
+.homeHero__copy .homeHero__subtitle {
+  animation-delay: 70ms;
+}
+
+.homeHero__copy .homeHero__cta {
+  animation-delay: 150ms;
 }
 
 .homeHero__subtitle {
@@ -854,6 +928,13 @@ body.homeHideScrollbar::-webkit-scrollbar {
   box-shadow: inset 0 1px 0 rgba(242, 242, 242, 0.08);
 }
 
+.homeReady__roleCard--selected {
+  border-color: rgba(242, 242, 242, 0.34);
+  box-shadow:
+    0 0 0 1px rgba(242, 242, 242, 0.16) inset,
+    0 14px 28px rgba(0, 0, 0, 0.24);
+}
+
 .homeReady__roleTag {
   margin: 0;
   color: rgba(242, 242, 242, 0.66);
@@ -979,6 +1060,17 @@ body.homeHideScrollbar::-webkit-scrollbar {
   }
 }
 
+@keyframes homeHeroCopyIn {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 @media (min-width: 769px) {
   .homeWhyUs__inner {
     display: flex;
@@ -998,8 +1090,13 @@ body.homeHideScrollbar::-webkit-scrollbar {
   }
 
   .homeHero__content {
-    padding-top: calc(var(--home-header-height) + env(safe-area-inset-top, 0px) + 10px);
+    padding-top: 10px;
     padding-bottom: 24px;
+  }
+
+  .homeRoleToggle {
+    width: 100%;
+    max-width: 320px;
   }
 
   .homeWhyUs__inner {
@@ -1088,6 +1185,19 @@ body.homeHideScrollbar::-webkit-scrollbar {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .homeRoleToggle::before,
+  .homeRoleToggle__btn,
+  .homeHero__copy .homeHero__title,
+  .homeHero__copy .homeHero__subtitle,
+  .homeHero__copy .homeHero__cta {
+    transition: none;
+    animation: none;
+  }
+
+  .homeRoleToggle__btn:hover {
+    transform: none;
+  }
+
   .homeHero__overlay,
   .homeHero__darken,
   .homeHero::before,
