@@ -316,7 +316,7 @@
   transition: transform 180ms ease, box-shadow 180ms ease, outline-color 180ms ease;
 }
 
-.invDash__card:hover {
+.invDash__card:hover:not(.invDash__card--active):not(:focus-within) {
   transform: translateY(-1px);
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
 }
