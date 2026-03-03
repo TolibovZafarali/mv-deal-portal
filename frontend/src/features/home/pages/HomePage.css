@@ -623,6 +623,99 @@ body.homeHideScrollbar::-webkit-scrollbar {
   background: transparent;
 }
 
+.homeHow {
+  background: linear-gradient(180deg, #101010 0%, #121212 100%);
+  border-top: 1px solid rgba(242, 242, 242, 0.08);
+}
+
+.homeHow__inner {
+  width: 100%;
+  padding: clamp(18px, 2.2vw, 30px);
+}
+
+.homeHow__eyebrow {
+  margin: 0;
+  color: rgba(242, 242, 242, 0.72);
+  font-size: 13px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.homeHow__title {
+  margin: 12px 0 0;
+  font-size: clamp(30px, 4.1vw, 52px);
+  line-height: 1.08;
+  letter-spacing: -0.02em;
+}
+
+.homeHow__lead {
+  margin: 14px 0 0;
+  color: rgba(242, 242, 242, 0.78);
+  font-size: clamp(17px, 1.95vw, 21px);
+  line-height: 1.5;
+}
+
+.homeHow__grid {
+  margin-top: clamp(18px, 2.2vw, 30px);
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.homeHow__card {
+  border: 1px solid rgba(242, 242, 242, 0.14);
+  background: linear-gradient(160deg, rgba(242, 242, 242, 0.09) 0%, rgba(242, 242, 242, 0.03) 86%);
+  padding: 22px;
+  min-height: 220px;
+  opacity: 0;
+  transform: translateY(48px);
+}
+
+.homeHow--visible .homeHow__card {
+  animation: homeHowCardIn 980ms cubic-bezier(0.2, 0.95, 0.2, 1) forwards;
+}
+
+.homeHow--visible .homeHow__card:nth-child(2) {
+  animation-delay: 260ms;
+}
+
+.homeHow--visible .homeHow__card:nth-child(3) {
+  animation-delay: 520ms;
+}
+
+@keyframes homeHowCardIn {
+  from {
+    opacity: 0;
+    transform: translateY(48px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.homeHow__index {
+  margin: 0;
+  color: rgba(242, 242, 242, 0.62);
+  font-size: 12px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+
+.homeHow__cardTitle {
+  margin: 14px 0 0;
+  font-size: 24px;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+
+.homeHow__cardText {
+  margin: 12px 0 0;
+  color: rgba(242, 242, 242, 0.76);
+  font-size: 16px;
+  line-height: 1.55;
+}
+
 @media (min-width: 769px) {
   .homeWhyUs__inner {
     display: flex;
@@ -699,10 +792,26 @@ body.homeHideScrollbar::-webkit-scrollbar {
   .homeDeals__stats {
     grid-template-columns: 1fr 1fr;
   }
+
+  .homeHow__grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .homeHow__card {
+    min-height: auto;
+    padding: 20px 18px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .homeWhyUs__card {
     transition: none;
+  }
+
+  .homeHow__card {
+    opacity: 1;
+    transform: none;
+    animation: none !important;
   }
 }

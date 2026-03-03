@@ -20,9 +20,11 @@ export default function HomePage({ location, isAuthed, bootstrapping }) {
     }
 
     const homeRef = useRef(null);
+    const homeHowRef = useRef(null);
     const [closedDeals, setClosedDeals] = useState([]);
     const [closedDealsLoading, setClosedDealsLoading] = useState(true);
     const [closedDealsError, setClosedDealsError] = useState("");
+    const [homeHowVisible, setHomeHowVisible] = useState(false);
 
     useEffect(() => {
         document.documentElement.classList.add("homeHideScrollbar");
@@ -90,6 +92,27 @@ export default function HomePage({ location, isAuthed, bootstrapping }) {
         return () => {
             alive = false;
         };
+    }, []);
+
+    useEffect(() => {
+        const sectionEl = homeHowRef.current;
+        if (!sectionEl) return undefined;
+
+        const observer = new IntersectionObserver(
+            (entries) => {
+                const entry = entries[0];
+                if (!entry?.isIntersecting) return;
+                setHomeHowVisible(true);
+                observer.disconnect();
+            },
+            {
+                threshold: 0.48,
+                rootMargin: "0px 0px -6% 0px",
+            },
+        );
+
+        observer.observe(sectionEl);
+        return () => observer.disconnect();
     }, []);
     
     // Don't flash homepage while the app is still checking the token
@@ -288,6 +311,46 @@ export default function HomePage({ location, isAuthed, bootstrapping }) {
                             </div>
                         ) : null}
 
+                    </div>
+                </section>
+
+                <section
+                    ref={homeHowRef}
+                    className={`homeHow ${homeHowVisible ? "homeHow--visible" : ""}`}
+                    aria-label="How It Works"
+                >
+                    <div className="homeHow__inner">
+                        <p className="homeHow__eyebrow">How It Works</p>
+                        <h2 className="homeHow__title">From buy-box to closed deal in three clear steps.</h2>
+                        <p className="homeHow__lead">
+                            No noise, no guesswork. A direct flow designed for investors who need speed and clarity.
+                        </p>
+
+                        <div className="homeHow__grid">
+                            <article className="homeHow__card">
+                                <p className="homeHow__index">01</p>
+                                <h3 className="homeHow__cardTitle">Set your criteria</h3>
+                                <p className="homeHow__cardText">
+                                    Define market, budget, and strategy so your deal flow matches your exact buy box.
+                                </p>
+                            </article>
+
+                            <article className="homeHow__card">
+                                <p className="homeHow__index">02</p>
+                                <h3 className="homeHow__cardTitle">Review matched deals</h3>
+                                <p className="homeHow__cardText">
+                                    Analyze vetted opportunities quickly with clean property data and concise financial context.
+                                </p>
+                            </article>
+
+                            <article className="homeHow__card">
+                                <p className="homeHow__index">03</p>
+                                <h3 className="homeHow__cardTitle">Move to close faster</h3>
+                                <p className="homeHow__cardText">
+                                    Engage directly and track decisions in one focused pipeline built for serious execution.
+                                </p>
+                            </article>
+                        </div>
                     </div>
                 </section>
             </main>
