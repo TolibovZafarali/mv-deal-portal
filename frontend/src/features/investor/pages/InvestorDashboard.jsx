@@ -195,6 +195,8 @@ export default function InvestorDashboard() {
   const occupancyMobileMenuRef = useRef(null);
   const exitStrategyMobileMenuRef = useRef(null);
   const closingTermsMobileMenuRef = useRef(null);
+  const listPaneRef = useRef(null);
+  const selectedPropertyOriginRef = useRef(null);
 
   const favoritePropertyIdSet = useMemo(() => {
     return new Set(favoritePropertyIds);
@@ -411,6 +413,32 @@ export default function InvestorDashboard() {
     };
   }, [openFilterMenu]);
 
+  useEffect(() => {
+    if (selectedPropertyOriginRef.current !== "map") return;
+    if (selectedPropertyId === null || selectedPropertyId === undefined) {
+      selectedPropertyOriginRef.current = null;
+      return;
+    }
+
+    const listPane = listPaneRef.current;
+    if (!listPane) {
+      selectedPropertyOriginRef.current = null;
+      return;
+    }
+
+    const selector = `[data-property-id="${String(selectedPropertyId)}"]`;
+    const targetCard = listPane.querySelector(selector);
+    if (targetCard) {
+      targetCard.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+        inline: "nearest",
+      });
+    }
+
+    selectedPropertyOriginRef.current = null;
+  }, [selectedPropertyId, visibleRows]);
+
   const hasMoreFiltersSelected = useMemo(() => {
     return [
       filters.occupancyStatus,
@@ -477,6 +505,7 @@ export default function InvestorDashboard() {
   }
 
   function handleCardClick(property) {
+    selectedPropertyOriginRef.current = null;
     const mobileView =
       typeof window !== "undefined"
       && typeof window.matchMedia === "function"
@@ -500,6 +529,11 @@ export default function InvestorDashboard() {
     }
 
     setSelectedPropertyId(property.id);
+  }
+
+  function handleMapSelectProperty(propertyId) {
+    selectedPropertyOriginRef.current = "map";
+    setSelectedPropertyId(propertyId);
   }
 
   function moveCardPhoto(propertyId, totalPhotos, step) {
@@ -770,12 +804,12 @@ export default function InvestorDashboard() {
           <InvestorPropertyMap
             properties={visibleRows}
             selectedPropertyId={selectedPropertyId}
-            onSelectProperty={setSelectedPropertyId}
+            onSelectProperty={handleMapSelectProperty}
             loading={loading}
           />
         </div>
 
-        <div className="invDash__listPane">
+        <div className="invDash__listPane" ref={listPaneRef}>
           {favoritesError ? <div className="invDash__notice invDash__notice--error">{favoritesError}</div> : null}
           {loading ? <div className="invDash__notice">Loading properties...</div> : null}
           {!loading && error ? <div className="invDash__notice invDash__notice--error">{error}</div> : null}
@@ -812,6 +846,7 @@ export default function InvestorDashboard() {
                 return (
                   <article
                     key={property.id}
+                    data-property-id={property.id}
                     className={`invDash__card ${
                       isActive ? "invDash__card--active" : ""
                     } ${showNewBadge ? "invDash__card--new" : ""}`}

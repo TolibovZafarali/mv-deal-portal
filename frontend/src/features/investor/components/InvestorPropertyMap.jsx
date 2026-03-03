@@ -7,6 +7,7 @@ const DEFAULT_TILE_URL =
 const DEFAULT_PLACE_LABEL_TILE_URL =
   "https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}";
 const DEFAULT_MAX_ZOOM = 18;
+const DEFAULT_MIN_ZOOM = 4;
 const DEFAULT_CENTER = [39.5, -98.35];
 const DEFAULT_ZOOM = 4;
 const SINGLE_PROPERTY_ZOOM = 15;
@@ -16,6 +17,10 @@ const configuredMaxZoom = Number.parseInt(
   String(import.meta.env.VITE_MAP_MAX_ZOOM ?? ""),
   10,
 );
+const configuredMinZoom = Number.parseInt(
+  String(import.meta.env.VITE_MAP_MIN_ZOOM ?? ""),
+  10,
+);
 
 const MAP_TILE_URL = import.meta.env.VITE_MAP_TILE_URL || DEFAULT_TILE_URL;
 const MAP_PLACE_LABEL_TILE_URL =
@@ -23,6 +28,12 @@ const MAP_PLACE_LABEL_TILE_URL =
 const MAP_MAX_ZOOM = Number.isFinite(configuredMaxZoom)
   ? configuredMaxZoom
   : DEFAULT_MAX_ZOOM;
+const MAP_MIN_ZOOM = Math.min(
+  Number.isFinite(configuredMinZoom)
+    ? configuredMinZoom
+    : DEFAULT_MIN_ZOOM,
+  MAP_MAX_ZOOM,
+);
 
 function toCoordinate(value) {
   if (value === null || value === undefined || value === "") return null;
@@ -83,6 +94,7 @@ export default function InvestorPropertyMap({
     const map = L.map(mapContainerRef.current, {
       zoomControl: false,
       attributionControl: false,
+      minZoom: MAP_MIN_ZOOM,
     });
     const markerLayer = L.layerGroup().addTo(map);
 
@@ -97,9 +109,11 @@ export default function InvestorPropertyMap({
     }
 
     L.tileLayer(MAP_TILE_URL, {
+      minZoom: MAP_MIN_ZOOM,
       maxZoom: MAP_MAX_ZOOM,
     }).addTo(map);
     L.tileLayer(MAP_PLACE_LABEL_TILE_URL, {
+      minZoom: MAP_MIN_ZOOM,
       maxZoom: MAP_MAX_ZOOM,
       pane: "labelPane",
       opacity: 0.95,
