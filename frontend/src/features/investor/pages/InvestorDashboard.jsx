@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { searchProperties } from "@/api/modules/propertyApi";
 import { createInquiry, getInquiryByInvestor } from "@/api/modules/inquiryApi";
 import {
@@ -82,6 +82,64 @@ function potentialProfit(property) {
   return arv - asking - repairs;
 }
 
+function selectedOptionLabel(options, value) {
+  const match = options.find((option) => option.value === value);
+  return match?.label || options[0]?.label || "";
+}
+
+function FilterDropdown({
+  menuKey,
+  options,
+  value,
+  onChange,
+  openMenu,
+  onToggleMenu,
+  menuRef,
+  ariaLabel,
+}) {
+  const isOpen = openMenu === menuKey;
+  const selectedLabel = selectedOptionLabel(options, value);
+
+  return (
+    <div className={`invDash__selectMenu ${isOpen ? "invDash__selectMenu--open" : ""}`} ref={menuRef}>
+      <button
+        type="button"
+        className="invDash__selectTrigger"
+        aria-haspopup="listbox"
+        aria-expanded={isOpen}
+        aria-label={ariaLabel}
+        onClick={() => onToggleMenu(isOpen ? null : menuKey)}
+      >
+        <span>{selectedLabel}</span>
+        <span className="material-symbols-outlined" aria-hidden="true">expand_more</span>
+      </button>
+
+      {isOpen ? (
+        <div className="invDash__selectList" role="listbox" aria-label={ariaLabel}>
+          {options.map((option) => {
+            const active = option.value === value;
+            return (
+              <button
+                key={`${menuKey}-${option.label}-${option.value}`}
+                type="button"
+                role="option"
+                aria-selected={active}
+                className={`invDash__selectOption ${active ? "invDash__selectOption--active" : ""}`}
+                onClick={() => {
+                  onChange(option.value);
+                  onToggleMenu(null);
+                }}
+              >
+                {option.label}
+              </button>
+            );
+          })}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 export default function InvestorDashboard() {
   const { user } = useAuth();
   const [filters, setFilters] = useState({
@@ -112,6 +170,10 @@ export default function InvestorDashboard() {
   const [inquiryError, setInquiryError] = useState("");
   const [inquirySuccess, setInquirySuccess] = useState("");
   const [messagedPropertyIds, setMessagedPropertyIds] = useState([]);
+  const [openFilterMenu, setOpenFilterMenu] = useState(null);
+  const occupancyMenuRef = useRef(null);
+  const exitStrategyMenuRef = useRef(null);
+  const closingTermsMenuRef = useRef(null);
 
   const favoritePropertyIdSet = useMemo(() => {
     return new Set(favoritePropertyIds);
@@ -291,6 +353,39 @@ export default function InvestorDashboard() {
       alive = false;
     };
   }, [user?.investorId]);
+
+  useEffect(() => {
+    if (!openFilterMenu) return undefined;
+
+    const menuRefsByKey = {
+      occupancyStatus: occupancyMenuRef,
+      exitStrategy: exitStrategyMenuRef,
+      closingTerms: closingTermsMenuRef,
+    };
+    const activeMenuRef = menuRefsByKey[openFilterMenu];
+
+    function closeIfOutside(event) {
+      const activeNode = activeMenuRef?.current;
+      if (!activeNode) return;
+      if (activeNode.contains(event.target)) return;
+      setOpenFilterMenu(null);
+    }
+
+    function onKeyDown(event) {
+      if (event.key !== "Escape") return;
+      setOpenFilterMenu(null);
+    }
+
+    document.addEventListener("mousedown", closeIfOutside);
+    document.addEventListener("touchstart", closeIfOutside, { passive: true });
+    document.addEventListener("keydown", onKeyDown);
+
+    return () => {
+      document.removeEventListener("mousedown", closeIfOutside);
+      document.removeEventListener("touchstart", closeIfOutside);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [openFilterMenu]);
 
   const hasMoreFiltersSelected = useMemo(() => {
     return [
@@ -480,41 +575,38 @@ export default function InvestorDashboard() {
               Favorites
             </button>
 
-            <select
-              className="invDash__select"
+            <FilterDropdown
+              menuKey="occupancyStatus"
+              options={OCCUPANCY_OPTIONS}
               value={filters.occupancyStatus}
-              onChange={(event) => updateFilter("occupancyStatus", event.target.value)}
-            >
-              {OCCUPANCY_OPTIONS.map((option) => (
-                <option key={option.label} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
+              onChange={(value) => updateFilter("occupancyStatus", value)}
+              openMenu={openFilterMenu}
+              onToggleMenu={setOpenFilterMenu}
+              menuRef={occupancyMenuRef}
+              ariaLabel="Occupancy filter"
+            />
 
-            <select
-              className="invDash__select"
+            <FilterDropdown
+              menuKey="exitStrategy"
+              options={EXIT_STRATEGY_OPTIONS}
               value={filters.exitStrategy}
-              onChange={(event) => updateFilter("exitStrategy", event.target.value)}
-            >
-              {EXIT_STRATEGY_OPTIONS.map((option) => (
-                <option key={option.label} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
+              onChange={(value) => updateFilter("exitStrategy", value)}
+              openMenu={openFilterMenu}
+              onToggleMenu={setOpenFilterMenu}
+              menuRef={exitStrategyMenuRef}
+              ariaLabel="Exit strategy filter"
+            />
 
-            <select
-              className="invDash__select"
+            <FilterDropdown
+              menuKey="closingTerms"
+              options={CLOSING_TERMS_OPTIONS}
               value={filters.closingTerms}
-              onChange={(event) => updateFilter("closingTerms", event.target.value)}
-            >
-              {CLOSING_TERMS_OPTIONS.map((option) => (
-                <option key={option.label} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
+              onChange={(value) => updateFilter("closingTerms", value)}
+              openMenu={openFilterMenu}
+              onToggleMenu={setOpenFilterMenu}
+              menuRef={closingTermsMenuRef}
+              ariaLabel="Closing terms filter"
+            />
 
             <details className="invDash__moreMenu">
               <summary
@@ -619,6 +711,7 @@ export default function InvestorDashboard() {
                 const estimatedProfit = potentialProfit(property);
                 const isActive = selectedPropertyId === property.id;
                 const isFavorite = favoritePropertyIdSet.has(String(property.id));
+                const isMessaged = messagedPropertyIdSet.has(String(property.id));
 
                 return (
                   <article
@@ -730,6 +823,9 @@ export default function InvestorDashboard() {
                           <span>{property.beds ?? "—"} bd</span>
                           <span>{property.baths ?? "—"} ba</span>
                           <span>{property.livingAreaSqft?.toLocaleString("en-US") ?? "—"} sqft</span>
+                          {isMessaged ? (
+                            <span className="invDash__cardMetaStatus">Messaged</span>
+                          ) : null}
                         </div>
 
                         <p

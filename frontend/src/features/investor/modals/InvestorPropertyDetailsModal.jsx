@@ -482,7 +482,7 @@ export default function InvestorPropertyDetailsModal({
               aria-label="Previous photo"
               onClick={() => movePreviewPhoto(-1)}
             >
-              ‹
+              <span className="material-symbols-outlined" aria-hidden="true">chevron_left</span>
             </button>
           ) : null}
 
@@ -507,7 +507,7 @@ export default function InvestorPropertyDetailsModal({
               aria-label="Next photo"
               onClick={() => movePreviewPhoto(1)}
             >
-              ›
+              <span className="material-symbols-outlined" aria-hidden="true">chevron_right</span>
             </button>
           ) : null}
         </div>

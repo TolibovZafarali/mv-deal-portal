@@ -2,7 +2,7 @@
   position: relative;
   height: 100%;
   min-height: 420px;
-  border-radius: 14px;
+  border-radius: 0;
   border: 1px solid rgba(16, 16, 16, 0.16);
   overflow: hidden;
   background: linear-gradient(140deg, rgba(244, 246, 248, 0.95), rgba(233, 236, 240, 0.9));

@@ -15,7 +15,7 @@
 
 .invDash__filterRow {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 0.96fr) minmax(0, 1.04fr);
   gap: 14px;
   align-items: center;
 }
@@ -27,20 +27,23 @@
 .invDash__search {
   width: 100%;
   height: 42px;
-  border-radius: 20px;
+  border-radius: 0;
   border: 1px solid rgba(16, 16, 16, 0.2);
   background: rgba(255, 255, 255, 0.95);
   color: #101010;
   padding: 0 40px 0 14px;
   outline: none;
+  transition: border-color 140ms ease, background-color 140ms ease;
 }
 
 .invDash__search::placeholder {
   color: rgba(16, 16, 16, 0.5);
 }
 
+.invDash__search:hover,
 .invDash__search:focus {
   border-color: rgba(16, 16, 16, 0.45);
+  background: #ffffff;
 }
 
 .invDash__searchIcon {
@@ -69,27 +72,77 @@
   color: #101010;
 }
 
-.invDash__select {
-  height: 42px;
+.invDash__selectMenu {
+  position: relative;
   min-width: 0;
+}
+
+.invDash__selectTrigger {
   width: 100%;
-  border-radius: 20px;
+  height: 42px;
   border: 1px solid rgba(16, 16, 16, 0.2);
   background: rgba(255, 255, 255, 0.95);
   color: #101010;
-  padding: 0 30px 0 12px;
-  outline: none;
-  appearance: none;
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23101010' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9' /%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-size: 14px;
-  background-position: right 11px center;
+  padding: 0 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 14px;
+  text-align: left;
+  transition: border-color 140ms ease, background-color 140ms ease, color 140ms ease;
 }
 
-.invDash__select:focus {
+.invDash__selectMenu:hover .invDash__selectTrigger,
+.invDash__selectTrigger:focus-visible,
+.invDash__selectMenu--open .invDash__selectTrigger {
   border-color: rgba(16, 16, 16, 0.45);
+  background: #ffffff;
+}
+
+.invDash__selectTrigger .material-symbols-outlined {
+  font-size: 18px;
+  line-height: 1;
+  transition: transform 180ms ease;
+}
+
+.invDash__selectMenu--open .invDash__selectTrigger .material-symbols-outlined {
+  transform: rotate(180deg);
+}
+
+.invDash__selectList {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  border: 1px solid rgba(16, 16, 16, 0.2);
+  background: #ffffff;
+  z-index: 18;
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.invDash__selectOption {
+  width: 100%;
+  border: none;
+  background: transparent;
+  color: #101010;
+  padding: 10px 12px;
+  text-align: left;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 140ms ease, color 140ms ease;
+}
+
+.invDash__selectOption:hover,
+.invDash__selectOption:focus-visible {
+  background: rgba(16, 16, 16, 0.08);
+}
+
+.invDash__selectOption--active {
+  background: #101010;
+  color: #f2f2f2;
+  font-weight: 700;
 }
 
 .invDash__controlGroup {
@@ -103,7 +156,7 @@
   height: 42px;
   min-width: 0;
   width: 100%;
-  border-radius: 20px;
+  border-radius: 0;
   border: 1px solid rgba(16, 16, 16, 0.2);
   background: rgba(255, 255, 255, 0.95);
   color: #101010;
@@ -129,7 +182,7 @@
   box-sizing: border-box;
   height: 42px;
   width: 100%;
-  border-radius: 20px;
+  border-radius: 0;
   border: 1px solid rgba(16, 16, 16, 0.2);
   background: rgba(255, 255, 255, 0.95);
   color: #101010;
@@ -138,12 +191,15 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: border-color 140ms ease, background-color 140ms ease;
 }
 
 .invDash__moreSummary::-webkit-details-marker {
   display: none;
 }
 
+.invDash__moreSummary:hover,
+.invDash__moreSummary:focus-visible,
 .invDash__moreSummary--active,
 .invDash__moreMenu[open] .invDash__moreSummary {
   background: #101010;
@@ -157,7 +213,7 @@
   top: calc(100% + 8px);
   width: min(400px, 88vw);
   border: 1px solid rgba(16, 16, 16, 0.2);
-  background: #fff;
+  background: #ffffff;
   padding: 12px;
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -179,19 +235,34 @@
 .invDash__moreInput {
   width: 100%;
   border: 1px solid rgba(16, 16, 16, 0.25);
+  background: #ffffff;
+  color: #101010;
   height: 36px;
   padding: 0 10px;
   outline: none;
+  transition: border-color 140ms ease, background-color 140ms ease;
 }
 
+.invDash__moreInput:hover,
 .invDash__moreInput:focus {
   border-color: rgba(16, 16, 16, 0.45);
+  background: #ffffff;
+}
+
+.invDash__search,
+.invDash__selectTrigger,
+.invDash__favoritesFilter,
+.invDash__moreSummary,
+.invDash__moreInput,
+.invDash__selectOption {
+  font-size: 14px;
+  font-family: inherit;
 }
 
 .invDash__content {
   min-height: 0;
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 0.96fr) minmax(0, 1.04fr);
   gap: 14px;
 }
 
@@ -215,7 +286,7 @@
 }
 
 .invDash__card {
-  border-radius: 12px;
+  border-radius: 0;
   overflow: hidden;
   background: rgba(255, 255, 255, 0.95);
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
@@ -421,6 +492,7 @@
   display: block;
   margin-top: 2px;
   font-size: 15px;
+  font-weight: 800;
 }
 
 .invDash__cardValue--neutral {
@@ -439,6 +511,13 @@
   color: rgba(16, 16, 16, 0.76);
   display: flex;
   gap: 10px;
+}
+
+.invDash__cardMetaStatus {
+  margin-left: auto;
+  color: #101010;
+  font-weight: 700;
+  letter-spacing: 0.01em;
 }
 
 .invDash__cardHint {
@@ -494,7 +573,7 @@
     gap: 8px;
   }
 
-  .invDash__select {
+  .invDash__selectMenu {
     min-width: 0;
     width: 100%;
   }
