@@ -49,6 +49,18 @@ export default function SignUpModal() {
   const closingRef = useRef(false);
   const isSellerSignup = selectedRole === ROLE_SELLER;
 
+  useEffect(() => {
+    const stateRole = location.state?.signupRole;
+    const normalizedStateRole =
+      stateRole === ROLE_BUYER || stateRole === ROLE_SELLER ? stateRole : null;
+    const roleFromPath = location.pathname === "/signup/seller" ? ROLE_SELLER : null;
+    const preselectedRole = normalizedStateRole || roleFromPath;
+
+    if (!preselectedRole) return;
+    setRoleSlideEnabled(false);
+    setSelectedRole(preselectedRole);
+  }, [location.pathname, location.state?.signupRole]);
+
   function goStep(nextStep) {
     setHasStepTransition(true);
     setDirection(nextStep > step ? "forward" : "back");

@@ -105,6 +105,12 @@ export async function searchProperties(filters = {}, pageOpts = {}) {
     return data;
 }
 
+export async function getClosedPropertyPreviews(pageOpts = {}) {
+    const params = buildPageParams(pageOpts);
+    const { data } = await apiClient.get(`${BASE}/preview`, { params });
+    return data;
+}
+
 export async function getAddressSuggestions(query, opts = {}) {
     const { limit = 6 } = opts;
     const params = cleanParams({
