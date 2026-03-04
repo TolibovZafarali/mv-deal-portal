@@ -6,7 +6,6 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "build:firebase-dev": "vite build --mode firebase-dev",
     "lint": "eslint .",
     "backfill:coords": "node ./scripts/backfill-property-coordinates.mjs",
     "preview": "vite preview"
