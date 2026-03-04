@@ -4,28 +4,36 @@
   z-index: 1000;
   display: grid;
   place-items: center;
-  background: rgba(0, 0, 0, 0.48);
+  background: rgba(0, 0, 0, 0.5);
   backdrop-filter: blur(7px);
   padding: 16px;
 }
 
 .invAccountModal {
-  width: min(1120px, 96vw);
-  height: min(740px, 92vh);
-  max-height: min(740px, 92vh);
-  background: #252628;
-  color: #f2f2f2;
-  border: 1px solid rgba(242, 242, 242, 0.26);
+  width: min(1160px, 96vw);
+  height: min(760px, 92vh);
+  max-height: min(760px, 92vh);
+  background: #f4f4ef;
+  color: #111111;
+  border: 1px solid #101010;
   display: grid;
-  grid-template-columns: 280px 1fr;
+  grid-template-columns: 360px 1fr;
   overflow: hidden;
 }
 
+.invAccountModal,
+.invAccountModal * {
+  border-radius: 0 !important;
+}
+
 .invAccountModal__left {
-  background: #f2f2f2;
-  color: #101010;
-  border-right: 1px solid rgba(16, 16, 16, 0.18);
-  padding: 18px 16px;
+  --inv-account-rail-gap: 10px;
+  --inv-account-rail-inset: 16px;
+  --inv-account-active-bridge-span: 17px;
+  background: #101010;
+  color: #f4f4ef;
+  border-right: 1px solid #101010;
+  padding: 18px 0 18px 16px;
   display: flex;
   flex-direction: column;
   min-height: 0;
@@ -33,49 +41,134 @@
 
 .invAccountModal__title {
   margin: 0;
+  padding-right: 16px;
   font-size: 34px;
   font-weight: 500;
   line-height: 1;
-  white-space: nowrap;
 }
 
-.invAccountModal__tabs {
-  margin-top: 24px;
+.invAccountModal__subcopy {
+  margin: 12px 0 0;
+  padding-right: 16px;
+  font-size: 13px;
+  line-height: 1.35;
+  color: rgba(244, 244, 239, 0.8);
+}
+
+.invAccountModal__propertyList {
+  margin-top: 14px;
   display: grid;
-  gap: 8px;
+  gap: var(--inv-account-rail-gap);
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: var(--inv-account-rail-inset);
+  min-height: 0;
+  align-content: start;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  margin-right: -1px;
 }
 
-.invAccountModal__tab {
-  height: 36px;
-  border: 1px solid rgba(16, 16, 16, 0.36);
-  background: transparent;
-  color: #101010;
-  cursor: pointer;
+.invAccountModal__propertyList::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
 }
 
-.invAccountModal__tab--active {
-  background: #101010;
-  color: #f2f2f2;
-  border-color: #101010;
-}
-
-.invAccountModal__leftBottom {
-  margin-top: auto;
-  padding-top: 16px;
-}
-
-.invAccountModal__logout {
+.invAccountModal__propertyCard {
+  appearance: none;
+  border: none;
+  border-radius: 0;
+  background: #f4f4ef;
+  color: #111111;
+  height: 248px;
+  padding: 8px;
   width: 100%;
-  height: 38px;
-  border: 1px solid rgba(160, 42, 42, 0.95);
-  background: transparent;
-  color: rgba(160, 42, 42, 0.95);
+  box-sizing: border-box;
+  text-align: left;
+  display: grid;
+  grid-template-rows: 120px auto auto auto auto;
+  gap: 7px;
   cursor: pointer;
+  position: relative;
+  z-index: 1;
+  transition: background 180ms ease;
 }
 
-.invAccountModal__logout:hover {
-  background: rgba(160, 42, 42, 0.95);
-  color: #fff;
+.invAccountModal__propertyCard:hover {
+  background: #fbfbf8;
+}
+
+.invAccountModal__propertyCard:focus-visible {
+  outline: 2px solid rgba(244, 244, 239, 0.95);
+  outline-offset: 2px;
+}
+
+.invAccountModal__propertyCard--active {
+  background: #f4f4ef;
+  overflow: visible;
+  z-index: 2;
+}
+
+.invAccountModal__propertyCard--active::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: calc(-1 * var(--inv-account-active-bridge-span));
+  width: calc(var(--inv-account-active-bridge-span) + 1px);
+  background: #f4f4ef;
+  pointer-events: none;
+}
+
+.invAccountModal__propertyPhoto {
+  width: 100%;
+  height: 120px;
+  object-fit: cover;
+  background: #d8d7cf;
+}
+
+.invAccountModal__propertyPhoto--placeholder {
+  display: grid;
+  place-items: center;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: rgba(17, 17, 17, 0.62);
+}
+
+.invAccountModal__propertyAddress {
+  font-size: 13px;
+  line-height: 1.3;
+  font-weight: 600;
+  color: #111111;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.invAccountModal__propertyMetaLine {
+  font-size: 12px;
+  color: rgba(17, 17, 17, 0.72);
+}
+
+.invAccountModal__propertyMetaBadge {
+  justify-self: start;
+  font-size: 11px;
+  padding: 3px 8px;
+}
+
+.invAccountModal__propertyMetaBadge--pending {
+  color: #8f4100;
+  background: rgba(255, 140, 48, 0.2);
+}
+
+.invAccountModal__propertyMetaBadge--delivered {
+  color: #20643a;
+  background: rgba(99, 188, 134, 0.24);
 }
 
 .invAccountModal__right {
@@ -83,40 +176,162 @@
   position: relative;
   padding: 16px 18px 18px;
   overflow: auto;
+  background: #f4f4ef;
+  color: #111111;
 }
 
 .invAccountModal__close {
   position: absolute;
   top: 10px;
   right: 10px;
-  width: 30px;
-  height: 30px;
+  width: 32px;
+  height: 32px;
   border: none;
   background: transparent;
-  color: #f2f2f2;
+  color: #111111;
   cursor: pointer;
+}
+
+.invAccountModal__close:hover {
+  opacity: 0.7;
 }
 
 .invAccountModal__panel {
   margin-top: 10px;
 }
 
+.invAccountModal__panel--messages {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: 12px;
+  min-height: calc(100% - 10px);
+}
+
 .invAccountModal__panelTitle {
-  margin: 0 0 14px;
+  margin: 0;
   font-size: 30px;
   font-weight: 500;
-  line-height: 1;
+  line-height: 1.1;
+  color: #111111;
+}
+
+.invAccountModal__chatHead {
+  display: grid;
+  gap: 8px;
+  padding-right: 40px;
+}
+
+.invAccountModal__chatHint {
+  margin: 0;
+  font-size: 13px;
+  color: rgba(17, 17, 17, 0.74);
+}
+
+.invAccountModal__chatTimeline {
+  display: grid;
+  gap: 14px;
+}
+
+.invAccountModal__chatBodyWrap {
+  min-height: 0;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.invAccountModal__chatExchange {
+  display: grid;
+  gap: 8px;
+}
+
+.invAccountModal__chatBubble {
+  border: 1px solid rgba(17, 17, 17, 0.2);
+  padding: 10px 12px;
+  display: grid;
+  gap: 8px;
+  max-width: 82%;
+}
+
+.invAccountModal__chatBubble--outgoing {
+  justify-self: end;
+  background: #101010;
+  color: #f4f4ef;
+  border-color: #101010;
+}
+
+.invAccountModal__chatBubble--incoming {
+  justify-self: start;
+  background: #ffffff;
+  color: #111111;
+}
+
+.invAccountModal__chatBubbleHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.invAccountModal__chatAuthor {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: inherit;
+  opacity: 0.75;
+}
+
+.invAccountModal__chatBody {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.invAccountModal__chatTime {
+  font-size: 12px;
+  opacity: 0.72;
+}
+
+.invAccountModal__statusText {
+  font-size: 12px;
+  color: #356246;
+}
+
+.invAccountModal__chatComposer {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  border-top: 1px solid rgba(17, 17, 17, 0.16);
+  padding-top: 10px;
+  background: #f4f4ef;
+  align-self: end;
+}
+
+.invAccountModal__chatComposer input {
+  border: 1px solid rgba(17, 17, 17, 0.26);
+  background: #ffffff;
+  color: rgba(17, 17, 17, 0.72);
+  padding: 10px;
+}
+
+.invAccountModal__chatComposer button {
+  border: 1px solid rgba(17, 17, 17, 0.32);
+  background: #f4f4ef;
+  color: rgba(17, 17, 17, 0.58);
+  padding: 0 14px;
 }
 
 .invAccountModal__notice {
-  border: 1px solid rgba(242, 242, 242, 0.25);
+  border: 1px solid rgba(17, 17, 17, 0.22);
+  background: rgba(255, 255, 255, 0.8);
+  color: #111111;
   padding: 10px 12px;
   font-size: 14px;
 }
 
 .invAccountModal__notice--error {
-  border-color: rgba(187, 79, 79, 0.75);
-  color: #f1b6b6;
+  border-color: rgba(159, 56, 56, 0.5);
+  color: #9f3838;
 }
 
 .invAccountModal__profileForm {
@@ -131,23 +346,24 @@
 
 .invAccountModal__field span {
   font-size: 12px;
-  color: rgba(242, 242, 242, 0.72);
+  color: rgba(17, 17, 17, 0.72);
 }
 
 .invAccountModal__field input {
-  border: 1px solid rgba(242, 242, 242, 0.3);
-  background: transparent;
-  color: #f2f2f2;
+  border: 1px solid rgba(17, 17, 17, 0.3);
+  background: #ffffff;
+  color: #111111;
   padding: 9px 10px;
   outline: none;
 }
 
 .invAccountModal__field input:disabled {
-  color: rgba(242, 242, 242, 0.65);
+  color: rgba(17, 17, 17, 0.65);
+  background: rgba(17, 17, 17, 0.04);
 }
 
 .invAccountModal__field input:focus {
-  border-color: rgba(242, 242, 242, 0.62);
+  border-color: rgba(17, 17, 17, 0.58);
 }
 
 .invAccountModal__formMsg {
@@ -155,19 +371,19 @@
 }
 
 .invAccountModal__formMsg--error {
-  color: #f1b6b6;
+  color: #9f3838;
 }
 
 .invAccountModal__formMsg--ok {
-  color: #a6e4b9;
+  color: #2f7846;
 }
 
 .invAccountModal__save {
   margin-top: 6px;
-  border: 1px solid rgba(242, 242, 242, 0.45);
-  background: transparent;
-  color: #f2f2f2;
-  height: 38px;
+  border: 1px solid rgba(17, 17, 17, 0.5);
+  background: #ffffff;
+  color: #111111;
+  height: 40px;
   cursor: pointer;
 }
 
@@ -176,75 +392,77 @@
   opacity: 0.7;
 }
 
-.invAccountModal__inquiries {
-  display: grid;
-  gap: 20px;
-}
-
-.invAccountModal__group h4 {
-  margin: 0 0 8px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid rgba(242, 242, 242, 0.3);
-  font-size: 16px;
-  font-weight: 500;
-}
-
-.invAccountModal__rows {
-  display: grid;
-  gap: 6px;
-}
-
-.invAccountModal__row {
-  display: grid;
-  grid-template-columns: 2fr 1fr 2fr auto;
-  gap: 10px;
-  font-size: 12px;
-  line-height: 1.35;
-}
-
-.invAccountModal__row span {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.invAccountModal__row--head {
-  color: rgba(242, 242, 242, 0.68);
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-}
-
 .invAccountModal__empty {
   font-size: 13px;
-  color: rgba(242, 242, 242, 0.68);
+  color: rgba(17, 17, 17, 0.68);
 }
 
-@media (max-width: 920px) {
+.invAccountModal__empty--rail {
+  color: rgba(244, 244, 239, 0.78);
+  background: rgba(244, 244, 239, 0.08);
+  padding: 10px;
+}
+
+@media (max-width: 980px) {
   .invAccountModal {
     grid-template-columns: 1fr;
   }
 
   .invAccountModal__left {
     border-right: none;
-    border-bottom: 1px solid rgba(16, 16, 16, 0.2);
+    border-bottom: 1px solid rgba(244, 244, 239, 0.25);
+    max-height: 44vh;
+    padding: 18px 16px;
+  }
+
+  .invAccountModal__propertyList {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    padding-right: 0;
+  }
+
+  .invAccountModal__propertyCard--active::after {
+    display: none;
+  }
+
+  .invAccountModal__title {
+    font-size: 30px;
   }
 }
 
 @media (max-width: 740px) {
-  .invAccountModal__row {
+  .invAccountModal {
+    width: 100%;
+    height: 100%;
+    max-height: none;
+  }
+
+  .invAccountBackdrop {
+    padding: 0;
+  }
+
+  .invAccountModal__left {
+    max-height: 48vh;
+    padding: 14px;
+  }
+
+  .invAccountModal__propertyList {
     grid-template-columns: 1fr;
-    gap: 4px;
-    padding: 8px 0;
-    border-bottom: 1px solid rgba(242, 242, 242, 0.14);
   }
 
-  .invAccountModal__row--head {
-    display: none;
+  .invAccountModal__right {
+    padding: 14px;
   }
 
-  .invAccountModal__row span {
-    white-space: normal;
+  .invAccountModal__panelTitle {
+    font-size: 24px;
+  }
+
+  .invAccountModal__chatBubble {
+    max-width: 100%;
+  }
+
+  .invAccountModal__chatBubbleHead {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }
