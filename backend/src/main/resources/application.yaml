@@ -53,6 +53,8 @@ app:
     reply-to-address: ${APP_EMAIL_REPLY_TO_ADDRESS:contact@megna-realestate.com}
     inquiry-notification-to: ${APP_EMAIL_INQUIRY_NOTIFICATION_TO:contact@megna-realestate.com}
     non-production-allowlist: ${APP_EMAIL_NON_PROD_ALLOWLIST:}
+    webhooks-enabled: ${APP_EMAIL_WEBHOOKS_ENABLED:false}
+    webhook-secret: ${POSTMARK_WEBHOOK_SECRET:}
     postmark-api-base-url: ${POSTMARK_API_BASE_URL:https://api.postmarkapp.com}
     postmark-server-token: ${POSTMARK_SERVER_TOKEN:}
     postmark-message-stream: ${POSTMARK_MESSAGE_STREAM:}
