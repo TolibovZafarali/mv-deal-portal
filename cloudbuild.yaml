@@ -51,7 +51,7 @@ steps:
       - --allow-unauthenticated
       - --service-account=${_RUN_SERVICE_ACCOUNT}
       - --add-cloudsql-instances=${_CLOUDSQL_INSTANCE}
-      - --set-secrets=DB_PASSWORD=DB_PASSWORD:latest,JWT_SECRET=JWT_SECRET:latest
+      - --set-secrets=DB_PASSWORD=DB_PASSWORD:latest,JWT_SECRET=JWT_SECRET:latest,POSTMARK_SERVER_TOKEN=POSTMARK_SERVER_TOKEN:latest
       - --env-vars-file=infra/cloudrun/env-prod.yaml
 
 images:

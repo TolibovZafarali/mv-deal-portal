@@ -13,3 +13,9 @@ APP_PHOTOS_PURGE_CRON: "0 15 2 * * *"
 SPRING_FLYWAY_VALIDATE_ON_MIGRATE: "true"
 SPRING_FLYWAY_ENABLED: "true"
 SPRING_JPA_HIBERNATE_DDL_AUTO: validate
+APP_EMAIL_ENABLED: "true"
+APP_EMAIL_PRODUCTION: "true"
+APP_EMAIL_FROM_ADDRESS: no-reply@megna-realestate.com
+APP_EMAIL_REPLY_TO_ADDRESS: contact@megna-realestate.com
+APP_EMAIL_INQUIRY_NOTIFICATION_TO: contact@megna-realestate.com
+POSTMARK_API_BASE_URL: https://api.postmarkapp.com
