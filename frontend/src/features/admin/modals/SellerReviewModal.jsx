@@ -7,9 +7,19 @@ const MAX_REVIEW_NOTE_CHARS = 200;
 function SellerReviewModalBody({ property, submitting, submitError, onClose, onSubmit }) {
   const [action, setAction] = useState("");
   const [reviewNote, setReviewNote] = useState("");
-  const address = [property.street1, property.street2, property.city, property.state, property.zip]
-    .filter((value) => String(value ?? "").trim().length > 0)
+  const line1 = [property.street1, property.street2]
+    .map((value) => String(value ?? "").trim())
+    .filter(Boolean)
     .join(", ");
+  const stateZip = [property.state, property.zip]
+    .map((value) => String(value ?? "").trim())
+    .filter(Boolean)
+    .join(" ");
+  const line2 = [property.city, stateZip]
+    .map((value) => String(value ?? "").trim())
+    .filter(Boolean)
+    .join(", ");
+  const address = [line1, line2].filter(Boolean).join(", ");
 
   const requiresNote = useMemo(() => action === "REQUEST_CHANGES", [action]);
   const remainingNoteChars = Math.max(0, MAX_REVIEW_NOTE_CHARS - reviewNote.length);

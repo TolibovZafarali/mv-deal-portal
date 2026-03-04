@@ -1,38 +1,73 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { getInquiryByInvestor } from "@/api/modules/inquiryApi";
 import { getInvestorById, updateInvestor } from "@/api/modules/investorApi";
 import { getPropertyId } from "@/api/modules/propertyApi";
 import "@/features/investor/modals/InvestorAccountCenterModal.css";
 
-const PROFILE_TAB = "profile";
-const MESSAGES_TAB = "messages";
+const PROFILE_VIEW = "profile";
+const MESSAGES_VIEW = "messages";
+
+function normalizePropertyId(value) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric) || numeric <= 0) return null;
+  return numeric;
+}
 
 function cleanString(value) {
   return String(value ?? "").trim();
 }
 
-function prettyDateTime(value) {
-  if (!value) return "—";
+function parseDate(value) {
+  if (!value) return null;
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "—";
+  if (Number.isNaN(date.getTime())) return null;
+  return date;
+}
+
+function prettyDateTime(value) {
+  const date = parseDate(value);
+  if (!date) return "—";
   return date.toLocaleString("en-US", {
-    month: "2-digit",
+    month: "short",
+    day: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function prettyDate(value) {
+  const date = parseDate(value);
+  if (!date) return "—";
+  return date.toLocaleString("en-US", {
+    month: "short",
     day: "2-digit",
     year: "numeric",
   });
 }
 
-function messagePreview(value) {
-  const text = cleanString(value);
-  if (!text) return "—";
-  if (text.length <= 72) return text;
-  return `${text.slice(0, 69)}...`;
+function money(value) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return "—";
+  return numeric.toLocaleString("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
+  });
 }
 
 function propertyAddress(property) {
   if (!property) return "";
   const line1 = [property.street1, property.street2].filter(Boolean).join(", ");
-  return [line1, property.city, property.state, property.zip].filter(Boolean).join(", ");
+  const stateZip = [property.state, property.zip].filter(Boolean).join(" ");
+  return [line1, property.city, stateZip].filter(Boolean).join(", ");
+}
+
+function propertyLeadPhoto(property) {
+  const photos = Array.isArray(property?.photos) ? property.photos : [];
+  const first = photos.find((photo) => cleanString(photo?.thumbnailUrl) || cleanString(photo?.url));
+  if (!first) return "";
+  return cleanString(first.thumbnailUrl) || cleanString(first.url);
 }
 
 function profileFromInvestor(investor) {
@@ -47,11 +82,12 @@ function profileFromInvestor(investor) {
 
 export default function InvestorAccountCenterModal({
   open,
-  activeTab,
-  onTabChange,
+  view,
   onClose,
-  onLogout,
   investorId,
+  onViewPropertyDetails,
+  restorePropertyListScrollTop = null,
+  preferredPropertyId = null,
 }) {
   const [profile, setProfile] = useState({
     firstName: "",
@@ -69,7 +105,17 @@ export default function InvestorAccountCenterModal({
   const [inquiries, setInquiries] = useState([]);
   const [inquiryLoading, setInquiryLoading] = useState(false);
   const [inquiryError, setInquiryError] = useState("");
-  const [propertyAddressById, setPropertyAddressById] = useState({});
+  const [propertyMetaById, setPropertyMetaById] = useState({});
+  const [selectedPropertyId, setSelectedPropertyId] = useState(null);
+  const [threadSearchOpen, setThreadSearchOpen] = useState(false);
+  const [threadSearchQuery, setThreadSearchQuery] = useState("");
+  const [mobileThreadPanelOpen, setMobileThreadPanelOpen] = useState(false);
+  const propertyListRef = useRef(null);
+  const threadSearchInputRef = useRef(null);
+
+  const isProfileView = view === PROFILE_VIEW;
+  const isMessagesView = view === MESSAGES_VIEW;
+  const normalizedPreferredPropertyId = normalizePropertyId(preferredPropertyId);
 
   useEffect(() => {
     if (!open) return undefined;
@@ -89,7 +135,7 @@ export default function InvestorAccountCenterModal({
   }, [open, onClose]);
 
   useEffect(() => {
-    if (!open || !investorId) return;
+    if (!open || !isProfileView || !investorId) return;
     let alive = true;
 
     async function loadProfile() {
@@ -114,53 +160,71 @@ export default function InvestorAccountCenterModal({
     return () => {
       alive = false;
     };
-  }, [open, investorId]);
+  }, [open, isProfileView, investorId]);
 
   useEffect(() => {
-    if (!open || activeTab !== MESSAGES_TAB || !investorId) return;
+    if (!open || !isMessagesView || !investorId) return;
     let alive = true;
 
     async function loadInquiries() {
       setInquiryLoading(true);
       setInquiryError("");
-      setPropertyAddressById({});
+      setPropertyMetaById({});
 
       try {
         const response = await getInquiryByInvestor(investorId, {
           page: 0,
-          size: 100,
+          size: 200,
           sort: "createdAt,desc",
         });
 
         if (!alive) return;
 
-        const nextInquiries = Array.isArray(response?.content) ? response.content : [];
-        setInquiries(nextInquiries);
+        const allInquiries = Array.isArray(response?.content) ? response.content : [];
+        const propertyIds = [...new Set(allInquiries.map((inquiry) => inquiry?.propertyId).filter(Boolean))];
 
-        const ids = [...new Set(nextInquiries.map((inquiry) => inquiry.propertyId).filter(Boolean))];
-        if (!ids.length) return;
+        if (!propertyIds.length) {
+          setInquiries([]);
+          setPropertyMetaById({});
+          return;
+        }
 
-        const addressEntries = await Promise.allSettled(
-          ids.map(async (id) => {
+        const details = await Promise.allSettled(
+          propertyIds.map(async (id) => {
             const property = await getPropertyId(id);
-            return [id, propertyAddress(property)];
+            return [
+              id,
+              {
+                address: cleanString(propertyAddress(property)) || `Property #${id}`,
+                photoUrl: propertyLeadPhoto(property),
+                askingPrice: property?.askingPrice ?? null,
+                beds: property?.beds ?? null,
+                baths: property?.baths ?? null,
+              },
+            ];
           }),
         );
 
         if (!alive) return;
 
-        const nextAddressById = {};
-        addressEntries.forEach((entry) => {
+        const nextMetaById = {};
+        const visiblePropertyIds = new Set();
+
+        details.forEach((entry) => {
           if (entry.status === "fulfilled") {
-            const [id, address] = entry.value;
-            nextAddressById[id] = cleanString(address) || `Property #${id}`;
+            const [id, meta] = entry.value;
+            visiblePropertyIds.add(id);
+            nextMetaById[id] = meta;
           }
         });
-        setPropertyAddressById(nextAddressById);
+
+        const visibleInquiries = allInquiries.filter((inquiry) => visiblePropertyIds.has(inquiry?.propertyId));
+        setInquiries(visibleInquiries);
+        setPropertyMetaById(nextMetaById);
       } catch (error) {
         if (!alive) return;
         setInquiries([]);
-        setPropertyAddressById({});
+        setPropertyMetaById({});
         setInquiryError(error?.message || "Failed to load messages.");
       } finally {
         if (alive) setInquiryLoading(false);
@@ -171,16 +235,147 @@ export default function InvestorAccountCenterModal({
     return () => {
       alive = false;
     };
-  }, [open, activeTab, investorId]);
+  }, [open, isMessagesView, investorId]);
 
-  const activeInquiries = useMemo(
-    () => inquiries.filter((inquiry) => inquiry.emailStatus !== "SENT"),
-    [inquiries],
+  useEffect(() => {
+    if (!open || !isMessagesView) return;
+    if (normalizedPreferredPropertyId === null) return;
+    setSelectedPropertyId(normalizedPreferredPropertyId);
+  }, [open, isMessagesView, normalizedPreferredPropertyId]);
+
+  useEffect(() => {
+    if (!open || !isMessagesView) {
+      setMobileThreadPanelOpen(false);
+      return;
+    }
+
+    setMobileThreadPanelOpen(false);
+  }, [open, isMessagesView]);
+
+  const propertyThreads = useMemo(() => {
+    const grouped = new Map();
+
+    inquiries.forEach((inquiry) => {
+      const propertyId = inquiry?.propertyId;
+      if (!propertyId) return;
+
+      if (!grouped.has(propertyId)) {
+        grouped.set(propertyId, []);
+      }
+
+      grouped.get(propertyId).push(inquiry);
+    });
+
+    return [...grouped.entries()]
+      .map(([propertyId, threadInquiries]) => {
+        const messages = [...threadInquiries].sort((a, b) => {
+          const dateA = parseDate(a?.createdAt);
+          const dateB = parseDate(b?.createdAt);
+          const timeA = dateA ? dateA.getTime() : 0;
+          const timeB = dateB ? dateB.getTime() : 0;
+          return timeA - timeB;
+        });
+
+        const latest = messages[messages.length - 1] ?? null;
+        const pendingCount = messages.filter((item) => item?.emailStatus !== "SENT").length;
+
+        return {
+          propertyId,
+          messages,
+          latest,
+          pendingCount,
+          totalCount: messages.length,
+        };
+      })
+      .sort((a, b) => {
+        const dateA = parseDate(a.latest?.createdAt);
+        const dateB = parseDate(b.latest?.createdAt);
+        const timeA = dateA ? dateA.getTime() : 0;
+        const timeB = dateB ? dateB.getTime() : 0;
+        return timeB - timeA;
+      });
+  }, [inquiries]);
+
+  useEffect(() => {
+    if (!isMessagesView) return;
+
+    if (!propertyThreads.length) {
+      setSelectedPropertyId(null);
+      setMobileThreadPanelOpen(false);
+      return;
+    }
+
+    const stillExists = propertyThreads.some((thread) => thread.propertyId === selectedPropertyId);
+    if (!stillExists) {
+      setSelectedPropertyId(propertyThreads[0].propertyId);
+    }
+  }, [isMessagesView, propertyThreads, selectedPropertyId]);
+
+  useEffect(() => {
+    if (isMessagesView) return;
+    setThreadSearchOpen(false);
+    setThreadSearchQuery("");
+  }, [isMessagesView]);
+
+  useEffect(() => {
+    if (!threadSearchOpen) return undefined;
+    const rafId = window.requestAnimationFrame(() => {
+      threadSearchInputRef.current?.focus();
+    });
+    return () => window.cancelAnimationFrame(rafId);
+  }, [threadSearchOpen]);
+
+  useEffect(() => {
+    if (!open || !isMessagesView) return undefined;
+    if (inquiryLoading || inquiryError) return;
+
+    const list = propertyListRef.current;
+    if (!list) return undefined;
+
+    const targetScrollTop = Number(restorePropertyListScrollTop);
+    if (!Number.isFinite(targetScrollTop) || targetScrollTop < 0) return undefined;
+
+    let rafIdOne = 0;
+    let rafIdTwo = 0;
+
+    function applyScrollRestore() {
+      const max = Math.max(list.scrollHeight - list.clientHeight, 0);
+      list.scrollTop = Math.min(targetScrollTop, max);
+    }
+
+    rafIdOne = window.requestAnimationFrame(() => {
+      applyScrollRestore();
+      rafIdTwo = window.requestAnimationFrame(() => {
+        applyScrollRestore();
+      });
+    });
+
+    return () => {
+      if (rafIdOne) window.cancelAnimationFrame(rafIdOne);
+      if (rafIdTwo) window.cancelAnimationFrame(rafIdTwo);
+    };
+  }, [
+    open,
+    isMessagesView,
+    inquiryLoading,
+    inquiryError,
+    propertyThreads.length,
+    restorePropertyListScrollTop,
+  ]);
+
+  const selectedThread = useMemo(
+    () => propertyThreads.find((thread) => thread.propertyId === selectedPropertyId) ?? null,
+    [propertyThreads, selectedPropertyId],
   );
-  const respondedInquiries = useMemo(
-    () => inquiries.filter((inquiry) => inquiry.emailStatus === "SENT"),
-    [inquiries],
-  );
+  const normalizedThreadSearch = cleanString(threadSearchQuery).toLowerCase();
+  const filteredPropertyThreads = useMemo(() => {
+    if (!normalizedThreadSearch) return propertyThreads;
+
+    return propertyThreads.filter((thread) => {
+      const rawAddress = propertyMetaById[thread.propertyId]?.address || `Property #${thread.propertyId ?? "—"}`;
+      return String(rawAddress).toLowerCase().includes(normalizedThreadSearch);
+    });
+  }, [normalizedThreadSearch, propertyThreads, propertyMetaById]);
 
   async function handleProfileSave(event) {
     event.preventDefault();
@@ -210,66 +405,227 @@ export default function InvestorAccountCenterModal({
     }
   }
 
-  if (!open) return null;
-
   const missingInvestor = !investorId;
 
-  function resolveInquiryAddress(inquiry) {
-    const id = inquiry?.propertyId;
-    return propertyAddressById[id] || `Property #${id ?? "—"}`;
+  function resolvePropertyAddress(propertyId) {
+    return propertyMetaById[propertyId]?.address || `Property #${propertyId ?? "—"}`;
+  }
+
+  function resolvePropertyPhoto(propertyId) {
+    return propertyMetaById[propertyId]?.photoUrl || "";
   }
 
   return (
     <div
-      className="invAccountBackdrop"
+      className={`invAccountBackdrop ${open ? "invAccountBackdrop--open" : "invAccountBackdrop--closed"}`.trim()}
       role="dialog"
       aria-modal="true"
-      aria-label="Account Center"
+      aria-label={isMessagesView ? "Messages" : "Profile"}
+      aria-hidden={!open}
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) onClose?.();
       }}
     >
-      <div className="invAccountModal">
+      <div
+        className={`invAccountModal ${isMessagesView ? "invAccountModal--messagesView" : ""} ${
+          mobileThreadPanelOpen ? "invAccountModal--mobileThreadPanelOpen" : ""
+        }`.trim()}
+      >
         <div className="invAccountModal__left">
-          <h2 className="invAccountModal__title">Account Center</h2>
+          {isMessagesView ? (
+            <>
+              <div
+                className={`invAccountModal__titleRow ${
+                  threadSearchOpen ? "invAccountModal__titleRow--searchOpen" : ""
+                }`.trim()}
+              >
+                <div className="invAccountModal__titleTrack">
+                  <h2 className="invAccountModal__title">Messages</h2>
+                </div>
 
-          <div className="invAccountModal__tabs" role="tablist" aria-label="Account tabs">
-            <button
-              type="button"
-              role="tab"
-              aria-selected={activeTab === PROFILE_TAB}
-              className={`invAccountModal__tab ${
-                activeTab === PROFILE_TAB ? "invAccountModal__tab--active" : ""
-              }`}
-              onClick={() => onTabChange(PROFILE_TAB)}
-            >
-              Profile
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={activeTab === MESSAGES_TAB}
-              className={`invAccountModal__tab ${
-                activeTab === MESSAGES_TAB ? "invAccountModal__tab--active" : ""
-              }`}
-              onClick={() => onTabChange(MESSAGES_TAB)}
-            >
-              Messages
-            </button>
-          </div>
+                <div
+                  className={`invAccountModal__titleSearch ${
+                    threadSearchOpen ? "invAccountModal__titleSearch--open" : ""
+                  }`.trim()}
+                >
+                  <button
+                    type="button"
+                    className="invAccountModal__titleSearchToggle"
+                    aria-label={threadSearchOpen ? "Close search" : "Open search"}
+                    onClick={() => {
+                      setThreadSearchOpen((prev) => {
+                        const next = !prev;
+                        if (!next) setThreadSearchQuery("");
+                        return next;
+                      });
+                    }}
+                  >
+                    <span className="material-symbols-outlined invAccountModal__titleSearchIcon" aria-hidden="true">
+                      search
+                    </span>
+                  </button>
+                  <input
+                    ref={threadSearchInputRef}
+                    type="search"
+                    className="invAccountModal__titleSearchInput"
+                    placeholder="Search"
+                    value={threadSearchQuery}
+                    onChange={(event) => setThreadSearchQuery(event.target.value)}
+                    onFocus={() => setThreadSearchOpen(true)}
+                    onKeyDown={(event) => {
+                      if (event.key !== "Escape") return;
+                      event.stopPropagation();
+                      setThreadSearchOpen(false);
+                      setThreadSearchQuery("");
+                    }}
+                  />
+                  <button
+                    type="button"
+                    className="invAccountModal__titleSearchClose"
+                    aria-label="Close search"
+                    onClick={() => {
+                      setThreadSearchOpen(false);
+                      setThreadSearchQuery("");
+                    }}
+                  >
+                    <span className="material-symbols-outlined invAccountModal__titleSearchCloseIcon" aria-hidden="true">
+                      close
+                    </span>
+                  </button>
+                </div>
 
-          <div className="invAccountModal__leftBottom">
-            <button type="button" className="invAccountModal__logout" onClick={onLogout}>
-              Log Out
-            </button>
-          </div>
+                <button
+                  type="button"
+                  className="invAccountModal__mobileExit"
+                  aria-label="Close messages"
+                  onClick={onClose}
+                >
+                  <span className="material-symbols-outlined invAccountModal__mobileExitIcon" aria-hidden="true">
+                    close
+                  </span>
+                </button>
+              </div>
+              <p className="invAccountModal__subcopy">Select a property conversation.</p>
+
+              {!missingInvestor && !inquiryLoading && !inquiryError ? (
+                <div
+                  className="invAccountModal__propertyList"
+                  aria-label="Properties with inquiries"
+                  ref={propertyListRef}
+                >
+                  {filteredPropertyThreads.length === 0 ? (
+                    <div className="invAccountModal__empty invAccountModal__empty--rail">
+                      {normalizedThreadSearch ? "No matching conversations." : "No property conversations yet."}
+                    </div>
+                  ) : (
+                    filteredPropertyThreads.map((thread) => {
+                      const isActive = thread.propertyId === selectedPropertyId;
+                      const activeClass = isActive ? "invAccountModal__propertyItem--active" : "";
+                      const pendingClass = thread.pendingCount > 0
+                        ? "invAccountModal__propertyMetaBadge invAccountModal__propertyMetaBadge--pending"
+                        : "invAccountModal__propertyMetaBadge invAccountModal__propertyMetaBadge--delivered";
+                      const photoUrl = resolvePropertyPhoto(thread.propertyId);
+                      const address = resolvePropertyAddress(thread.propertyId);
+                      const propertyMeta = propertyMetaById[thread.propertyId] || {};
+                      const bedLabel = propertyMeta.beds ?? "—";
+                      const bathLabel = propertyMeta.baths ?? "—";
+
+                      return (
+                        <div
+                          key={thread.propertyId}
+                          className={`invAccountModal__propertyItem ${activeClass}`.trim()}
+                        >
+                          <div
+                            className="invAccountModal__propertyCard"
+                            onClick={() => setSelectedPropertyId(thread.propertyId)}
+                            onKeyDown={(event) => {
+                              if (event.key !== "Enter" && event.key !== " ") return;
+                              event.preventDefault();
+                              setSelectedPropertyId(thread.propertyId);
+                            }}
+                            role="button"
+                            tabIndex={0}
+                            aria-pressed={isActive}
+                          >
+                            {photoUrl ? (
+                              <img className="invAccountModal__propertyPhoto" src={photoUrl} alt={address} />
+                            ) : (
+                              <div className="invAccountModal__propertyPhoto invAccountModal__propertyPhoto--placeholder">
+                                <span>No photo</span>
+                              </div>
+                            )}
+
+                            <span className="invAccountModal__propertyAddress">{address}</span>
+                            <span className="invAccountModal__propertyQuickFacts">
+                              <strong>{money(propertyMeta.askingPrice)}</strong>
+                              <span>{bedLabel} bd • {bathLabel} ba</span>
+                            </span>
+                            <span className={pendingClass}>
+                              {thread.pendingCount > 0
+                                ? `${thread.pendingCount} pending`
+                                : `Updated ${prettyDate(thread.latest?.createdAt)}`}
+                            </span>
+                            <div className="invAccountModal__propertyActions">
+                              <button
+                                type="button"
+                                className="invAccountModal__propertyViewBtn"
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  setSelectedPropertyId(thread.propertyId);
+                                  onViewPropertyDetails?.({
+                                    propertyId: thread.propertyId,
+                                    propertyListScrollTop: Math.max(propertyListRef.current?.scrollTop ?? 0, 0),
+                                  });
+                                }}
+                              >
+                                View
+                              </button>
+                              <button
+                                type="button"
+                                className="invAccountModal__propertyOpenThreadBtn"
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  setSelectedPropertyId(thread.propertyId);
+                                  setMobileThreadPanelOpen(true);
+                                }}
+                              >
+                                Messages
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              ) : null}
+            </>
+          ) : (
+            <>
+              <h2 className="invAccountModal__title">Profile</h2>
+              <p className="invAccountModal__subcopy">Update your contact details used for inquiry follow-up.</p>
+            </>
+          )}
+
         </div>
 
         <div className="invAccountModal__right">
+          {isMessagesView ? (
+            <button
+              className="invAccountModal__mobileThreadBack"
+              type="button"
+              aria-label="Back to properties"
+              onClick={() => setMobileThreadPanelOpen(false)}
+            >
+              <span className="material-symbols-outlined invAccountModal__mobileThreadBackIcon" aria-hidden="true">
+                arrow_back
+              </span>
+            </button>
+          ) : null}
           <button
             className="invAccountModal__close"
             type="button"
-            aria-label="Close account center"
+            aria-label={isMessagesView ? "Close messages" : "Close profile"}
             onClick={onClose}
           >
             ✕
@@ -281,7 +637,7 @@ export default function InvestorAccountCenterModal({
             </div>
           ) : null}
 
-          {!missingInvestor && activeTab === PROFILE_TAB ? (
+          {!missingInvestor && isProfileView ? (
             <section className="invAccountModal__panel" aria-label="Profile">
               <h3 className="invAccountModal__panelTitle">Profile</h3>
 
@@ -350,10 +706,8 @@ export default function InvestorAccountCenterModal({
             </section>
           ) : null}
 
-          {!missingInvestor && activeTab === MESSAGES_TAB ? (
-            <section className="invAccountModal__panel" aria-label="Messages">
-              <h3 className="invAccountModal__panelTitle">Messages</h3>
-
+          {!missingInvestor && isMessagesView ? (
+            <section className="invAccountModal__panel invAccountModal__panel--messages" aria-label="Messages">
               {inquiryLoading ? <div className="invAccountModal__notice">Loading messages...</div> : null}
               {!inquiryLoading && inquiryError ? (
                 <div className="invAccountModal__notice invAccountModal__notice--error">
@@ -362,55 +716,72 @@ export default function InvestorAccountCenterModal({
               ) : null}
 
               {!inquiryLoading && !inquiryError ? (
-                <div className="invAccountModal__inquiries">
-                  <div className="invAccountModal__group">
-                    <h4>Active</h4>
-                    {activeInquiries.length === 0 ? (
-                      <div className="invAccountModal__empty">No active messages.</div>
-                    ) : (
-                      <div className="invAccountModal__rows">
-                        <div className="invAccountModal__row invAccountModal__row--head">
-                          <span>Property Address</span>
-                          <span>Subject</span>
-                          <span>Message</span>
-                          <span>Time</span>
-                        </div>
-                        {activeInquiries.map((inquiry) => (
-                          <div className="invAccountModal__row" key={inquiry.id}>
-                            <span>{resolveInquiryAddress(inquiry)}</span>
-                            <span>{cleanString(inquiry.subject) || "—"}</span>
-                            <span>{messagePreview(inquiry.messageBody)}</span>
-                            <span>{prettyDateTime(inquiry.createdAt)}</span>
-                          </div>
-                        ))}
+                <>
+                  <div className="invAccountModal__chatHead">
+                    <h3 className="invAccountModal__panelTitle">
+                      {selectedThread ? resolvePropertyAddress(selectedThread.propertyId) : "Messages"}
+                    </h3>
+                    <p className="invAccountModal__chatHint">
+                      Track your inquiry thread here and wait for a response from Megna Team.
+                    </p>
+                  </div>
+
+                  <div className="invAccountModal__chatBodyWrap">
+                    {selectedThread ? (
+                      <div className="invAccountModal__chatTimeline">
+                        {selectedThread.messages.map((message) => {
+                          const delivered = message?.emailStatus === "SENT";
+
+                          return (
+                            <div className="invAccountModal__chatExchange" key={message.id}>
+                              <article className="invAccountModal__chatBubble invAccountModal__chatBubble--outgoing">
+                                <div className="invAccountModal__chatBubbleHead">
+                                  <span className="invAccountModal__chatAuthor">You</span>
+                                  <span className="invAccountModal__chatTime">{prettyDateTime(message.createdAt)}</span>
+                                </div>
+
+                                <p className="invAccountModal__chatBody">{cleanString(message.messageBody) || "—"}</p>
+                              </article>
+
+                              <article className="invAccountModal__chatBubble invAccountModal__chatBubble--incoming">
+                                <div className="invAccountModal__chatBubbleHead">
+                                  <span className="invAccountModal__chatAuthor">Megna Team</span>
+                                  <span className="invAccountModal__statusText">
+                                    {delivered ? "Inbox received" : "Delivery pending"}
+                                  </span>
+                                </div>
+                                <p className="invAccountModal__chatBody">
+                                  {delivered
+                                    ? "We received your inquiry and a team member will follow up by email."
+                                    : "We are routing your inquiry to the Megna admin inbox now."}
+                                </p>
+                              </article>
+                            </div>
+                          );
+                        })}
                       </div>
+                    ) : (
+                      <div className="invAccountModal__empty">Select a property to view messages.</div>
                     )}
                   </div>
 
-                  <div className="invAccountModal__group">
-                    <h4>Responded (check email)</h4>
-                    {respondedInquiries.length === 0 ? (
-                      <div className="invAccountModal__empty">No responded messages.</div>
-                    ) : (
-                      <div className="invAccountModal__rows">
-                        <div className="invAccountModal__row invAccountModal__row--head">
-                          <span>Property Address</span>
-                          <span>Subject</span>
-                          <span>Message</span>
-                          <span>Time</span>
-                        </div>
-                        {respondedInquiries.map((inquiry) => (
-                          <div className="invAccountModal__row" key={inquiry.id}>
-                            <span>{resolveInquiryAddress(inquiry)}</span>
-                            <span>{cleanString(inquiry.subject) || "—"}</span>
-                            <span>{messagePreview(inquiry.messageBody)}</span>
-                            <span>{prettyDateTime(inquiry.createdAt)}</span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
+                  {selectedThread ? (
+                    <div className="invAccountModal__chatState" role="status" aria-live="polite">
+                      <span className="invAccountModal__chatStateBadge">
+                        {selectedThread.pendingCount > 0 ? "Message sent" : "Inbox received"}
+                      </span>
+                      <p className="invAccountModal__chatStateText">
+                        {selectedThread.pendingCount > 0
+                          ? "Your message was sent successfully. Please wait for a response from Megna Team."
+                          : "Your inquiry is in the Megna Team inbox. Please wait for their follow-up response."}
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="invAccountModal__chatState invAccountModal__chatState--empty" aria-hidden="true">
+                      Select a property to see message status.
+                    </div>
+                  )}
+                </>
               ) : null}
             </section>
           ) : null}

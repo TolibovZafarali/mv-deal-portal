@@ -203,7 +203,8 @@ public class AdminQueueService {
 
     private AdminQueueItemDto mapSubmittedListing(PropertyResponseDto property) {
         String line1 = joinComma(property.street1(), property.street2());
-        String line2 = joinComma(property.city(), property.state(), property.zip());
+        String stateZip = joinWithSpace(nonBlank(property.state()), nonBlank(property.zip())).trim();
+        String line2 = joinComma(property.city(), stateZip);
         String address = joinWithSpace(line1, line2);
 
         String title = address.isBlank() ? "Property #" + property.id() : address;

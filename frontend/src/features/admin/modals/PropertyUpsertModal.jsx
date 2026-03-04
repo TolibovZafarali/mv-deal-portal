@@ -146,10 +146,11 @@ function normalizeStateCode(value) {
 }
 
 function formatAddressSuggestionMeta(suggestion) {
-  const parts = [suggestion.city, suggestion.state, suggestion.zip]
-    .map((value) => String(value ?? "").trim())
-    .filter(Boolean);
-  return parts.join(", ");
+  const city = String(suggestion?.city ?? "").trim();
+  const state = String(suggestion?.state ?? "").trim();
+  const zip = String(suggestion?.zip ?? "").trim();
+  const stateZip = [state, zip].filter(Boolean).join(" ");
+  return [city, stateZip].filter(Boolean).join(", ");
 }
 
 function normalizeAddressSuggestions(rawSuggestions) {
@@ -180,7 +181,8 @@ function buildSuggestionAddressLine(suggestion) {
 
   if (!streetLine) return fallback;
 
-  const location = [city, state, zip].filter(Boolean).join(", ");
+  const stateZip = [state, zip].filter(Boolean).join(" ");
+  const location = [city, stateZip].filter(Boolean).join(", ");
   return location ? `${streetLine}, ${location}` : streetLine;
 }
 

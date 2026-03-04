@@ -453,6 +453,36 @@
   font-size: 16px;
 }
 
+.invPropDetail__sideHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.invPropDetail__openMessages {
+  height: 34px;
+  border: 1px solid rgba(236, 236, 236, 0.6);
+  background: transparent;
+  color: #ececec;
+  padding: 0 14px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  transition:
+    background-color 180ms ease,
+    color 180ms ease,
+    border-color 180ms ease;
+}
+
+.invPropDetail__openMessages:hover,
+.invPropDetail__openMessages:focus-visible {
+  background: #f2f2f2;
+  color: #101010;
+  border-color: #f2f2f2;
+}
+
 .invPropDetail__sideHelp {
   margin: 6px 0 4px;
   font-size: 12px;

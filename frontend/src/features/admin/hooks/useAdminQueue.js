@@ -17,7 +17,8 @@ function toDateMs(value) {
 
 function formatPropertyTitle(property) {
   const line1 = [property?.street1, property?.street2].filter(Boolean).join(", ");
-  const line2 = [property?.city, property?.state, property?.zip].filter(Boolean).join(", ");
+  const stateZip = [property?.state, property?.zip].filter(Boolean).join(" ");
+  const line2 = [property?.city, stateZip].filter(Boolean).join(", ");
   const joined = [line1, line2].filter(Boolean).join(" ");
   if (joined) return joined;
   return `Property #${property?.id ?? "—"}`;

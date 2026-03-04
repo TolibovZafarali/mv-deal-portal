@@ -11,7 +11,6 @@ import com.megna.backend.domain.enums.PropertyStatus;
 import com.megna.backend.domain.repository.InquiryRepository;
 import com.megna.backend.domain.repository.InvestorRepository;
 import com.megna.backend.domain.repository.PropertyRepository;
-import com.megna.backend.infrastructure.config.EmailProperties;
 import com.megna.backend.infrastructure.security.AuthPrincipal;
 import com.megna.backend.interfaces.rest.dto.inquiry.InquiryCreateRequestDto;
 import com.megna.backend.interfaces.rest.dto.inquiry.InquiryResponseDto;
@@ -25,6 +24,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -33,6 +34,8 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -51,9 +54,6 @@ class InquiryServiceTest {
 
     @Mock
     private TransactionalEmailService transactionalEmailService;
-
-    @Mock
-    private EmailProperties emailProperties;
 
     @InjectMocks
     private InquiryService inquiryService;
@@ -85,7 +85,6 @@ class InquiryServiceTest {
 
         when(propertyRepository.findById(101L)).thenReturn(Optional.of(property));
         when(investorRepository.findById(10L)).thenReturn(Optional.of(investor));
-        when(emailProperties.getInquiryNotificationTo()).thenReturn("contact@megna-realestate.com");
         when(transactionalEmailService.sendTransactional(any())).thenReturn(true);
 
         List<EmailStatus> persistedStatuses = new ArrayList<>();
@@ -122,7 +121,6 @@ class InquiryServiceTest {
 
         when(propertyRepository.findById(101L)).thenReturn(Optional.of(property));
         when(investorRepository.findById(10L)).thenReturn(Optional.of(investor));
-        when(emailProperties.getInquiryNotificationTo()).thenReturn("contact@megna-realestate.com");
         when(transactionalEmailService.sendTransactional(any())).thenReturn(false);
         when(inquiryRepository.save(any(Inquiry.class))).thenAnswer(invocation -> {
             Inquiry inquiry = invocation.getArgument(0);
@@ -149,5 +147,35 @@ class InquiryServiceTest {
                 "contact@example.com",
                 "+1-555-0100"
         );
+    }
+
+    @Test
+    void getByInvestorIdFiltersToActivePropertiesForInvestor() {
+        Pageable pageable = Pageable.unpaged();
+        when(inquiryRepository.findByInvestorIdAndPropertyStatus(10L, PropertyStatus.ACTIVE, pageable))
+                .thenReturn(Page.empty(pageable));
+
+        inquiryService.getByInvestorId(10L, pageable);
+
+        verify(inquiryRepository).findByInvestorIdAndPropertyStatus(10L, PropertyStatus.ACTIVE, pageable);
+        verify(inquiryRepository, never()).findByInvestorId(any(), any());
+    }
+
+    @Test
+    void getByInvestorIdKeepsAllStatusesForAdmin() {
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken(
+                        new AuthPrincipal("admin@test.local", 1L, "ADMIN"),
+                        null
+                )
+        );
+
+        Pageable pageable = Pageable.unpaged();
+        when(inquiryRepository.findByInvestorId(10L, pageable)).thenReturn(Page.empty(pageable));
+
+        inquiryService.getByInvestorId(10L, pageable);
+
+        verify(inquiryRepository).findByInvestorId(10L, pageable);
+        verify(inquiryRepository, never()).findByInvestorIdAndPropertyStatus(eq(10L), any(), any());
     }
 }

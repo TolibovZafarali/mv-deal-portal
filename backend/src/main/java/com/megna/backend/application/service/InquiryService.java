@@ -14,7 +14,6 @@ import com.megna.backend.interfaces.rest.mapper.InquiryMapper;
 import com.megna.backend.domain.repository.InquiryRepository;
 import com.megna.backend.domain.repository.InvestorRepository;
 import com.megna.backend.domain.repository.PropertyRepository;
-import com.megna.backend.infrastructure.config.EmailProperties;
 import com.megna.backend.infrastructure.security.AuthPrincipal;
 import com.megna.backend.infrastructure.security.SecurityUtils;
 import lombok.extern.slf4j.Slf4j;
@@ -33,11 +32,12 @@ import java.util.List;
 @Slf4j
 public class InquiryService {
 
+    private static final String MEGNA_TEAM_INBOX = "contact@megna-realestate.com";
+
     private final InquiryRepository inquiryRepository;
     private final PropertyRepository propertyRepository;
     private final InvestorRepository investorRepository;
     private final TransactionalEmailService transactionalEmailService;
-    private final EmailProperties emailProperties;
 
     public InquiryResponseDto create(InquiryCreateRequestDto dto) {
         requireSelf(dto.investorId());
@@ -71,6 +71,9 @@ public class InquiryService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Inquiry not found: " + id));
 
         requireSelf(inquiry.getInvestor().getId());
+        if (!isAdmin() && !isInquiryVisibleToInvestor(inquiry)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Inquiry not found: " + id);
+        }
 
         return InquiryMapper.toDto(inquiry);
     }
@@ -98,7 +101,12 @@ public class InquiryService {
 
     public Page<InquiryResponseDto> getByInvestorId(Long investorId, Pageable pageable) {
         requireSelf(investorId);
-        return inquiryRepository.findByInvestorId(investorId, pageable)
+        if (isAdmin()) {
+            return inquiryRepository.findByInvestorId(investorId, pageable)
+                    .map(InquiryMapper::toDto);
+        }
+
+        return inquiryRepository.findByInvestorIdAndPropertyStatus(investorId, PropertyStatus.ACTIVE, pageable)
                 .map(InquiryMapper::toDto);
     }
 
@@ -159,7 +167,7 @@ public class InquiryService {
         try {
             return transactionalEmailService.sendTransactional(
                     new TransactionalEmailRequest(
-                            emailProperties.getInquiryNotificationTo(),
+                            MEGNA_TEAM_INBOX,
                             buildInquirySubject(inquiry),
                             buildInquiryBody(inquiry)
                     )
@@ -205,5 +213,12 @@ public class InquiryService {
 
     private String safeNumber(Long value) {
         return value == null ? "N/A" : value.toString();
+    }
+
+    private boolean isInquiryVisibleToInvestor(Inquiry inquiry) {
+        if (inquiry == null || inquiry.getProperty() == null) {
+            return false;
+        }
+        return inquiry.getProperty().getStatus() == PropertyStatus.ACTIVE;
     }
 }

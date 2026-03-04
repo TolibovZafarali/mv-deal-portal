@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { searchProperties } from "@/api/modules/propertyApi";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useOutletContext } from "react-router-dom";
+import { getPropertyId, searchProperties } from "@/api/modules/propertyApi";
 import { createInquiry, getInquiryByInvestor } from "@/api/modules/inquiryApi";
 import {
   addInvestorFavoriteProperty,
@@ -68,7 +69,8 @@ function parseInteger(value) {
 
 function fullAddress(property) {
   const line1 = [property.street1, property.street2].filter(Boolean).join(", ");
-  return [line1, property.city, property.state, property.zip].filter(Boolean).join(", ");
+  const stateZip = [property.state, property.zip].filter(Boolean).join(" ");
+  return [line1, property.city, stateZip].filter(Boolean).join(", ");
 }
 
 function potentialProfit(property) {
@@ -160,6 +162,7 @@ function FilterDropdown({
 
 export default function InvestorDashboard() {
   const { user } = useAuth();
+  const { setPropertyDetailsOpener, openMessagesModal } = useOutletContext() || {};
   const [filters, setFilters] = useState({
     q: "",
     occupancyStatus: "",
@@ -188,6 +191,7 @@ export default function InvestorDashboard() {
   const [inquiryError, setInquiryError] = useState("");
   const [inquirySuccess, setInquirySuccess] = useState("");
   const [messagedPropertyIds, setMessagedPropertyIds] = useState([]);
+  const [detailsOpenedFromMessages, setDetailsOpenedFromMessages] = useState(false);
   const [openFilterMenu, setOpenFilterMenu] = useState(null);
   const occupancyMenuRef = useRef(null);
   const exitStrategyMenuRef = useRef(null);
@@ -214,6 +218,44 @@ export default function InvestorDashboard() {
     if (detailPropertyId === null) return null;
     return rows.find((row) => row.id === detailPropertyId) || null;
   }, [detailPropertyId, rows]);
+
+  const openPropertyDetailsFromMessages = useCallback(async (propertyId) => {
+    const normalized = String(propertyId ?? "").trim();
+    if (!normalized) return;
+
+    const existing = rows.find((row) => String(row?.id) === normalized);
+    if (existing) {
+      setDetailsOpenedFromMessages(true);
+      setSelectedPropertyId(existing.id);
+      setDetailPropertyId(existing.id);
+      return;
+    }
+
+    try {
+      const property = await getPropertyId(propertyId);
+      const fetchedId = property?.id;
+      if (fetchedId === null || fetchedId === undefined) return;
+
+      setRows((prev) => {
+        const exists = prev.some((row) => String(row?.id) === String(fetchedId));
+        if (exists) return prev;
+        return [property, ...prev];
+      });
+      setDetailsOpenedFromMessages(true);
+      setSelectedPropertyId(fetchedId);
+      setDetailPropertyId(fetchedId);
+    } catch (nextError) {
+      setDetailsOpenedFromMessages(false);
+      setError(nextError?.message || "Failed to load property details.");
+    }
+  }, [rows]);
+
+  useEffect(() => {
+    if (typeof setPropertyDetailsOpener !== "function") return undefined;
+
+    setPropertyDetailsOpener(() => openPropertyDetailsFromMessages);
+    return () => setPropertyDetailsOpener(null);
+  }, [openPropertyDetailsFromMessages, setPropertyDetailsOpener]);
 
   useEffect(() => {
     let alive = true;
@@ -512,6 +554,7 @@ export default function InvestorDashboard() {
       && window.matchMedia("(max-width: 720px)").matches;
 
     if (mobileView) {
+      setDetailsOpenedFromMessages(false);
       setSelectedPropertyId(property.id);
       setDetailPropertyId(property.id);
       setInquiryMessageBody(DEFAULT_INQUIRY_MESSAGE);
@@ -521,6 +564,7 @@ export default function InvestorDashboard() {
     }
 
     if (selectedPropertyId === property.id) {
+      setDetailsOpenedFromMessages(false);
       setDetailPropertyId(property.id);
       setInquiryMessageBody(DEFAULT_INQUIRY_MESSAGE);
       setInquiryError("");
@@ -554,9 +598,35 @@ export default function InvestorDashboard() {
   }
 
   function closePropertyDetails() {
+    const shouldReturnToMessages = detailsOpenedFromMessages;
+    const returningPropertyId = detailPropertyId;
+    setDetailsOpenedFromMessages(false);
     setDetailPropertyId(null);
     setInquiryError("");
     setInquirySuccess("");
+    if (shouldReturnToMessages && typeof openMessagesModal === "function") {
+      if (returningPropertyId === null || returningPropertyId === undefined) {
+        openMessagesModal();
+      } else {
+        openMessagesModal({ propertyId: returningPropertyId });
+      }
+    }
+  }
+
+  function openMessagesFromPropertyDetails() {
+    if (typeof openMessagesModal !== "function") return;
+
+    const propertyId = detailProperty?.id;
+    setDetailsOpenedFromMessages(false);
+    setDetailPropertyId(null);
+    setInquiryError("");
+    setInquirySuccess("");
+
+    if (propertyId === null || propertyId === undefined) {
+      openMessagesModal();
+      return;
+    }
+    openMessagesModal({ propertyId });
   }
 
   async function handleSendInquiry() {
@@ -1004,6 +1074,7 @@ export default function InvestorDashboard() {
           if (!detailProperty) return;
           void toggleFavoriteProperty(detailProperty.id);
         }}
+        onOpenMessages={openMessagesFromPropertyDetails}
         onClose={closePropertyDetails}
       />
     </section>

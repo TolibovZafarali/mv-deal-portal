@@ -211,7 +211,12 @@ public class PropertyAddressAutocompleteService {
     }
 
     private static String buildGeocodeQuery(String street1, String city, String state, String zip) {
-        return Stream.of(street1, city, state, zip)
+        String stateZip = Stream.of(state, zip)
+                .map(value -> value == null ? "" : value.trim())
+                .filter(value -> !value.isBlank())
+                .collect(Collectors.joining(" "));
+
+        return Stream.of(street1, city, stateZip)
                 .map(value -> value == null ? "" : value.trim())
                 .filter(value -> !value.isBlank())
                 .collect(Collectors.joining(", "));

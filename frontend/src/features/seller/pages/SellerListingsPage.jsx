@@ -85,7 +85,8 @@ function workflowLabel(row) {
 
 function addressLine(row) {
   const line1 = [row?.street1, row?.street2].filter(Boolean).join(", ");
-  const line2 = [row?.city, row?.state, row?.zip].filter(Boolean).join(", ");
+  const stateZip = [row?.state, row?.zip].filter(Boolean).join(" ");
+  const line2 = [row?.city, stateZip].filter(Boolean).join(", ");
   return [line1, line2].filter(Boolean).join(" • ") || "—";
 }
 

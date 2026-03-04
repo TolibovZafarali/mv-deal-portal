@@ -18,7 +18,6 @@ public class EmailProperties {
     private boolean production = false;
     private String fromAddress = "no-reply@megna-realestate.com";
     private String replyToAddress = "contact@megna-realestate.com";
-    private String inquiryNotificationTo = "contact@megna-realestate.com";
     private List<String> nonProductionAllowlist = new ArrayList<>();
     private boolean webhooksEnabled = false;
     private String webhookSecret = "";

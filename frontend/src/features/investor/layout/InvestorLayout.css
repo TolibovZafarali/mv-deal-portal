@@ -21,8 +21,10 @@
 }
 
 .investorBrand__logo {
-  width: 42px;
-  height: 42px;
+  height: 36px;
+  width: auto;
+  max-width: min(176px, 46vw);
+  display: block;
 }
 
 .investorHeader__actions {

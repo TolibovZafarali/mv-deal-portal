@@ -91,6 +91,7 @@ export default function InvestorPropertyDetailsModal({
   alreadyMessaged = false,
   isFavorite = false,
   onToggleFavorite,
+  onOpenMessages,
   onClose,
 }) {
   const [photoPreviewIndex, setPhotoPreviewIndex] = useState(0);
@@ -161,6 +162,10 @@ export default function InvestorPropertyDetailsModal({
   const profitMetricStyle = { backgroundColor: "#0a7d2c", borderColor: "#0a7d2c" };
   const profitMetricLabelStyle = { color: "#ffffff" };
   const profitMetricValueStyle = { color: "#ffffff", fontSize: "21px" };
+  const sideTitle = alreadyMessaged ? "Already Messaged Megna Team" : "Message Megna Team";
+  const sideHelp = alreadyMessaged
+    ? "You already sent a message for this property. Check Messages in your dashboard for status."
+    : "Ask follow-up questions here. This message goes to the Megna team, not the seller.";
 
   useEffect(() => {
     const rail = photoScrollerRef.current;
@@ -520,19 +525,22 @@ export default function InvestorPropertyDetailsModal({
           </section>
 
           <aside className="invPropDetail__right" ref={messageSectionRef}>
-            {alreadyMessaged ? (
+            <div className="invPropDetail__sideHeader">
+              <h3 className="invPropDetail__sideTitle">{sideTitle}</h3>
+              {alreadyMessaged && onOpenMessages ? (
+                <button
+                  type="button"
+                  className="invPropDetail__openMessages"
+                  onClick={onOpenMessages}
+                >
+                  Messages
+                </button>
+              ) : null}
+            </div>
+            <p className="invPropDetail__sideHelp">{sideHelp}</p>
+
+            {alreadyMessaged ? null : (
               <>
-                <h3 className="invPropDetail__sideTitle">Already Messaged Megna Team</h3>
-                <p className="invPropDetail__sideHelp">
-                  You already sent a message for this property. Check Messages in your profile for status.
-                </p>
-              </>
-            ) : (
-              <>
-                <h3 className="invPropDetail__sideTitle">Message Megna Team</h3>
-                <p className="invPropDetail__sideHelp">
-                  Ask follow-up questions here. This message goes to the Megna team, not the seller.
-                </p>
                 <div className="invPropDetail__messageWrap">
                   <span className="invPropDetail__charCount" aria-live="polite">
                     {messageCharsRemaining}/{MESSAGE_CHAR_LIMIT}
