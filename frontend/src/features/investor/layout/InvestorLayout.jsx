@@ -93,22 +93,24 @@ export default function InvestorLayout() {
           <button
             className="investorHeader__actionBtn"
             type="button"
+            aria-label="Messages"
             onClick={() => openAccount(MESSAGES_VIEW)}
           >
             <span className="material-symbols-outlined investorHeader__actionIcon" aria-hidden="true">
               forum
             </span>
-            Messages
+            <span className="investorHeader__actionLabel">Messages</span>
           </button>
           <button
             className="investorHeader__actionBtn"
             type="button"
+            aria-label="Profile"
             onClick={() => openAccount(PROFILE_VIEW)}
           >
             <span className="material-symbols-outlined investorHeader__actionIcon" aria-hidden="true">
               person
             </span>
-            Profile
+            <span className="investorHeader__actionLabel">Profile</span>
           </button>
         </div>
       </header>
