@@ -19,6 +19,7 @@
   width: min(1160px, 96vw);
   height: min(760px, 92vh);
   max-height: min(760px, 92vh);
+  position: relative;
   background: #f4f4ef;
   color: #111111;
   border: 1px solid #101010;
@@ -188,6 +189,10 @@
   opacity: 1;
 }
 
+.invAccountModal__mobileExit {
+  display: none;
+}
+
 .invAccountModal__subcopy {
   margin: 12px 0 0;
   padding-right: 16px;
@@ -331,8 +336,6 @@
   appearance: none;
   border: 1px solid #101010;
   border-radius: 0;
-  justify-self: stretch;
-  width: 100%;
   height: 30px;
   padding: 0 10px;
   background: #f4f4ef;
@@ -349,6 +352,36 @@
 }
 
 .invAccountModal__propertyViewBtn:focus-visible {
+  outline: 2px solid rgba(244, 244, 239, 0.95);
+  outline-offset: 2px;
+}
+
+.invAccountModal__propertyActions {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+
+.invAccountModal__propertyOpenThreadBtn {
+  appearance: none;
+  display: none;
+  border: 1px solid #101010;
+  border-radius: 0;
+  height: 30px;
+  padding: 0 10px;
+  background: #101010;
+  color: #f4f4ef;
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  text-align: center;
+  cursor: pointer;
+}
+
+.invAccountModal__propertyOpenThreadBtn:hover {
+  background: #262626;
+}
+
+.invAccountModal__propertyOpenThreadBtn:focus-visible {
   outline: 2px solid rgba(244, 244, 239, 0.95);
   outline-offset: 2px;
 }
@@ -376,6 +409,10 @@
 
 .invAccountModal__close:hover {
   opacity: 0.7;
+}
+
+.invAccountModal__mobileThreadBack {
+  display: none;
 }
 
 .invAccountModal__panel {
@@ -620,19 +657,30 @@
 }
 
 @media (max-width: 740px) {
-  .invAccountModal {
+  .invAccountBackdrop {
     width: 100%;
-    height: 100%;
-    max-height: none;
+    height: 100dvh;
+    padding: 0;
+    overflow: hidden;
+    place-items: stretch;
   }
 
-  .invAccountBackdrop {
-    padding: 0;
+  .invAccountModal {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    max-width: 100%;
+    height: 100dvh;
+    max-height: 100dvh;
+    border: none;
+    box-sizing: border-box;
+    overflow-x: hidden;
+    overflow-y: hidden;
   }
 
   .invAccountModal__left {
     max-height: 48vh;
-    padding: 14px 14px 0 14px;
+    padding: 12px 12px 0 12px;
   }
 
   .invAccountModal__propertyList {
@@ -641,6 +689,171 @@
 
   .invAccountModal__right {
     padding: 14px;
+  }
+
+  .invAccountModal--messagesView .invAccountModal__titleRow {
+    width: 100%;
+    min-width: 0;
+    padding-right: 0;
+    gap: 8px;
+  }
+
+  .invAccountModal--messagesView .invAccountModal__titleTrack {
+    min-width: 0;
+  }
+
+  .invAccountModal--messagesView .invAccountModal__titleSearch {
+    flex: 0 0 34px;
+    margin-left: 0;
+    box-sizing: border-box;
+  }
+
+  .invAccountModal--messagesView .invAccountModal__titleSearch--open {
+    flex: 1 1 auto;
+    width: auto;
+  }
+
+  .invAccountModal--messagesView .invAccountModal__mobileExit {
+    appearance: none;
+    flex: 0 0 34px;
+    width: 34px;
+    min-width: 34px;
+    height: 34px;
+    box-sizing: border-box;
+    border: 1px solid rgb(244, 244, 239);
+    background: transparent;
+    color: rgb(244, 244, 239);
+    cursor: pointer;
+    display: grid;
+    place-items: center;
+    padding: 0;
+  }
+
+  .invAccountModal--messagesView .invAccountModal__mobileExitIcon {
+    font-size: 18px;
+    line-height: 1;
+    opacity: 0.72;
+    transition: opacity 160ms ease;
+  }
+
+  .invAccountModal--messagesView .invAccountModal__mobileExit:hover .invAccountModal__mobileExitIcon,
+  .invAccountModal--messagesView .invAccountModal__mobileExit:focus-visible .invAccountModal__mobileExitIcon {
+    opacity: 1;
+  }
+
+  .invAccountModal--messagesView .invAccountModal__propertyActions {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .invAccountModal--messagesView .invAccountModal__propertyOpenThreadBtn {
+    display: block;
+  }
+
+  .invAccountModal--messagesView .invAccountModal__close {
+    display: none;
+  }
+
+  .invAccountModal--messagesView .invAccountModal__left {
+    max-height: none;
+    height: 100%;
+    width: 100%;
+    margin-inline: 0;
+    box-sizing: border-box;
+    overflow: hidden;
+  }
+
+  .invAccountModal--messagesView .invAccountModal__propertyList {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    padding-right: 0;
+    padding-left: 0;
+    margin-right: 0;
+  }
+
+  .invAccountModal--messagesView .invAccountModal__propertyAddress {
+    min-width: 0;
+    word-break: break-word;
+  }
+
+  .invAccountModal--messagesView .invAccountModal__propertyQuickFacts {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: baseline;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  .invAccountModal--messagesView .invAccountModal__propertyQuickFacts strong,
+  .invAccountModal--messagesView .invAccountModal__propertyQuickFacts span {
+    min-width: 0;
+  }
+
+  .invAccountModal--messagesView .invAccountModal__propertyQuickFacts span {
+    white-space: nowrap;
+  }
+
+  .invAccountModal--messagesView .invAccountModal__propertyActions {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .invAccountModal--messagesView .invAccountModal__propertyViewBtn,
+  .invAccountModal--messagesView .invAccountModal__propertyOpenThreadBtn {
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+  }
+
+  .invAccountModal--messagesView .invAccountModal__right {
+    display: none;
+    overflow: hidden;
+  }
+
+  .invAccountModal--messagesView.invAccountModal--mobileThreadPanelOpen .invAccountModal__left {
+    display: none;
+  }
+
+  .invAccountModal--messagesView.invAccountModal--mobileThreadPanelOpen .invAccountModal__right {
+    display: block;
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+    height: 100%;
+    padding: 54px 14px 14px;
+    box-sizing: border-box;
+  }
+
+  .invAccountModal--messagesView.invAccountModal--mobileThreadPanelOpen .invAccountModal__mobileThreadBack {
+    appearance: none;
+    display: grid;
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    width: 34px;
+    height: 34px;
+    border: 1px solid rgba(17, 17, 17, 0.34);
+    background: #ffffff;
+    color: #111111;
+    place-items: center;
+    padding: 0;
+    cursor: pointer;
+  }
+
+  .invAccountModal--messagesView.invAccountModal--mobileThreadPanelOpen .invAccountModal__mobileThreadBackIcon {
+    font-size: 19px;
+    line-height: 1;
+  }
+
+  .invAccountModal--messagesView .invAccountModal__panel--messages {
+    margin-top: 0;
+    min-height: 100%;
+    height: 100%;
+  }
+
+  .invAccountModal--messagesView .invAccountModal__chatBodyWrap {
+    min-height: 0;
+    overflow: auto;
   }
 
   .invAccountModal__panelTitle {

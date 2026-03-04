@@ -109,6 +109,7 @@ export default function InvestorAccountCenterModal({
   const [selectedPropertyId, setSelectedPropertyId] = useState(null);
   const [threadSearchOpen, setThreadSearchOpen] = useState(false);
   const [threadSearchQuery, setThreadSearchQuery] = useState("");
+  const [mobileThreadPanelOpen, setMobileThreadPanelOpen] = useState(false);
   const propertyListRef = useRef(null);
   const threadSearchInputRef = useRef(null);
 
@@ -242,6 +243,15 @@ export default function InvestorAccountCenterModal({
     setSelectedPropertyId(normalizedPreferredPropertyId);
   }, [open, isMessagesView, normalizedPreferredPropertyId]);
 
+  useEffect(() => {
+    if (!open || !isMessagesView) {
+      setMobileThreadPanelOpen(false);
+      return;
+    }
+
+    setMobileThreadPanelOpen(false);
+  }, [open, isMessagesView]);
+
   const propertyThreads = useMemo(() => {
     const grouped = new Map();
 
@@ -291,6 +301,7 @@ export default function InvestorAccountCenterModal({
 
     if (!propertyThreads.length) {
       setSelectedPropertyId(null);
+      setMobileThreadPanelOpen(false);
       return;
     }
 
@@ -415,7 +426,11 @@ export default function InvestorAccountCenterModal({
         if (event.target === event.currentTarget) onClose?.();
       }}
     >
-      <div className="invAccountModal">
+      <div
+        className={`invAccountModal ${isMessagesView ? "invAccountModal--messagesView" : ""} ${
+          mobileThreadPanelOpen ? "invAccountModal--mobileThreadPanelOpen" : ""
+        }`.trim()}
+      >
         <div className="invAccountModal__left">
           {isMessagesView ? (
             <>
@@ -478,6 +493,17 @@ export default function InvestorAccountCenterModal({
                     </span>
                   </button>
                 </div>
+
+                <button
+                  type="button"
+                  className="invAccountModal__mobileExit"
+                  aria-label="Close messages"
+                  onClick={onClose}
+                >
+                  <span className="material-symbols-outlined invAccountModal__mobileExitIcon" aria-hidden="true">
+                    close
+                  </span>
+                </button>
               </div>
               <p className="invAccountModal__subcopy">Select a property conversation.</p>
 
@@ -539,20 +565,33 @@ export default function InvestorAccountCenterModal({
                                 ? `${thread.pendingCount} pending`
                                 : `Updated ${prettyDate(thread.latest?.createdAt)}`}
                             </span>
-                            <button
-                              type="button"
-                              className="invAccountModal__propertyViewBtn"
-                              onClick={(event) => {
-                                event.stopPropagation();
-                                setSelectedPropertyId(thread.propertyId);
-                                onViewPropertyDetails?.({
-                                  propertyId: thread.propertyId,
-                                  propertyListScrollTop: Math.max(propertyListRef.current?.scrollTop ?? 0, 0),
-                                });
-                              }}
-                            >
-                              View
-                            </button>
+                            <div className="invAccountModal__propertyActions">
+                              <button
+                                type="button"
+                                className="invAccountModal__propertyViewBtn"
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  setSelectedPropertyId(thread.propertyId);
+                                  onViewPropertyDetails?.({
+                                    propertyId: thread.propertyId,
+                                    propertyListScrollTop: Math.max(propertyListRef.current?.scrollTop ?? 0, 0),
+                                  });
+                                }}
+                              >
+                                View
+                              </button>
+                              <button
+                                type="button"
+                                className="invAccountModal__propertyOpenThreadBtn"
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  setSelectedPropertyId(thread.propertyId);
+                                  setMobileThreadPanelOpen(true);
+                                }}
+                              >
+                                Messages
+                              </button>
+                            </div>
                           </div>
                         </div>
                       );
@@ -571,6 +610,18 @@ export default function InvestorAccountCenterModal({
         </div>
 
         <div className="invAccountModal__right">
+          {isMessagesView ? (
+            <button
+              className="invAccountModal__mobileThreadBack"
+              type="button"
+              aria-label="Back to properties"
+              onClick={() => setMobileThreadPanelOpen(false)}
+            >
+              <span className="material-symbols-outlined invAccountModal__mobileThreadBackIcon" aria-hidden="true">
+                arrow_back
+              </span>
+            </button>
+          ) : null}
           <button
             className="invAccountModal__close"
             type="button"
