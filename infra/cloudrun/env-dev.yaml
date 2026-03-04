@@ -1,3 +1,7 @@
+SPRING_PROFILES_ACTIVE: dev
+SPRING_DATASOURCE_URL: jdbc:mysql:///__DB_NAME__?cloudSqlInstance=__CLOUDSQL_INSTANCE__&socketFactory=com.google.cloud.sql.mysql.SocketFactory
+DB_USERNAME: __DB_USER__
+CORS_ALLOWED_ORIGINS: "http://localhost:5173,http://127.0.0.1:5173,https://mre-frontend.firebaseapp.com"
 APP_PHOTOS_PROVIDER: gcs
 GCS_BUCKET_NAME: mv-photos-dev
 APP_PHOTOS_PUBLIC_BASE_URL: https://storage.googleapis.com/mv-photos-dev
@@ -7,7 +11,10 @@ APP_PHOTOS_UPLOAD_URL_TTL_SECONDS: "900"
 APP_PHOTOS_PURGE_GRACE_DAYS: "30"
 APP_PHOTOS_MAX_PURGE_RETRIES: "5"
 APP_PHOTOS_PURGE_CRON: "0 15 2 * * *"
-APP_EMAIL_ENABLED: "true"
+SPRING_FLYWAY_VALIDATE_ON_MIGRATE: "true"
+SPRING_FLYWAY_ENABLED: "true"
+SPRING_JPA_HIBERNATE_DDL_AUTO: validate
+APP_EMAIL_ENABLED: "false"
 APP_EMAIL_PRODUCTION: "false"
 APP_EMAIL_FROM_ADDRESS: no-reply@megna-realestate.com
 APP_EMAIL_REPLY_TO_ADDRESS: contact@megna-realestate.com
