@@ -51,7 +51,6 @@ app:
     production: ${APP_EMAIL_PRODUCTION:false}
     from-address: ${APP_EMAIL_FROM_ADDRESS:no-reply@megna-realestate.com}
     reply-to-address: ${APP_EMAIL_REPLY_TO_ADDRESS:contact@megna-realestate.com}
-    inquiry-notification-to: ${APP_EMAIL_INQUIRY_NOTIFICATION_TO:contact@megna-realestate.com}
     non-production-allowlist: ${APP_EMAIL_NON_PROD_ALLOWLIST:}
     webhooks-enabled: ${APP_EMAIL_WEBHOOKS_ENABLED:false}
     webhook-secret: ${POSTMARK_WEBHOOK_SECRET:}

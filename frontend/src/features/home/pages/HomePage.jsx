@@ -120,7 +120,8 @@ function money(value) {
 
 function fullAddress(property) {
     const line1 = [property?.street1, property?.street2].filter(Boolean).join(", ");
-    return [line1, property?.city, property?.state, property?.zip].filter(Boolean).join(", ");
+    const stateZip = [property?.state, property?.zip].filter(Boolean).join(" ");
+    return [line1, property?.city, stateZip].filter(Boolean).join(", ");
 }
 
 function getInitialRole(location) {
@@ -409,7 +410,7 @@ export default function HomePage({ location, isAuthed, bootstrapping }) {
                         aria-label="Megna Real Estate - Home"
                     >
                         <img
-                            src="/favicon.svg"
+                            src="/white-logo.svg"
                             alt="Megna Real Estate"
                             className="homeHeader__logoImg"
                         />

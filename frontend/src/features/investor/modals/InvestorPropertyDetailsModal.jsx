@@ -524,7 +524,7 @@ export default function InvestorPropertyDetailsModal({
               <>
                 <h3 className="invPropDetail__sideTitle">Already Messaged Megna Team</h3>
                 <p className="invPropDetail__sideHelp">
-                  You already sent a message for this property. Check Messages in your profile for status.
+                  You already sent a message for this property. Check Messages in your dashboard for status.
                 </p>
               </>
             ) : (

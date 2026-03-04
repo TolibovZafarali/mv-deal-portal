@@ -9,6 +9,12 @@
   padding: 16px;
 }
 
+.invAccountBackdrop--closed {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
 .invAccountModal {
   width: min(1160px, 96vw);
   height: min(760px, 92vh);
@@ -47,6 +53,141 @@
   line-height: 1;
 }
 
+.invAccountModal__titleRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 38px;
+  padding-right: 16px;
+}
+
+.invAccountModal__titleTrack {
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  transition: max-width 220ms ease, opacity 220ms ease, transform 220ms ease;
+}
+
+.invAccountModal__titleRow .invAccountModal__title {
+  padding-right: 0;
+  line-height: 1.08;
+  padding-bottom: 2px;
+}
+
+.invAccountModal__titleRow--searchOpen .invAccountModal__titleTrack {
+  max-width: 0;
+  opacity: 0;
+  transform: translateX(-22px);
+}
+
+.invAccountModal__titleRow--searchOpen {
+  gap: 0;
+}
+
+.invAccountModal__titleSearch {
+  margin-left: auto;
+  width: 34px;
+  min-width: 34px;
+  height: 34px;
+  border: 1px solid rgb(244, 244, 239);
+  background: transparent;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  transition: width 220ms ease;
+}
+
+.invAccountModal__titleSearch--open {
+  width: 100%;
+}
+
+.invAccountModal__titleSearchToggle {
+  appearance: none;
+  width: 34px;
+  min-width: 34px;
+  height: 34px;
+  border: none;
+  background: transparent;
+  color: rgb(244, 244, 239);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  padding: 0;
+}
+
+.invAccountModal__titleSearchIcon {
+  font-size: 18px;
+  line-height: 1;
+  opacity: 0.72;
+  transition: opacity 160ms ease;
+}
+
+.invAccountModal__titleSearchToggle:hover .invAccountModal__titleSearchIcon,
+.invAccountModal__titleSearchToggle:focus-visible .invAccountModal__titleSearchIcon {
+  opacity: 1;
+}
+
+.invAccountModal__titleSearchInput {
+  flex: 1 1 auto;
+  min-width: 0;
+  width: 100%;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: rgb(244, 244, 239);
+  font-size: 12px;
+  padding: 0 10px 0 2px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.invAccountModal__titleSearchInput::placeholder {
+  color: rgba(244, 244, 239, 0.78);
+}
+
+.invAccountModal__titleSearch--open .invAccountModal__titleSearchInput {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.invAccountModal__titleSearchClose {
+  appearance: none;
+  width: 0;
+  min-width: 0;
+  height: 34px;
+  border: none;
+  background: transparent;
+  color: rgb(244, 244, 239);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  opacity: 0;
+  pointer-events: none;
+  overflow: hidden;
+  transition: width 220ms ease, opacity 160ms ease;
+}
+
+.invAccountModal__titleSearch--open .invAccountModal__titleSearchClose {
+  width: 34px;
+  min-width: 34px;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.invAccountModal__titleSearchCloseIcon {
+  font-size: 18px;
+  line-height: 1;
+  opacity: 0.72;
+  transition: opacity 160ms ease;
+}
+
+.invAccountModal__titleSearchClose:hover .invAccountModal__titleSearchCloseIcon,
+.invAccountModal__titleSearchClose:focus-visible .invAccountModal__titleSearchCloseIcon {
+  opacity: 1;
+}
+
 .invAccountModal__subcopy {
   margin: 12px 0 0;
   padding-right: 16px;
@@ -76,42 +217,18 @@
   display: none;
 }
 
-.invAccountModal__propertyCard {
-  appearance: none;
-  border: none;
-  border-radius: 0;
-  background: #f4f4ef;
-  color: #111111;
-  height: 248px;
-  padding: 8px;
-  width: 100%;
-  box-sizing: border-box;
-  text-align: left;
+.invAccountModal__propertyItem {
   display: grid;
-  grid-template-rows: 120px auto auto auto auto;
-  gap: 7px;
-  cursor: pointer;
+  gap: 0;
   position: relative;
   z-index: 1;
-  transition: background 180ms ease;
 }
 
-.invAccountModal__propertyCard:hover {
-  background: #fbfbf8;
-}
-
-.invAccountModal__propertyCard:focus-visible {
-  outline: 2px solid rgba(244, 244, 239, 0.95);
-  outline-offset: 2px;
-}
-
-.invAccountModal__propertyCard--active {
-  background: #f4f4ef;
-  overflow: visible;
+.invAccountModal__propertyItem--active {
   z-index: 2;
 }
 
-.invAccountModal__propertyCard--active::after {
+.invAccountModal__propertyItem--active::after {
   content: "";
   position: absolute;
   top: 0;
@@ -122,9 +239,31 @@
   pointer-events: none;
 }
 
+.invAccountModal__propertyCard {
+  appearance: none;
+  border: none;
+  border-radius: 0;
+  background: #f4f4ef;
+  color: #111111;
+  min-height: 272px;
+  padding: 8px;
+  width: 100%;
+  box-sizing: border-box;
+  text-align: left;
+  display: grid;
+  grid-template-rows: 136px auto auto auto auto;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.invAccountModal__propertyCard:focus-visible {
+  outline: 2px solid rgba(244, 244, 239, 0.95);
+  outline-offset: 2px;
+}
+
 .invAccountModal__propertyPhoto {
   width: 100%;
-  height: 120px;
+  height: 136px;
   object-fit: cover;
   background: #d8d7cf;
 }
@@ -150,7 +289,22 @@
   -webkit-box-orient: vertical;
 }
 
-.invAccountModal__propertyMetaLine {
+.invAccountModal__propertyQuickFacts {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 12px;
+  color: rgba(17, 17, 17, 0.78);
+}
+
+.invAccountModal__propertyQuickFacts strong {
+  font-size: 13px;
+  color: #111111;
+}
+
+.invAccountModal__propertyMetaLine,
+.invAccountModal__propertyQuickFacts span {
   font-size: 12px;
   color: rgba(17, 17, 17, 0.72);
 }
@@ -169,6 +323,32 @@
 .invAccountModal__propertyMetaBadge--delivered {
   color: #20643a;
   background: rgba(99, 188, 134, 0.24);
+}
+
+.invAccountModal__propertyViewBtn {
+  appearance: none;
+  border: 1px solid #101010;
+  border-radius: 0;
+  justify-self: stretch;
+  width: 100%;
+  height: 30px;
+  padding: 0 10px;
+  background: #f4f4ef;
+  color: #111111;
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  text-align: center;
+  cursor: pointer;
+}
+
+.invAccountModal__propertyViewBtn:hover {
+  background: #101010;
+  color: #f4f4ef;
+}
+
+.invAccountModal__propertyViewBtn:focus-visible {
+  outline: 2px solid rgba(244, 244, 239, 0.95);
+  outline-offset: 2px;
 }
 
 .invAccountModal__right {
@@ -235,7 +415,8 @@
 .invAccountModal__chatBodyWrap {
   min-height: 0;
   overflow: auto;
-  padding-right: 4px;
+  border: 1px solid rgba(17, 17, 17, 0.2);
+  padding: 10px;
 }
 
 .invAccountModal__chatExchange {
@@ -297,28 +478,35 @@
   color: #356246;
 }
 
-.invAccountModal__chatComposer {
+.invAccountModal__chatState {
   display: grid;
-  grid-template-columns: 1fr auto;
   gap: 8px;
-  border-top: 1px solid rgba(17, 17, 17, 0.16);
-  padding-top: 10px;
-  background: #f4f4ef;
   align-self: end;
+  border: 1px solid rgba(17, 17, 17, 0.2);
+  background: rgba(255, 255, 255, 0.82);
+  padding: 10px 12px;
 }
 
-.invAccountModal__chatComposer input {
-  border: 1px solid rgba(17, 17, 17, 0.26);
-  background: #ffffff;
-  color: rgba(17, 17, 17, 0.72);
-  padding: 10px;
+.invAccountModal__chatStateBadge {
+  justify-self: start;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #20643a;
+  background: rgba(99, 188, 134, 0.22);
+  padding: 3px 8px;
 }
 
-.invAccountModal__chatComposer button {
-  border: 1px solid rgba(17, 17, 17, 0.32);
-  background: #f4f4ef;
-  color: rgba(17, 17, 17, 0.58);
-  padding: 0 14px;
+.invAccountModal__chatStateText {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.4;
+  color: rgba(17, 17, 17, 0.78);
+}
+
+.invAccountModal__chatState--empty {
+  font-size: 13px;
+  color: rgba(17, 17, 17, 0.62);
 }
 
 .invAccountModal__notice {
@@ -420,7 +608,7 @@
     padding-right: 0;
   }
 
-  .invAccountModal__propertyCard--active::after {
+  .invAccountModal__propertyItem--active::after {
     display: none;
   }
 

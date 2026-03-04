@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { getInquiryByInvestor } from "@/api/modules/inquiryApi";
 import { getInvestorById, updateInvestor } from "@/api/modules/investorApi";
 import { getPropertyId } from "@/api/modules/propertyApi";
@@ -40,6 +40,16 @@ function prettyDate(value) {
   });
 }
 
+function money(value) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return "—";
+  return numeric.toLocaleString("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
+  });
+}
+
 function propertyAddress(property) {
   if (!property) return "";
   const line1 = [property.street1, property.street2].filter(Boolean).join(", ");
@@ -69,6 +79,8 @@ export default function InvestorAccountCenterModal({
   view,
   onClose,
   investorId,
+  onViewPropertyDetails,
+  restorePropertyListScrollTop = null,
 }) {
   const [profile, setProfile] = useState({
     firstName: "",
@@ -88,6 +100,10 @@ export default function InvestorAccountCenterModal({
   const [inquiryError, setInquiryError] = useState("");
   const [propertyMetaById, setPropertyMetaById] = useState({});
   const [selectedPropertyId, setSelectedPropertyId] = useState(null);
+  const [threadSearchOpen, setThreadSearchOpen] = useState(false);
+  const [threadSearchQuery, setThreadSearchQuery] = useState("");
+  const propertyListRef = useRef(null);
+  const threadSearchInputRef = useRef(null);
 
   const isProfileView = view === PROFILE_VIEW;
   const isMessagesView = view === MESSAGES_VIEW;
@@ -172,6 +188,9 @@ export default function InvestorAccountCenterModal({
               {
                 address: cleanString(propertyAddress(property)) || `Property #${id}`,
                 photoUrl: propertyLeadPhoto(property),
+                askingPrice: property?.askingPrice ?? null,
+                beds: property?.beds ?? null,
+                baths: property?.baths ?? null,
               },
             ];
           }),
@@ -267,10 +286,71 @@ export default function InvestorAccountCenterModal({
     }
   }, [isMessagesView, propertyThreads, selectedPropertyId]);
 
+  useEffect(() => {
+    if (isMessagesView) return;
+    setThreadSearchOpen(false);
+    setThreadSearchQuery("");
+  }, [isMessagesView]);
+
+  useEffect(() => {
+    if (!threadSearchOpen) return undefined;
+    const rafId = window.requestAnimationFrame(() => {
+      threadSearchInputRef.current?.focus();
+    });
+    return () => window.cancelAnimationFrame(rafId);
+  }, [threadSearchOpen]);
+
+  useEffect(() => {
+    if (!open || !isMessagesView) return undefined;
+    if (inquiryLoading || inquiryError) return;
+
+    const list = propertyListRef.current;
+    if (!list) return undefined;
+
+    const targetScrollTop = Number(restorePropertyListScrollTop);
+    if (!Number.isFinite(targetScrollTop) || targetScrollTop < 0) return undefined;
+
+    let rafIdOne = 0;
+    let rafIdTwo = 0;
+
+    function applyScrollRestore() {
+      const max = Math.max(list.scrollHeight - list.clientHeight, 0);
+      list.scrollTop = Math.min(targetScrollTop, max);
+    }
+
+    rafIdOne = window.requestAnimationFrame(() => {
+      applyScrollRestore();
+      rafIdTwo = window.requestAnimationFrame(() => {
+        applyScrollRestore();
+      });
+    });
+
+    return () => {
+      if (rafIdOne) window.cancelAnimationFrame(rafIdOne);
+      if (rafIdTwo) window.cancelAnimationFrame(rafIdTwo);
+    };
+  }, [
+    open,
+    isMessagesView,
+    inquiryLoading,
+    inquiryError,
+    propertyThreads.length,
+    restorePropertyListScrollTop,
+  ]);
+
   const selectedThread = useMemo(
     () => propertyThreads.find((thread) => thread.propertyId === selectedPropertyId) ?? null,
     [propertyThreads, selectedPropertyId],
   );
+  const normalizedThreadSearch = cleanString(threadSearchQuery).toLowerCase();
+  const filteredPropertyThreads = useMemo(() => {
+    if (!normalizedThreadSearch) return propertyThreads;
+
+    return propertyThreads.filter((thread) => {
+      const rawAddress = propertyMetaById[thread.propertyId]?.address || `Property #${thread.propertyId ?? "—"}`;
+      return String(rawAddress).toLowerCase().includes(normalizedThreadSearch);
+    });
+  }, [normalizedThreadSearch, propertyThreads, propertyMetaById]);
 
   async function handleProfileSave(event) {
     event.preventDefault();
@@ -300,8 +380,6 @@ export default function InvestorAccountCenterModal({
     }
   }
 
-  if (!open) return null;
-
   const missingInvestor = !investorId;
 
   function resolvePropertyAddress(propertyId) {
@@ -314,10 +392,11 @@ export default function InvestorAccountCenterModal({
 
   return (
     <div
-      className="invAccountBackdrop"
+      className={`invAccountBackdrop ${open ? "invAccountBackdrop--open" : "invAccountBackdrop--closed"}`.trim()}
       role="dialog"
       aria-modal="true"
       aria-label={isMessagesView ? "Messages" : "Profile"}
+      aria-hidden={!open}
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) onClose?.();
       }}
@@ -326,59 +405,142 @@ export default function InvestorAccountCenterModal({
         <div className="invAccountModal__left">
           {isMessagesView ? (
             <>
-              <h2 className="invAccountModal__title">Messages</h2>
+              <div
+                className={`invAccountModal__titleRow ${
+                  threadSearchOpen ? "invAccountModal__titleRow--searchOpen" : ""
+                }`.trim()}
+              >
+                <div className="invAccountModal__titleTrack">
+                  <h2 className="invAccountModal__title">Messages</h2>
+                </div>
+
+                <div
+                  className={`invAccountModal__titleSearch ${
+                    threadSearchOpen ? "invAccountModal__titleSearch--open" : ""
+                  }`.trim()}
+                >
+                  <button
+                    type="button"
+                    className="invAccountModal__titleSearchToggle"
+                    aria-label={threadSearchOpen ? "Close search" : "Open search"}
+                    onClick={() => {
+                      setThreadSearchOpen((prev) => {
+                        const next = !prev;
+                        if (!next) setThreadSearchQuery("");
+                        return next;
+                      });
+                    }}
+                  >
+                    <span className="material-symbols-outlined invAccountModal__titleSearchIcon" aria-hidden="true">
+                      search
+                    </span>
+                  </button>
+                  <input
+                    ref={threadSearchInputRef}
+                    type="search"
+                    className="invAccountModal__titleSearchInput"
+                    placeholder="Search"
+                    value={threadSearchQuery}
+                    onChange={(event) => setThreadSearchQuery(event.target.value)}
+                    onFocus={() => setThreadSearchOpen(true)}
+                    onKeyDown={(event) => {
+                      if (event.key !== "Escape") return;
+                      event.stopPropagation();
+                      setThreadSearchOpen(false);
+                      setThreadSearchQuery("");
+                    }}
+                  />
+                  <button
+                    type="button"
+                    className="invAccountModal__titleSearchClose"
+                    aria-label="Close search"
+                    onClick={() => {
+                      setThreadSearchOpen(false);
+                      setThreadSearchQuery("");
+                    }}
+                  >
+                    <span className="material-symbols-outlined invAccountModal__titleSearchCloseIcon" aria-hidden="true">
+                      close
+                    </span>
+                  </button>
+                </div>
+              </div>
               <p className="invAccountModal__subcopy">Select a property conversation.</p>
 
               {!missingInvestor && !inquiryLoading && !inquiryError ? (
                 <div
                   className="invAccountModal__propertyList"
                   aria-label="Properties with inquiries"
-                  role="listbox"
+                  ref={propertyListRef}
                 >
-                  {propertyThreads.length === 0 ? (
+                  {filteredPropertyThreads.length === 0 ? (
                     <div className="invAccountModal__empty invAccountModal__empty--rail">
-                      No property conversations yet.
+                      {normalizedThreadSearch ? "No matching conversations." : "No property conversations yet."}
                     </div>
                   ) : (
-                    propertyThreads.map((thread) => {
+                    filteredPropertyThreads.map((thread) => {
                       const isActive = thread.propertyId === selectedPropertyId;
-                      const activeClass = isActive ? "invAccountModal__propertyCard--active" : "";
+                      const activeClass = isActive ? "invAccountModal__propertyItem--active" : "";
                       const pendingClass = thread.pendingCount > 0
                         ? "invAccountModal__propertyMetaBadge invAccountModal__propertyMetaBadge--pending"
                         : "invAccountModal__propertyMetaBadge invAccountModal__propertyMetaBadge--delivered";
                       const photoUrl = resolvePropertyPhoto(thread.propertyId);
                       const address = resolvePropertyAddress(thread.propertyId);
+                      const propertyMeta = propertyMetaById[thread.propertyId] || {};
+                      const bedLabel = propertyMeta.beds ?? "—";
+                      const bathLabel = propertyMeta.baths ?? "—";
 
                       return (
-                        <button
-                          type="button"
+                        <div
                           key={thread.propertyId}
-                          className={`invAccountModal__propertyCard ${activeClass}`.trim()}
-                          onClick={() => setSelectedPropertyId(thread.propertyId)}
-                          role="option"
-                          aria-selected={isActive}
+                          className={`invAccountModal__propertyItem ${activeClass}`.trim()}
                         >
-                          {photoUrl ? (
-                            <img className="invAccountModal__propertyPhoto" src={photoUrl} alt={address} />
-                          ) : (
-                            <div className="invAccountModal__propertyPhoto invAccountModal__propertyPhoto--placeholder">
-                              <span>No photo</span>
-                            </div>
-                          )}
+                          <div
+                            className="invAccountModal__propertyCard"
+                            onClick={() => setSelectedPropertyId(thread.propertyId)}
+                            onKeyDown={(event) => {
+                              if (event.key !== "Enter" && event.key !== " ") return;
+                              event.preventDefault();
+                              setSelectedPropertyId(thread.propertyId);
+                            }}
+                            role="button"
+                            tabIndex={0}
+                            aria-pressed={isActive}
+                          >
+                            {photoUrl ? (
+                              <img className="invAccountModal__propertyPhoto" src={photoUrl} alt={address} />
+                            ) : (
+                              <div className="invAccountModal__propertyPhoto invAccountModal__propertyPhoto--placeholder">
+                                <span>No photo</span>
+                              </div>
+                            )}
 
-                          <span className="invAccountModal__propertyAddress">{address}</span>
-                          <span className="invAccountModal__propertyMetaLine">
-                            {thread.totalCount} message{thread.totalCount === 1 ? "" : "s"}
-                          </span>
-                          <span className="invAccountModal__propertyMetaLine">
-                            Last update {prettyDate(thread.latest?.createdAt)}
-                          </span>
-                          <span className={pendingClass}>
-                            {thread.pendingCount > 0
-                              ? `${thread.pendingCount} pending`
-                              : "All delivered"}
-                          </span>
-                        </button>
+                            <span className="invAccountModal__propertyAddress">{address}</span>
+                            <span className="invAccountModal__propertyQuickFacts">
+                              <strong>{money(propertyMeta.askingPrice)}</strong>
+                              <span>{bedLabel} bd • {bathLabel} ba</span>
+                            </span>
+                            <span className={pendingClass}>
+                              {thread.pendingCount > 0
+                                ? `${thread.pendingCount} pending`
+                                : `Updated ${prettyDate(thread.latest?.createdAt)}`}
+                            </span>
+                            <button
+                              type="button"
+                              className="invAccountModal__propertyViewBtn"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                setSelectedPropertyId(thread.propertyId);
+                                onViewPropertyDetails?.({
+                                  propertyId: thread.propertyId,
+                                  propertyListScrollTop: Math.max(propertyListRef.current?.scrollTop ?? 0, 0),
+                                });
+                              }}
+                            >
+                              View
+                            </button>
+                          </div>
+                        </div>
                       );
                     })
                   )}
@@ -495,7 +657,7 @@ export default function InvestorAccountCenterModal({
                       {selectedThread ? resolvePropertyAddress(selectedThread.propertyId) : "Messages"}
                     </h3>
                     <p className="invAccountModal__chatHint">
-                      Your inquiry messages go to Megna team at contact@megna-realestate.com
+                      Track your inquiry thread here and wait for a response from Megna Team.
                     </p>
                   </div>
 
@@ -538,10 +700,22 @@ export default function InvestorAccountCenterModal({
                     )}
                   </div>
 
-                  <div className="invAccountModal__chatComposer" aria-hidden="true">
-                    <input disabled value="Replies from Megna team are sent to your email." readOnly />
-                    <button type="button" disabled>Send</button>
-                  </div>
+                  {selectedThread ? (
+                    <div className="invAccountModal__chatState" role="status" aria-live="polite">
+                      <span className="invAccountModal__chatStateBadge">
+                        {selectedThread.pendingCount > 0 ? "Message sent" : "Inbox received"}
+                      </span>
+                      <p className="invAccountModal__chatStateText">
+                        {selectedThread.pendingCount > 0
+                          ? "Your message was sent successfully. Please wait for a response from Megna Team."
+                          : "Your inquiry is in the Megna Team inbox. Please wait for their follow-up response."}
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="invAccountModal__chatState invAccountModal__chatState--empty" aria-hidden="true">
+                      Select a property to see message status.
+                    </div>
+                  )}
                 </>
               ) : null}
             </section>

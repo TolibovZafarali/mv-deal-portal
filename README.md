@@ -43,7 +43,7 @@ Admins can create/manage property listings, approve investor access, and receive
 ## Key Data Captured (MVP)
 
 ### Property
-- Address (street, city, state, zip)
+- Address (street, city, state zip)
 - Asking price, ARV, estimated repairs
 - Beds, baths, sqft (optional)
 - Occupancy status
