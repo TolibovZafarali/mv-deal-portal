@@ -35,8 +35,7 @@ public class EmailEvent {
     @Column(name = "occurred_at")
     private LocalDateTime occurredAt;
 
-    @Lob
-    @Column(name = "raw_payload")
+    @Column(name = "raw_payload", columnDefinition = "longtext")
     private String rawPayload;
 
     @Column(name = "created_at", nullable = false)
