@@ -9,6 +9,7 @@ APP_PHOTOS_MAX_PURGE_RETRIES: "5"
 APP_PHOTOS_PURGE_CRON: "0 15 2 * * *"
 APP_EMAIL_ENABLED: "true"
 APP_EMAIL_PRODUCTION: "false"
+APP_EMAIL_WEBHOOKS_ENABLED: "false"
 APP_EMAIL_FROM_ADDRESS: no-reply@megna-realestate.com
 APP_EMAIL_REPLY_TO_ADDRESS: contact@megna-realestate.com
 APP_EMAIL_INQUIRY_NOTIFICATION_TO: contact@megna-realestate.com

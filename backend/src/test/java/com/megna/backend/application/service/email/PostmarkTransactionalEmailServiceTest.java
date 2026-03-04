@@ -24,9 +24,16 @@ class PostmarkTransactionalEmailServiceTest {
     @Mock
     private PostmarkEmailClient postmarkEmailClient;
 
+    @Mock
+    private EmailSuppressionService emailSuppressionService;
+
     @Test
     void sendTransactionalSuppressesNonProdRecipientNotOnAllowlist() {
-        PostmarkTransactionalEmailService service = new PostmarkTransactionalEmailService(emailProperties, postmarkEmailClient);
+        PostmarkTransactionalEmailService service = new PostmarkTransactionalEmailService(
+                emailProperties,
+                postmarkEmailClient,
+                emailSuppressionService
+        );
 
         when(emailProperties.isEnabled()).thenReturn(true);
         when(emailProperties.isProduction()).thenReturn(false);
@@ -48,7 +55,11 @@ class PostmarkTransactionalEmailServiceTest {
 
     @Test
     void sendTransactionalSendsWhenNonProdRecipientAllowlisted() {
-        PostmarkTransactionalEmailService service = new PostmarkTransactionalEmailService(emailProperties, postmarkEmailClient);
+        PostmarkTransactionalEmailService service = new PostmarkTransactionalEmailService(
+                emailProperties,
+                postmarkEmailClient,
+                emailSuppressionService
+        );
 
         when(emailProperties.isEnabled()).thenReturn(true);
         when(emailProperties.isProduction()).thenReturn(false);
@@ -71,7 +82,11 @@ class PostmarkTransactionalEmailServiceTest {
 
     @Test
     void sendTransactionalBypassesAllowlistInProduction() {
-        PostmarkTransactionalEmailService service = new PostmarkTransactionalEmailService(emailProperties, postmarkEmailClient);
+        PostmarkTransactionalEmailService service = new PostmarkTransactionalEmailService(
+                emailProperties,
+                postmarkEmailClient,
+                emailSuppressionService
+        );
 
         when(emailProperties.isEnabled()).thenReturn(true);
         when(emailProperties.isProduction()).thenReturn(true);
@@ -79,6 +94,7 @@ class PostmarkTransactionalEmailServiceTest {
         when(emailProperties.getReplyToAddress()).thenReturn("contact@megna-realestate.com");
         when(emailProperties.getPostmarkServerToken()).thenReturn("token");
         when(emailProperties.getPostmarkMessageStream()).thenReturn("transactional");
+        when(emailSuppressionService.isSuppressed("anyone@example.com")).thenReturn(false);
         when(postmarkEmailClient.send(any())).thenReturn(true);
 
         boolean sent = service.sendTransactional(new TransactionalEmailRequest(
@@ -93,7 +109,11 @@ class PostmarkTransactionalEmailServiceTest {
 
     @Test
     void sendTransactionalReturnsFalseWhenDisabled() {
-        PostmarkTransactionalEmailService service = new PostmarkTransactionalEmailService(emailProperties, postmarkEmailClient);
+        PostmarkTransactionalEmailService service = new PostmarkTransactionalEmailService(
+                emailProperties,
+                postmarkEmailClient,
+                emailSuppressionService
+        );
 
         when(emailProperties.isEnabled()).thenReturn(false);
 
@@ -109,7 +129,11 @@ class PostmarkTransactionalEmailServiceTest {
 
     @Test
     void sendTransactionalReturnsFalseWhenMisconfigured() {
-        PostmarkTransactionalEmailService service = new PostmarkTransactionalEmailService(emailProperties, postmarkEmailClient);
+        PostmarkTransactionalEmailService service = new PostmarkTransactionalEmailService(
+                emailProperties,
+                postmarkEmailClient,
+                emailSuppressionService
+        );
 
         when(emailProperties.isEnabled()).thenReturn(true);
         when(emailProperties.getFromAddress()).thenReturn("no-reply@megna-realestate.com");
@@ -118,6 +142,32 @@ class PostmarkTransactionalEmailServiceTest {
 
         boolean sent = service.sendTransactional(new TransactionalEmailRequest(
                 "anyone@example.com",
+                "Test",
+                "Body"
+        ));
+
+        assertFalse(sent);
+        verify(postmarkEmailClient, never()).send(any());
+    }
+
+    @Test
+    void sendTransactionalSuppressesProductionRecipientWhenAddressIsSuppressed() {
+        PostmarkTransactionalEmailService service = new PostmarkTransactionalEmailService(
+                emailProperties,
+                postmarkEmailClient,
+                emailSuppressionService
+        );
+
+        when(emailProperties.isEnabled()).thenReturn(true);
+        when(emailProperties.isProduction()).thenReturn(true);
+        when(emailProperties.getFromAddress()).thenReturn("no-reply@megna-realestate.com");
+        when(emailProperties.getReplyToAddress()).thenReturn("contact@megna-realestate.com");
+        when(emailProperties.getPostmarkServerToken()).thenReturn("token");
+        when(emailProperties.getPostmarkMessageStream()).thenReturn("transactional");
+        when(emailSuppressionService.isSuppressed("suppressed@example.com")).thenReturn(true);
+
+        boolean sent = service.sendTransactional(new TransactionalEmailRequest(
+                "suppressed@example.com",
                 "Test",
                 "Body"
         ));

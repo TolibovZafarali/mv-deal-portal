@@ -20,6 +20,8 @@ public class EmailProperties {
     private String replyToAddress = "contact@megna-realestate.com";
     private String inquiryNotificationTo = "contact@megna-realestate.com";
     private List<String> nonProductionAllowlist = new ArrayList<>();
+    private boolean webhooksEnabled = false;
+    private String webhookSecret = "";
     private String postmarkApiBaseUrl = "https://api.postmarkapp.com";
     private String postmarkServerToken = "";
     private String postmarkMessageStream = "";

@@ -16,6 +16,7 @@ public class PostmarkTransactionalEmailService implements TransactionalEmailServ
 
     private final EmailProperties emailProperties;
     private final PostmarkEmailClient postmarkEmailClient;
+    private final EmailSuppressionService emailSuppressionService;
 
     @Override
     public boolean sendTransactional(TransactionalEmailRequest request) {
@@ -39,6 +40,11 @@ public class PostmarkTransactionalEmailService implements TransactionalEmailServ
 
         if (!emailProperties.isProduction() && !isAllowedInNonProduction(request.to())) {
             log.info("Suppressed transactional email in non-production for non-allowlisted recipient");
+            return false;
+        }
+
+        if (emailProperties.isProduction() && emailSuppressionService.isSuppressed(request.to())) {
+            log.info("Suppressed transactional email in production for suppressed recipient");
             return false;
         }
 
