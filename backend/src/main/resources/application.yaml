@@ -46,6 +46,16 @@ app:
     default-limit: ${ADDRESS_AUTOCOMPLETE_DEFAULT_LIMIT:6}
     max-limit: ${ADDRESS_AUTOCOMPLETE_MAX_LIMIT:10}
     timeout-ms: ${ADDRESS_AUTOCOMPLETE_TIMEOUT_MS:2500}
+  email:
+    enabled: ${APP_EMAIL_ENABLED:false}
+    production: ${APP_EMAIL_PRODUCTION:false}
+    from-address: ${APP_EMAIL_FROM_ADDRESS:no-reply@megna-realestate.com}
+    reply-to-address: ${APP_EMAIL_REPLY_TO_ADDRESS:contact@megna-realestate.com}
+    inquiry-notification-to: ${APP_EMAIL_INQUIRY_NOTIFICATION_TO:contact@megna-realestate.com}
+    non-production-allowlist: ${APP_EMAIL_NON_PROD_ALLOWLIST:}
+    postmark-api-base-url: ${POSTMARK_API_BASE_URL:https://api.postmarkapp.com}
+    postmark-server-token: ${POSTMARK_SERVER_TOKEN:}
+    postmark-message-stream: ${POSTMARK_MESSAGE_STREAM:}
 
 server:
   port: ${PORT:8080}
