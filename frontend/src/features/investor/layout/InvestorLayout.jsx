@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { Link, Outlet, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/features/auth";
 import InvestorAccountCenterModal from "@/features/investor/modals/InvestorAccountCenterModal";
@@ -7,27 +7,21 @@ import "@/features/investor/layout/InvestorLayout.css";
 const PROFILE_VIEW = "profile";
 const MESSAGES_VIEW = "messages";
 
+function normalizePropertyId(value) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric) || numeric <= 0) return null;
+  return numeric;
+}
+
 export default function InvestorLayout() {
   const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
-  const initialAccountParam = searchParams.get("account");
-  const initialAccountOpen = initialAccountParam === PROFILE_VIEW || initialAccountParam === MESSAGES_VIEW;
-  const initialAccountView = initialAccountParam === MESSAGES_VIEW ? MESSAGES_VIEW : PROFILE_VIEW;
-
-  const [accountOpen, setAccountOpen] = useState(initialAccountOpen);
-  const [accountView, setAccountView] = useState(initialAccountView);
+  const accountParam = searchParams.get("account");
+  const accountOpen = accountParam === PROFILE_VIEW || accountParam === MESSAGES_VIEW;
+  const accountView = accountParam === MESSAGES_VIEW ? MESSAGES_VIEW : PROFILE_VIEW;
   const [propertyDetailsOpener, setPropertyDetailsOpener] = useState(null);
   const [messagesListScrollTop, setMessagesListScrollTop] = useState(null);
-
-  useEffect(() => {
-    const accountParam = searchParams.get("account");
-    if (accountParam === PROFILE_VIEW || accountParam === MESSAGES_VIEW) {
-      setAccountView(accountParam === MESSAGES_VIEW ? MESSAGES_VIEW : PROFILE_VIEW);
-      setAccountOpen(true);
-      return;
-    }
-    setAccountOpen(false);
-  }, [searchParams]);
+  const [messagesSelectedPropertyId, setMessagesSelectedPropertyId] = useState(null);
 
   const setAccountQuery = useCallback(
     (nextView) => {
@@ -45,22 +39,23 @@ export default function InvestorLayout() {
   );
 
   function openAccount(view) {
-    setAccountView(view);
     if (view === MESSAGES_VIEW) {
       setMessagesListScrollTop(null);
+      setMessagesSelectedPropertyId(null);
     }
-    setAccountOpen(true);
     setAccountQuery(view);
   }
 
-  const openMessagesModal = useCallback(() => {
-    setAccountView(MESSAGES_VIEW);
-    setAccountOpen(true);
+  const openMessagesModal = useCallback((payload = null) => {
+    const propertyId = typeof payload === "object" && payload !== null
+      ? normalizePropertyId(payload.propertyId)
+      : normalizePropertyId(payload);
+    setMessagesSelectedPropertyId(propertyId);
     setAccountQuery(MESSAGES_VIEW);
   }, [setAccountQuery]);
 
   const closeAccount = useCallback(() => {
-    setAccountOpen(false);
+    setMessagesSelectedPropertyId(null);
     setAccountQuery(null);
   }, [setAccountQuery]);
 
@@ -69,6 +64,7 @@ export default function InvestorLayout() {
       const propertyId = typeof payload === "object" && payload !== null
         ? payload.propertyId
         : payload;
+      const normalizedPropertyId = normalizePropertyId(propertyId);
       const propertyListScrollTop = typeof payload === "object" && payload !== null
         ? Number(payload.propertyListScrollTop)
         : null;
@@ -76,9 +72,11 @@ export default function InvestorLayout() {
       if (Number.isFinite(propertyListScrollTop) && propertyListScrollTop >= 0) {
         setMessagesListScrollTop(propertyListScrollTop);
       }
+      if (normalizedPropertyId !== null) {
+        setMessagesSelectedPropertyId(normalizedPropertyId);
+      }
       if (typeof propertyDetailsOpener !== "function") return;
-      propertyDetailsOpener(propertyId);
-      setAccountOpen(false);
+      propertyDetailsOpener(normalizedPropertyId ?? propertyId);
       setAccountQuery(null);
     },
     [propertyDetailsOpener, setAccountQuery],
@@ -88,7 +86,7 @@ export default function InvestorLayout() {
     <div className="investorShell">
       <header className="investorHeader">
         <Link to="/" className="investorBrand" aria-label="Megna homepage">
-          <img src="/favicon.svg" alt="Megna" className="investorBrand__logo" />
+          <img src="/white-logo.svg" alt="Megna" className="investorBrand__logo" />
         </Link>
 
         <div className="investorHeader__actions">
@@ -126,6 +124,7 @@ export default function InvestorLayout() {
         investorId={user?.investorId}
         onViewPropertyDetails={handleViewPropertyDetails}
         restorePropertyListScrollTop={messagesListScrollTop}
+        preferredPropertyId={messagesSelectedPropertyId}
       />
     </div>
   );

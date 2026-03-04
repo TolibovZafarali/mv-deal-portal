@@ -599,13 +599,34 @@ export default function InvestorDashboard() {
 
   function closePropertyDetails() {
     const shouldReturnToMessages = detailsOpenedFromMessages;
+    const returningPropertyId = detailPropertyId;
     setDetailsOpenedFromMessages(false);
     setDetailPropertyId(null);
     setInquiryError("");
     setInquirySuccess("");
     if (shouldReturnToMessages && typeof openMessagesModal === "function") {
-      openMessagesModal();
+      if (returningPropertyId === null || returningPropertyId === undefined) {
+        openMessagesModal();
+      } else {
+        openMessagesModal({ propertyId: returningPropertyId });
+      }
     }
+  }
+
+  function openMessagesFromPropertyDetails() {
+    if (typeof openMessagesModal !== "function") return;
+
+    const propertyId = detailProperty?.id;
+    setDetailsOpenedFromMessages(false);
+    setDetailPropertyId(null);
+    setInquiryError("");
+    setInquirySuccess("");
+
+    if (propertyId === null || propertyId === undefined) {
+      openMessagesModal();
+      return;
+    }
+    openMessagesModal({ propertyId });
   }
 
   async function handleSendInquiry() {
@@ -1053,6 +1074,7 @@ export default function InvestorDashboard() {
           if (!detailProperty) return;
           void toggleFavoriteProperty(detailProperty.id);
         }}
+        onOpenMessages={openMessagesFromPropertyDetails}
         onClose={closePropertyDetails}
       />
     </section>

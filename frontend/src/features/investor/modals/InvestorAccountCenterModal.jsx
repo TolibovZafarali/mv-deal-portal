@@ -7,6 +7,12 @@ import "@/features/investor/modals/InvestorAccountCenterModal.css";
 const PROFILE_VIEW = "profile";
 const MESSAGES_VIEW = "messages";
 
+function normalizePropertyId(value) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric) || numeric <= 0) return null;
+  return numeric;
+}
+
 function cleanString(value) {
   return String(value ?? "").trim();
 }
@@ -81,6 +87,7 @@ export default function InvestorAccountCenterModal({
   investorId,
   onViewPropertyDetails,
   restorePropertyListScrollTop = null,
+  preferredPropertyId = null,
 }) {
   const [profile, setProfile] = useState({
     firstName: "",
@@ -107,6 +114,7 @@ export default function InvestorAccountCenterModal({
 
   const isProfileView = view === PROFILE_VIEW;
   const isMessagesView = view === MESSAGES_VIEW;
+  const normalizedPreferredPropertyId = normalizePropertyId(preferredPropertyId);
 
   useEffect(() => {
     if (!open) return undefined;
@@ -227,6 +235,12 @@ export default function InvestorAccountCenterModal({
       alive = false;
     };
   }, [open, isMessagesView, investorId]);
+
+  useEffect(() => {
+    if (!open || !isMessagesView) return;
+    if (normalizedPreferredPropertyId === null) return;
+    setSelectedPropertyId(normalizedPreferredPropertyId);
+  }, [open, isMessagesView, normalizedPreferredPropertyId]);
 
   const propertyThreads = useMemo(() => {
     const grouped = new Map();

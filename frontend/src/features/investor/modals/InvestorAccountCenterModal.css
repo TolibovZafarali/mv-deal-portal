@@ -39,7 +39,7 @@
   background: #101010;
   color: #f4f4ef;
   border-right: 1px solid #101010;
-  padding: 18px 0 18px 16px;
+  padding: 18px 0 0 16px;
   display: flex;
   flex-direction: column;
   min-height: 0;
@@ -266,6 +266,8 @@
   height: 136px;
   object-fit: cover;
   background: #d8d7cf;
+  border: 1px solid rgba(17, 17, 17, 0.28);
+  box-sizing: border-box;
 }
 
 .invAccountModal__propertyPhoto--placeholder {
@@ -600,7 +602,7 @@
     border-right: none;
     border-bottom: 1px solid rgba(244, 244, 239, 0.25);
     max-height: 44vh;
-    padding: 18px 16px;
+    padding: 18px 16px 0 16px;
   }
 
   .invAccountModal__propertyList {
@@ -630,7 +632,7 @@
 
   .invAccountModal__left {
     max-height: 48vh;
-    padding: 14px;
+    padding: 14px 14px 0 14px;
   }
 
   .invAccountModal__propertyList {
