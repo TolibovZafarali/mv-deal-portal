@@ -193,6 +193,18 @@
   display: none;
 }
 
+.invAccountModal__accountHead {
+  position: relative;
+}
+
+.invAccountModal__accountHeadClose {
+  display: none;
+}
+
+.invAccountModal__accountNavLogoutBtn {
+  display: none;
+}
+
 .invAccountModal__subcopy {
   margin: 12px 0 0;
   padding-right: 16px;
@@ -225,6 +237,10 @@
   justify-content: start;
   gap: 8px;
   transition: background 180ms ease, color 180ms ease, border-color 180ms ease;
+}
+
+.invAccountModal__accountNavBtn.invAccountModal__accountNavLogoutBtn {
+  display: none;
 }
 
 .invAccountModal__accountNavBtn:hover,
@@ -940,34 +956,109 @@
   }
 
   .invAccountModal:not(.invAccountModal--messagesView) .invAccountModal__left {
-    max-height: 230px;
+    align-self: start;
+    max-height: none;
+    padding-bottom: 10px;
+  }
+
+  .invAccountModal:not(.invAccountModal--messagesView) {
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+
+  .invAccountModal:not(.invAccountModal--messagesView) .invAccountModal__accountHead {
+    padding-right: 44px;
+  }
+
+  .invAccountModal:not(.invAccountModal--messagesView) .invAccountModal__accountHeadClose {
+    appearance: none;
+    position: absolute;
+    top: 2px;
+    right: 0;
+    width: 34px;
+    height: 34px;
+    border: none;
+    background: transparent;
+    color: rgb(244, 244, 239);
+    cursor: pointer;
+    display: grid;
+    place-items: center;
+    padding: 0;
+  }
+
+  .invAccountModal:not(.invAccountModal--messagesView) .invAccountModal__accountHeadCloseIcon {
+    font-size: 18px;
+    line-height: 1;
+    opacity: 0.78;
+    transition: opacity 160ms ease;
+  }
+
+  .invAccountModal:not(.invAccountModal--messagesView) .invAccountModal__accountHeadClose:hover .invAccountModal__accountHeadCloseIcon,
+  .invAccountModal:not(.invAccountModal--messagesView) .invAccountModal__accountHeadClose:focus-visible .invAccountModal__accountHeadCloseIcon {
+    opacity: 1;
   }
 
   .invAccountModal:not(.invAccountModal--messagesView) .invAccountModal__accountNav {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    margin-top: 0;
+    margin-bottom: 0;
+    padding: 8px 12px max(8px, env(safe-area-inset-bottom));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 6px;
-    padding-right: 0;
+    background: #101010;
+    border-top: 1px solid rgba(244, 244, 239, 0.24);
+    z-index: 7;
   }
 
   .invAccountModal:not(.invAccountModal--messagesView) .invAccountModal__accountNavBtn {
-    min-height: 34px;
-    padding: 8px 6px;
-    text-align: left;
-    font-size: 12px;
-    gap: 4px;
-    grid-template-columns: 16px 1fr;
+    min-height: 42px;
+    padding: 6px;
+    text-align: center;
+    font-size: 11px;
+    gap: 0;
+    grid-template-columns: 1fr;
+    justify-content: center;
+  }
+
+  .invAccountModal:not(.invAccountModal--messagesView) .invAccountModal__accountNavLabel {
+    display: none;
   }
 
   .invAccountModal:not(.invAccountModal--messagesView) .invAccountModal__accountNavIcon {
-    width: 16px;
-    min-width: 16px;
-    font-size: 16px;
+    width: auto;
+    min-width: 0;
+    font-size: 22px;
+  }
+
+  .invAccountModal:not(.invAccountModal--messagesView) .invAccountModal__accountNavLogoutBtn {
+    display: grid;
+    border-color: rgba(170, 38, 38, 0.95);
+    color: rgba(170, 38, 38, 0.98);
+  }
+
+  .invAccountModal:not(.invAccountModal--messagesView) .invAccountModal__accountNavLogoutBtn:hover,
+  .invAccountModal:not(.invAccountModal--messagesView) .invAccountModal__accountNavLogoutBtn:focus-visible {
+    border-color: rgba(170, 38, 38, 0.95);
+    background: rgba(170, 38, 38, 0.95);
+    color: #ffffff;
   }
 
   .invAccountModal:not(.invAccountModal--messagesView) .invAccountModal__logoutBtn {
-    margin-right: 0;
-    margin-bottom: 12px;
-    width: 100%;
+    display: none;
+  }
+
+  .invAccountModal:not(.invAccountModal--messagesView) .invAccountModal__right {
+    padding: 12px 14px 78px;
+  }
+
+  .invAccountModal:not(.invAccountModal--messagesView) .invAccountModal__close {
+    display: none;
+  }
+
+  .invAccountModal:not(.invAccountModal--messagesView) .invAccountModal__panel {
+    margin-top: 0;
   }
 
   .invAccountModal__settingRow,

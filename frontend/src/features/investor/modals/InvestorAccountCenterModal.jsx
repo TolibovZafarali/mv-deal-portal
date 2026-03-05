@@ -795,8 +795,20 @@ export default function InvestorAccountCenterModal({
             </>
           ) : (
             <>
-              <h2 className="invAccountModal__title">Account</h2>
-              <p className="invAccountModal__subcopy">Manage your profile, security, and notification settings.</p>
+              <div className="invAccountModal__accountHead">
+                <h2 className="invAccountModal__title">Account</h2>
+                <button
+                  type="button"
+                  className="invAccountModal__accountHeadClose"
+                  aria-label="Close account"
+                  onClick={onClose}
+                >
+                  <span className="material-symbols-outlined invAccountModal__accountHeadCloseIcon" aria-hidden="true">
+                    close
+                  </span>
+                </button>
+                <p className="invAccountModal__subcopy">Manage your profile, security, and notification settings.</p>
+              </div>
               <nav className="invAccountModal__accountNav" aria-label="Account sections">
                 {ACCOUNT_SECTIONS.map((section) => {
                   const active = view === section.key;
@@ -807,6 +819,7 @@ export default function InvestorAccountCenterModal({
                       className={`invAccountModal__accountNavBtn ${
                         active ? "invAccountModal__accountNavBtn--active" : ""
                       }`.trim()}
+                      aria-label={section.label}
                       aria-current={active ? "page" : undefined}
                       onClick={() => onChangeView?.(section.key)}
                     >
@@ -817,6 +830,20 @@ export default function InvestorAccountCenterModal({
                     </button>
                   );
                 })}
+                <button
+                  type="button"
+                  className="invAccountModal__accountNavBtn invAccountModal__accountNavLogoutBtn"
+                  aria-label="Log out"
+                  onClick={() => {
+                    onClose?.();
+                    signOut?.();
+                  }}
+                >
+                  <span className="material-symbols-outlined invAccountModal__accountNavIcon" aria-hidden="true">
+                    logout
+                  </span>
+                  <span className="invAccountModal__accountNavLabel">Log out</span>
+                </button>
               </nav>
               <button
                 type="button"
