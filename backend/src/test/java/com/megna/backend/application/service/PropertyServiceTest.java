@@ -1,6 +1,7 @@
 package com.megna.backend.application.service;
 
 import com.megna.backend.domain.entity.Property;
+import com.megna.backend.domain.entity.Seller;
 import com.megna.backend.domain.enums.PropertyStatus;
 import com.megna.backend.domain.repository.InvestorRepository;
 import com.megna.backend.domain.repository.PropertyRepository;
@@ -25,6 +26,7 @@ import java.math.BigDecimal;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -123,6 +125,43 @@ class PropertyServiceTest {
     }
 
     @Test
+    void assignSellerShouldBlockUnassigningCreatorSeller() {
+        authenticateAsAdmin();
+
+        Seller creator = seller(10L);
+        Property property = existingProperty(10L, "62001", 3, new BigDecimal("990"));
+        property.setSeller(creator);
+        property.setCreatedBySeller(creator);
+        when(propertyRepository.findById(10L)).thenReturn(Optional.of(property));
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class, () ->
+                propertyService.assignSeller(10L, null)
+        );
+
+        assertEquals(HttpStatus.CONFLICT, ex.getStatusCode());
+        assertEquals("Cannot unassign the seller who originally created this property", ex.getReason());
+        verify(propertyRepository, never()).save(property);
+    }
+
+    @Test
+    void assignSellerShouldAllowUnassigningNonCreatorSeller() {
+        authenticateAsAdmin();
+
+        Seller creator = seller(10L);
+        Seller assignedSeller = seller(11L);
+        Property property = existingProperty(11L, "62001", 3, new BigDecimal("990"));
+        property.setSeller(assignedSeller);
+        property.setCreatedBySeller(creator);
+        when(propertyRepository.findById(11L)).thenReturn(Optional.of(property));
+
+        propertyService.assignSeller(11L, null);
+
+        assertNull(property.getSeller());
+        assertEquals(10L, property.getCreatedBySeller().getId());
+        verify(propertyRepository).save(property);
+    }
+
+    @Test
     void searchWithOutOfRangeMinAskingPriceReturnsBadRequest() {
         authenticateAsAdmin();
 
@@ -174,6 +213,12 @@ class PropertyServiceTest {
         property.setLatitude(new BigDecimal("38.6270"));
         property.setLongitude(new BigDecimal("-90.1994"));
         return property;
+    }
+
+    private static Seller seller(Long id) {
+        Seller seller = new Seller();
+        seller.setId(id);
+        return seller;
     }
 
     private static PropertyUpsertRequestDto dto(String zip, Integer beds) {

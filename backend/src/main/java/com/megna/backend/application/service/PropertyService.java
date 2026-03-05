@@ -366,6 +366,7 @@ public class PropertyService {
         applySellerDraftUpsert(dto, property);
         validateSellerAddressNotDuplicate(sellerId, property);
         property.setSeller(seller);
+        property.setCreatedBySeller(seller);
         property.setStatus(PropertyStatus.DRAFT);
         property.setSellerWorkflowStatus(SellerWorkflowStatus.DRAFT);
         property.setSellerReviewNote(null);
@@ -474,6 +475,14 @@ public class PropertyService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Property not found: " + propertyId));
 
         if (sellerId == null) {
+            Long currentSellerId = property.getSeller() == null ? null : property.getSeller().getId();
+            Long creatorSellerId = property.getCreatedBySeller() == null ? null : property.getCreatedBySeller().getId();
+            if (currentSellerId != null && Objects.equals(currentSellerId, creatorSellerId)) {
+                throw new ResponseStatusException(
+                        HttpStatus.CONFLICT,
+                        "Cannot unassign the seller who originally created this property"
+                );
+            }
             property.setSeller(null);
             property.setSellerWorkflowStatus(null);
             property.setSellerReviewNote(null);
