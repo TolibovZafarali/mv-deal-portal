@@ -2601,17 +2601,6 @@ export default function PropertyUpsertModal({
                     </button>
                   ) : null}
 
-                  {!isSellerVariant ? (
-                    <button
-                      type="button"
-                      className="propBtn propBtn--muted"
-                      onClick={onClose}
-                      disabled={submitting || deleting}
-                    >
-                      Cancel
-                    </button>
-                  ) : null}
-
                   <button
                     type="submit"
                     className="propBtn propBtn--primary"

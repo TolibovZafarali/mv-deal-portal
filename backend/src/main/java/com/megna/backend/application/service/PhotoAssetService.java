@@ -339,19 +339,20 @@ public class PhotoAssetService {
 
         Map<String, PhotoAsset> byId = new HashMap<>();
         for (PhotoAsset asset : assets) {
-            if (isAssetOwnedByAnotherPrincipal(asset, principalRole, principalId)) {
+            Long existingPropertyId = propertyPhotoRepository.findFirstByPhotoAssetId(asset.getId())
+                    .map(existing -> existing.getProperty() != null ? existing.getProperty().getId() : null)
+                    .orElse(null);
+            boolean attachedToCurrentProperty = existingPropertyId != null && existingPropertyId.equals(currentPropertyId);
+
+            if (!attachedToCurrentProperty && isAssetOwnedByAnotherPrincipal(asset, principalRole, principalId)) {
                 throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Photo asset belongs to another principal: " + asset.getId());
             }
             if (asset.getStatus() != PhotoAssetStatus.READY) {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Photo asset is not ready: " + asset.getId());
             }
-
-            propertyPhotoRepository.findFirstByPhotoAssetId(asset.getId()).ifPresent(existing -> {
-                Long existingPropertyId = existing.getProperty() != null ? existing.getProperty().getId() : null;
-                if (existingPropertyId != null && !existingPropertyId.equals(currentPropertyId)) {
-                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Photo asset already attached to another property: " + asset.getId());
-                }
-            });
+            if (existingPropertyId != null && !existingPropertyId.equals(currentPropertyId)) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Photo asset already attached to another property: " + asset.getId());
+            }
 
             byId.put(asset.getId(), asset);
         }
