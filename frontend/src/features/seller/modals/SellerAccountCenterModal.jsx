@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { changePassword } from "@/api/modules/authApi";
+import { getSellerById, updateSeller } from "@/api/modules/sellerApi";
 import { useAuth } from "@/features/auth";
 import { getPasswordStrength } from "@/shared/utils/passwordStrength";
 import "@/features/investor/modals/InvestorAccountCenterModal.css";
@@ -24,12 +26,15 @@ function cleanString(value) {
   return String(value ?? "").trim();
 }
 
-function buildProfile(email) {
-  const normalizedEmail = cleanString(email).toLowerCase();
+function profileFromSeller(seller) {
+  const email = seller?.email ?? "";
   return {
-    ...EMPTY_PROFILE,
-    email: normalizedEmail,
-    notificationEmail: normalizedEmail,
+    firstName: seller?.firstName ?? "",
+    lastName: seller?.lastName ?? "",
+    email,
+    notificationEmail: seller?.notificationEmail ?? email,
+    phone: seller?.phone ?? "",
+    companyName: seller?.companyName ?? "",
   };
 }
 
@@ -40,12 +45,17 @@ export default function SellerAccountCenterModal({
   onChangeView,
 }) {
   const { user, signOut } = useAuth();
-  const [profile, setProfile] = useState(() => buildProfile(user?.email));
-  const [savedProfile, setSavedProfile] = useState(() => buildProfile(user?.email));
+  const sellerId = user?.sellerId;
+  const [profile, setProfile] = useState(EMPTY_PROFILE);
+  const [savedProfile, setSavedProfile] = useState(EMPTY_PROFILE);
   const [profileEditing, setProfileEditing] = useState(false);
+  const [profileLoading, setProfileLoading] = useState(false);
+  const [profileError, setProfileError] = useState("");
+  const [profileSaving, setProfileSaving] = useState(false);
   const [profileSaveError, setProfileSaveError] = useState("");
   const [profileSaveOk, setProfileSaveOk] = useState("");
   const [notificationEditing, setNotificationEditing] = useState(false);
+  const [notificationSaving, setNotificationSaving] = useState(false);
   const [notificationSaveError, setNotificationSaveError] = useState("");
   const [notificationSaveOk, setNotificationSaveOk] = useState("");
   const [securityForm, setSecurityForm] = useState({
@@ -54,6 +64,7 @@ export default function SellerAccountCenterModal({
     confirmNewPassword: "",
   });
   const [securityEditing, setSecurityEditing] = useState(false);
+  const [securitySaving, setSecuritySaving] = useState(false);
   const [securityError, setSecurityError] = useState("");
   const [securityOk, setSecurityOk] = useState("");
 
@@ -64,6 +75,7 @@ export default function SellerAccountCenterModal({
     () => getPasswordStrength(securityForm.newPassword),
     [securityForm.newPassword],
   );
+  const missingSeller = !sellerId;
 
   const resetModalState = useCallback(() => {
     setProfileEditing(false);
@@ -78,6 +90,7 @@ export default function SellerAccountCenterModal({
       confirmNewPassword: "",
     });
     setSecurityEditing(false);
+    setSecuritySaving(false);
     setSecurityError("");
     setSecurityOk("");
   }, []);
@@ -104,28 +117,47 @@ export default function SellerAccountCenterModal({
     };
   }, [open, handleClose]);
 
-  function handleProfileEditStart() {
-    setProfileSaveError("");
-    setProfileSaveOk("");
-    setProfileEditing(true);
-  }
+  useEffect(() => {
+    if (!open || !sellerId) return;
+    let alive = true;
 
-  function handleProfileCancel() {
-    setProfile((prev) => ({
-      ...prev,
-      companyName: savedProfile.companyName,
-      phone: savedProfile.phone,
-    }));
-    setProfileSaveError("");
-    setProfileSaveOk("");
-    setProfileEditing(false);
-  }
+    async function loadProfile() {
+      setProfileLoading(true);
+      setProfileError("");
+      setProfileSaveError("");
+      setProfileSaveOk("");
+      setNotificationSaveError("");
+      setNotificationSaveOk("");
 
-  function handleProfileSave(event) {
+      try {
+        const seller = await getSellerById(sellerId);
+        if (!alive) return;
+        const nextProfile = profileFromSeller(seller);
+        setProfile(nextProfile);
+        setSavedProfile(nextProfile);
+        setProfileEditing(false);
+        setNotificationEditing(false);
+      } catch (error) {
+        if (!alive) return;
+        setProfileError(error?.message || "Failed to load profile.");
+      } finally {
+        if (alive) setProfileLoading(false);
+      }
+    }
+
+    loadProfile();
+    return () => {
+      alive = false;
+    };
+  }, [open, sellerId]);
+
+  async function handleProfileSave(event) {
     event.preventDefault();
+    if (!sellerId) return;
 
     const companyName = cleanString(profile.companyName);
     const phone = cleanString(profile.phone);
+    const notificationEmail = cleanString(profile.notificationEmail || profile.email).toLowerCase();
 
     if (!companyName || !phone) {
       setProfileSaveError("Company and phone are required.");
@@ -133,37 +165,30 @@ export default function SellerAccountCenterModal({
       return;
     }
 
-    const nextProfile = {
-      ...profile,
-      companyName,
-      phone,
-    };
-
-    setProfile(nextProfile);
-    setSavedProfile((prev) => ({ ...prev, companyName, phone }));
-    setProfileEditing(false);
+    setProfileSaving(true);
     setProfileSaveError("");
-    setProfileSaveOk("Profile updated.");
+    setProfileSaveOk("");
+
+    try {
+      const updated = await updateSeller(sellerId, { companyName, phone, notificationEmail });
+      const nextProfile = profileFromSeller(updated);
+      setProfile(nextProfile);
+      setSavedProfile(nextProfile);
+      setProfileEditing(false);
+      setProfileSaveOk("Profile updated.");
+    } catch (error) {
+      setProfileSaveError(error?.message || "Failed to save profile.");
+    } finally {
+      setProfileSaving(false);
+    }
   }
 
-  function handleNotificationEditStart() {
-    setNotificationSaveError("");
-    setNotificationSaveOk("");
-    setNotificationEditing(true);
-  }
-
-  function handleNotificationCancel() {
-    setProfile((prev) => ({
-      ...prev,
-      notificationEmail: savedProfile.notificationEmail,
-    }));
-    setNotificationSaveError("");
-    setNotificationSaveOk("");
-    setNotificationEditing(false);
-  }
-
-  function handleNotificationSave(event) {
+  async function handleNotificationSave(event) {
     event.preventDefault();
+    if (!sellerId) return;
+
+    const companyName = cleanString(profile.companyName);
+    const phone = cleanString(profile.phone);
     const notificationEmail = cleanString(profile.notificationEmail).toLowerCase();
 
     if (!notificationEmail) {
@@ -172,37 +197,25 @@ export default function SellerAccountCenterModal({
       return;
     }
 
-    if (!notificationEmail.includes("@")) {
-      setNotificationSaveError("Enter a valid email address.");
-      setNotificationSaveOk("");
-      return;
-    }
-
-    setProfile((prev) => ({ ...prev, notificationEmail }));
-    setSavedProfile((prev) => ({ ...prev, notificationEmail }));
-    setNotificationEditing(false);
+    setNotificationSaving(true);
     setNotificationSaveError("");
-    setNotificationSaveOk("Notification email updated.");
+    setNotificationSaveOk("");
+
+    try {
+      const updated = await updateSeller(sellerId, { companyName, phone, notificationEmail });
+      const nextProfile = profileFromSeller(updated);
+      setProfile(nextProfile);
+      setSavedProfile(nextProfile);
+      setNotificationEditing(false);
+      setNotificationSaveOk("Notification email updated.");
+    } catch (error) {
+      setNotificationSaveError(error?.message || "Failed to save notification email.");
+    } finally {
+      setNotificationSaving(false);
+    }
   }
 
-  function handleSecurityEditStart() {
-    setSecurityEditing(true);
-    setSecurityError("");
-    setSecurityOk("");
-  }
-
-  function handleSecurityCancel() {
-    setSecurityForm({
-      currentPassword: "",
-      newPassword: "",
-      confirmNewPassword: "",
-    });
-    setSecurityEditing(false);
-    setSecurityError("");
-    setSecurityOk("");
-  }
-
-  function handleSecuritySave(event) {
+  async function handleSecuritySave(event) {
     event.preventDefault();
 
     const currentPassword = securityForm.currentPassword;
@@ -233,6 +246,33 @@ export default function SellerAccountCenterModal({
       return;
     }
 
+    setSecuritySaving(true);
+    setSecurityError("");
+    setSecurityOk("");
+
+    try {
+      await changePassword({ currentPassword, newPassword });
+      setSecurityForm({
+        currentPassword: "",
+        newPassword: "",
+        confirmNewPassword: "",
+      });
+      setSecurityEditing(false);
+      setSecurityOk("Password updated.");
+    } catch (error) {
+      setSecurityError(error?.message || "Failed to change password.");
+    } finally {
+      setSecuritySaving(false);
+    }
+  }
+
+  function handleSecurityEditStart() {
+    setSecurityEditing(true);
+    setSecurityError("");
+    setSecurityOk("");
+  }
+
+  function handleSecurityCancel() {
     setSecurityForm({
       currentPassword: "",
       newPassword: "",
@@ -240,7 +280,40 @@ export default function SellerAccountCenterModal({
     });
     setSecurityEditing(false);
     setSecurityError("");
-    setSecurityOk("Password updated.");
+    setSecurityOk("");
+  }
+
+  function handleProfileEditStart() {
+    setProfileSaveError("");
+    setProfileSaveOk("");
+    setProfileEditing(true);
+  }
+
+  function handleProfileCancel() {
+    setProfile((prev) => ({
+      ...prev,
+      companyName: savedProfile.companyName,
+      phone: savedProfile.phone,
+    }));
+    setProfileSaveError("");
+    setProfileSaveOk("");
+    setProfileEditing(false);
+  }
+
+  function handleNotificationEditStart() {
+    setNotificationSaveError("");
+    setNotificationSaveOk("");
+    setNotificationEditing(true);
+  }
+
+  function handleNotificationCancel() {
+    setProfile((prev) => ({
+      ...prev,
+      notificationEmail: savedProfile.notificationEmail,
+    }));
+    setNotificationSaveError("");
+    setNotificationSaveOk("");
+    setNotificationEditing(false);
   }
 
   return (
@@ -331,87 +404,106 @@ export default function SellerAccountCenterModal({
             ✕
           </button>
 
-          {isProfileView ? (
+          {missingSeller ? (
+            <div className="invAccountModal__notice invAccountModal__notice--error">
+              Missing seller identity. Please log out and log in again.
+            </div>
+          ) : null}
+
+          {!missingSeller && isProfileView ? (
             <section className="invAccountModal__panel" aria-label="Profile">
               <h3 className="invAccountModal__panelTitle">Profile</h3>
 
-              <form className="invAccountModal__profileForm" onSubmit={handleProfileSave}>
-                <label className="invAccountModal__field">
-                  <span>First Name</span>
-                  <input value={profile.firstName} disabled />
-                </label>
-                <label className="invAccountModal__field">
-                  <span>Last Name</span>
-                  <input value={profile.lastName} disabled />
-                </label>
-                <label className="invAccountModal__field">
-                  <span>Email</span>
-                  <input value={profile.email} disabled />
-                </label>
-                <label className="invAccountModal__field">
-                  <span>Phone Number</span>
-                  <input
-                    disabled={!profileEditing}
-                    value={profile.phone}
-                    onChange={(event) =>
-                      setProfile((prev) => ({ ...prev, phone: event.target.value }))
-                    }
-                  />
-                </label>
-                <label className="invAccountModal__field">
-                  <span>Company Name</span>
-                  <input
-                    disabled={!profileEditing}
-                    value={profile.companyName}
-                    onChange={(event) =>
-                      setProfile((prev) => ({ ...prev, companyName: event.target.value }))
-                    }
-                  />
-                </label>
+              {profileLoading ? (
+                <div className="invAccountModal__notice">Loading profile...</div>
+              ) : null}
+              {!profileLoading && profileError ? (
+                <div className="invAccountModal__notice invAccountModal__notice--error">
+                  {profileError}
+                </div>
+              ) : null}
 
-                {profileSaveError ? (
-                  <div className="invAccountModal__formMsg invAccountModal__formMsg--error">
-                    {profileSaveError}
-                  </div>
-                ) : null}
-                {profileSaveOk ? (
-                  <div className="invAccountModal__formMsg invAccountModal__formMsg--ok">
-                    {profileSaveOk}
-                  </div>
-                ) : null}
+              {!profileLoading && !profileError ? (
+                <form className="invAccountModal__profileForm" onSubmit={handleProfileSave}>
+                  <label className="invAccountModal__field">
+                    <span>First Name</span>
+                    <input value={profile.firstName} disabled />
+                  </label>
+                  <label className="invAccountModal__field">
+                    <span>Last Name</span>
+                    <input value={profile.lastName} disabled />
+                  </label>
+                  <label className="invAccountModal__field">
+                    <span>Email</span>
+                    <input value={profile.email} disabled />
+                  </label>
+                  <label className="invAccountModal__field">
+                    <span>Phone Number</span>
+                    <input
+                      disabled={!profileEditing || profileSaving}
+                      value={profile.phone}
+                      onChange={(event) =>
+                        setProfile((prev) => ({ ...prev, phone: event.target.value }))
+                      }
+                    />
+                  </label>
+                  <label className="invAccountModal__field">
+                    <span>Company Name</span>
+                    <input
+                      disabled={!profileEditing || profileSaving}
+                      value={profile.companyName}
+                      onChange={(event) =>
+                        setProfile((prev) => ({ ...prev, companyName: event.target.value }))
+                      }
+                    />
+                  </label>
 
-                <div className="invAccountModal__profileActions">
-                  {!profileEditing ? (
-                    <button
-                      className="invAccountModal__save"
-                      type="button"
-                      onClick={handleProfileEditStart}
-                    >
-                      Edit
-                    </button>
-                  ) : (
-                    <>
-                      <button
-                        className="invAccountModal__save invAccountModal__save--secondary"
-                        type="button"
-                        onClick={handleProfileCancel}
-                      >
-                        Cancel
-                      </button>
+                  {profileSaveError ? (
+                    <div className="invAccountModal__formMsg invAccountModal__formMsg--error">
+                      {profileSaveError}
+                    </div>
+                  ) : null}
+                  {profileSaveOk ? (
+                    <div className="invAccountModal__formMsg invAccountModal__formMsg--ok">
+                      {profileSaveOk}
+                    </div>
+                  ) : null}
+
+                  <div className="invAccountModal__profileActions">
+                    {!profileEditing ? (
                       <button
                         className="invAccountModal__save"
-                        type="submit"
+                        type="button"
+                        onClick={handleProfileEditStart}
                       >
-                        Save
+                        Edit
                       </button>
-                    </>
-                  )}
-                </div>
-              </form>
+                    ) : (
+                      <>
+                        <button
+                          className="invAccountModal__save invAccountModal__save--secondary"
+                          type="button"
+                          disabled={profileSaving}
+                          onClick={handleProfileCancel}
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          className="invAccountModal__save"
+                          type="submit"
+                          disabled={profileSaving}
+                        >
+                          {profileSaving ? "Saving..." : "Save"}
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </form>
+              ) : null}
             </section>
           ) : null}
 
-          {isSecurityView ? (
+          {!missingSeller && isSecurityView ? (
             <section className="invAccountModal__panel" aria-label="Security">
               <h3 className="invAccountModal__panelTitle">Security</h3>
               <p className="invAccountModal__panelSubcopy">
@@ -436,6 +528,7 @@ export default function SellerAccountCenterModal({
                     <input
                       type="password"
                       autoComplete="current-password"
+                      disabled={securitySaving}
                       value={securityForm.currentPassword}
                       onChange={(event) => {
                         setSecurityError("");
@@ -449,6 +542,7 @@ export default function SellerAccountCenterModal({
                     <input
                       type="password"
                       autoComplete="new-password"
+                      disabled={securitySaving}
                       value={securityForm.newPassword}
                       onChange={(event) => {
                         setSecurityError("");
@@ -470,6 +564,7 @@ export default function SellerAccountCenterModal({
                     <input
                       type="password"
                       autoComplete="new-password"
+                      disabled={securitySaving}
                       value={securityForm.confirmNewPassword}
                       onChange={(event) => {
                         setSecurityError("");
@@ -491,12 +586,13 @@ export default function SellerAccountCenterModal({
                     <button
                       className="invAccountModal__save invAccountModal__save--secondary"
                       type="button"
+                      disabled={securitySaving}
                       onClick={handleSecurityCancel}
                     >
                       Cancel
                     </button>
-                    <button className="invAccountModal__save" type="submit">
-                      Save Password
+                    <button className="invAccountModal__save" type="submit" disabled={securitySaving}>
+                      {securitySaving ? "Saving..." : "Save Password"}
                     </button>
                   </div>
                 </form>
@@ -509,62 +605,71 @@ export default function SellerAccountCenterModal({
             </section>
           ) : null}
 
-          {isNotificationView ? (
+          {!missingSeller && isNotificationView ? (
             <section className="invAccountModal__panel" aria-label="Notification">
               <h3 className="invAccountModal__panelTitle">Notification</h3>
               <p className="invAccountModal__panelSubcopy">
                 Set a notification email for deal and platform updates.
               </p>
-              <form className="invAccountModal__profileForm" onSubmit={handleNotificationSave}>
-                <label className="invAccountModal__field">
-                  <span>Notification Email</span>
-                  <input
-                    type="email"
-                    disabled={!notificationEditing}
-                    value={profile.notificationEmail}
-                    onChange={(event) =>
-                      setProfile((prev) => ({ ...prev, notificationEmail: event.target.value }))
-                    }
-                  />
-                </label>
-                <div className="invAccountModal__settingNote">
-                  Separate from your login email. Used for notifications only.
+              {profileLoading ? <div className="invAccountModal__notice">Loading account settings...</div> : null}
+              {!profileLoading && profileError ? (
+                <div className="invAccountModal__notice invAccountModal__notice--error">
+                  {profileError}
                 </div>
-                {notificationSaveError ? (
-                  <div className="invAccountModal__formMsg invAccountModal__formMsg--error">
-                    {notificationSaveError}
+              ) : null}
+              {!profileLoading && !profileError ? (
+                <form className="invAccountModal__profileForm" onSubmit={handleNotificationSave}>
+                  <label className="invAccountModal__field">
+                    <span>Notification Email</span>
+                    <input
+                      type="email"
+                      disabled={!notificationEditing || notificationSaving}
+                      value={profile.notificationEmail}
+                      onChange={(event) =>
+                        setProfile((prev) => ({ ...prev, notificationEmail: event.target.value }))
+                      }
+                    />
+                  </label>
+                  <div className="invAccountModal__settingNote">
+                    Separate from your login email. Used for notifications only.
                   </div>
-                ) : null}
-                {notificationSaveOk ? (
-                  <div className="invAccountModal__formMsg invAccountModal__formMsg--ok">
-                    {notificationSaveOk}
-                  </div>
-                ) : null}
-                <div className="invAccountModal__profileActions">
-                  {!notificationEditing ? (
-                    <button
-                      className="invAccountModal__save"
-                      type="button"
-                      onClick={handleNotificationEditStart}
-                    >
-                      Edit
-                    </button>
-                  ) : (
-                    <>
+                  {notificationSaveError ? (
+                    <div className="invAccountModal__formMsg invAccountModal__formMsg--error">
+                      {notificationSaveError}
+                    </div>
+                  ) : null}
+                  {notificationSaveOk ? (
+                    <div className="invAccountModal__formMsg invAccountModal__formMsg--ok">
+                      {notificationSaveOk}
+                    </div>
+                  ) : null}
+                  <div className="invAccountModal__profileActions">
+                    {!notificationEditing ? (
                       <button
-                        className="invAccountModal__save invAccountModal__save--secondary"
+                        className="invAccountModal__save"
                         type="button"
-                        onClick={handleNotificationCancel}
+                        onClick={handleNotificationEditStart}
                       >
-                        Cancel
+                        Edit
                       </button>
-                      <button className="invAccountModal__save" type="submit">
-                        Save
-                      </button>
-                    </>
-                  )}
-                </div>
-              </form>
+                    ) : (
+                      <>
+                        <button
+                          className="invAccountModal__save invAccountModal__save--secondary"
+                          type="button"
+                          disabled={notificationSaving}
+                          onClick={handleNotificationCancel}
+                        >
+                          Cancel
+                        </button>
+                        <button className="invAccountModal__save" type="submit" disabled={notificationSaving}>
+                          {notificationSaving ? "Saving..." : "Save"}
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </form>
+              ) : null}
             </section>
           ) : null}
         </div>

@@ -265,6 +265,7 @@ public class AuthService {
         seller.setLastName(dto.lastName().trim());
         seller.setCompanyName(dto.companyName().trim());
         seller.setEmail(email);
+        seller.setNotificationEmail(email);
         seller.setPhone(dto.phone().trim());
         seller.setPasswordHash(passwordEncoder.encode(dto.password().trim()));
         seller.setStatus(SellerStatus.ACTIVE);
