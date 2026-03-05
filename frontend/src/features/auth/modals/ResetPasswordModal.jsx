@@ -1,7 +1,8 @@
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { resetPassword } from "@/api";
 import "@/features/auth/modals/ResetPasswordModal.css";
+import { getPasswordStrength } from "@/shared/utils/passwordStrength";
 
 const CLOSE_ANIMATION_MS = 180;
 
@@ -25,6 +26,7 @@ export default function ResetPasswordModal() {
   const closeTimerRef = useRef(null);
   const closingRef = useRef(false);
   const token = (searchParams.get("token") || "").trim();
+  const passwordStrength = useMemo(() => getPasswordStrength(newPassword), [newPassword]);
 
   const loginLinkState = hasBackground
     ? {
@@ -153,6 +155,14 @@ export default function ResetPasswordModal() {
                 </span>
               </button>
             </div>
+            {passwordStrength ? (
+              <div
+                className={`resetModal__passwordStrength resetModal__passwordStrength--${passwordStrength}`}
+                aria-live="polite"
+              >
+                Password strength: {passwordStrength === "strong" ? "Strong" : "Weak"}
+              </div>
+            ) : null}
 
             <div className="field field--password">
               <input

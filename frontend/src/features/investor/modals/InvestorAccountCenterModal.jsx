@@ -5,6 +5,7 @@ import { getPropertyId } from "@/api/modules/propertyApi";
 import { changePassword } from "@/api/modules/authApi";
 import { useAuth } from "@/features/auth";
 import "@/features/investor/modals/InvestorAccountCenterModal.css";
+import { getPasswordStrength } from "@/shared/utils/passwordStrength";
 
 const PROFILE_VIEW = "profile";
 const SECURITY_VIEW = "security";
@@ -148,6 +149,10 @@ export default function InvestorAccountCenterModal({
   const isNotificationsView = view === NOTIFICATIONS_VIEW;
   const isMessagesView = view === MESSAGES_VIEW;
   const normalizedPreferredPropertyId = normalizePropertyId(preferredPropertyId);
+  const securityPasswordStrength = useMemo(
+    () => getPasswordStrength(securityForm.newPassword),
+    [securityForm.newPassword],
+  );
 
   useEffect(() => {
     if (!open) return undefined;
@@ -1000,6 +1005,14 @@ export default function InvestorAccountCenterModal({
                       }}
                     />
                   </label>
+                  {securityPasswordStrength ? (
+                    <div
+                      className={`invAccountModal__passwordStrength invAccountModal__passwordStrength--${securityPasswordStrength}`}
+                      aria-live="polite"
+                    >
+                      Password strength: {securityPasswordStrength === "strong" ? "Strong" : "Weak"}
+                    </div>
+                  ) : null}
                   <label className="invAccountModal__field">
                     <span>Confirm New Password</span>
                     <input

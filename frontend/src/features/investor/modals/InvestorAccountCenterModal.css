@@ -811,6 +811,19 @@
   color: rgba(17, 17, 17, 0.72);
 }
 
+.invAccountModal__passwordStrength {
+  margin-top: -2px;
+  font-size: 12px;
+}
+
+.invAccountModal__passwordStrength--weak {
+  color: #9f3838;
+}
+
+.invAccountModal__passwordStrength--strong {
+  color: #2f7846;
+}
+
 .invAccountModal__save {
   margin-top: 6px;
   border: 1px solid rgba(17, 17, 17, 0.5);
