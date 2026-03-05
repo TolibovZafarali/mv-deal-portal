@@ -373,6 +373,9 @@ export default function PropertyUpsertModal({
   const sellerWorkflowStatus = String(initialValue?.sellerWorkflowStatus ?? "").trim().toUpperCase();
   const isSellerUnderReview =
     isSellerVariant && isEdit && sellerWorkflowStatus === "SUBMITTED";
+  const isSellerPublished =
+    isSellerVariant && isEdit && sellerWorkflowStatus === "PUBLISHED";
+  const isSellerEditLocked = isSellerUnderReview || isSellerPublished;
   const isAddressLocked = isSellerVariant && isEdit;
 
   const [form, setForm] = useState(DEFAULT_FORM);
@@ -721,8 +724,9 @@ export default function PropertyUpsertModal({
 
   const titleText = useMemo(() => {
     if (isSellerUnderReview) return "Property Under Review";
+    if (isSellerPublished) return "Published Property";
     return isEdit ? "Edit Property" : "Add Property";
-  }, [isEdit, isSellerUnderReview]);
+  }, [isEdit, isSellerPublished, isSellerUnderReview]);
   const isOccupied = String(form.occupancyStatus ?? "").trim().toUpperCase() === "YES";
   const potentialProfit = useMemo(() => {
     const arv = parseNumericValue(form.arv);
@@ -1411,7 +1415,7 @@ export default function PropertyUpsertModal({
 
   function handleSubmit(e) {
     e.preventDefault();
-    if (isSellerUnderReview || submitting || photoUploading || photoUrlAdding) return;
+    if (isSellerEditLocked || submitting || photoUploading || photoUrlAdding) return;
     onSubmit?.(form);
   }
 
@@ -1549,13 +1553,15 @@ export default function PropertyUpsertModal({
         </div>
 
         <form className="propModal__body" onSubmit={handleSubmit}>
-          {isSellerUnderReview ? (
+          {isSellerEditLocked ? (
             <div className="propModal__notice">
-              This property is currently under review by Megna. Editing is disabled until review is complete.
+              {isSellerUnderReview
+                ? "This property is currently under review by Megna. Editing is disabled until review is complete."
+                : "This property is published on Megna. Sellers cannot edit published properties."}
             </div>
           ) : null}
 
-          <fieldset className="propModal__fieldset" disabled={isSellerUnderReview}>
+          <fieldset className="propModal__fieldset" disabled={isSellerEditLocked}>
           {/* Address */}
           <div className="propSection">
             <div className="propSection__head">
@@ -2548,9 +2554,9 @@ export default function PropertyUpsertModal({
           ) : null}
 
           {/* Actions */}
-          <div className="propActions">
+          <div className={`propActions${isSellerEditLocked ? " propActions--single" : ""}`}>
             {mode === "edit" ? (
-              isSellerUnderReview ? (
+              isSellerEditLocked ? (
                 <button
                   type="button"
                   className="propBtn propBtn--muted"

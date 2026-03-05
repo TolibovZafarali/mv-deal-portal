@@ -851,6 +851,10 @@ select.propField__input {
   margin-top: 6px;
 }
 
+.propActions--single {
+  grid-template-columns: 1fr;
+}
+
 .propBtn {
   border: 1px solid var(--text);
   background: transparent;
