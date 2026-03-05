@@ -77,6 +77,7 @@ public class AuthService {
         investor.setLastName(dto.lastName().trim());
         investor.setCompanyName(dto.companyName().trim());
         investor.setEmail(email);
+        investor.setNotificationEmail(email);
         investor.setPhone(dto.phone().trim());
 
         investor.setPasswordHash(passwordEncoder.encode(dto.password().trim()));

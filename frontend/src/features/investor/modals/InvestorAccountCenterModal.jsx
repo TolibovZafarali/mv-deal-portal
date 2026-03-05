@@ -2,16 +2,25 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { getInquiryByInvestor } from "@/api/modules/inquiryApi";
 import { getInvestorById, updateInvestor } from "@/api/modules/investorApi";
 import { getPropertyId } from "@/api/modules/propertyApi";
+import { useAuth } from "@/features/auth";
 import "@/features/investor/modals/InvestorAccountCenterModal.css";
 
 const PROFILE_VIEW = "profile";
 const SECURITY_VIEW = "security";
 const NOTIFICATIONS_VIEW = "notifications";
 const MESSAGES_VIEW = "messages";
+const EMPTY_PROFILE = {
+  firstName: "",
+  lastName: "",
+  email: "",
+  notificationEmail: "",
+  phone: "",
+  companyName: "",
+};
 const ACCOUNT_SECTIONS = [
-  { key: PROFILE_VIEW, label: "Profile" },
-  { key: SECURITY_VIEW, label: "Security" },
-  { key: NOTIFICATIONS_VIEW, label: "Notifications" },
+  { key: PROFILE_VIEW, label: "Profile", icon: "person" },
+  { key: SECURITY_VIEW, label: "Security", icon: "lock" },
+  { key: NOTIFICATIONS_VIEW, label: "Notifications", icon: "notifications" },
 ];
 
 function normalizePropertyId(value) {
@@ -78,10 +87,12 @@ function propertyLeadPhoto(property) {
 }
 
 function profileFromInvestor(investor) {
+  const email = investor?.email ?? "";
   return {
     firstName: investor?.firstName ?? "",
     lastName: investor?.lastName ?? "",
-    email: investor?.email ?? "",
+    email,
+    notificationEmail: investor?.notificationEmail ?? email,
     phone: investor?.phone ?? "",
     companyName: investor?.companyName ?? "",
   };
@@ -97,18 +108,19 @@ export default function InvestorAccountCenterModal({
   preferredPropertyId = null,
   onChangeView,
 }) {
-  const [profile, setProfile] = useState({
-    firstName: "",
-    lastName: "",
-    email: "",
-    phone: "",
-    companyName: "",
-  });
+  const { signOut } = useAuth();
+  const [profile, setProfile] = useState(EMPTY_PROFILE);
+  const [savedProfile, setSavedProfile] = useState(EMPTY_PROFILE);
+  const [profileEditing, setProfileEditing] = useState(false);
   const [profileLoading, setProfileLoading] = useState(false);
   const [profileError, setProfileError] = useState("");
   const [profileSaving, setProfileSaving] = useState(false);
   const [profileSaveError, setProfileSaveError] = useState("");
   const [profileSaveOk, setProfileSaveOk] = useState("");
+  const [notificationEditing, setNotificationEditing] = useState(false);
+  const [notificationSaving, setNotificationSaving] = useState(false);
+  const [notificationSaveError, setNotificationSaveError] = useState("");
+  const [notificationSaveOk, setNotificationSaveOk] = useState("");
 
   const [inquiries, setInquiries] = useState([]);
   const [inquiryLoading, setInquiryLoading] = useState(false);
@@ -145,7 +157,7 @@ export default function InvestorAccountCenterModal({
   }, [open, onClose]);
 
   useEffect(() => {
-    if (!open || !isProfileView || !investorId) return;
+    if (!open || isMessagesView || !investorId) return;
     let alive = true;
 
     async function loadProfile() {
@@ -153,11 +165,17 @@ export default function InvestorAccountCenterModal({
       setProfileError("");
       setProfileSaveError("");
       setProfileSaveOk("");
+      setNotificationSaveError("");
+      setNotificationSaveOk("");
 
       try {
         const investor = await getInvestorById(investorId);
         if (!alive) return;
-        setProfile(profileFromInvestor(investor));
+        const nextProfile = profileFromInvestor(investor);
+        setProfile(nextProfile);
+        setSavedProfile(nextProfile);
+        setProfileEditing(false);
+        setNotificationEditing(false);
       } catch (error) {
         if (!alive) return;
         setProfileError(error?.message || "Failed to load profile.");
@@ -170,7 +188,7 @@ export default function InvestorAccountCenterModal({
     return () => {
       alive = false;
     };
-  }, [open, isProfileView, investorId]);
+  }, [open, isMessagesView, investorId]);
 
   useEffect(() => {
     if (!open || !isMessagesView || !investorId) return;
@@ -393,6 +411,7 @@ export default function InvestorAccountCenterModal({
 
     const companyName = cleanString(profile.companyName);
     const phone = cleanString(profile.phone);
+    const notificationEmail = cleanString(profile.notificationEmail || profile.email).toLowerCase();
 
     if (!companyName || !phone) {
       setProfileSaveError("Company and phone are required.");
@@ -405,14 +424,82 @@ export default function InvestorAccountCenterModal({
     setProfileSaveOk("");
 
     try {
-      const updated = await updateInvestor(investorId, { companyName, phone });
-      setProfile(profileFromInvestor(updated));
+      const updated = await updateInvestor(investorId, { companyName, phone, notificationEmail });
+      const nextProfile = profileFromInvestor(updated);
+      setProfile(nextProfile);
+      setSavedProfile(nextProfile);
+      setProfileEditing(false);
       setProfileSaveOk("Profile updated.");
     } catch (error) {
       setProfileSaveError(error?.message || "Failed to save profile.");
     } finally {
       setProfileSaving(false);
     }
+  }
+
+  async function handleNotificationSave(event) {
+    event.preventDefault();
+    if (!investorId) return;
+
+    const companyName = cleanString(profile.companyName);
+    const phone = cleanString(profile.phone);
+    const notificationEmail = cleanString(profile.notificationEmail).toLowerCase();
+
+    if (!notificationEmail) {
+      setNotificationSaveError("Notification email is required.");
+      setNotificationSaveOk("");
+      return;
+    }
+
+    setNotificationSaving(true);
+    setNotificationSaveError("");
+    setNotificationSaveOk("");
+
+    try {
+      const updated = await updateInvestor(investorId, { companyName, phone, notificationEmail });
+      const nextProfile = profileFromInvestor(updated);
+      setProfile(nextProfile);
+      setSavedProfile(nextProfile);
+      setNotificationEditing(false);
+      setNotificationSaveOk("Notification email updated.");
+    } catch (error) {
+      setNotificationSaveError(error?.message || "Failed to save notification email.");
+    } finally {
+      setNotificationSaving(false);
+    }
+  }
+
+  function handleProfileEditStart() {
+    setProfileSaveError("");
+    setProfileSaveOk("");
+    setProfileEditing(true);
+  }
+
+  function handleProfileCancel() {
+    setProfile((prev) => ({
+      ...prev,
+      companyName: savedProfile.companyName,
+      phone: savedProfile.phone,
+    }));
+    setProfileSaveError("");
+    setProfileSaveOk("");
+    setProfileEditing(false);
+  }
+
+  function handleNotificationEditStart() {
+    setNotificationSaveError("");
+    setNotificationSaveOk("");
+    setNotificationEditing(true);
+  }
+
+  function handleNotificationCancel() {
+    setProfile((prev) => ({
+      ...prev,
+      notificationEmail: savedProfile.notificationEmail,
+    }));
+    setNotificationSaveError("");
+    setNotificationSaveOk("");
+    setNotificationEditing(false);
   }
 
   const missingInvestor = !investorId;
@@ -627,11 +714,27 @@ export default function InvestorAccountCenterModal({
                       aria-current={active ? "page" : undefined}
                       onClick={() => onChangeView?.(section.key)}
                     >
-                      {section.label}
+                      <span className="material-symbols-outlined invAccountModal__accountNavIcon" aria-hidden="true">
+                        {section.icon}
+                      </span>
+                      <span className="invAccountModal__accountNavLabel">{section.label}</span>
                     </button>
                   );
                 })}
               </nav>
+              <button
+                type="button"
+                className="invAccountModal__logoutBtn"
+                onClick={() => {
+                  onClose?.();
+                  signOut?.();
+                }}
+              >
+                <span className="material-symbols-outlined invAccountModal__logoutIcon" aria-hidden="true">
+                  logout
+                </span>
+                <span>Log out</span>
+              </button>
             </>
           )}
 
@@ -695,6 +798,7 @@ export default function InvestorAccountCenterModal({
                   <label className="invAccountModal__field">
                     <span>Phone Number</span>
                     <input
+                      disabled={!profileEditing || profileSaving}
                       value={profile.phone}
                       onChange={(event) =>
                         setProfile((prev) => ({ ...prev, phone: event.target.value }))
@@ -704,6 +808,7 @@ export default function InvestorAccountCenterModal({
                   <label className="invAccountModal__field">
                     <span>Company Name</span>
                     <input
+                      disabled={!profileEditing || profileSaving}
                       value={profile.companyName}
                       onChange={(event) =>
                         setProfile((prev) => ({ ...prev, companyName: event.target.value }))
@@ -722,13 +827,35 @@ export default function InvestorAccountCenterModal({
                     </div>
                   ) : null}
 
-                  <button
-                    className="invAccountModal__save"
-                    type="submit"
-                    disabled={profileSaving}
-                  >
-                    {profileSaving ? "Saving..." : "Edit"}
-                  </button>
+                  <div className="invAccountModal__profileActions">
+                    {!profileEditing ? (
+                      <button
+                        className="invAccountModal__save"
+                        type="button"
+                        onClick={handleProfileEditStart}
+                      >
+                        Edit
+                      </button>
+                    ) : (
+                      <>
+                        <button
+                          className="invAccountModal__save invAccountModal__save--secondary"
+                          type="button"
+                          disabled={profileSaving}
+                          onClick={handleProfileCancel}
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          className="invAccountModal__save"
+                          type="submit"
+                          disabled={profileSaving}
+                        >
+                          {profileSaving ? "Saving..." : "Save"}
+                        </button>
+                      </>
+                    )}
+                  </div>
                 </form>
               ) : null}
             </section>
@@ -750,15 +877,6 @@ export default function InvestorAccountCenterModal({
                     Change password (Coming soon)
                   </button>
                 </div>
-                <div className="invAccountModal__settingRow">
-                  <div className="invAccountModal__settingMeta">
-                    <h4 className="invAccountModal__settingTitle">2FA</h4>
-                    <p className="invAccountModal__settingText">Two-factor authentication is not configured yet.</p>
-                  </div>
-                  <button className="invAccountModal__settingAction" type="button" disabled>
-                    Set up 2FA (Coming soon)
-                  </button>
-                </div>
               </div>
             </section>
           ) : null}
@@ -767,27 +885,67 @@ export default function InvestorAccountCenterModal({
             <section className="invAccountModal__panel" aria-label="Notifications">
               <h3 className="invAccountModal__panelTitle">Notifications</h3>
               <p className="invAccountModal__panelSubcopy">
-                Notification preferences will be available in a future update.
+                Set a notification email for deal and platform updates.
               </p>
-              <div className="invAccountModal__settingsList">
-                <label className="invAccountModal__toggleRow">
-                  <span className="invAccountModal__settingMeta">
-                    <span className="invAccountModal__settingTitle">Email notifications</span>
-                    <span className="invAccountModal__settingText">Coming soon</span>
-                  </span>
-                  <span className="invAccountModal__toggleWrap">
+              {profileLoading ? <div className="invAccountModal__notice">Loading account settings...</div> : null}
+              {!profileLoading && profileError ? (
+                <div className="invAccountModal__notice invAccountModal__notice--error">
+                  {profileError}
+                </div>
+              ) : null}
+              {!profileLoading && !profileError ? (
+                <form className="invAccountModal__profileForm" onSubmit={handleNotificationSave}>
+                  <label className="invAccountModal__field">
+                    <span>Notification Email</span>
                     <input
-                      className="invAccountModal__toggleInput"
-                      type="checkbox"
-                      aria-label="Email notifications"
-                      disabled
+                      type="email"
+                      disabled={!notificationEditing || notificationSaving}
+                      value={profile.notificationEmail}
+                      onChange={(event) =>
+                        setProfile((prev) => ({ ...prev, notificationEmail: event.target.value }))
+                      }
                     />
-                    <span className="invAccountModal__toggleTrack" aria-hidden="true">
-                      <span className="invAccountModal__toggleThumb" />
-                    </span>
-                  </span>
-                </label>
-              </div>
+                  </label>
+                  <div className="invAccountModal__settingNote">
+                    Separate from your login email. Used for notifications only.
+                  </div>
+                  {notificationSaveError ? (
+                    <div className="invAccountModal__formMsg invAccountModal__formMsg--error">
+                      {notificationSaveError}
+                    </div>
+                  ) : null}
+                  {notificationSaveOk ? (
+                    <div className="invAccountModal__formMsg invAccountModal__formMsg--ok">
+                      {notificationSaveOk}
+                    </div>
+                  ) : null}
+                  <div className="invAccountModal__profileActions">
+                    {!notificationEditing ? (
+                      <button
+                        className="invAccountModal__save"
+                        type="button"
+                        onClick={handleNotificationEditStart}
+                      >
+                        Edit
+                      </button>
+                    ) : (
+                      <>
+                        <button
+                          className="invAccountModal__save invAccountModal__save--secondary"
+                          type="button"
+                          disabled={notificationSaving}
+                          onClick={handleNotificationCancel}
+                        >
+                          Cancel
+                        </button>
+                        <button className="invAccountModal__save" type="submit" disabled={notificationSaving}>
+                          {notificationSaving ? "Saving..." : "Save"}
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </form>
+              ) : null}
             </section>
           ) : null}
 
