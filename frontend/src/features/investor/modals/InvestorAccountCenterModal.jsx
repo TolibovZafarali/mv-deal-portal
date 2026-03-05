@@ -5,7 +5,14 @@ import { getPropertyId } from "@/api/modules/propertyApi";
 import "@/features/investor/modals/InvestorAccountCenterModal.css";
 
 const PROFILE_VIEW = "profile";
+const SECURITY_VIEW = "security";
+const NOTIFICATIONS_VIEW = "notifications";
 const MESSAGES_VIEW = "messages";
+const ACCOUNT_SECTIONS = [
+  { key: PROFILE_VIEW, label: "Profile" },
+  { key: SECURITY_VIEW, label: "Security" },
+  { key: NOTIFICATIONS_VIEW, label: "Notifications" },
+];
 
 function normalizePropertyId(value) {
   const numeric = Number(value);
@@ -88,6 +95,7 @@ export default function InvestorAccountCenterModal({
   onViewPropertyDetails,
   restorePropertyListScrollTop = null,
   preferredPropertyId = null,
+  onChangeView,
 }) {
   const [profile, setProfile] = useState({
     firstName: "",
@@ -114,6 +122,8 @@ export default function InvestorAccountCenterModal({
   const threadSearchInputRef = useRef(null);
 
   const isProfileView = view === PROFILE_VIEW;
+  const isSecurityView = view === SECURITY_VIEW;
+  const isNotificationsView = view === NOTIFICATIONS_VIEW;
   const isMessagesView = view === MESSAGES_VIEW;
   const normalizedPreferredPropertyId = normalizePropertyId(preferredPropertyId);
 
@@ -420,7 +430,7 @@ export default function InvestorAccountCenterModal({
       className={`invAccountBackdrop ${open ? "invAccountBackdrop--open" : "invAccountBackdrop--closed"}`.trim()}
       role="dialog"
       aria-modal="true"
-      aria-label={isMessagesView ? "Messages" : "Profile"}
+      aria-label={isMessagesView ? "Messages" : "Account"}
       aria-hidden={!open}
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) onClose?.();
@@ -602,8 +612,26 @@ export default function InvestorAccountCenterModal({
             </>
           ) : (
             <>
-              <h2 className="invAccountModal__title">Profile</h2>
-              <p className="invAccountModal__subcopy">Update your contact details used for inquiry follow-up.</p>
+              <h2 className="invAccountModal__title">Account</h2>
+              <p className="invAccountModal__subcopy">Manage your profile, security, and notification settings.</p>
+              <nav className="invAccountModal__accountNav" aria-label="Account sections">
+                {ACCOUNT_SECTIONS.map((section) => {
+                  const active = view === section.key;
+                  return (
+                    <button
+                      key={section.key}
+                      type="button"
+                      className={`invAccountModal__accountNavBtn ${
+                        active ? "invAccountModal__accountNavBtn--active" : ""
+                      }`.trim()}
+                      aria-current={active ? "page" : undefined}
+                      onClick={() => onChangeView?.(section.key)}
+                    >
+                      {section.label}
+                    </button>
+                  );
+                })}
+              </nav>
             </>
           )}
 
@@ -625,7 +653,7 @@ export default function InvestorAccountCenterModal({
           <button
             className="invAccountModal__close"
             type="button"
-            aria-label={isMessagesView ? "Close messages" : "Close profile"}
+            aria-label={isMessagesView ? "Close messages" : "Close account"}
             onClick={onClose}
           >
             ✕
@@ -703,6 +731,63 @@ export default function InvestorAccountCenterModal({
                   </button>
                 </form>
               ) : null}
+            </section>
+          ) : null}
+
+          {!missingInvestor && isSecurityView ? (
+            <section className="invAccountModal__panel" aria-label="Security">
+              <h3 className="invAccountModal__panelTitle">Security</h3>
+              <p className="invAccountModal__panelSubcopy">
+                Account security controls will be available in a future update.
+              </p>
+              <div className="invAccountModal__settingsList">
+                <div className="invAccountModal__settingRow">
+                  <div className="invAccountModal__settingMeta">
+                    <h4 className="invAccountModal__settingTitle">Password</h4>
+                    <p className="invAccountModal__settingText">Protected by your current sign-in password.</p>
+                  </div>
+                  <button className="invAccountModal__settingAction" type="button" disabled>
+                    Change password (Coming soon)
+                  </button>
+                </div>
+                <div className="invAccountModal__settingRow">
+                  <div className="invAccountModal__settingMeta">
+                    <h4 className="invAccountModal__settingTitle">2FA</h4>
+                    <p className="invAccountModal__settingText">Two-factor authentication is not configured yet.</p>
+                  </div>
+                  <button className="invAccountModal__settingAction" type="button" disabled>
+                    Set up 2FA (Coming soon)
+                  </button>
+                </div>
+              </div>
+            </section>
+          ) : null}
+
+          {!missingInvestor && isNotificationsView ? (
+            <section className="invAccountModal__panel" aria-label="Notifications">
+              <h3 className="invAccountModal__panelTitle">Notifications</h3>
+              <p className="invAccountModal__panelSubcopy">
+                Notification preferences will be available in a future update.
+              </p>
+              <div className="invAccountModal__settingsList">
+                <label className="invAccountModal__toggleRow">
+                  <span className="invAccountModal__settingMeta">
+                    <span className="invAccountModal__settingTitle">Email notifications</span>
+                    <span className="invAccountModal__settingText">Coming soon</span>
+                  </span>
+                  <span className="invAccountModal__toggleWrap">
+                    <input
+                      className="invAccountModal__toggleInput"
+                      type="checkbox"
+                      aria-label="Email notifications"
+                      disabled
+                    />
+                    <span className="invAccountModal__toggleTrack" aria-hidden="true">
+                      <span className="invAccountModal__toggleThumb" />
+                    </span>
+                  </span>
+                </label>
+              </div>
             </section>
           ) : null}
 
