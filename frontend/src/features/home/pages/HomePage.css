@@ -254,6 +254,8 @@ body.homeHideScrollbar::-webkit-scrollbar {
 
 .homeHero__title {
   margin: 0;
+  font-family: var(--font-sans);
+  font-weight: 400;
   font-size: clamp(46px, 6.5vw, 86px);
   line-height: 1.02;
   letter-spacing: -0.03em;

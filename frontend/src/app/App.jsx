@@ -16,7 +16,7 @@ const AdminInquiriesPage = lazy(() => import("@/features/admin/pages/AdminInquir
 const AdminInvestorsPage = lazy(() => import("@/features/admin/pages/AdminInvestorsPage"))
 const AdminSellersPage = lazy(() => import("@/features/admin/pages/AdminSellersPage"))
 const AdminPropertiesPage = lazy(() => import("@/features/admin/pages/AdminPropertiesPage"))
-const InvestorDashboard = lazy(() => import("@/features/investor/pages/InvestorDashboard"))
+const InvestorHome = lazy(() => import("@/features/investor/pages/InvestorHome"))
 const InvestorPending = lazy(() => import("@/features/investor/pages/InvestorPending"))
 const SellerListingsPage = lazy(() => import("@/features/seller/pages/SellerListingsPage"))
 const SellerInboxPage = lazy(() => import("@/features/seller/pages/SellerInboxPage"))
@@ -70,7 +70,7 @@ export default function App() {
 
           <Route element={<ProtectedRoute roles={["INVESTOR"]} />}>
             <Route path="/investor" element={<InvestorLayout />}>
-              <Route index element={<InvestorDashboard />} />
+              <Route index element={<InvestorHome />} />
               <Route path="pending" element={<InvestorPending />} />
             </Route>
           </Route>

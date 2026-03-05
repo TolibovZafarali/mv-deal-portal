@@ -277,6 +277,19 @@
   font-size: 13px;
 }
 
+.signupModal__passwordStrength {
+  margin-top: -2px;
+  font-size: 12px;
+}
+
+.signupModal__passwordStrength--weak {
+  color: #ffb3b3;
+}
+
+.signupModal__passwordStrength--strong {
+  color: #b6ebc6;
+}
+
 .signupModal__actions {
   display: flex;
   gap: 10px;

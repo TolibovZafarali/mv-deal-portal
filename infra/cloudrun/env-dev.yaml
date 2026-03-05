@@ -13,7 +13,8 @@ APP_EMAIL_WEBHOOKS_ENABLED: "false"
 APP_EMAIL_FROM_ADDRESS: no-reply@megna-realestate.com
 APP_EMAIL_REPLY_TO_ADDRESS: contact@megna-realestate.com
 APP_EMAIL_INQUIRY_NOTIFICATION_TO: contact@megna-realestate.com
-APP_EMAIL_NON_PROD_ALLOWLIST: ""
+APP_EMAIL_NON_PROD_ALLOWLIST: "fffarhod@mail.ru,zafaralit67@gmail.com"
 POSTMARK_API_BASE_URL: https://api.postmarkapp.com
+POSTMARK_MESSAGE_STREAM: outbound
 APP_AUTH_PASSWORD_RESET_URL_BASE: http://localhost:5173/reset-password
 APP_AUTH_PASSWORD_RESET_TOKEN_TTL_MINUTES: "30"

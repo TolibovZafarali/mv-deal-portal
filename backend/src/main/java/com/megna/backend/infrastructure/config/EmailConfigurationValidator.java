@@ -21,8 +21,32 @@ public class EmailConfigurationValidator {
         }
 
         String webhookSecret = emailProperties.getWebhookSecret();
-        if (webhookSecret == null || webhookSecret.trim().isBlank()) {
+        if (isBlank(webhookSecret)) {
             throw new IllegalStateException("POSTMARK_WEBHOOK_SECRET must be configured in production");
         }
+
+        if (!emailProperties.isEnabled()) {
+            return;
+        }
+
+        if (isBlank(emailProperties.getFromAddress())) {
+            throw new IllegalStateException("APP_EMAIL_FROM_ADDRESS must be configured when email is enabled in production");
+        }
+
+        if (isBlank(emailProperties.getReplyToAddress())) {
+            throw new IllegalStateException("APP_EMAIL_REPLY_TO_ADDRESS must be configured when email is enabled in production");
+        }
+
+        if (isBlank(emailProperties.getPostmarkServerToken())) {
+            throw new IllegalStateException("POSTMARK_SERVER_TOKEN must be configured when email is enabled in production");
+        }
+
+        if (isBlank(emailProperties.getPostmarkMessageStream())) {
+            throw new IllegalStateException("POSTMARK_MESSAGE_STREAM must be configured when email is enabled in production");
+        }
+    }
+
+    private static boolean isBlank(String value) {
+        return value == null || value.trim().isBlank();
     }
 }

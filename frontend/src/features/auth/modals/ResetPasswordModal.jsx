@@ -1,7 +1,8 @@
-import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
-import { useEffect, useRef, useState } from "react";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { resetPassword } from "@/api";
 import "@/features/auth/modals/ResetPasswordModal.css";
+import { getPasswordStrength } from "@/shared/utils/passwordStrength";
 
 const CLOSE_ANIMATION_MS = 180;
 
@@ -25,6 +26,7 @@ export default function ResetPasswordModal() {
   const closeTimerRef = useRef(null);
   const closingRef = useRef(false);
   const token = (searchParams.get("token") || "").trim();
+  const passwordStrength = useMemo(() => getPasswordStrength(newPassword), [newPassword]);
 
   const loginLinkState = hasBackground
     ? {
@@ -34,6 +36,10 @@ export default function ResetPasswordModal() {
         forceHomeOnClose,
       }
     : undefined;
+
+  function goToLogin() {
+    navigate("/login", { replace: true, state: loginLinkState });
+  }
 
   function close() {
     if (closingRef.current) return;
@@ -129,8 +135,6 @@ export default function ResetPasswordModal() {
 
         {!success ? (
           <form className="resetModal__form" onSubmit={handleSubmit}>
-            <p className="resetModal__copy">Choose a new password for your account.</p>
-
             <div className="field field--password">
               <input
                 className="field__input"
@@ -153,6 +157,14 @@ export default function ResetPasswordModal() {
                 </span>
               </button>
             </div>
+            {passwordStrength ? (
+              <div
+                className={`resetModal__passwordStrength resetModal__passwordStrength--${passwordStrength}`}
+                aria-live="polite"
+              >
+                Password strength: {passwordStrength === "strong" ? "Strong" : "Weak"}
+              </div>
+            ) : null}
 
             <div className="field field--password">
               <input
@@ -177,24 +189,27 @@ export default function ResetPasswordModal() {
               </button>
             </div>
 
+            <p className="resetModal__copy">Choose a new password for your account.</p>
+
             {error ? <div className="resetModal__error">{error}</div> : null}
 
-            <button className="resetModal__btn" disabled={loading || !newPassword || !confirmPassword || !token}>
-              {loading ? "Updating..." : "Update password"}
-            </button>
-
-            <div className="resetModal__footer">
-              <Link className="resetModal__link" to="/login" replace state={loginLinkState}>
-                Back to login
-              </Link>
+            <div className="resetModal__actions resetModal__actions--bottom">
+              <button
+                className="resetModal__btn resetModal__btn--full"
+                disabled={loading || !newPassword || !confirmPassword || !token}
+              >
+                {loading ? "Updating..." : "Update password"}
+              </button>
             </div>
           </form>
         ) : (
           <div className="resetModal__success">
-            <p>Your password has been reset successfully.</p>
-            <Link className="resetModal__link" to="/login" replace state={loginLinkState}>
-              Continue to login
-            </Link>
+            <p className="resetModal__successText">Your password has been reset successfully.</p>
+            <div className="resetModal__actions resetModal__actions--bottom">
+              <button type="button" className="resetModal__btn resetModal__btn--full" onClick={goToLogin}>
+                Continue to login
+              </button>
+            </div>
           </div>
         )}
       </div>

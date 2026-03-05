@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { register, registerSeller } from "@/api";
 import "@/features/auth/modals/SignUpModal.css";
+import { getPasswordStrength } from "@/shared/utils/passwordStrength";
 
 const STEP_INFO = 0;
 const STEP_PASSWORD = 1;
@@ -120,6 +121,8 @@ export default function SignUpModal() {
     // backend requires minLength 8 for password
     return form.password.length >= 8 && form.password === confirmPassword;
   }, [form.password, confirmPassword]);
+
+  const passwordStrength = useMemo(() => getPasswordStrength(form.password), [form.password]);
 
   function updateField(key) {
     return (e) => setForm((p) => ({ ...p, [key]: e.target.value }));
@@ -447,6 +450,14 @@ export default function SignUpModal() {
                       </span>
                     </button>
                   </div>
+                  {passwordStrength ? (
+                    <div
+                      className={`signupModal__passwordStrength signupModal__passwordStrength--${passwordStrength}`}
+                      aria-live="polite"
+                    >
+                      Password strength: {passwordStrength === "strong" ? "Strong" : "Weak"}
+                    </div>
+                  ) : null}
 
                   <div className="field field--password">
                     <input

@@ -77,12 +77,16 @@ export default function LoginModal() {
 
   const resolveDestination = useCallback(
     (profile) => {
+      const role = String(profile?.role ?? "").trim().toUpperCase();
+      const status = String(profile?.status ?? "").trim().toUpperCase();
+
+      if (role === "INVESTOR" && status.startsWith("PENDING")) return "/investor/pending";
       if (from !== "/login" && from !== "/signup" && from !== "/signup/seller") return from;
-      if (profile?.role === "ADMIN") return "/admin";
-      if (profile?.role === "INVESTOR") {
-        return profile?.status === "APPROVED" ? "/investor" : "/investor/pending";
+      if (role === "ADMIN") return "/admin";
+      if (role === "INVESTOR") {
+        return status === "APPROVED" ? "/investor" : "/investor/pending";
       }
-      if (profile?.role === "SELLER") return "/seller";
+      if (role === "SELLER") return "/seller";
       return "/app";
     },
     [from],
