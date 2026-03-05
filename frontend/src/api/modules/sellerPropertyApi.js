@@ -42,6 +42,68 @@ export async function getSellerPropertyChangeRequests(pageOpts = {}) {
   return data;
 }
 
+export async function initSellerPropertyPhotoUpload(file) {
+  const payload = {
+    fileName: String(file?.name ?? "upload.jpg"),
+    contentType: String(file?.type ?? "").trim().toLowerCase(),
+    sizeBytes: Number(file?.size ?? 0),
+  };
+  const { data } = await apiClient.post(`${BASE}/photos/uploads/init`, payload, {
+    timeout: 15000,
+  });
+  return data;
+}
+
+export async function uploadSellerPropertyPhotoToSignedUrl(uploadUrl, file, requiredHeaders = {}) {
+  const response = await fetch(uploadUrl, {
+    method: "PUT",
+    headers: requiredHeaders,
+    body: file,
+  });
+
+  if (!response.ok) {
+    throw new Error(`Upload failed (${response.status})`);
+  }
+
+  return true;
+}
+
+export async function completeSellerPropertyPhotoUpload(uploadId, uploadToken) {
+  const { data } = await apiClient.post(`${BASE}/photos/uploads/${uploadId}/complete`, {
+    uploadToken,
+  }, {
+    timeout: 30000,
+  });
+  return data;
+}
+
+export async function createSellerPropertyPhotoFromUrl(url) {
+  const { data } = await apiClient.post(`${BASE}/photos/urls`, {
+    url: String(url ?? "").trim(),
+  });
+  return data;
+}
+
+export async function uploadSellerPropertyPhoto(file) {
+  const init = await initSellerPropertyPhotoUpload(file);
+  await uploadSellerPropertyPhotoToSignedUrl(
+    init?.uploadUrl,
+    file,
+    init?.requiredHeaders ?? {},
+  );
+  const completed = await completeSellerPropertyPhotoUpload(init?.uploadId, init?.uploadToken);
+  return {
+    ...completed,
+    uploadId: init?.uploadId,
+  };
+}
+
+export async function deleteSellerPropertyPhotoUpload(uploadId) {
+  if (!uploadId) return true;
+  await apiClient.delete(`${BASE}/photos/uploads/${uploadId}`);
+  return true;
+}
+
 export async function assignPropertySeller(propertyId, sellerId) {
   const { data } = await apiClient.patch(`${ADMIN_PROPERTIES_BASE}/${propertyId}/seller-assignment`, { sellerId });
   return data;

@@ -112,7 +112,7 @@ public class PropertyController {
         photoAssetService.deleteUnboundUpload(uploadId, adminId);
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SELLER')")
     @GetMapping("/address-suggestions")
     public List<PropertyAddressSuggestionResponseDto> addressSuggestions(
             @RequestParam(name = "q") String query,

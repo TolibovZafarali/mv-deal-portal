@@ -1,54 +1,241 @@
-.sellerInbox {
+.sellerConvo {
   display: grid;
-  gap: 12px;
+  gap: 10px;
+  color: #101010;
 }
 
-.sellerInbox h2 {
+.sellerConvo__header {
+  border: 1px solid rgba(16, 16, 16, 0.22);
+  background: #ffffff;
+  padding: 12px;
+}
+
+.sellerConvo__header h2 {
   margin: 0;
+  font-size: 20px;
 }
 
-.sellerInbox p {
+.sellerConvo__header p {
   margin: 4px 0 0;
-  opacity: 0.74;
+  color: rgba(16, 16, 16, 0.66);
 }
 
-.sellerInbox__tableWrap {
-  overflow: auto;
-  border: 1px solid #d8dbe2;
-  background: #fff;
-}
-
-.sellerInbox__table {
-  width: 100%;
-  border-collapse: collapse;
-  min-width: 860px;
-}
-
-.sellerInbox__table th,
-.sellerInbox__table td {
-  border-bottom: 1px solid #eceef3;
+.sellerConvo__notice,
+.sellerConvo__error {
+  border: 1px solid rgba(16, 16, 16, 0.2);
+  background: #ffffff;
   padding: 10px;
-  text-align: left;
-  vertical-align: top;
 }
 
-.sellerInbox__subtle {
-  color: #656d7e;
+.sellerConvo__error {
+  border-color: rgba(170, 38, 38, 0.44);
+  color: #7f1f1f;
+}
+
+.sellerConvoThreads {
+  border: 1px solid rgba(16, 16, 16, 0.2);
+  background: #ffffff;
+  min-height: 480px;
+  display: grid;
+  grid-template-columns: 320px minmax(0, 1fr);
+}
+
+.sellerConvoThreads__listPane {
+  border-right: 1px solid rgba(16, 16, 16, 0.14);
+  min-height: 0;
+}
+
+.sellerConvoThreads__paneHead {
+  padding: 10px;
+  border-bottom: 1px solid rgba(16, 16, 16, 0.14);
   font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(16, 16, 16, 0.64);
 }
 
-.sellerInbox__message {
-  margin-top: 4px;
+.sellerConvoThreads__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  max-height: 430px;
+  overflow: auto;
+}
+
+.sellerConvoThreads__threadBtn {
+  border: 0;
+  border-bottom: 1px solid rgba(16, 16, 16, 0.1);
+  background: #ffffff;
+  color: #101010;
+  text-align: left;
+  width: 100%;
+  padding: 10px;
+  cursor: pointer;
+  display: grid;
+  gap: 4px;
+  font: inherit;
+}
+
+.sellerConvoThreads__threadBtn:hover,
+.sellerConvoThreads__threadBtn:focus-visible,
+.sellerConvoThreads__threadBtn--active {
+  background: #101010;
+  color: #f2f2f2;
+}
+
+.sellerConvoThreads__threadMeta,
+.sellerConvoThreads__threadPreview {
+  font-size: 12px;
+  color: rgba(16, 16, 16, 0.62);
+}
+
+.sellerConvoThreads__threadBtn:hover .sellerConvoThreads__threadMeta,
+.sellerConvoThreads__threadBtn:focus-visible .sellerConvoThreads__threadMeta,
+.sellerConvoThreads__threadBtn--active .sellerConvoThreads__threadMeta,
+.sellerConvoThreads__threadBtn:hover .sellerConvoThreads__threadPreview,
+.sellerConvoThreads__threadBtn:focus-visible .sellerConvoThreads__threadPreview,
+.sellerConvoThreads__threadBtn--active .sellerConvoThreads__threadPreview {
+  color: rgba(242, 242, 242, 0.8);
+}
+
+.sellerConvoThreads__messagePane {
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto auto 1fr auto;
+}
+
+.sellerConvoThreads__messages {
+  min-height: 0;
+  overflow: auto;
+  padding: 10px;
+  display: grid;
+  gap: 8px;
+}
+
+.sellerConvoThreads__message {
+  border: 1px solid rgba(16, 16, 16, 0.16);
+  background: #ffffff;
+  padding: 8px;
+  display: grid;
+  gap: 4px;
+}
+
+.sellerConvoThreads__message--system {
+  background: #f7f7f7;
+}
+
+.sellerConvoThreads__messageMeta {
+  font-size: 11px;
+  color: rgba(16, 16, 16, 0.62);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.sellerConvoThreads__composer {
+  border-top: 1px solid rgba(16, 16, 16, 0.14);
+  padding: 8px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+}
+
+.sellerConvoThreads__composer textarea {
+  min-height: 70px;
+  border: 1px solid rgba(16, 16, 16, 0.24);
+  resize: vertical;
+  padding: 8px;
+  font: inherit;
+}
+
+.sellerConvoThreads__composer button {
+  min-width: 88px;
+  border: 1px solid #101010;
+  background: #101010;
+  color: #f2f2f2;
+  cursor: pointer;
+  font: inherit;
+}
+
+.sellerConvoThreads__empty {
+  padding: 10px;
+  color: rgba(16, 16, 16, 0.66);
+}
+
+.sellerConvoTimeline {
+  border: 1px solid rgba(16, 16, 16, 0.2);
+  background: #ffffff;
+}
+
+.sellerConvoTimeline__head {
+  border-bottom: 1px solid rgba(16, 16, 16, 0.14);
+  padding: 10px;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(16, 16, 16, 0.62);
+}
+
+.sellerConvoTimeline__empty {
+  padding: 12px;
+  color: rgba(16, 16, 16, 0.66);
+}
+
+.sellerConvoTimeline__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sellerConvoTimeline__event {
+  border-bottom: 1px solid rgba(16, 16, 16, 0.1);
+  padding: 10px;
+  display: grid;
+  gap: 4px;
+}
+
+.sellerConvoTimeline__event:last-child {
+  border-bottom: 0;
+}
+
+.sellerConvoTimeline__type {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(16, 16, 16, 0.6);
+}
+
+.sellerConvoTimeline__title {
+  font-size: 14px;
+}
+
+.sellerConvoTimeline__time,
+.sellerConvoTimeline__meta {
+  font-size: 12px;
+  color: rgba(16, 16, 16, 0.64);
+}
+
+.sellerConvoTimeline__detail {
+  font-size: 13px;
   white-space: pre-wrap;
 }
 
-.sellerInbox__empty {
-  text-align: center;
-  color: #5a5f6b;
+@media (max-width: 960px) {
+  .sellerConvoThreads {
+    grid-template-columns: 1fr;
+  }
+
+  .sellerConvoThreads__listPane {
+    border-right: 0;
+    border-bottom: 1px solid rgba(16, 16, 16, 0.14);
+  }
 }
 
-.sellerInbox__pagination {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
+@media (max-width: 640px) {
+  .sellerConvoThreads__composer {
+    grid-template-columns: 1fr;
+  }
+
+  .sellerConvoThreads__composer button {
+    min-height: 36px;
+  }
 }

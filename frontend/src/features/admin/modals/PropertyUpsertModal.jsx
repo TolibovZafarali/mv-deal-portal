@@ -355,6 +355,7 @@ const DEFAULT_FORM = {
 export default function PropertyUpsertModal({
   open,
   mode = "add",
+  variant = "admin",
   initialValue = null,
   onClose,
   onSubmit,
@@ -368,6 +369,8 @@ export default function PropertyUpsertModal({
   deleteError = "",
 }) {
   const isEdit = mode === "edit";
+  const isSellerVariant = variant === "seller";
+  const isAddressLocked = isSellerVariant && isEdit;
 
   const [form, setForm] = useState(DEFAULT_FORM);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -738,10 +741,14 @@ export default function PropertyUpsertModal({
       ["city", "City"],
       ["state", "State"],
       ["zip", "ZIP / postcode"],
-      ["occupancyStatus", "Occupied"],
-      ["exitStrategy", "Exit Strategy"],
-      ["closingTerms", "Closing Terms"],
     ];
+    if (!isSellerVariant) {
+      requiredTextFields.push(
+        ["occupancyStatus", "Occupied"],
+        ["exitStrategy", "Exit Strategy"],
+        ["closingTerms", "Closing Terms"],
+      );
+    }
 
     requiredTextFields.forEach(([key, label]) => {
       if (!String(form[key] ?? "").trim()) {
@@ -750,14 +757,18 @@ export default function PropertyUpsertModal({
     });
 
     const requiredNumericFields = [
-      ["askingPrice", "Asking Price"],
-      ["arv", "ARV"],
-      ["estRepairs", "Estimated Repairs"],
       ["beds", "Beds"],
       ["baths", "Baths"],
       ["livingAreaSqft", "Living Area (sqft)"],
       ["yearBuilt", "Year Built"],
     ];
+    if (!isSellerVariant) {
+      requiredNumericFields.unshift(
+        ["askingPrice", "Asking Price"],
+        ["arv", "ARV"],
+        ["estRepairs", "Estimated Repairs"],
+      );
+    }
 
     requiredNumericFields.forEach(([key, label]) => {
       if (form[key] === "" || form[key] === null || form[key] === undefined) {
@@ -765,7 +776,7 @@ export default function PropertyUpsertModal({
       }
     });
 
-    if (isOccupied && !String(form.currentRent ?? "").trim()) {
+    if (!isSellerVariant && isOccupied && !String(form.currentRent ?? "").trim()) {
       missing.push("Current Rent");
     }
 
@@ -774,7 +785,7 @@ export default function PropertyUpsertModal({
     }
 
     return missing;
-  }, [form, isOccupied]);
+  }, [form, isOccupied, isSellerVariant]);
 
   const missingAddressFields = useMemo(() => {
     const missing = [];
@@ -803,7 +814,9 @@ export default function PropertyUpsertModal({
   );
 
   const isActiveWithMissingRequired =
-    form.status === "ACTIVE" && activeMissingRequiredFieldsForMessage.length > 0;
+    !isSellerVariant &&
+    form.status === "ACTIVE" &&
+    activeMissingRequiredFieldsForMessage.length > 0;
   const hasMissingAddressFields = missingAddressFields.length > 0;
 
   const isSubmitDisabled =
@@ -1541,7 +1554,7 @@ export default function PropertyUpsertModal({
 
             <div className="propGrid propGrid--address">
               <div className="propField propField--addressStreet1">
-                <div className="propField__label">Street Address</div>
+                <div className="propField__label">Street Address *</div>
                 <div className="propAddressAutocomplete">
                   <input
                     ref={addressInputRef}
@@ -1553,6 +1566,7 @@ export default function PropertyUpsertModal({
                     placeholder="123 Main St"
                     autoComplete="off"
                     required
+                    disabled={isAddressLocked}
                   />
 
                   {shouldShowAddressSuggestions ? (
@@ -1623,27 +1637,30 @@ export default function PropertyUpsertModal({
                   className="propField__input"
                   value={form.street2}
                   onChange={(e) => setField("street2", e.target.value)}
+                  disabled={isAddressLocked}
                 />
               </div>
 
               <div className="propField propField--addressCity">
-                <div className="propField__label">City</div>
+                <div className="propField__label">City *</div>
                 <input
                   className="propField__input"
                   value={form.city}
                   onChange={(e) => setField("city", e.target.value)}
                   placeholder="Saint Louis"
                   required
+                  disabled={isAddressLocked}
                 />
               </div>
 
               <div className="propField propField--addressState">
-                <div className="propField__label">State</div>
+                <div className="propField__label">State *</div>
                 <select
                   className="propField__input"
                   value={form.state}
                   onChange={(e) => setField("state", e.target.value)}
                   required
+                  disabled={isAddressLocked}
                 >
                   {US_STATE_OPTIONS.map((option) => (
                     <option key={option.value || "empty"} value={option.value}>
@@ -1654,13 +1671,14 @@ export default function PropertyUpsertModal({
               </div>
 
               <div className="propField propField--addressZip">
-                <div className="propField__label">ZIP / postcode</div>
+                <div className="propField__label">ZIP / postcode *</div>
                 <input
                   className={`propField__input ${fmrFieldErrors.zip ? "propField__input--error" : ""}`}
                   value={form.zip}
                   onChange={(e) => setField("zip", e.target.value)}
                   placeholder="63128"
                   required
+                  disabled={isAddressLocked}
                 />
               </div>
             </div>
@@ -1733,160 +1751,168 @@ export default function PropertyUpsertModal({
                 />
               </div>
 
-              <div className="propField propField--propOccupied">
-                <div className="propField__label">Occupied</div>
-                <select
-                  className="propField__input"
-                  value={form.occupancyStatus}
-                  onChange={(e) => setField("occupancyStatus", e.target.value)}
-                >
-                  {OCCUPANCY.map((o) => (
-                    <option key={o.label} value={o.value}>
-                      {o.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              {!isSellerVariant ? (
+                <>
+                  <div className="propField propField--propOccupied">
+                    <div className="propField__label">Occupied</div>
+                    <select
+                      className="propField__input"
+                      value={form.occupancyStatus}
+                      onChange={(e) => setField("occupancyStatus", e.target.value)}
+                    >
+                      {OCCUPANCY.map((o) => (
+                        <option key={o.label} value={o.value}>
+                          {o.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
 
-              <div className="propField propField--propExit">
-                <div className="propField__label">Exit Strategy</div>
-                <select
-                  className="propField__input"
-                  value={form.exitStrategy}
-                  onChange={(e) => setField("exitStrategy", e.target.value)}
-                >
-                  {EXIT.map((o) => (
-                    <option key={o.label} value={o.value}>
-                      {o.label}
-                    </option>
-                  ))}
-                </select>
-            </div>
+                  <div className="propField propField--propExit">
+                    <div className="propField__label">Exit Strategy</div>
+                    <select
+                      className="propField__input"
+                      value={form.exitStrategy}
+                      onChange={(e) => setField("exitStrategy", e.target.value)}
+                    >
+                      {EXIT.map((o) => (
+                        <option key={o.label} value={o.value}>
+                          {o.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
 
-              <div className="propField propField--propClosingTerms">
-                <div className="propField__label">Closing Terms</div>
-                <select
-                  className="propField__input"
-                  value={form.closingTerms}
-                  onChange={(e) => setField("closingTerms", e.target.value)}
-                >
-                  {CLOSING_TERMS.map((o) => (
-                    <option key={o.label} value={o.value}>
-                      {o.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-          </div>
-
-          {/* Price */}
-          <div className="propSection">
-            <div className="propSection__head">
-              <div className="propSection__title">Price Details</div>
-            </div>
-
-            <div className="propGrid propGrid--price">
-              <div className="propField">
-                <div className="propField__label">Asking Price</div>
-                <div className="propField__moneyWrap">
-                  <span className="propField__moneyPrefix">$</span>
-                  <input
-                    className="propField__input propField__input--money"
-                    value={form.askingPrice}
-                    onChange={(e) =>
-                      setPriceField("askingPrice", e.target.value)
-                    }
-                    inputMode="numeric"
-                  />
-                </div>
-              </div>
-
-              <div className="propField">
-                <div className="propField__label">ARV</div>
-                <div className="propField__moneyWrap">
-                  <span className="propField__moneyPrefix">$</span>
-                  <input
-                    className="propField__input propField__input--money"
-                    value={form.arv}
-                    onChange={(e) => setPriceField("arv", e.target.value)}
-                    inputMode="numeric"
-                  />
-                </div>
-              </div>
-
-              <div className="propField">
-                <div className="propField__label">Estimated Repairs</div>
-                <div className="propField__moneyWrap">
-                  <span className="propField__moneyPrefix">$</span>
-                  <input
-                    className="propField__input propField__input--money"
-                    value={form.estRepairs}
-                    onChange={(e) =>
-                      setPriceField("estRepairs", e.target.value)
-                    }
-                    inputMode="numeric"
-                  />
-                </div>
-              </div>
-
-              <div className="propField">
-                <div className="propField__label">FMR (Monthly)</div>
-                <div className="propField__moneyWrap">
-                  <span className="propField__moneyPrefix">$</span>
-                  <input
-                    className="propField__input propField__input--money propField__input--withInlineBtn"
-                    value={form.fmr}
-                    readOnly
-                    placeholder="Auto after save"
-                  />
-                  <button
-                    type="button"
-                    className="propField__inlineBtn"
-                    onClick={handleFmrLookup}
-                    disabled={fmrLookupLoading}
-                    aria-label="Set FMR"
-                    title="Set FMR"
-                  >
-                    <span className="material-symbols-outlined">
-                      {fmrLookupLoading ? "progress_activity" : "auto_fix_high"}
-                    </span>
-                  </button>
-                </div>
-                <div className="propField__help">Auto from ZIP + beds</div>
-                {fmrLookupError ? (
-                  <div className="propField__help propField__help--error">{fmrLookupError}</div>
-                ) : null}
-              </div>
-
-              <div className="propField">
-                <div className="propField__label">Current Rent (Monthly)</div>
-                <div className="propField__moneyWrap">
-                  <span className="propField__moneyPrefix">$</span>
-                  <input
-                    className="propField__input propField__input--money"
-                    value={form.currentRent}
-                    onChange={(e) => setPriceField("currentRent", e.target.value)}
-                    inputMode="numeric"
-                    disabled={!isOccupied}
-                  />
-                </div>
-              </div>
-
-              <div className="propField">
-                <div className="propField__label">Potential Profit</div>
-                <div className="propField__moneyWrap">
-                  <span className="propField__moneyPrefix">$</span>
-                  <input
-                    className="propField__input propField__input--money propField__input--profit"
-                    value={potentialProfit}
-                    readOnly
-                    placeholder="Auto from ARV - Asking - Repairs"
-                  />
-                </div>
-              </div>
+                  <div className="propField propField--propClosingTerms">
+                    <div className="propField__label">Closing Terms</div>
+                    <select
+                      className="propField__input"
+                      value={form.closingTerms}
+                      onChange={(e) => setField("closingTerms", e.target.value)}
+                    >
+                      {CLOSING_TERMS.map((o) => (
+                        <option key={o.label} value={o.value}>
+                          {o.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </>
+              ) : null}
             </div>
           </div>
+
+          {!isSellerVariant ? (
+            <>
+              {/* Price */}
+              <div className="propSection">
+                <div className="propSection__head">
+                  <div className="propSection__title">Price Details</div>
+                </div>
+
+                <div className="propGrid propGrid--price">
+                  <div className="propField">
+                    <div className="propField__label">Asking Price</div>
+                    <div className="propField__moneyWrap">
+                      <span className="propField__moneyPrefix">$</span>
+                      <input
+                        className="propField__input propField__input--money"
+                        value={form.askingPrice}
+                        onChange={(e) =>
+                          setPriceField("askingPrice", e.target.value)
+                        }
+                        inputMode="numeric"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="propField">
+                    <div className="propField__label">ARV</div>
+                    <div className="propField__moneyWrap">
+                      <span className="propField__moneyPrefix">$</span>
+                      <input
+                        className="propField__input propField__input--money"
+                        value={form.arv}
+                        onChange={(e) => setPriceField("arv", e.target.value)}
+                        inputMode="numeric"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="propField">
+                    <div className="propField__label">Estimated Repairs</div>
+                    <div className="propField__moneyWrap">
+                      <span className="propField__moneyPrefix">$</span>
+                      <input
+                        className="propField__input propField__input--money"
+                        value={form.estRepairs}
+                        onChange={(e) =>
+                          setPriceField("estRepairs", e.target.value)
+                        }
+                        inputMode="numeric"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="propField">
+                    <div className="propField__label">FMR (Monthly)</div>
+                    <div className="propField__moneyWrap">
+                      <span className="propField__moneyPrefix">$</span>
+                      <input
+                        className="propField__input propField__input--money propField__input--withInlineBtn"
+                        value={form.fmr}
+                        readOnly
+                        placeholder="Auto after save"
+                      />
+                      <button
+                        type="button"
+                        className="propField__inlineBtn"
+                        onClick={handleFmrLookup}
+                        disabled={fmrLookupLoading}
+                        aria-label="Set FMR"
+                        title="Set FMR"
+                      >
+                        <span className="material-symbols-outlined">
+                          {fmrLookupLoading ? "progress_activity" : "auto_fix_high"}
+                        </span>
+                      </button>
+                    </div>
+                    <div className="propField__help">Auto from ZIP + beds</div>
+                    {fmrLookupError ? (
+                      <div className="propField__help propField__help--error">{fmrLookupError}</div>
+                    ) : null}
+                  </div>
+
+                  <div className="propField">
+                    <div className="propField__label">Current Rent (Monthly)</div>
+                    <div className="propField__moneyWrap">
+                      <span className="propField__moneyPrefix">$</span>
+                      <input
+                        className="propField__input propField__input--money"
+                        value={form.currentRent}
+                        onChange={(e) => setPriceField("currentRent", e.target.value)}
+                        inputMode="numeric"
+                        disabled={!isOccupied}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="propField">
+                    <div className="propField__label">Potential Profit</div>
+                    <div className="propField__moneyWrap">
+                      <span className="propField__moneyPrefix">$</span>
+                      <input
+                        className="propField__input propField__input--money propField__input--profit"
+                        value={potentialProfit}
+                        readOnly
+                        placeholder="Auto from ARV - Asking - Repairs"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </>
+          ) : null}
 
           {/* Photos */}
           <div className="propSection">
@@ -1958,9 +1984,7 @@ export default function PropertyUpsertModal({
             ) : null}
 
             {form.photos.length === 0 ? (
-              <div className="propPhotos__empty">
-                No photos yet. Upload at least one photo before activating the property.
-              </div>
+              <div className="propPhotos__empty">No photos yet.</div>
             ) : (
               <>
                 <div
@@ -2034,19 +2058,21 @@ export default function PropertyUpsertModal({
             )}
           </div>
 
-          {/* Sale Comps */}
-          <div className="propSection">
-            <div className="propSection__head propSection__head--row">
-              <div className="propSection__title">Sale Comps</div>
-              <button
-                type="button"
-                className="propLinkBtn"
-                disabled={submitting || deleting || photoUploading}
-                onClick={toggleCompEditor}
-              >
-                {compEditorOpen ? "Close" : "Add Comp +"}
-              </button>
-            </div>
+          {!isSellerVariant ? (
+            <>
+              {/* Sale Comps */}
+              <div className="propSection">
+                <div className="propSection__head propSection__head--row">
+                  <div className="propSection__title">Sale Comps</div>
+                  <button
+                    type="button"
+                    className="propLinkBtn"
+                    disabled={submitting || deleting || photoUploading}
+                    onClick={toggleCompEditor}
+                  >
+                    {compEditorOpen ? "Close" : "Add Comp +"}
+                  </button>
+                </div>
 
             {compEditorOpen ? (
               <div className="propCompEditor">
@@ -2239,8 +2265,8 @@ export default function PropertyUpsertModal({
               </div>
             ) : null}
 
-            <div className="propCompsTableWrap">
-              <table className="propCompsTable">
+                <div className="propCompsTableWrap">
+                  <table className="propCompsTable">
                 {isMobileView ? (
                   <colgroup>
                     <col style={{ width: "52%" }} />
@@ -2353,34 +2379,38 @@ export default function PropertyUpsertModal({
                     ))
                   )}
                 </tbody>
-              </table>
-            </div>
-          </div>
+                  </table>
+                </div>
+              </div>
+            </>
+          ) : null}
 
-          {/* Seller Owner */}
-          <div className="propSection">
-            <div className="propSection__head">
-              <div className="propSection__title">Seller Owner</div>
-            </div>
+          {!isSellerVariant ? (
+            <>
+              {/* Seller Owner */}
+              <div className="propSection">
+                <div className="propSection__head">
+                  <div className="propSection__title">Seller Owner</div>
+                </div>
 
-            {!isOwnerAssigned ? (
-              <div className="propOwnerSection">
-                <div className="propOwnerRow">
-                  <div className="propOwnerAutocomplete">
-                    <input
-                      className="propField__input propOwnerInput"
-                      value={ownerSearchQuery}
-                      onChange={(event) => handleOwnerInputChange(event.target.value)}
-                      onFocus={handleOwnerInputFocus}
-                      onBlur={handleOwnerInputBlur}
-                      placeholder="Search seller by name or email"
-                      name="seller_owner_lookup"
-                      autoComplete="new-password"
-                      autoCorrect="off"
-                      autoCapitalize="none"
-                      spellCheck={false}
-                      disabled={submitting || deleting}
-                    />
+                {!isOwnerAssigned ? (
+                  <div className="propOwnerSection">
+                    <div className="propOwnerRow">
+                      <div className="propOwnerAutocomplete">
+                        <input
+                          className="propField__input propOwnerInput"
+                          value={ownerSearchQuery}
+                          onChange={(event) => handleOwnerInputChange(event.target.value)}
+                          onFocus={handleOwnerInputFocus}
+                          onBlur={handleOwnerInputBlur}
+                          placeholder="Search seller by name or email"
+                          name="seller_owner_lookup"
+                          autoComplete="new-password"
+                          autoCorrect="off"
+                          autoCapitalize="none"
+                          spellCheck={false}
+                          disabled={submitting || deleting}
+                        />
 
                     {ownerSearchOpen ? (
                       <div className="propAddressSuggest" role="listbox">
@@ -2428,56 +2458,62 @@ export default function PropertyUpsertModal({
                           : null}
                       </div>
                     ) : null}
+                      </div>
+
+                      <button
+                        type="button"
+                        className="propBtn propBtn--primary propOwnerActionBtn"
+                        onClick={applySelectedOwner}
+                        disabled={submitting || deleting || !selectedOwnerCandidate}
+                      >
+                        Assign
+                      </button>
+                    </div>
                   </div>
+                ) : (
+                  <div className="propOwnerAssigned">
+                    <div className="propField__input propOwnerDisplayField">
+                      <span>{assignedOwner?.displayName || `Seller #${form.sellerId}`}</span>
+                      <span>{assignedOwner?.email || "—"}</span>
+                      <span>{assignedOwner?.companyName || "—"}</span>
+                    </div>
+                    <button
+                      type="button"
+                      className="propBtn propOwnerActionBtn"
+                      onClick={clearOwnerAssignment}
+                      disabled={submitting || deleting}
+                    >
+                      Unassign
+                    </button>
+                  </div>
+                )}
+              </div>
+            </>
+          ) : null}
 
-                  <button
-                    type="button"
-                    className="propBtn propBtn--primary propOwnerActionBtn"
-                    onClick={applySelectedOwner}
-                    disabled={submitting || deleting || !selectedOwnerCandidate}
-                  >
-                    Assign
-                  </button>
+          {!isSellerVariant ? (
+            <>
+              {/* Status */}
+              <div className="propSection">
+                <div className="propSection__head">
+                  <div className="propSection__title">Status</div>
+                </div>
+
+                <div className="propStatus">
+                  {STATUS.map((s) => (
+                    <button
+                      key={s.value}
+                      type="button"
+                      className={`propStatus__btn propStatus__btn--status-${String(s.value).toLowerCase()} ${form.status === s.value ? "propStatus__btn--selected" : ""}`}
+                      onClick={() => setField("status", s.value)}
+                    >
+                      {s.label}
+                    </button>
+                  ))}
                 </div>
               </div>
-            ) : (
-              <div className="propOwnerAssigned">
-                <div className="propField__input propOwnerDisplayField">
-                  <span>{assignedOwner?.displayName || `Seller #${form.sellerId}`}</span>
-                  <span>{assignedOwner?.email || "—"}</span>
-                  <span>{assignedOwner?.companyName || "—"}</span>
-                </div>
-                <button
-                  type="button"
-                  className="propBtn propOwnerActionBtn"
-                  onClick={clearOwnerAssignment}
-                  disabled={submitting || deleting}
-                >
-                  Unassign
-                </button>
-              </div>
-            )}
-          </div>
-
-          {/* Status */}
-          <div className="propSection">
-            <div className="propSection__head">
-              <div className="propSection__title">Status</div>
-            </div>
-
-            <div className="propStatus">
-              {STATUS.map((s) => (
-                <button
-                  key={s.value}
-                  type="button"
-                  className={`propStatus__btn propStatus__btn--status-${String(s.value).toLowerCase()} ${form.status === s.value ? "propStatus__btn--selected" : ""}`}
-                  onClick={() => setField("status", s.value)}
-                >
-                  {s.label}
-                </button>
-              ))}
-            </div>
-          </div>
+            </>
+          ) : null}
 
           {/* errors */}
           {hasMissingAddressFields ? (
@@ -2503,7 +2539,7 @@ export default function PropertyUpsertModal({
           {/* Actions */}
           <div className="propActions">
             {mode === "edit" ? (
-              showDeleteConfirm ? (
+              showDeleteConfirm && typeof onDelete === "function" ? (
                 <div className="propDeleteConfirm">
                   <div className="propDeleteConfirm__text">
                     Delete this property?{" "}
@@ -2515,7 +2551,7 @@ export default function PropertyUpsertModal({
                   <div className="propDeleteConfirm__actions">
                     <button
                       type="button"
-                      className="propBtn"
+                      className="propBtn propBtn--muted"
                       disabled={submitting || deleting}
                       onClick={() => setShowDeleteConfirm(false)}
                     >
@@ -2534,13 +2570,24 @@ export default function PropertyUpsertModal({
                 </div>
               ) : (
                 <>
+                  {typeof onDelete === "function" ? (
+                    <button
+                      type="button"
+                      className="propBtn propBtn--danger"
+                      disabled={submitting || deleting}
+                      onClick={() => setShowDeleteConfirm(true)}
+                    >
+                      Delete
+                    </button>
+                  ) : null}
+
                   <button
                     type="button"
-                    className="propBtn propBtn--danger"
+                    className="propBtn propBtn--muted"
+                    onClick={onClose}
                     disabled={submitting || deleting}
-                    onClick={() => setShowDeleteConfirm(true)}
                   >
-                    Delete
+                    Cancel
                   </button>
 
                   <button
@@ -2556,7 +2603,7 @@ export default function PropertyUpsertModal({
               <>
                 <button
                   type="button"
-                  className="propBtn"
+                  className="propBtn propBtn--muted"
                   onClick={onClose}
                   disabled={submitting}
                 >

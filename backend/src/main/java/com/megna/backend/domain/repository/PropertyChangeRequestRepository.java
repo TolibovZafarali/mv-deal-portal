@@ -9,4 +9,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface PropertyChangeRequestRepository extends JpaRepository<PropertyChangeRequest, Long> {
     Page<PropertyChangeRequest> findBySellerIdOrderByCreatedAtDesc(Long sellerId, Pageable pageable);
     Page<PropertyChangeRequest> findByStatusOrderByCreatedAtDesc(PropertyChangeRequestStatus status, Pageable pageable);
+    long countBySellerIdAndStatus(Long sellerId, PropertyChangeRequestStatus status);
 }

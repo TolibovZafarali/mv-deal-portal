@@ -11,6 +11,7 @@ import com.megna.backend.domain.enums.ClosingTerms;
 import com.megna.backend.domain.enums.ExitStrategy;
 import com.megna.backend.domain.enums.InvestorStatus;
 import com.megna.backend.domain.enums.OccupancyStatus;
+import com.megna.backend.domain.enums.PhotoAssetPrincipalRole;
 import com.megna.backend.domain.enums.PropertyChangeRequestStatus;
 import com.megna.backend.domain.enums.PropertyStatus;
 import com.megna.backend.domain.enums.SellerStatus;
@@ -28,6 +29,7 @@ import com.megna.backend.interfaces.rest.dto.property.PropertyChangeRequestRespo
 import com.megna.backend.interfaces.rest.dto.property.PropertyResponseDto;
 import com.megna.backend.interfaces.rest.dto.property.PropertyUpsertRequestDto;
 import com.megna.backend.interfaces.rest.dto.property.PropertyPhotoRequestDto;
+import com.megna.backend.interfaces.rest.dto.property.SellerPropertyDraftUpsertRequestDto;
 import com.megna.backend.interfaces.rest.mapper.PropertyChangeRequestMapper;
 import com.megna.backend.interfaces.rest.mapper.PropertyMapper;
 import lombok.RequiredArgsConstructor;
@@ -65,6 +67,7 @@ public class PropertyService {
     private final PropertyAddressAutocompleteService propertyAddressAutocompleteService;
     private final FmrLookupService fmrLookupService;
     private final PhotoAssetService photoAssetService;
+    private final SellerThreadService sellerThreadService;
 
     public PropertyResponseDto create(PropertyUpsertRequestDto dto) {
         validateUniquePhotoAssetIds(dto.photos());
@@ -72,7 +75,7 @@ public class PropertyService {
         normalizeCurrentRentForOccupancy(property);
         if (dto.photos() != null) {
             long adminId = requireAdminId();
-            hydratePhotoAssets(property, null, adminId);
+            hydratePhotoAssets(property, null, PhotoAssetPrincipalRole.ADMIN, adminId);
         }
         refreshCoordinates(property, true);
         refreshFmr(property);
@@ -121,7 +124,7 @@ public class PropertyService {
 
         if (dto.photos() != null) {
             long adminId = requireAdminId();
-            hydratePhotoAssets(property, property.getId(), adminId);
+            hydratePhotoAssets(property, property.getId(), PhotoAssetPrincipalRole.ADMIN, adminId);
 
             List<String> updatedPhotoAssetIds = photoAssetService.collectPhotoAssetIds(property.getPhotos());
             photoAssetService.forEachRemovedAsset(
@@ -306,15 +309,13 @@ public class PropertyService {
         return PropertyMapper.toDto(property);
     }
 
-    public PropertyResponseDto createBySeller(Long sellerId, PropertyUpsertRequestDto dto) {
+    public PropertyResponseDto createBySeller(Long sellerId, SellerPropertyDraftUpsertRequestDto dto) {
         requireSelfSeller(sellerId);
         Seller seller = requireActiveSeller(sellerId);
 
-        if (dto.photos() != null && !dto.photos().isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Seller draft photo uploads are not supported yet");
-        }
-
-        Property property = PropertyMapper.toEntity(dto);
+        validateUniquePhotoAssetIds(dto.photos());
+        Property property = new Property();
+        applySellerDraftUpsert(dto, property);
         property.setSeller(seller);
         property.setStatus(PropertyStatus.DRAFT);
         property.setSellerWorkflowStatus(SellerWorkflowStatus.DRAFT);
@@ -324,6 +325,10 @@ public class PropertyService {
         property.setPublishedAt(null);
         normalizeCurrentRentForOccupancy(property);
 
+        if (dto.photos() != null) {
+            hydratePhotoAssets(property, null, PhotoAssetPrincipalRole.SELLER, sellerId);
+        }
+
         refreshCoordinates(property, true);
         refreshFmr(property);
 
@@ -331,7 +336,7 @@ public class PropertyService {
         return PropertyMapper.toDto(saved);
     }
 
-    public PropertyResponseDto updateBySeller(Long sellerId, Long propertyId, PropertyUpsertRequestDto dto) {
+    public PropertyResponseDto updateBySeller(Long sellerId, Long propertyId, SellerPropertyDraftUpsertRequestDto dto) {
         requireSelfSeller(sellerId);
 
         Property property = propertyRepository.findById(propertyId)
@@ -343,21 +348,34 @@ public class PropertyService {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Property is not editable in the current workflow state");
         }
 
-        if (dto.photos() != null && !dto.photos().isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Seller draft photo uploads are not supported yet");
-        }
-
+        validateUniquePhotoAssetIds(dto.photos());
         String originalAddressFingerprint = addressFingerprint(property);
         String originalZip = FmrLookupService.normalizeZip(property.getZip());
         Integer originalBeds = property.getBeds();
+        List<String> originalPhotoAssetIds = photoAssetService.collectPhotoAssetIds(property.getPhotos());
 
-        PropertyMapper.applyUpsert(dto, property);
+        applySellerDraftUpsert(dto, property);
         property.setStatus(PropertyStatus.DRAFT);
         normalizeCurrentRentForOccupancy(property);
 
         boolean addressChanged = !Objects.equals(originalAddressFingerprint, addressFingerprint(property));
+        if (addressChanged) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Property address cannot be changed after initial save");
+        }
+
+        if (dto.photos() != null) {
+            hydratePhotoAssets(property, property.getId(), PhotoAssetPrincipalRole.SELLER, sellerId);
+
+            List<String> updatedPhotoAssetIds = photoAssetService.collectPhotoAssetIds(property.getPhotos());
+            photoAssetService.forEachRemovedAsset(
+                    originalPhotoAssetIds,
+                    updatedPhotoAssetIds,
+                    photoAssetService::markDeletedPending
+            );
+        }
+
         boolean coordinatesMissing = property.getLatitude() == null || property.getLongitude() == null;
-        if (addressChanged || coordinatesMissing) {
+        if (coordinatesMissing) {
             refreshCoordinates(property, true);
         }
 
@@ -390,6 +408,13 @@ public class PropertyService {
         property.setSubmittedAt(LocalDateTime.now());
 
         Property saved = propertyRepository.save(property);
+        sellerThreadService.postSystemMessageForProperty(
+                saved.getId(),
+                sellerId,
+                SellerThreadService.TOPIC_WORKFLOW,
+                saved.getId(),
+                "Listing submitted for review."
+        );
         return PropertyMapper.toDto(saved);
     }
 
@@ -418,6 +443,13 @@ public class PropertyService {
         changeRequest.setStatus(PropertyChangeRequestStatus.OPEN);
 
         PropertyChangeRequest saved = propertyChangeRequestRepository.save(changeRequest);
+        sellerThreadService.postSystemMessageForProperty(
+                property.getId(),
+                sellerId,
+                SellerThreadService.TOPIC_CHANGE_REQUEST,
+                saved.getId(),
+                "Seller requested changes: " + message
+        );
         return PropertyChangeRequestMapper.toDto(saved);
     }
 
@@ -492,6 +524,23 @@ public class PropertyService {
         }
 
         Property saved = propertyRepository.save(property);
+        if (action == AdminPropertySellerReviewAction.REQUEST_CHANGES) {
+            sellerThreadService.postSystemMessageForProperty(
+                    saved.getId(),
+                    saved.getSeller().getId(),
+                    SellerThreadService.TOPIC_WORKFLOW,
+                    saved.getId(),
+                    "Admin requested changes: " + normalizedNote
+            );
+        } else {
+            sellerThreadService.postSystemMessageForProperty(
+                    saved.getId(),
+                    saved.getSeller().getId(),
+                    SellerThreadService.TOPIC_WORKFLOW,
+                    saved.getId(),
+                    "Listing approved and published."
+            );
+        }
         return PropertyMapper.toDto(saved);
     }
 
@@ -533,6 +582,15 @@ public class PropertyService {
         request.setResolvedByAdmin(admin);
 
         PropertyChangeRequest saved = propertyChangeRequestRepository.save(request);
+        sellerThreadService.postSystemMessageForProperty(
+                saved.getProperty().getId(),
+                saved.getSeller().getId(),
+                SellerThreadService.TOPIC_CHANGE_REQUEST,
+                saved.getId(),
+                action == AdminPropertyChangeRequestDecisionAction.APPLIED
+                        ? "Admin applied your change request."
+                        : "Admin rejected your change request."
+        );
         return PropertyChangeRequestMapper.toDto(saved);
     }
 
@@ -738,12 +796,103 @@ public class PropertyService {
         return authPrincipal.userId();
     }
 
-    private void hydratePhotoAssets(Property property, Long currentPropertyId, long adminId) {
+    private void applySellerDraftUpsert(SellerPropertyDraftUpsertRequestDto dto, Property property) {
+        if (dto == null || property == null) return;
+
+        property.setStreet1(normalizeOptionalText(dto.street1()));
+        property.setStreet2(normalizeOptionalText(dto.street2()));
+        property.setCity(normalizeOptionalText(dto.city()));
+        property.setState(normalizeOptionalText(dto.state()));
+        property.setZip(normalizeOptionalText(dto.zip()));
+
+        property.setAskingPrice(dto.askingPrice());
+        property.setArv(dto.arv());
+        property.setEstRepairs(dto.estRepairs());
+
+        property.setBeds(dto.beds());
+        property.setBaths(dto.baths());
+        property.setLivingAreaSqft(dto.livingAreaSqft());
+        property.setYearBuilt(dto.yearBuilt());
+        property.setRoofAge(dto.roofAge());
+        property.setHvac(dto.hvac());
+
+        property.setOccupancyStatus(dto.occupancyStatus());
+        property.setCurrentRent(dto.currentRent());
+        property.setExitStrategy(dto.exitStrategy());
+        property.setClosingTerms(dto.closingTerms());
+
+        if (dto.photos() != null) {
+            PropertyMapper.applyUpsert(
+                    new PropertyUpsertRequestDto(
+                            PropertyStatus.DRAFT,
+                            dto.street1() == null ? "" : dto.street1(),
+                            dto.street2(),
+                            dto.city() == null ? "" : dto.city(),
+                            dto.state() == null ? "" : dto.state(),
+                            dto.zip() == null ? "" : dto.zip(),
+                            dto.askingPrice(),
+                            dto.arv(),
+                            dto.estRepairs(),
+                            dto.beds(),
+                            dto.baths(),
+                            dto.livingAreaSqft(),
+                            dto.yearBuilt(),
+                            dto.roofAge(),
+                            dto.hvac(),
+                            dto.occupancyStatus(),
+                            dto.currentRent(),
+                            dto.exitStrategy(),
+                            dto.closingTerms(),
+                            dto.photos(),
+                            dto.saleComps()
+                    ),
+                    property
+            );
+            return;
+        }
+
+        if (dto.saleComps() != null) {
+            PropertyMapper.applyUpsert(
+                    new PropertyUpsertRequestDto(
+                            PropertyStatus.DRAFT,
+                            dto.street1() == null ? "" : dto.street1(),
+                            dto.street2(),
+                            dto.city() == null ? "" : dto.city(),
+                            dto.state() == null ? "" : dto.state(),
+                            dto.zip() == null ? "" : dto.zip(),
+                            dto.askingPrice(),
+                            dto.arv(),
+                            dto.estRepairs(),
+                            dto.beds(),
+                            dto.baths(),
+                            dto.livingAreaSqft(),
+                            dto.yearBuilt(),
+                            dto.roofAge(),
+                            dto.hvac(),
+                            dto.occupancyStatus(),
+                            dto.currentRent(),
+                            dto.exitStrategy(),
+                            dto.closingTerms(),
+                            null,
+                            dto.saleComps()
+                    ),
+                    property
+            );
+        }
+    }
+
+    private void hydratePhotoAssets(
+            Property property,
+            Long currentPropertyId,
+            PhotoAssetPrincipalRole principalRole,
+            long principalId
+    ) {
         List<String> photoAssetIds = photoAssetService.collectPhotoAssetIds(property.getPhotos());
         Map<String, PhotoAsset> resolvedAssets = photoAssetService.resolveReadyAssetsOrThrow(
                 photoAssetIds,
                 currentPropertyId,
-                adminId
+                principalRole,
+                principalId
         );
         photoAssetService.applyAssetUrlsToPhotos(property.getPhotos(), resolvedAssets);
     }

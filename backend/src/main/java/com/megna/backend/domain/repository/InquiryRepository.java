@@ -40,4 +40,6 @@ public interface InquiryRepository extends JpaRepository<Inquiry, Long> {
     long countByPropertyId(Long propertyId);
 
     long countByInvestorId(Long investorId);
+
+    long countByPropertySellerId(Long sellerId);
 }

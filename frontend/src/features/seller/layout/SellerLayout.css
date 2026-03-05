@@ -1,90 +1,206 @@
-.sellerShell {
-  height: 100%;
+.sellerShellV2 {
+  min-height: 100%;
   display: grid;
-  grid-template-columns: 260px 1fr;
+  grid-template-rows: auto 1fr;
+  background: #ececec;
+  color: #101010;
 }
 
-.sellerSidebar {
-  border-right: 1px solid var(--border-muted);
-  background: #0d1320;
-  color: #f7f8fb;
-  padding: 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
+.sellerTop {
+  background: #101010;
+  color: #f2f2f2;
+  border-bottom: 1px solid var(--border-muted);
 }
 
-.sellerBrand {
+.sellerTop__bar {
+  min-height: 66px;
+  padding: 0 16px;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+}
+
+.sellerTop__left {
   display: flex;
   align-items: center;
-  gap: 10px;
+  justify-content: flex-start;
+}
+
+.sellerTop__center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sellerTop__right {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
 }
 
 .sellerBrand__logo {
-  width: 34px;
   height: 34px;
+  width: auto;
 }
 
 .sellerBrand__label {
-  font-weight: 600;
-  letter-spacing: 0.02em;
-}
-
-.sellerNav {
-  display: grid;
-  gap: 10px;
-}
-
-.sellerNav__link {
-  color: #e3e8f6;
-  border: 1px solid rgba(255, 255, 255, 0.24);
-  padding: 10px 12px;
+  font-size: 13px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
   text-align: center;
-  transition: background 140ms ease;
 }
 
-.sellerNav__link:hover,
-.sellerNav__link--active {
-  background: #f7f8fb;
-  color: #0d1320;
-}
-
-.sellerSidebar__spacer {
-  flex: 1;
-}
-
-.sellerLogout {
-  border: 1px solid #c64040;
-  color: #c64040;
+.sellerTop__accountBtn {
+  border: 1px solid #f2f2f2;
   background: transparent;
-  padding: 10px 12px;
+  color: #f2f2f2;
+  min-height: 36px;
+  min-width: 118px;
+  width: 118px;
+  padding: 0 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font: inherit;
   cursor: pointer;
+  transition:
+    background-color 220ms ease,
+    color 220ms ease,
+    border-color 220ms ease,
+    transform 220ms ease,
+    box-shadow 220ms ease;
 }
 
-.sellerLogout:hover {
-  background: #c64040;
-  color: #fff;
-}
-
-.sellerMain {
+.sellerTop__addBtn {
+  border: 1px solid #f2f2f2;
   background: #f2f2f2;
-  color: #121212;
-  padding: 18px;
-  overflow: auto;
+  color: #101010;
+  min-height: 36px;
+  min-width: 118px;
+  width: 118px;
+  padding: 0 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font: inherit;
+  cursor: pointer;
+  transition:
+    background-color 220ms ease,
+    color 220ms ease,
+    border-color 220ms ease,
+    transform 220ms ease,
+    box-shadow 220ms ease;
 }
 
-@media (max-width: 900px) {
-  .sellerShell {
+.sellerTop__addBtn:hover,
+.sellerTop__addBtn:focus-visible {
+  background: transparent;
+  color: #f2f2f2;
+  transform: translateY(-1px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+}
+
+.sellerTop__accountBtn:hover,
+.sellerTop__accountBtn:focus-visible {
+  background: #f2f2f2;
+  color: #101010;
+  transform: translateY(-1px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+}
+
+.sellerTop__addIcon {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.sellerTop__accountIcon {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.sellerRail {
+  border-top: 1px solid rgba(242, 242, 242, 0.12);
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.sellerRail__item {
+  padding: 10px 16px;
+  border-right: 1px solid rgba(242, 242, 242, 0.12);
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.sellerRail__item:last-child {
+  border-right: 0;
+}
+
+.sellerRail__label {
+  color: #b8b8b8;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-size: 11px;
+}
+
+.sellerRail__value {
+  font-size: 15px;
+}
+
+.sellerMainV2 {
+  min-height: 0;
+  overflow: auto;
+  padding: 14px;
+}
+
+@media (max-width: 1020px) {
+  .sellerTop__bar {
+    grid-template-columns: auto 1fr auto;
+    padding: 10px 12px;
+  }
+}
+
+@media (max-width: 720px) {
+  .sellerBrand__logo {
+    height: 30px;
+  }
+
+  .sellerRail {
     grid-template-columns: 1fr;
-    grid-template-rows: auto 1fr;
   }
 
-  .sellerSidebar {
+  .sellerRail__item {
     border-right: 0;
-    border-bottom: 1px solid var(--border-muted);
+    border-top: 1px solid rgba(242, 242, 242, 0.12);
   }
 
-  .sellerNav {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+  .sellerRail__item:first-child {
+    border-top: 0;
+  }
+
+  .sellerBrand__label {
+    font-size: 11px;
+    letter-spacing: 0.08em;
+  }
+
+  .sellerTop__accountBtn {
+    min-width: 40px;
+    width: 40px;
+    padding: 0;
+  }
+
+  .sellerTop__addBtn {
+    min-width: 40px;
+    width: 40px;
+    padding: 0;
+  }
+
+  .sellerTop__addLabel,
+  .sellerTop__accountLabel {
+    display: none;
   }
 }

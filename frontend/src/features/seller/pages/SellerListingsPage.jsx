@@ -1,45 +1,36 @@
 import { useEffect, useMemo, useState } from "react";
+import { useOutletContext, useSearchParams } from "react-router-dom";
 import {
   createSellerProperty,
+  createSellerPropertyPhotoFromUrl,
+  deleteSellerPropertyPhotoUpload,
   getSellerProperties,
-  requestSellerPropertyChange,
+  getSellerPropertyById,
   submitSellerProperty,
   updateSellerProperty,
+  uploadSellerPropertyPhoto,
 } from "@/api/modules/sellerPropertyApi";
+import { startSellerTimer, trackSellerEvent } from "@/features/seller/utils/sellerTelemetry";
+import PropertyUpsertModal from "@/features/admin/modals/PropertyUpsertModal";
 import "@/features/seller/pages/SellerListingsPage.css";
 
-const PAGE_SIZE = 20;
-const EDITABLE_WORKFLOWS = new Set(["DRAFT", "CHANGES_REQUESTED"]);
-const PROPERTY_STATUS_ORDER = {
-  ACTIVE: 0,
-  DRAFT: 1,
-  CLOSED: 2,
-};
+const PAGE_SIZE = 30;
 
-const OCCUPANCY_OPTIONS = ["", "YES", "NO"];
-const EXIT_STRATEGY_OPTIONS = ["", "FLIP", "RENTAL", "WHOLESALE"];
-const CLOSING_TERMS_OPTIONS = ["", "CASH_ONLY", "HARD_MONEY", "CONVENTIONAL", "SELLER_FINANCE"];
+function prettyEnum(value) {
+  if (!value) return "—";
+  const normalized = String(value).trim().toUpperCase();
+  if (normalized === "NEEDS_ACTION") return "Draft";
+  return normalized
+    .toLowerCase()
+    .replaceAll("_", " ")
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
 
-const EMPTY_FORM = {
-  street1: "",
-  street2: "",
-  city: "",
-  state: "",
-  zip: "",
-  askingPrice: "",
-  arv: "",
-  estRepairs: "",
-  beds: "",
-  baths: "",
-  livingAreaSqft: "",
-  yearBuilt: "",
-  roofAge: "",
-  hvac: "",
-  occupancyStatus: "",
-  currentRent: "",
-  exitStrategy: "",
-  closingTerms: "",
-};
+function fullAddress(property) {
+  const line1 = [property?.street1, property?.street2].filter(Boolean).join(", ");
+  const stateZip = [property?.state, property?.zip].filter(Boolean).join(" ");
+  return [line1, property?.city, stateZip].filter(Boolean).join(", ");
+}
 
 function formatDateTime(value) {
   if (!value) return "—";
@@ -54,105 +45,177 @@ function formatDateTime(value) {
   });
 }
 
-function prettyEnum(value) {
-  if (!value) return "—";
-  return String(value)
-    .toLowerCase()
-    .replaceAll("_", " ")
-    .replace(/\b\w/g, (c) => c.toUpperCase());
+function primaryPhoto(property) {
+  const photos = Array.isArray(property?.photos) ? property.photos : [];
+  const first = photos[0];
+  return String(first?.thumbnailUrl ?? first?.url ?? "").trim();
 }
 
-function parseDecimal(value) {
+function workflowValue(property) {
+  return String(property?.sellerWorkflowStatus ?? "DRAFT").toUpperCase();
+}
+
+function hasValue(value) {
+  if (value === null || value === undefined) return false;
+  if (typeof value === "string") return value.trim().length > 0;
+  return true;
+}
+
+function hasAtLeastOnePhoto(property) {
+  const photos = Array.isArray(property?.photos) ? property.photos : [];
+  return photos.some((photo) => {
+    const url = String(photo?.url ?? photo?.thumbnailUrl ?? "").trim();
+    return url.length > 0;
+  });
+}
+
+function isPropertyReadyToPublish(property) {
+  return [
+    property?.street1,
+    property?.city,
+    property?.state,
+    property?.zip,
+    property?.beds,
+    property?.baths,
+    property?.livingAreaSqft,
+    property?.yearBuilt,
+    property?.roofAge,
+    property?.hvac,
+  ].every(hasValue) && hasAtLeastOnePhoto(property);
+}
+
+function statusLabel(property) {
+  const workflow = workflowValue(property);
+  const isReady = isPropertyReadyToPublish(property);
+
+  if (workflow === "CHANGES_REQUESTED") {
+    return isReady ? "Ready to Publish" : "Needs Details";
+  }
+  if (workflow === "DRAFT") {
+    return isReady ? "Ready to Publish" : "Draft";
+  }
+  if (workflow === "SUBMITTED") {
+    return "Under Review";
+  }
+
+  return prettyEnum(workflow);
+}
+
+function cleanStr(value) {
+  const normalized = String(value ?? "").trim();
+  return normalized.length ? normalized : null;
+}
+
+function parseNum(value) {
   const raw = String(value ?? "").trim();
   if (!raw) return null;
-  const num = Number(raw.replaceAll(",", "").replaceAll("$", ""));
-  return Number.isFinite(num) ? num : null;
+  const normalized = raw.replaceAll(",", "").replaceAll("$", "");
+  const n = Number(normalized);
+  return Number.isFinite(n) ? n : null;
 }
 
-function parseInteger(value) {
-  const parsed = parseDecimal(value);
-  if (parsed === null) return null;
-  const intVal = Number.parseInt(String(parsed), 10);
-  return Number.isFinite(intVal) ? intVal : null;
+function parseIntNum(value) {
+  const n = parseNum(value);
+  if (n === null) return null;
+  const i = Number.parseInt(String(n), 10);
+  return Number.isFinite(i) ? i : null;
 }
 
-function workflowLabel(row) {
-  if (row?.sellerWorkflowStatus) return prettyEnum(row.sellerWorkflowStatus);
-  if (row?.status === "ACTIVE") return "Published";
-  if (row?.status === "CLOSED") return "Closed";
-  return "Draft";
+function mapPhotosForUpsert(photos) {
+  if (!Array.isArray(photos)) return [];
+
+  return photos
+    .map((photo) => ({
+      photoAssetId: cleanStr(photo?.photoAssetId),
+      caption: cleanStr(photo?.caption),
+    }))
+    .filter((photo) => Boolean(photo.photoAssetId))
+    .map((photo, idx) => ({
+      photoAssetId: photo.photoAssetId,
+      sortOrder: idx,
+      caption: photo.caption,
+    }));
 }
 
-function addressLine(row) {
-  const line1 = [row?.street1, row?.street2].filter(Boolean).join(", ");
-  const stateZip = [row?.state, row?.zip].filter(Boolean).join(" ");
-  const line2 = [row?.city, stateZip].filter(Boolean).join(", ");
-  return [line1, line2].filter(Boolean).join(" • ") || "—";
+function mapSaleCompsForUpsert(saleComps) {
+  if (!Array.isArray(saleComps)) return [];
+
+  return saleComps
+    .map((comp, idx) => ({
+      address: cleanStr(comp?.address),
+      soldPrice: parseNum(comp?.soldPrice),
+      soldDate: cleanStr(comp?.soldDate),
+      beds: parseIntNum(comp?.beds),
+      baths: parseNum(comp?.baths),
+      livingAreaSqft: parseIntNum(comp?.livingAreaSqft),
+      distanceMiles: parseNum(comp?.distanceMiles),
+      notes: cleanStr(comp?.notes),
+      sortOrder: idx,
+    }))
+    .filter((comp) => Boolean(comp.address));
 }
 
-function toPayload(form) {
+function formToSellerDraftDto(form) {
   return {
-    status: "DRAFT",
-    street1: String(form.street1 ?? "").trim() || null,
-    street2: String(form.street2 ?? "").trim() || null,
-    city: String(form.city ?? "").trim() || null,
-    state: String(form.state ?? "").trim() || null,
-    zip: String(form.zip ?? "").trim() || null,
-    askingPrice: parseDecimal(form.askingPrice),
-    arv: parseDecimal(form.arv),
-    estRepairs: parseDecimal(form.estRepairs),
-    beds: parseInteger(form.beds),
-    baths: parseDecimal(form.baths),
-    livingAreaSqft: parseInteger(form.livingAreaSqft),
-    yearBuilt: parseInteger(form.yearBuilt),
-    roofAge: parseInteger(form.roofAge),
-    hvac: parseInteger(form.hvac),
-    occupancyStatus: form.occupancyStatus || null,
-    currentRent: form.occupancyStatus === "YES" ? parseDecimal(form.currentRent) : null,
-    exitStrategy: form.exitStrategy || null,
-    closingTerms: form.closingTerms || null,
-    photos: null,
-    saleComps: null,
+    street1: cleanStr(form.street1),
+    street2: cleanStr(form.street2),
+    city: cleanStr(form.city),
+    state: cleanStr(form.state),
+    zip: cleanStr(form.zip),
+    askingPrice: parseNum(form.askingPrice),
+    arv: parseNum(form.arv),
+    estRepairs: parseNum(form.estRepairs),
+    beds: parseIntNum(form.beds),
+    baths: parseNum(form.baths),
+    livingAreaSqft: parseIntNum(form.livingAreaSqft),
+    yearBuilt: parseIntNum(form.yearBuilt),
+    roofAge: parseIntNum(form.roofAge),
+    hvac: parseIntNum(form.hvac),
+    occupancyStatus: cleanStr(form.occupancyStatus),
+    currentRent: cleanStr(form.occupancyStatus) === "YES" ? parseNum(form.currentRent) : null,
+    exitStrategy: cleanStr(form.exitStrategy),
+    closingTerms: cleanStr(form.closingTerms),
+    photos: mapPhotosForUpsert(form.photos),
+    saleComps: mapSaleCompsForUpsert(form.saleComps),
   };
 }
 
-function formFromRow(row) {
-  if (!row) return { ...EMPTY_FORM };
-  return {
-    street1: row.street1 ?? "",
-    street2: row.street2 ?? "",
-    city: row.city ?? "",
-    state: row.state ?? "",
-    zip: row.zip ?? "",
-    askingPrice: row.askingPrice ?? "",
-    arv: row.arv ?? "",
-    estRepairs: row.estRepairs ?? "",
-    beds: row.beds ?? "",
-    baths: row.baths ?? "",
-    livingAreaSqft: row.livingAreaSqft ?? "",
-    yearBuilt: row.yearBuilt ?? "",
-    roofAge: row.roofAge ?? "",
-    hvac: row.hvac ?? "",
-    occupancyStatus: row.occupancyStatus ?? "",
-    currentRent: row.currentRent ?? "",
-    exitStrategy: row.exitStrategy ?? "",
-    closingTerms: row.closingTerms ?? "",
-  };
+function sectionRows(rows) {
+  const published = [];
+  const notPublished = [];
+
+  rows.forEach((row) => {
+    if (workflowValue(row) === "PUBLISHED") {
+      published.push(row);
+    } else {
+      notPublished.push(row);
+    }
+  });
+
+  return { published, notPublished };
 }
 
 export default function SellerListingsPage() {
+  const outlet = useOutletContext() || {};
+  const [searchParams, setSearchParams] = useSearchParams();
+
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [page, setPage] = useState(0);
   const [meta, setMeta] = useState({ totalPages: 0, totalElements: 0 });
   const [refreshKey, setRefreshKey] = useState(0);
-
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editingRow, setEditingRow] = useState(null);
-  const [form, setForm] = useState({ ...EMPTY_FORM });
-  const [submitting, setSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState("");
+  const [editOpen, setEditOpen] = useState(false);
+  const [editInitial, setEditInitial] = useState(null);
+  const [editSubmitting, setEditSubmitting] = useState(false);
+  const [editError, setEditError] = useState("");
+  const [editLoadError, setEditLoadError] = useState("");
+  const [createOpen, setCreateOpen] = useState(false);
+  const [createSubmitting, setCreateSubmitting] = useState(false);
+  const [createError, setCreateError] = useState("");
+  const [publishingIds, setPublishingIds] = useState({});
+  const [publishHints, setPublishHints] = useState({});
+  const [publishErrors, setPublishErrors] = useState({});
 
   useEffect(() => {
     let alive = true;
@@ -163,16 +226,17 @@ export default function SellerListingsPage() {
       try {
         const data = await getSellerProperties({ page, size: PAGE_SIZE, sort: "updatedAt,desc" });
         if (!alive) return;
-        setRows(data?.content ?? []);
+
+        setRows(Array.isArray(data?.content) ? data.content : []);
         setMeta({
-          totalPages: data?.totalPages ?? 0,
-          totalElements: data?.totalElements ?? 0,
+          totalPages: Number(data?.totalPages ?? 0),
+          totalElements: Number(data?.totalElements ?? 0),
         });
       } catch (nextError) {
         if (!alive) return;
         setRows([]);
         setMeta({ totalPages: 0, totalElements: 0 });
-        setError(nextError?.message || "Failed to load your listings.");
+        setError(nextError?.message || "Failed to load properties.");
       } finally {
         if (alive) setLoading(false);
       }
@@ -184,301 +248,278 @@ export default function SellerListingsPage() {
     };
   }, [page, refreshKey]);
 
-  const title = useMemo(() => {
-    if (loading) return "Loading listings...";
-    if (error) return error;
-    return `${meta.totalElements.toLocaleString("en-US")} listings`;
-  }, [loading, error, meta.totalElements]);
-  const sortedRows = useMemo(() => {
-    return rows
-      .map((row, idx) => ({ row, idx }))
-      .sort((a, b) => {
-        const rankA = PROPERTY_STATUS_ORDER[a.row?.status] ?? Number.MAX_SAFE_INTEGER;
-        const rankB = PROPERTY_STATUS_ORDER[b.row?.status] ?? Number.MAX_SAFE_INTEGER;
-        if (rankA !== rankB) return rankA - rankB;
-        return a.idx - b.idx;
-      })
-      .map((entry) => entry.row);
-  }, [rows]);
+  useEffect(() => {
+    if (searchParams.get("new") !== "1") return;
+    setCreateError("");
+    setCreateOpen(true);
 
-  function updateField(key, value) {
-    setForm((prev) => ({ ...prev, [key]: value }));
-  }
+    const next = new URLSearchParams(searchParams);
+    next.delete("new");
+    setSearchParams(next, { replace: true });
+  }, [searchParams, setSearchParams]);
 
-  function openCreate() {
-    setEditingRow(null);
-    setForm({ ...EMPTY_FORM });
-    setSubmitError("");
-    setModalOpen(true);
-  }
+  const { published, notPublished } = useMemo(() => sectionRows(rows), [rows]);
+  const draftHeaderCount = Number(outlet?.dashboardSummary?.drafts ?? notPublished.length);
 
-  function openEdit(row) {
-    setEditingRow(row);
-    setForm(formFromRow(row));
-    setSubmitError("");
-    setModalOpen(true);
-  }
-
-  async function saveListing() {
-    const payload = toPayload(form);
-
-    setSubmitting(true);
-    setSubmitError("");
+  async function openEditModal(id) {
+    setEditLoadError("");
+    setEditError("");
 
     try {
-      if (editingRow) {
-        await updateSellerProperty(editingRow.id, payload);
-      } else {
-        await createSellerProperty(payload);
-      }
-      setModalOpen(false);
-      setRefreshKey((k) => k + 1);
+      const full = await getSellerPropertyById(id);
+      setEditInitial(full);
+      setEditOpen(true);
+    } catch (e) {
+      setEditLoadError(e?.message || "Failed to load property details.");
+    }
+  }
+
+  async function handleEditSubmit(form) {
+    if (!editInitial?.id) return;
+
+    const stopTimer = startSellerTimer("seller.listing.modal.save", {
+      propertyId: editInitial.id,
+    });
+    setEditSubmitting(true);
+    setEditError("");
+
+    try {
+      const dto = formToSellerDraftDto(form);
+      await updateSellerProperty(editInitial.id, dto);
+      stopTimer("success");
+      trackSellerEvent("seller.listing.modal.save.success", { propertyId: editInitial.id });
+      setEditOpen(false);
+      setEditInitial(null);
+      setRefreshKey((value) => value + 1);
+      outlet.refreshDashboardSummary?.();
     } catch (nextError) {
-      setSubmitError(nextError?.message || "Failed to save listing.");
+      stopTimer("error", { message: nextError?.message || "unknown" });
+      setEditError(nextError?.message || "Failed to save listing.");
     } finally {
-      setSubmitting(false);
+      setEditSubmitting(false);
     }
   }
 
-  async function handleSubmitForReview(row) {
+  async function handlePhotoUpload(file) {
+    return uploadSellerPropertyPhoto(file);
+  }
+
+  async function handlePhotoUploadDelete(uploadId) {
+    if (!uploadId) return;
     try {
-      await submitSellerProperty(row.id);
-      setRefreshKey((k) => k + 1);
-    } catch (nextError) {
-      window.alert(nextError?.message || "Failed to submit listing for review.");
+      await deleteSellerPropertyPhotoUpload(uploadId);
+    } catch {
+      // best-effort staged cleanup; save/update path handles bound photo lifecycle.
     }
   }
 
-  async function handleRequestChange(row) {
-    const requestedChanges = window.prompt("Describe the change you want on this published listing:");
-    if (!requestedChanges || !requestedChanges.trim()) return;
+  async function handlePhotoUrlAdd(url) {
+    return createSellerPropertyPhotoFromUrl(url);
+  }
+
+  async function handleCreateSubmit(form) {
+    const stopTimer = startSellerTimer("seller.listing.modal.create", {
+      mode: "create",
+    });
+    setCreateSubmitting(true);
+    setCreateError("");
 
     try {
-      await requestSellerPropertyChange(row.id, requestedChanges.trim());
-      window.alert("Change request submitted.");
+      const dto = formToSellerDraftDto(form);
+      await createSellerProperty(dto);
+      stopTimer("success");
+      trackSellerEvent("seller.listing.modal.create.success");
+      setCreateOpen(false);
+      setRefreshKey((value) => value + 1);
+      outlet.refreshDashboardSummary?.();
     } catch (nextError) {
-      window.alert(nextError?.message || "Failed to submit change request.");
+      stopTimer("error", { message: nextError?.message || "unknown" });
+      setCreateError(nextError?.message || "Failed to create listing.");
+    } finally {
+      setCreateSubmitting(false);
     }
+  }
+
+  async function handlePublish(propertyId) {
+    if (!propertyId || publishingIds[propertyId]) return;
+
+    setPublishErrors((prev) => ({ ...prev, [propertyId]: "" }));
+    setPublishingIds((prev) => ({ ...prev, [propertyId]: true }));
+
+    try {
+      await submitSellerProperty(propertyId);
+      setPublishHints((prev) => ({
+        ...prev,
+        [propertyId]: "Megna is reviewing this property now.",
+      }));
+      setRefreshKey((value) => value + 1);
+      outlet.refreshDashboardSummary?.();
+    } catch (nextError) {
+      setPublishErrors((prev) => ({
+        ...prev,
+        [propertyId]: nextError?.message || "Failed to publish property.",
+      }));
+    } finally {
+      setPublishingIds((prev) => ({ ...prev, [propertyId]: false }));
+    }
+  }
+
+  function renderCard(property) {
+    const photoUrl = primaryPhoto(property);
+    const workflow = workflowValue(property);
+    const readyToPublish = isPropertyReadyToPublish(property);
+    const statusTone =
+      readyToPublish && (workflow === "DRAFT" || workflow === "CHANGES_REQUESTED")
+        ? "ready_to_publish"
+        : workflow.toLowerCase();
+    const publishing = Boolean(publishingIds[property.id]);
+    const publishError = String(publishErrors[property.id] ?? "").trim();
+    const publishHint = String(publishHints[property.id] ?? "").trim();
+    const isUnderReview = workflow === "SUBMITTED" || publishHint.length > 0;
+
+    return (
+      <article key={property.id} className="sellerDashCard">
+        <button
+          type="button"
+          className="sellerDashCard__focus"
+          onClick={() => openEditModal(property.id)}
+        >
+          <div className="sellerDashCard__mediaWrap">
+            {photoUrl ? (
+              <img
+                src={photoUrl}
+                alt={fullAddress(property) || `Property ${property.id}`}
+                className="sellerDashCard__media"
+              />
+            ) : (
+              <div className="sellerDashCard__mediaFallback">
+                <span className="material-symbols-outlined" aria-hidden="true">home</span>
+              </div>
+            )}
+            <span className={`sellerDashCard__status sellerDashCard__status--${statusTone}`}>
+              {statusLabel(property)}
+            </span>
+          </div>
+
+          <div className="sellerDashCard__body">
+            <p className="sellerDashCard__address">{fullAddress(property) || "Address unavailable"}</p>
+
+            <div className="sellerDashCard__meta">
+              <span>{property?.beds ?? "—"} bd</span>
+              <span>{property?.baths ?? "—"} ba</span>
+              <span>{property?.livingAreaSqft?.toLocaleString?.("en-US") ?? property?.livingAreaSqft ?? "—"} sqft</span>
+              <span className="sellerDashCard__metaStatus">Updated {formatDateTime(property?.updatedAt)}</span>
+            </div>
+          </div>
+        </button>
+
+        {workflow !== "PUBLISHED" && workflow !== "CLOSED" ? (
+          <div className="sellerDashCard__footer">
+            {isUnderReview ? (
+              <div className="sellerDashCard__hint sellerDashCard__hint--review">
+                {publishHint || "Megna is reviewing this property now."}
+              </div>
+            ) : readyToPublish ? (
+              <button
+                type="button"
+                className="sellerDashCard__publishBtn"
+                onClick={() => handlePublish(property.id)}
+                disabled={publishing}
+              >
+                {publishing ? "Publishing..." : "Publish"}
+              </button>
+            ) : (
+              <div className="sellerDashCard__hint">
+                Fill out all property fields to publish.
+              </div>
+            )}
+
+            {publishError ? (
+              <div className="sellerDashCard__hint sellerDashCard__hint--error">{publishError}</div>
+            ) : null}
+          </div>
+        ) : null}
+      </article>
+    );
   }
 
   return (
-    <section className="sellerListings">
-      <header className="sellerListings__header">
-        <div>
-          <h2>My Listings</h2>
-          <p>{title}</p>
+    <section className="sellerDashSplit">
+      {loading ? <div className="sellerDashSplit__notice">Loading properties...</div> : null}
+      {!loading && error ? <div className="sellerDashSplit__notice sellerDashSplit__notice--error">{error}</div> : null}
+      {editLoadError ? <div className="sellerDashSplit__notice sellerDashSplit__notice--error">{editLoadError}</div> : null}
+
+      {!loading && !error ? (
+        <div className="sellerDashSplit__columns">
+          <section className="sellerDashSplit__column">
+            <header className="sellerDashSplit__heading">
+              <h2>Draft</h2>
+              <span>{draftHeaderCount}</span>
+            </header>
+            {notPublished.length ? (
+              <div className="sellerDashSplit__cards">{notPublished.map((property) => renderCard(property))}</div>
+            ) : (
+              <div className="sellerDashSplit__empty">No draft properties.</div>
+            )}
+          </section>
+
+          <section className="sellerDashSplit__column">
+            <header className="sellerDashSplit__heading">
+              <h2>Published</h2>
+              <span>{published.length}</span>
+            </header>
+            {published.length ? (
+              <div className="sellerDashSplit__cards">{published.map((property) => renderCard(property))}</div>
+            ) : (
+              <div className="sellerDashSplit__empty">No published properties.</div>
+            )}
+          </section>
         </div>
-        <button type="button" className="sellerListings__primaryBtn" onClick={openCreate}>
-          New Draft
-        </button>
-      </header>
-
-      <div className="sellerListings__tableWrap">
-        <table className="sellerListings__table">
-          <thead>
-            <tr>
-              <th>Address</th>
-              <th>Workflow</th>
-              <th>Visibility</th>
-              <th>Review Note</th>
-              <th>Updated</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {!loading && rows.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="sellerListings__empty">
-                  No listings yet.
-                </td>
-              </tr>
-            ) : null}
-            {sortedRows.map((row) => {
-              const workflow = row?.sellerWorkflowStatus || "DRAFT";
-              const canEdit = EDITABLE_WORKFLOWS.has(workflow);
-              const canSubmit = EDITABLE_WORKFLOWS.has(workflow);
-              const canRequestChange = workflow === "PUBLISHED" && row?.status === "ACTIVE";
-
-              return (
-                <tr key={row.id}>
-                  <td>{addressLine(row)}</td>
-                  <td>
-                    <span className={`sellerStatus sellerStatus--${workflow.toLowerCase()}`}>
-                      {workflowLabel(row)}
-                    </span>
-                  </td>
-                  <td>{prettyEnum(row.status)}</td>
-                  <td>{row.sellerReviewNote || "—"}</td>
-                  <td>{formatDateTime(row.updatedAt)}</td>
-                  <td className="sellerListings__actionsCell">
-                    {canEdit ? (
-                      <button type="button" className="sellerListings__ghostBtn" onClick={() => openEdit(row)}>
-                        Edit
-                      </button>
-                    ) : null}
-                    {canSubmit ? (
-                      <button type="button" className="sellerListings__ghostBtn" onClick={() => handleSubmitForReview(row)}>
-                        Submit
-                      </button>
-                    ) : null}
-                    {canRequestChange ? (
-                      <button type="button" className="sellerListings__ghostBtn" onClick={() => handleRequestChange(row)}>
-                        Request Change
-                      </button>
-                    ) : null}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+      ) : null}
 
       {meta.totalPages > 1 ? (
-        <div className="sellerListings__pagination">
-          <button type="button" disabled={page === 0} onClick={() => setPage((p) => Math.max(0, p - 1))}>
-            Prev
-          </button>
-          <span>
-            Page {page + 1} / {meta.totalPages}
-          </span>
-          <button
-            type="button"
-            disabled={page >= meta.totalPages - 1}
-            onClick={() => setPage((p) => p + 1)}
-          >
-            Next
-          </button>
+        <div className="sellerDashSplit__pagination">
+          <button type="button" disabled={page === 0} onClick={() => setPage((value) => Math.max(0, value - 1))}>Prev</button>
+          <span>Page {page + 1} / {meta.totalPages}</span>
+          <button type="button" disabled={page >= meta.totalPages - 1} onClick={() => setPage((value) => value + 1)}>Next</button>
         </div>
       ) : null}
 
-      {modalOpen ? (
-        <div className="sellerListingsModal__overlay" role="presentation" onMouseDown={() => setModalOpen(false)}>
-          <div className="sellerListingsModal" onMouseDown={(e) => e.stopPropagation()}>
-            <div className="sellerListingsModal__header">
-              <h3>{editingRow ? "Edit Listing" : "New Listing Draft"}</h3>
-              <button type="button" onClick={() => setModalOpen(false)}>
-                Close
-              </button>
-            </div>
+      <PropertyUpsertModal
+        open={editOpen}
+        mode="edit"
+        variant="seller"
+        initialValue={editInitial}
+        onClose={() => {
+          if (editSubmitting) return;
+          setEditOpen(false);
+          setEditInitial(null);
+          setEditError("");
+        }}
+        onSubmit={handleEditSubmit}
+        onUploadPhoto={handlePhotoUpload}
+        onAddPhotoByUrl={handlePhotoUrlAdd}
+        onDeleteUploadedPhoto={handlePhotoUploadDelete}
+        submitting={editSubmitting}
+        submitError={editError}
+      />
 
-            <div className="sellerListingsModal__grid">
-              <label>
-                Street 1
-                <input value={form.street1} onChange={(e) => updateField("street1", e.target.value)} />
-              </label>
-              <label>
-                Street 2
-                <input value={form.street2} onChange={(e) => updateField("street2", e.target.value)} />
-              </label>
-              <label>
-                City
-                <input value={form.city} onChange={(e) => updateField("city", e.target.value)} />
-              </label>
-              <label>
-                State
-                <input value={form.state} onChange={(e) => updateField("state", e.target.value)} />
-              </label>
-              <label>
-                ZIP
-                <input value={form.zip} onChange={(e) => updateField("zip", e.target.value)} />
-              </label>
-              <label>
-                Asking Price
-                <input value={form.askingPrice} onChange={(e) => updateField("askingPrice", e.target.value)} />
-              </label>
-              <label>
-                ARV
-                <input value={form.arv} onChange={(e) => updateField("arv", e.target.value)} />
-              </label>
-              <label>
-                Est. Repairs
-                <input value={form.estRepairs} onChange={(e) => updateField("estRepairs", e.target.value)} />
-              </label>
-              <label>
-                Beds
-                <input value={form.beds} onChange={(e) => updateField("beds", e.target.value)} />
-              </label>
-              <label>
-                Baths
-                <input value={form.baths} onChange={(e) => updateField("baths", e.target.value)} />
-              </label>
-              <label>
-                Living Area (sqft)
-                <input value={form.livingAreaSqft} onChange={(e) => updateField("livingAreaSqft", e.target.value)} />
-              </label>
-              <label>
-                Year Built
-                <input value={form.yearBuilt} onChange={(e) => updateField("yearBuilt", e.target.value)} />
-              </label>
-              <label>
-                Roof Age
-                <input value={form.roofAge} onChange={(e) => updateField("roofAge", e.target.value)} />
-              </label>
-              <label>
-                HVAC Age
-                <input value={form.hvac} onChange={(e) => updateField("hvac", e.target.value)} />
-              </label>
-              <label>
-                Occupancy
-                <select
-                  value={form.occupancyStatus}
-                  onChange={(e) => {
-                    const nextOccupancyStatus = e.target.value;
-                    updateField("occupancyStatus", nextOccupancyStatus);
-                    if (nextOccupancyStatus !== "YES") {
-                      updateField("currentRent", "");
-                    }
-                  }}
-                >
-                  {OCCUPANCY_OPTIONS.map((value) => (
-                    <option key={value || "empty"} value={value}>
-                      {prettyEnum(value) || "Select"}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              {form.occupancyStatus === "YES" ? (
-                <label>
-                  Current Rent (Monthly)
-                  <input value={form.currentRent} onChange={(e) => updateField("currentRent", e.target.value)} />
-                </label>
-              ) : null}
-              <label>
-                Exit Strategy
-                <select value={form.exitStrategy} onChange={(e) => updateField("exitStrategy", e.target.value)}>
-                  {EXIT_STRATEGY_OPTIONS.map((value) => (
-                    <option key={value || "empty"} value={value}>
-                      {prettyEnum(value) || "Select"}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label>
-                Closing Terms
-                <select value={form.closingTerms} onChange={(e) => updateField("closingTerms", e.target.value)}>
-                  {CLOSING_TERMS_OPTIONS.map((value) => (
-                    <option key={value || "empty"} value={value}>
-                      {prettyEnum(value) || "Select"}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </div>
-
-            {submitError ? <div className="sellerListingsModal__error">{submitError}</div> : null}
-
-            <div className="sellerListingsModal__footer">
-              <button type="button" onClick={() => setModalOpen(false)}>
-                Cancel
-              </button>
-              <button type="button" disabled={submitting} onClick={saveListing}>
-                {submitting ? "Saving..." : "Save Draft"}
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
+      <PropertyUpsertModal
+        open={createOpen}
+        mode="add"
+        variant="seller"
+        onClose={() => {
+          if (createSubmitting) return;
+          setCreateOpen(false);
+          setCreateError("");
+        }}
+        onSubmit={handleCreateSubmit}
+        onUploadPhoto={handlePhotoUpload}
+        onAddPhotoByUrl={handlePhotoUrlAdd}
+        onDeleteUploadedPhoto={handlePhotoUploadDelete}
+        submitting={createSubmitting}
+        submitError={createError}
+      />
     </section>
   );
 }

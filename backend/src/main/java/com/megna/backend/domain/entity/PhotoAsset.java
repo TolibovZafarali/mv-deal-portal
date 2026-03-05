@@ -29,6 +29,9 @@ public class PhotoAsset {
     @Column(name = "created_by_admin_id")
     private Long createdByAdminId;
 
+    @Column(name = "created_by_seller_id")
+    private Long createdBySellerId;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
     private PhotoAssetStatus status;

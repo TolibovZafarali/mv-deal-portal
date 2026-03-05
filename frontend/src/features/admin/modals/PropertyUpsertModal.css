@@ -832,6 +832,18 @@ select.propField__input {
   color: var(--bg);
 }
 
+.propBtn--muted {
+  border-color: var(--border-muted);
+  color: var(--muted);
+}
+
+.propBtn--muted:hover:not(:disabled),
+.propBtn--muted:focus-visible {
+  background: transparent;
+  color: var(--text);
+  border-color: var(--text);
+}
+
 .propBtn:disabled {
   opacity: 0.55;
   cursor: not-allowed;
