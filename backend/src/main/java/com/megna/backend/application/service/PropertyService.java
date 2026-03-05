@@ -185,11 +185,52 @@ public class PropertyService {
             SellerWorkflowStatus sellerWorkflowStatus,
             Pageable pageable
     ) {
+        return search(
+                status,
+                query,
+                city,
+                state,
+                minBeds,
+                maxBeds,
+                minBaths,
+                minAskingPrice,
+                maxAskingPrice,
+                minArv,
+                maxArv,
+                occupancyStatus,
+                exitStrategy,
+                closingTerms,
+                null,
+                sellerWorkflowStatus,
+                pageable
+        );
+    }
+
+    public Page<PropertyResponseDto> search(
+            PropertyStatus status,
+            String query,
+            String city,
+            String state,
+            Integer minBeds,
+            Integer maxBeds,
+            BigDecimal minBaths,
+            BigDecimal minAskingPrice,
+            BigDecimal maxAskingPrice,
+            BigDecimal minArv,
+            BigDecimal maxArv,
+            OccupancyStatus occupancyStatus,
+            ExitStrategy exitStrategy,
+            ClosingTerms closingTerms,
+            Long sellerId,
+            SellerWorkflowStatus sellerWorkflowStatus,
+            Pageable pageable
+    ) {
         validateSearchFilters(minBeds, maxBeds, minBaths, minAskingPrice, maxAskingPrice, minArv, maxArv);
 
         boolean admin = requireApprovedInvestorOrAdmin();
 
         PropertyStatus effectiveStatus = admin ? status : ACTIVE;
+        Long effectiveSellerId = admin ? sellerId : null;
 
         var spec = PropertySpecifications.withFilters(
                 effectiveStatus,
@@ -206,7 +247,7 @@ public class PropertyService {
                 occupancyStatus,
                 exitStrategy,
                 closingTerms,
-                null,
+                effectiveSellerId,
                 admin ? sellerWorkflowStatus : null
         );
 

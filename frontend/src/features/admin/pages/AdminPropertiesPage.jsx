@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useLocation } from "react-router-dom";
 import {
   createPropertyPhotoFromUrl,
   createProperty,
@@ -144,6 +145,18 @@ function parseIntNum(v) {
 }
 
 export default function AdminPropertiesPage() {
+  const location = useLocation();
+  const sellerScope = useMemo(() => {
+    const params = new URLSearchParams(location.search);
+    const sellerIdRaw = String(params.get("sellerId") ?? "").trim();
+    const sellerId = Number(sellerIdRaw);
+    const validSellerId = Number.isInteger(sellerId) && sellerId > 0 ? sellerId : null;
+    return {
+      sellerId: validSellerId,
+      sellerName: String(params.get("sellerName") ?? "").trim(),
+    };
+  }, [location.search]);
+
   const [filters, setFilters] = useState({
     q: "",
     minAskingPrice: "",
@@ -154,6 +167,7 @@ export default function AdminPropertiesPage() {
     exitStrategy: "",
     status: "",
     sellerWorkflowStatus: "",
+    sellerId: sellerScope.sellerId,
   });
   const { setFilterBarRef, width: filterBarWidth } = useFilterBarMinWidth(PROPERTIES_INLINE_FILTERS_MIN_WIDTH);
   const showAdvancedInline = filterBarWidth >= PROPERTIES_INLINE_FILTERS_MIN_WIDTH;
@@ -231,6 +245,15 @@ export default function AdminPropertiesPage() {
   }
 
   useEffect(() => {
+    setFilters((prev) => (
+      prev.sellerId === sellerScope.sellerId
+        ? prev
+        : { ...prev, sellerId: sellerScope.sellerId }
+    ));
+    setPage(0);
+  }, [sellerScope.sellerId]);
+
+  useEffect(() => {
     let alive = true;
 
     async function load() {
@@ -249,6 +272,7 @@ export default function AdminPropertiesPage() {
             exitStrategy: cleanStr(filters.exitStrategy),
             status: cleanStr(filters.status),
             sellerWorkflowStatus: cleanStr(filters.sellerWorkflowStatus),
+            sellerId: filters.sellerId,
           },
           { page, size: PAGE_SIZE },
         );
@@ -359,6 +383,7 @@ export default function AdminPropertiesPage() {
   const secondaryColumnSet = useMemo(() => {
     return new Set(secondaryColumns);
   }, [secondaryColumns]);
+  const scopedSellerLabel = sellerScope.sellerName || (sellerScope.sellerId ? `Seller #${sellerScope.sellerId}` : "");
 
   function toggleSecondaryColumn(key) {
     setSecondaryColumns((prev) => {
@@ -789,7 +814,14 @@ export default function AdminPropertiesPage() {
       <div className="adminProps__tableSection">
         <div className="adminProps__below">
           <div className="adminProps__sectionHead">
-            <h3 className="adminProps__sectionTitle">Properties</h3>
+            <div className="adminProps__sectionTitleWrap">
+              <h3 className="adminProps__sectionTitle">Properties</h3>
+              {sellerScope.sellerId ? (
+                <span className="adminProps__scopeTag">
+                  Seller: {scopedSellerLabel}
+                </span>
+              ) : null}
+            </div>
             <div className="adminProps__sectionActions">
               {!isMobileView ? (
                 <details className="adminProps__columnsMenu">

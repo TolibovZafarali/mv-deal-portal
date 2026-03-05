@@ -272,6 +272,22 @@
   font-size: 16px;
 }
 
+.adminProps__sectionTitleWrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.adminProps__scopeTag {
+  border: 1px solid var(--admin-border);
+  background: rgba(16, 16, 16, 0.04);
+  color: var(--admin-muted);
+  padding: 4px 8px;
+  font-size: 12px;
+  line-height: 1.2;
+}
+
 .adminProps__columnsMenu {
   position: relative;
   display: inline-block;

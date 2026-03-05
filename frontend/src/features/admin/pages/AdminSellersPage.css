@@ -125,6 +125,29 @@
   font-weight: 400;
 }
 
+.adminSel__tdActions {
+  width: 1%;
+  text-align: center;
+}
+
+.adminSel__propertiesBtn {
+  border: 1px solid var(--admin-ink);
+  background: transparent;
+  color: var(--admin-ink);
+  padding: 6px 10px;
+  font: inherit;
+  font-size: 12px;
+  line-height: 1.2;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.adminSel__propertiesBtn:hover,
+.adminSel__propertiesBtn:focus-visible {
+  background: var(--admin-ink);
+  color: var(--admin-bg);
+}
+
 .adminSel__pagination {
   display: flex;
   justify-content: flex-end;
