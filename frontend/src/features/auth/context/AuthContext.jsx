@@ -73,8 +73,9 @@ export function AuthProvider({ children }) {
     await login({ email, password })
 
     const profile = await me()
+    const investorStatus = String(profile?.status ?? "").trim().toUpperCase()
 
-    if (profile?.role === "INVESTOR" && profile?.status === "PENDING") {
+    if (profile?.role === "INVESTOR" && investorStatus.startsWith("PENDING")) {
       logout()
       setUser(null)
 
