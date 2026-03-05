@@ -1,7 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { getSellerDashboardSummary } from "@/api/modules/sellerDashboardApi";
+import SellerAccountCenterModal from "@/features/seller/modals/SellerAccountCenterModal";
 import "@/features/seller/layout/SellerLayout.css";
+
+const PROFILE_VIEW = "profile";
+const SECURITY_VIEW = "security";
+const NOTIFICATION_VIEW = "notification";
+const ACCOUNT_VIEWS = new Set([PROFILE_VIEW, SECURITY_VIEW, NOTIFICATION_VIEW]);
 
 export default function SellerLayout() {
   const location = useLocation();
@@ -10,6 +16,8 @@ export default function SellerLayout() {
 
   const [summary, setSummary] = useState(null);
   const [summaryLoading, setSummaryLoading] = useState(false);
+  const [accountOpen, setAccountOpen] = useState(false);
+  const [accountView, setAccountView] = useState(PROFILE_VIEW);
 
   const loadSummary = useCallback(async () => {
     setSummaryLoading(true);
@@ -39,6 +47,19 @@ export default function SellerLayout() {
     };
   }, [summary]);
 
+  function openAccount(view = PROFILE_VIEW) {
+    if (ACCOUNT_VIEWS.has(view)) {
+      setAccountView(view);
+    } else {
+      setAccountView(PROFILE_VIEW);
+    }
+    setAccountOpen(true);
+  }
+
+  function closeAccount() {
+    setAccountOpen(false);
+  }
+
   return (
     <div className="sellerShellV2">
       <header className="sellerTop">
@@ -60,7 +81,12 @@ export default function SellerLayout() {
               <span className="material-symbols-outlined sellerTop__addIcon" aria-hidden="true">add_home</span>
               <span className="sellerTop__addLabel">Add Property</span>
             </button>
-            <button type="button" className="sellerTop__accountBtn" aria-label="Account">
+            <button
+              type="button"
+              className="sellerTop__accountBtn"
+              aria-label="Account"
+              onClick={() => openAccount(PROFILE_VIEW)}
+            >
               <span className="material-symbols-outlined sellerTop__accountIcon" aria-hidden="true">person</span>
               <span className="sellerTop__accountLabel">Account</span>
             </button>
@@ -86,6 +112,16 @@ export default function SellerLayout() {
       <main className={`sellerMainV2${isListingsRoute ? " sellerMainV2--lists" : ""}`}>
         <Outlet context={{ dashboardSummary: summary, refreshDashboardSummary: loadSummary, summaryLoading }} />
       </main>
+
+      <SellerAccountCenterModal
+        open={accountOpen}
+        view={accountView}
+        onClose={closeAccount}
+        onChangeView={(nextView) => {
+          if (!ACCOUNT_VIEWS.has(nextView)) return;
+          setAccountView(nextView);
+        }}
+      />
     </div>
   );
 }
