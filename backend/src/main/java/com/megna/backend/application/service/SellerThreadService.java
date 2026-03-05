@@ -34,7 +34,6 @@ import java.time.LocalDateTime;
 public class SellerThreadService {
 
     public static final String TOPIC_WORKFLOW = "WORKFLOW";
-    public static final String TOPIC_CHANGE_REQUEST = "CHANGE_REQUEST";
 
     private final SellerThreadRepository sellerThreadRepository;
     private final SellerThreadMessageRepository sellerThreadMessageRepository;

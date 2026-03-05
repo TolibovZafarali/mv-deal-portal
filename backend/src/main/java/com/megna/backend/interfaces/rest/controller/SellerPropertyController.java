@@ -4,8 +4,6 @@ import com.megna.backend.application.service.PropertyService;
 import com.megna.backend.application.service.PhotoAssetService;
 import com.megna.backend.infrastructure.security.SecurityUtils;
 import com.megna.backend.infrastructure.security.AuthPrincipal;
-import com.megna.backend.interfaces.rest.dto.property.PropertyChangeRequestCreateRequestDto;
-import com.megna.backend.interfaces.rest.dto.property.PropertyChangeRequestResponseDto;
 import com.megna.backend.interfaces.rest.dto.property.PropertyPhotoUploadCompleteRequestDto;
 import com.megna.backend.interfaces.rest.dto.property.PropertyPhotoUploadCompleteResponseDto;
 import com.megna.backend.interfaces.rest.dto.property.PropertyPhotoUploadInitRequestDto;
@@ -78,28 +76,6 @@ public class SellerPropertyController {
     public PropertyResponseDto submit(@PathVariable Long id) {
         long sellerId = requireSellerId();
         return propertyService.submitBySeller(sellerId, id);
-    }
-
-    @PostMapping("/{id}/change-requests")
-    public ResponseEntity<PropertyChangeRequestResponseDto> createChangeRequest(
-            @PathVariable Long id,
-            @Valid @RequestBody PropertyChangeRequestCreateRequestDto dto
-    ) {
-        long sellerId = requireSellerId();
-        PropertyChangeRequestResponseDto created = propertyService.createChangeRequestBySeller(
-                sellerId,
-                id,
-                dto.requestedChanges()
-        );
-        return ResponseEntity.status(HttpStatus.CREATED).body(created);
-    }
-
-    @GetMapping("/change-requests")
-    public Page<PropertyChangeRequestResponseDto> getMyChangeRequests(
-            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
-    ) {
-        long sellerId = requireSellerId();
-        return propertyService.getSellerChangeRequests(sellerId, pageable);
     }
 
     @PostMapping("/photos/uploads/init")

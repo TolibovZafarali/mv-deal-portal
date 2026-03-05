@@ -103,10 +103,10 @@ function statusLabel(property) {
   const isReady = isPropertyReadyToPublish(property);
 
   if (workflow === "CHANGES_REQUESTED") {
-    return isReady ? "Ready to Publish" : "Needs Details";
+    return isReady ? "Ready to Submit" : "Needs Details";
   }
   if (workflow === "DRAFT") {
-    return isReady ? "Ready to Publish" : "Draft";
+    return isReady ? "Ready to Submit" : "Draft";
   }
   if (workflow === "SUBMITTED") {
     return "Under Review";
@@ -199,7 +199,8 @@ function sectionRows(rows) {
   const notPublished = [];
 
   rows.forEach((row) => {
-    if (workflowValue(row) === "PUBLISHED") {
+    const workflow = workflowValue(row);
+    if (workflow === "PUBLISHED" || workflow === "SUBMITTED") {
       published.push(row);
     } else {
       notPublished.push(row);
@@ -404,7 +405,7 @@ export default function SellerListingsPage() {
     } catch (nextError) {
       setPublishErrors((prev) => ({
         ...prev,
-        [propertyId]: nextError?.message || "Failed to publish property.",
+        [propertyId]: nextError?.message || "Failed to submit property for review.",
       }));
     } finally {
       setPublishingIds((prev) => ({ ...prev, [propertyId]: false }));
@@ -489,11 +490,11 @@ export default function SellerListingsPage() {
                   onClick={() => handlePublish(property.id)}
                   disabled={publishing}
                 >
-                  {publishing ? "Publishing..." : "Publish"}
+                  {publishing ? "Submitting..." : "Submit for Review"}
                 </button>
               ) : (
                 <div className="sellerDashCard__hint">
-                  Fill out all property fields to publish.
+                  Fill out all property fields to submit for review.
                 </div>
               )}
 
@@ -529,13 +530,13 @@ export default function SellerListingsPage() {
 
           <section className="sellerDashSplit__column">
             <header className="sellerDashSplit__heading">
-              <h2>Published</h2>
+              <h2>Under Review / Published</h2>
               <span>{published.length}</span>
             </header>
             {published.length ? (
               <div className="sellerDashSplit__cards">{published.map((property) => renderCard(property))}</div>
             ) : (
-              <div className="sellerDashSplit__empty">No published properties.</div>
+              <div className="sellerDashSplit__empty">No under review or published properties.</div>
             )}
           </section>
         </div>

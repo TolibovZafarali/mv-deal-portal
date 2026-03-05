@@ -42,7 +42,6 @@ class SellerDashboardSummaryIntegrationTest {
         jdbcTemplate.update("DELETE FROM seller_thread_reads");
         jdbcTemplate.update("DELETE FROM seller_thread_messages");
         jdbcTemplate.update("DELETE FROM seller_threads");
-        jdbcTemplate.update("DELETE FROM property_change_requests");
         jdbcTemplate.update("DELETE FROM inquiries");
         jdbcTemplate.update("DELETE FROM property_photos");
         jdbcTemplate.update("DELETE FROM photo_assets");
@@ -64,9 +63,6 @@ class SellerDashboardSummaryIntegrationTest {
         seedProperty(sellerId, "CHANGES_REQUESTED");
         seedProperty(sellerId, "PUBLISHED");
 
-        long propertyIdForRequest = seedProperty(sellerId, "PUBLISHED");
-        seedOpenChangeRequest(propertyIdForRequest, sellerId);
-
         String token = loginAndExtractToken(sellerEmail, sellerPassword);
 
         mockMvc.perform(get("/api/seller/dashboard/summary")
@@ -75,8 +71,7 @@ class SellerDashboardSummaryIntegrationTest {
                 .andExpect(jsonPath("$.drafts").value(1))
                 .andExpect(jsonPath("$.submitted").value(1))
                 .andExpect(jsonPath("$.changesRequested").value(1))
-                .andExpect(jsonPath("$.published").value(2))
-                .andExpect(jsonPath("$.openRequests").value(1));
+                .andExpect(jsonPath("$.published").value(1));
     }
 
     private long seedSeller(String email, String password) {
@@ -121,25 +116,6 @@ class SellerDashboardSummaryIntegrationTest {
 
         Long propertyId = jdbcTemplate.queryForObject("SELECT id FROM properties WHERE seller_id = ? ORDER BY id DESC LIMIT 1", Long.class, sellerId);
         return propertyId == null ? 0L : propertyId;
-    }
-
-    private void seedOpenChangeRequest(long propertyId, long sellerId) {
-        LocalDateTime now = LocalDateTime.now();
-        jdbcTemplate.update("""
-                        INSERT INTO property_change_requests
-                        (property_id, seller_id, requested_changes, status, admin_note, created_at, updated_at, resolved_at, resolved_by_admin_id)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                        """,
-                propertyId,
-                sellerId,
-                "Update listing photos",
-                "OPEN",
-                null,
-                Timestamp.valueOf(now),
-                Timestamp.valueOf(now),
-                null,
-                null
-        );
     }
 
     private String loginAndExtractToken(String email, String password) throws Exception {

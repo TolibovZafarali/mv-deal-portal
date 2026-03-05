@@ -4,7 +4,6 @@ public record SellerDashboardSummaryDto(
         long drafts,
         long submitted,
         long changesRequested,
-        long published,
-        long openRequests
+        long published
 ) {
 }

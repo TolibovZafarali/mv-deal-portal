@@ -12,8 +12,6 @@ import {
 import { getSellerById } from "@/api/modules/sellerApi";
 import {
   assignPropertySeller,
-  getAdminPropertyChangeRequests,
-  moderatePropertyChangeRequest,
   reviewSellerProperty,
 } from "@/api/modules/sellerPropertyApi";
 import "@/features/admin/pages/AdminPropertiesPage.css";
@@ -21,7 +19,6 @@ import AdminFilterBar, { AdminFilterMore } from "@/features/admin/components/Adm
 import AdminPagination from "@/features/admin/components/AdminPagination";
 import useFilterBarMinWidth from "@/features/admin/hooks/useFilterBarMinWidth";
 import SellerReviewModal from "@/features/admin/modals/SellerReviewModal";
-import ChangeRequestDecisionModal from "@/features/admin/modals/ChangeRequestDecisionModal";
 import PropertyUpsertModal from "@/features/admin/modals/PropertyUpsertModal";
 import Modal from "@/shared/ui/modal/Modal";
 import {
@@ -62,7 +59,7 @@ const STATUSES = [
 
 const SELLER_WORKFLOWS = [
   { label: "All", value: "" },
-  { label: "Submitted", value: "SUBMITTED" },
+  { label: "Under Review", value: "SUBMITTED" },
   { label: "Changes Requested", value: "CHANGES_REQUESTED" },
   { label: "Published", value: "PUBLISHED" },
   { label: "Closed", value: "CLOSED" },
@@ -101,6 +98,7 @@ function propertyAddressLineTwo(property) {
 
 function prettyEnum(v) {
   if (!v) return "—";
+  if (String(v).trim().toUpperCase() === "SUBMITTED") return "Under Review";
   return String(v)
     .toLowerCase()
     .replaceAll("_", " ")
@@ -123,6 +121,26 @@ function sellerDisplayLabel(property) {
 function sellerDisplayName(seller) {
   const full = [seller?.firstName, seller?.lastName].filter(Boolean).join(" ").trim();
   return full || seller?.email || "";
+}
+
+function cleanStr(v) {
+  const s = String(v ?? "").trim();
+  return s.length ? s : null;
+}
+
+function parseNum(v) {
+  const raw = String(v ?? "").trim();
+  if (!raw) return null;
+  const normalized = raw.replaceAll(",", "").replaceAll("$", "");
+  const n = Number(normalized);
+  return Number.isFinite(n) ? n : null;
+}
+
+function parseIntNum(v) {
+  const n = parseNum(v);
+  if (n === null) return null;
+  const i = Number.parseInt(String(n), 10);
+  return Number.isFinite(i) ? i : null;
 }
 
 export default function AdminPropertiesPage() {
@@ -169,14 +187,6 @@ export default function AdminPropertiesPage() {
   const [sellerReviewModal, setSellerReviewModal] = useState({ open: false, property: null });
   const [sellerReviewSubmitting, setSellerReviewSubmitting] = useState(false);
   const [sellerReviewError, setSellerReviewError] = useState("");
-
-  const [changeDecisionModal, setChangeDecisionModal] = useState({ open: false, request: null });
-  const [changeDecisionSubmitting, setChangeDecisionSubmitting] = useState(false);
-  const [changeDecisionError, setChangeDecisionError] = useState("");
-
-  const [changeRequests, setChangeRequests] = useState([]);
-  const [changeRequestsLoading, setChangeRequestsLoading] = useState(false);
-  const [changeRequestsError, setChangeRequestsError] = useState("");
   const [secondaryColumns, setSecondaryColumns] = useState(DEFAULT_SECONDARY_COLUMNS);
   const [sellerNameById, setSellerNameById] = useState({});
   const [isMobileView, setIsMobileView] = useState(() => {
@@ -266,32 +276,6 @@ export default function AdminPropertiesPage() {
       alive = false;
     };
   }, [filters, page, refreshKey]);
-
-  useEffect(() => {
-    let alive = true;
-
-    async function loadChangeRequests() {
-      setChangeRequestsLoading(true);
-      setChangeRequestsError("");
-
-      try {
-        const data = await getAdminPropertyChangeRequests({ status: "OPEN" }, { page: 0, size: 6, sort: "createdAt,desc" });
-        if (!alive) return;
-        setChangeRequests(data?.content ?? []);
-      } catch (e) {
-        if (!alive) return;
-        setChangeRequests([]);
-        setChangeRequestsError(e?.message || "Failed to load open change requests.");
-      } finally {
-        if (alive) setChangeRequestsLoading(false);
-      }
-    }
-
-    loadChangeRequests();
-    return () => {
-      alive = false;
-    };
-  }, [refreshKey]);
 
   useEffect(() => {
     const sellerIds = [...new Set(rows.map((row) => row?.sellerId).filter((id) => id !== null && id !== undefined))];
@@ -515,26 +499,6 @@ export default function AdminPropertiesPage() {
     </>
   );
   
-  function cleanStr(v) {
-    const s = String(v ?? "").trim();
-    return s.length ? s : null;
-  }
-
-  function parseNum(v) {
-    const raw = String(v ?? "").trim();
-    if (!raw) return null;
-    const normalized = raw.replaceAll(",", "").replaceAll("$", "");
-    const n = Number(normalized);
-    return Number.isFinite(n) ? n : null;
-  }
-
-  function parseIntNum(v) {
-    const n = parseNum(v);
-    if (n === null) return null;
-    const i = Number.parseInt(String(n), 10);
-    return Number.isFinite(i) ? i : null;
-  }
-
   function mapPhotosForUpsert(photos) {
     if (!Array.isArray(photos)) return [];
 
@@ -724,37 +688,6 @@ export default function AdminPropertiesPage() {
       stop("error", { error: e?.message || "unknown" });
     } finally {
       setSellerReviewSubmitting(false);
-    }
-  }
-
-  function openChangeDecisionModal(request) {
-    setChangeDecisionError("");
-    setChangeDecisionModal({ open: true, request });
-  }
-
-  async function handleChangeDecisionSubmit({ action, adminNote }) {
-    const request = changeDecisionModal.request;
-    if (!request?.id) return;
-
-    const stop = startAdminTimer("admin.properties.change_request", {
-      requestId: request.id,
-      action,
-    });
-
-    setChangeDecisionSubmitting(true);
-    setChangeDecisionError("");
-
-    try {
-      await moderatePropertyChangeRequest(request.id, action, adminNote ?? "");
-      stop("success");
-      signalAdminQueueRefresh();
-      setChangeDecisionModal({ open: false, request: null });
-      setRefreshKey((k) => k + 1);
-    } catch (e) {
-      setChangeDecisionError(e?.message || "Failed to update change request.");
-      stop("error", { error: e?.message || "unknown" });
-    } finally {
-      setChangeDecisionSubmitting(false);
     }
   }
 
@@ -1103,42 +1036,6 @@ export default function AdminPropertiesPage() {
         </div>
       ) : null}
 
-      <section className="adminProps__changeReqSection">
-        <div className="adminProps__changeReqHead">
-          <h3>Open Seller Change Requests</h3>
-        </div>
-
-        {changeRequestsLoading ? (
-          <div className="adminProps__notice">Loading change requests...</div>
-        ) : null}
-
-        {changeRequestsError ? (
-          <div className="adminProps__notice adminProps__notice--error">{changeRequestsError}</div>
-        ) : null}
-
-        {!changeRequestsLoading && !changeRequestsError && changeRequests.length === 0 ? (
-          <div className="adminProps__notice">No open change requests.</div>
-        ) : null}
-
-        {!changeRequestsLoading && !changeRequestsError && changeRequests.length > 0 ? (
-          <div className="adminProps__changeReqList">
-            {changeRequests.map((request) => (
-              <article className="adminProps__changeReqItem" key={request.id}>
-                <div>
-                  <strong>Request #{request.id}</strong> • Property #{request.propertyId} • Seller #{request.sellerId}
-                </div>
-                <div className="adminProps__changeReqBody">{request.requestedChanges}</div>
-                <div className="adminProps__changeReqActions">
-                  <button type="button" className="adminProps__textBtn" onClick={() => openChangeDecisionModal(request)}>
-                    Resolve
-                  </button>
-                </div>
-              </article>
-            ))}
-          </div>
-        ) : null}
-      </section>
-
       <PropertyUpsertModal
         open={editOpen}
         mode="edit"
@@ -1173,19 +1070,6 @@ export default function AdminPropertiesPage() {
           setSellerReviewError("");
         }}
         onSubmit={handleSellerReviewSubmit}
-      />
-
-      <ChangeRequestDecisionModal
-        open={changeDecisionModal.open}
-        request={changeDecisionModal.request}
-        submitting={changeDecisionSubmitting}
-        submitError={changeDecisionError}
-        onClose={() => {
-          if (changeDecisionSubmitting) return;
-          setChangeDecisionModal({ open: false, request: null });
-          setChangeDecisionError("");
-        }}
-        onSubmit={handleChangeDecisionSubmit}
       />
 
       <Modal

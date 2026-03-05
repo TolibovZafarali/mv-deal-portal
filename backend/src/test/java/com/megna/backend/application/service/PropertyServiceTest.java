@@ -2,9 +2,7 @@ package com.megna.backend.application.service;
 
 import com.megna.backend.domain.entity.Property;
 import com.megna.backend.domain.enums.PropertyStatus;
-import com.megna.backend.domain.repository.AdminRepository;
 import com.megna.backend.domain.repository.InvestorRepository;
-import com.megna.backend.domain.repository.PropertyChangeRequestRepository;
 import com.megna.backend.domain.repository.PropertyRepository;
 import com.megna.backend.domain.repository.SellerRepository;
 import com.megna.backend.infrastructure.security.AuthPrincipal;
@@ -46,12 +44,6 @@ class PropertyServiceTest {
 
     @Mock
     private SellerRepository sellerRepository;
-
-    @Mock
-    private AdminRepository adminRepository;
-
-    @Mock
-    private PropertyChangeRequestRepository propertyChangeRequestRepository;
 
     @Mock
     private PropertyAddressAutocompleteService propertyAddressAutocompleteService;

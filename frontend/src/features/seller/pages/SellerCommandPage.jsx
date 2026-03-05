@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useOutletContext } from "react-router-dom";
-import { getSellerProperties, getSellerPropertyChangeRequests } from "@/api/modules/sellerPropertyApi";
+import { getSellerProperties } from "@/api/modules/sellerPropertyApi";
 import "@/features/seller/pages/SellerCommandPage.css";
 
 const PAGE_SIZE = 30;
@@ -20,6 +20,7 @@ function formatDateTime(value) {
 
 function prettyEnum(value) {
   if (!value) return "—";
+  if (String(value).trim().toUpperCase() === "SUBMITTED") return "Under Review";
   return String(value)
     .toLowerCase()
     .replaceAll("_", " ")
@@ -48,7 +49,6 @@ export default function SellerCommandPage() {
   const summary = outlet.dashboardSummary;
 
   const [rows, setRows] = useState([]);
-  const [changeRequests, setChangeRequests] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -59,18 +59,13 @@ export default function SellerCommandPage() {
       setLoading(true);
       setError("");
       try {
-        const [listingsPage, requestsPage] = await Promise.all([
-          getSellerProperties({ page: 0, size: PAGE_SIZE, sort: "updatedAt,desc" }),
-          getSellerPropertyChangeRequests({ page: 0, size: PAGE_SIZE, sort: "updatedAt,desc" }),
-        ]);
+        const listingsPage = await getSellerProperties({ page: 0, size: PAGE_SIZE, sort: "updatedAt,desc" });
 
         if (!alive) return;
         setRows(Array.isArray(listingsPage?.content) ? listingsPage.content : []);
-        setChangeRequests(Array.isArray(requestsPage?.content) ? requestsPage.content : []);
       } catch (nextError) {
         if (!alive) return;
         setRows([]);
-        setChangeRequests([]);
         setError(nextError?.message || "Failed to load command center.");
       } finally {
         if (alive) setLoading(false);
@@ -88,16 +83,14 @@ export default function SellerCommandPage() {
     const submitted = rows.filter((row) => row?.sellerWorkflowStatus === "SUBMITTED").length;
     const changesRequested = rows.filter((row) => row?.sellerWorkflowStatus === "CHANGES_REQUESTED").length;
     const published = rows.filter((row) => row?.sellerWorkflowStatus === "PUBLISHED").length;
-    const openRequests = changeRequests.filter((request) => request?.status === "OPEN").length;
 
     return [
       { label: "Drafts", value: Number(summary?.drafts ?? drafts) },
-      { label: "Submitted", value: Number(summary?.submitted ?? submitted) },
+      { label: "Under Review", value: Number(summary?.submitted ?? submitted) },
       { label: "Changes Requested", value: Number(summary?.changesRequested ?? changesRequested) },
       { label: "Published", value: Number(summary?.published ?? published) },
-      { label: "Open Requests", value: Number(summary?.openRequests ?? openRequests) },
     ];
-  }, [changeRequests, rows, summary]);
+  }, [rows, summary]);
 
   const priorityQueue = useMemo(() => {
     return [...rows]
@@ -113,32 +106,21 @@ export default function SellerCommandPage() {
   }, [rows]);
 
   const activity = useMemo(() => {
-    const listingEvents = rows.map((row) => ({
+    return rows.map((row) => ({
       kind: "listing",
       id: `listing-${row.id}`,
       title: `${prettyEnum(row?.sellerWorkflowStatus || "DRAFT")} • ${addressLine(row)}`,
       timestamp: row?.updatedAt,
       route: `/seller/listings/${row.id}/edit`,
       subtitle: row?.sellerReviewNote || "",
-    }));
-
-    const requestEvents = changeRequests.map((request) => ({
-      kind: "change-request",
-      id: `request-${request.id}`,
-      title: `${prettyEnum(request?.status)} change request • Property #${request?.propertyId ?? "—"}`,
-      timestamp: request?.updatedAt || request?.createdAt,
-      route: "/seller/inbox",
-      subtitle: request?.adminNote || request?.requestedChanges || "",
-    }));
-
-    return [...listingEvents, ...requestEvents]
+    }))
       .sort((left, right) => {
         const leftTime = new Date(left?.timestamp ?? 0).getTime() || 0;
         const rightTime = new Date(right?.timestamp ?? 0).getTime() || 0;
         return rightTime - leftTime;
       })
       .slice(0, 12);
-  }, [changeRequests, rows]);
+  }, [rows]);
 
   return (
     <section className="sellerCommand">

@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { searchProperties } from "@/api/modules/propertyApi";
-import { getAdminPropertyChangeRequests } from "@/api/modules/sellerPropertyApi";
 import { searchAdminInvestors } from "@/api/modules/adminInvestorApi";
 import { getAdminQueueItems, getAdminQueueSummary } from "@/api/modules/adminQueueApi";
 import {
@@ -29,29 +28,17 @@ function formatInvestorName(investor) {
   return full || investor?.email || `Investor #${investor?.id ?? "—"}`;
 }
 
-function toQueueItems({ submittedListings, openChangeRequests, pendingInvestors }) {
+function toQueueItems({ submittedListings, pendingInvestors }) {
   const submitted = submittedListings.map((property) => ({
     key: `property-${property.id}`,
     type: "SUBMITTED_LISTING",
     entityId: property.id,
     title: formatPropertyTitle(property),
-    subtitle: "Listing submitted by seller",
+    subtitle: "Listing under review",
     createdAt: property?.submittedAt || property?.updatedAt || property?.createdAt || null,
     priority: 1,
     primaryAction: "Review listing",
     payload: property,
-  }));
-
-  const changeRequests = openChangeRequests.map((request) => ({
-    key: `change-request-${request.id}`,
-    type: "CHANGE_REQUEST",
-    entityId: request.id,
-    title: `Change request #${request.id}`,
-    subtitle: `Property #${request.propertyId} • Seller #${request.sellerId}`,
-    createdAt: request?.createdAt || request?.updatedAt || null,
-    priority: 1,
-    primaryAction: "Resolve request",
-    payload: request,
   }));
 
   const investors = pendingInvestors.map((investor) => ({
@@ -66,7 +53,7 @@ function toQueueItems({ submittedListings, openChangeRequests, pendingInvestors 
     payload: investor,
   }));
 
-  return [...submitted, ...changeRequests, ...investors].sort((a, b) => {
+  return [...submitted, ...investors].sort((a, b) => {
     if (a.priority !== b.priority) return a.priority - b.priority;
     return toDateMs(a.createdAt) - toDateMs(b.createdAt);
   });
@@ -75,7 +62,6 @@ function toQueueItems({ submittedListings, openChangeRequests, pendingInvestors 
 function toSectionsFromQueueItems(items) {
   const sections = {
     submittedListings: [],
-    openChangeRequests: [],
     pendingInvestors: [],
   };
 
@@ -95,22 +81,6 @@ function toSectionsFromQueueItems(items) {
         submittedAt: item.createdAt,
         updatedAt: item.createdAt,
         createdAt: item.createdAt,
-      });
-      return;
-    }
-
-    if (item.type === "CHANGE_REQUEST") {
-      const propertyMatch = /Property #(\d+)/i.exec(item.subtitle ?? "");
-      const sellerMatch = /Seller #(\d+)/i.exec(item.subtitle ?? "");
-
-      sections.openChangeRequests.push({
-        id: item.entityId,
-        propertyId: propertyMatch ? Number(propertyMatch[1]) : null,
-        sellerId: sellerMatch ? Number(sellerMatch[1]) : null,
-        requestedChanges: item.details || item.subtitle || "",
-        status: "OPEN",
-        createdAt: item.createdAt,
-        updatedAt: item.createdAt,
       });
       return;
     }
@@ -136,13 +106,11 @@ export default function useAdminQueue({ includeItems = true, pageSize = DEFAULT_
   const [counts, setCounts] = useState({
     draftProperties: 0,
     submittedProperties: 0,
-    openChangeRequests: 0,
     pendingInvestors: 0,
     failedInquiries: 0,
   });
   const [sections, setSections] = useState({
     submittedListings: [],
-    openChangeRequests: [],
     pendingInvestors: [],
   });
   const [loading, setLoading] = useState(false);
@@ -190,7 +158,6 @@ export default function useAdminQueue({ includeItems = true, pageSize = DEFAULT_
               draftByStatusPage?.totalElements ?? 0,
             ),
             submittedProperties: summary?.submittedProperties ?? 0,
-            openChangeRequests: summary?.openChangeRequests ?? 0,
             pendingInvestors: summary?.pendingInvestors ?? 0,
             failedInquiries: summary?.failedInquiries ?? 0,
           };
@@ -198,7 +165,6 @@ export default function useAdminQueue({ includeItems = true, pageSize = DEFAULT_
           setCounts(nextCounts);
           setSections({
             submittedListings: [],
-            openChangeRequests: [],
             pendingInvestors: [],
           });
           setLoading(false);
@@ -232,7 +198,6 @@ export default function useAdminQueue({ includeItems = true, pageSize = DEFAULT_
               draftByStatusPage?.totalElements ?? 0,
             ),
             submittedProperties: summary?.submittedProperties ?? 0,
-            openChangeRequests: summary?.openChangeRequests ?? 0,
             pendingInvestors: summary?.pendingInvestors ?? 0,
             failedInquiries: summary?.failedInquiries ?? 0,
           };
@@ -252,7 +217,7 @@ export default function useAdminQueue({ includeItems = true, pageSize = DEFAULT_
         }
       }
 
-      const [draftByStatusRes, submittedRes, changeReqRes, pendingRes] = await Promise.allSettled([
+      const [draftByStatusRes, submittedRes, pendingRes] = await Promise.allSettled([
         searchProperties(
           { status: "DRAFT" },
           { page: 0, size: 1, sort: "updatedAt,desc" },
@@ -260,10 +225,6 @@ export default function useAdminQueue({ includeItems = true, pageSize = DEFAULT_
         searchProperties(
           { sellerWorkflowStatus: "SUBMITTED" },
           { page: 0, size: includeItems ? pageSize : 1, sort: "submittedAt,asc" },
-        ),
-        getAdminPropertyChangeRequests(
-          { status: "OPEN" },
-          { page: 0, size: includeItems ? pageSize : 1, sort: "createdAt,asc" },
         ),
         searchAdminInvestors(
           { status: "PENDING" },
@@ -282,12 +243,7 @@ export default function useAdminQueue({ includeItems = true, pageSize = DEFAULT_
 
       const submittedData = submittedRes.status === "fulfilled" ? submittedRes.value : null;
       if (submittedRes.status === "rejected") {
-        nextPartialErrors.push("Submitted listings are temporarily unavailable.");
-      }
-
-      const changeReqData = changeReqRes.status === "fulfilled" ? changeReqRes.value : null;
-      if (changeReqRes.status === "rejected") {
-        nextPartialErrors.push("Open change requests are temporarily unavailable.");
+        nextPartialErrors.push("Under review listings are temporarily unavailable.");
       }
 
       const pendingData = pendingRes.status === "fulfilled" ? pendingRes.value : null;
@@ -298,22 +254,18 @@ export default function useAdminQueue({ includeItems = true, pageSize = DEFAULT_
       const nextCounts = {
         draftProperties: draftByStatusData?.totalElements ?? 0,
         submittedProperties: submittedData?.totalElements ?? 0,
-        openChangeRequests: changeReqData?.totalElements ?? 0,
         pendingInvestors: pendingData?.totalElements ?? 0,
         failedInquiries: 0,
       };
 
       setCounts(nextCounts);
-
       setSections({
         submittedListings: includeItems ? submittedData?.content ?? [] : [],
-        openChangeRequests: includeItems ? changeReqData?.content ?? [] : [],
         pendingInvestors: includeItems ? pendingData?.content ?? [] : [],
       });
-
       setPartialErrors(nextPartialErrors);
 
-      const allFailed = nextPartialErrors.length === 4;
+      const allFailed = nextPartialErrors.length === 3;
       if (allFailed) {
         setError("Unable to load admin queue right now.");
         trackAdminEvent("admin.queue.load.error", { includeItems, failures: nextPartialErrors.length });
@@ -332,7 +284,7 @@ export default function useAdminQueue({ includeItems = true, pageSize = DEFAULT_
       if (!alive) return;
       setError("Unable to load admin queue right now.");
       setLoading(false);
-      trackAdminEvent("admin.queue.load.error", { includeItems, failures: 4 });
+      trackAdminEvent("admin.queue.load.error", { includeItems, failures: 3 });
     });
 
     return () => {

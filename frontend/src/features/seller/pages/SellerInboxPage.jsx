@@ -1,9 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { getSellerInquiries } from "@/api/modules/inquiryApi";
-import {
-  getSellerPropertyById,
-  getSellerPropertyChangeRequests,
-} from "@/api/modules/sellerPropertyApi";
+import { getSellerPropertyById } from "@/api/modules/sellerPropertyApi";
 import {
   createSellerThreadMessage,
   getSellerThreadMessages,
@@ -15,6 +12,7 @@ import "@/features/seller/pages/SellerInboxPage.css";
 
 const PAGE_SIZE = 20;
 const THREADS_ENABLED = String(import.meta.env.VITE_FEATURE_SELLER_PORTAL_V2 ?? "false").toLowerCase() === "true";
+const SUPPORTED_THREAD_TOPICS = new Set(["WORKFLOW"]);
 
 function formatDateTime(value) {
   if (!value) return "—";
@@ -47,7 +45,6 @@ function compactAddress(property) {
 
 export default function SellerInboxPage() {
   const [inquiries, setInquiries] = useState([]);
-  const [changeRequests, setChangeRequests] = useState([]);
   const [propertyContextById, setPropertyContextById] = useState({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -68,18 +65,13 @@ export default function SellerInboxPage() {
       setLoading(true);
       setError("");
       try {
-        const [inquiriesPage, requestsPage] = await Promise.all([
-          getSellerInquiries({ page: 0, size: PAGE_SIZE, sort: "createdAt,desc" }),
-          getSellerPropertyChangeRequests({ page: 0, size: PAGE_SIZE, sort: "createdAt,desc" }),
-        ]);
+        const inquiriesPage = await getSellerInquiries({ page: 0, size: PAGE_SIZE, sort: "createdAt,desc" });
 
         if (!alive) return;
         setInquiries(Array.isArray(inquiriesPage?.content) ? inquiriesPage.content : []);
-        setChangeRequests(Array.isArray(requestsPage?.content) ? requestsPage.content : []);
       } catch (nextError) {
         if (!alive) return;
         setInquiries([]);
-        setChangeRequests([]);
         setError(nextError?.message || "Failed to load conversations.");
       } finally {
         if (alive) setLoading(false);
@@ -94,10 +86,7 @@ export default function SellerInboxPage() {
 
   useEffect(() => {
     let alive = true;
-    const missingPropertyIds = [...new Set([
-      ...inquiries.map((row) => row?.propertyId),
-      ...changeRequests.map((row) => row?.propertyId),
-    ].filter(Boolean))]
+    const missingPropertyIds = [...new Set(inquiries.map((row) => row?.propertyId).filter(Boolean))]
       .filter((propertyId) => !propertyContextById[propertyId]);
 
     if (!missingPropertyIds.length) return undefined;
@@ -133,7 +122,7 @@ export default function SellerInboxPage() {
     return () => {
       alive = false;
     };
-  }, [changeRequests, inquiries, propertyContextById]);
+  }, [inquiries, propertyContextById]);
 
   useEffect(() => {
     if (!THREADS_ENABLED) return undefined;
@@ -146,9 +135,14 @@ export default function SellerInboxPage() {
         if (!alive) return;
 
         setThreadsAvailable(true);
-        const rows = Array.isArray(data?.content) ? data.content : [];
+        const rows = (Array.isArray(data?.content) ? data.content : [])
+          .filter((thread) => SUPPORTED_THREAD_TOPICS.has(String(thread?.topicType ?? "").trim().toUpperCase()));
         setThreads(rows);
-        if (!selectedThreadId && rows.length) {
+        if (!rows.length) {
+          setSelectedThreadId(null);
+          return;
+        }
+        if (!selectedThreadId || !rows.some((thread) => thread.id === selectedThreadId)) {
           setSelectedThreadId(rows[0].id);
         }
       } catch (nextError) {
@@ -215,7 +209,7 @@ export default function SellerInboxPage() {
   }, [selectedThreadId, threadsAvailable]);
 
   const timeline = useMemo(() => {
-    const inquiryEvents = inquiries.map((inquiry) => ({
+    return inquiries.map((inquiry) => ({
       id: `inquiry-${inquiry.id}`,
       type: "Investor Inquiry",
       title: propertyContextById[inquiry.propertyId]?.title || `Property #${inquiry.propertyId}`,
@@ -227,23 +221,12 @@ export default function SellerInboxPage() {
         inquiry.contactPhone,
       ].filter(Boolean).join(" • "),
       timestamp: inquiry.createdAt,
-    }));
-
-    const changeEvents = changeRequests.map((request) => ({
-      id: `change-${request.id}`,
-      type: `Change Request • ${prettyEnum(request.status)}`,
-      title: propertyContextById[request.propertyId]?.title || `Property #${request.propertyId}`,
-      detail: request.requestedChanges,
-      meta: request.adminNote || "",
-      timestamp: request.updatedAt || request.createdAt,
-    }));
-
-    return [...inquiryEvents, ...changeEvents].sort((left, right) => {
+    })).sort((left, right) => {
       const leftTime = new Date(left.timestamp ?? 0).getTime() || 0;
       const rightTime = new Date(right.timestamp ?? 0).getTime() || 0;
       return rightTime - leftTime;
     });
-  }, [changeRequests, inquiries, propertyContextById]);
+  }, [inquiries, propertyContextById]);
 
   async function sendThreadMessage() {
     if (!selectedThreadId) return;

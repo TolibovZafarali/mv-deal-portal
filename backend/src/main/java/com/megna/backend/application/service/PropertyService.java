@@ -1,36 +1,28 @@
 package com.megna.backend.application.service;
 
 import com.megna.backend.application.specification.PropertySpecifications;
-import com.megna.backend.domain.entity.Admin;
 import com.megna.backend.domain.entity.Investor;
 import com.megna.backend.domain.entity.PhotoAsset;
 import com.megna.backend.domain.entity.Property;
-import com.megna.backend.domain.entity.PropertyChangeRequest;
 import com.megna.backend.domain.entity.Seller;
 import com.megna.backend.domain.enums.ClosingTerms;
 import com.megna.backend.domain.enums.ExitStrategy;
 import com.megna.backend.domain.enums.InvestorStatus;
 import com.megna.backend.domain.enums.OccupancyStatus;
 import com.megna.backend.domain.enums.PhotoAssetPrincipalRole;
-import com.megna.backend.domain.enums.PropertyChangeRequestStatus;
 import com.megna.backend.domain.enums.PropertyStatus;
 import com.megna.backend.domain.enums.SellerStatus;
 import com.megna.backend.domain.enums.SellerWorkflowStatus;
-import com.megna.backend.domain.repository.AdminRepository;
 import com.megna.backend.domain.repository.InvestorRepository;
-import com.megna.backend.domain.repository.PropertyChangeRequestRepository;
 import com.megna.backend.domain.repository.PropertyRepository;
 import com.megna.backend.domain.repository.SellerRepository;
 import com.megna.backend.infrastructure.security.AuthPrincipal;
 import com.megna.backend.infrastructure.security.SecurityUtils;
-import com.megna.backend.interfaces.rest.dto.property.AdminPropertyChangeRequestDecisionAction;
 import com.megna.backend.interfaces.rest.dto.property.AdminPropertySellerReviewAction;
-import com.megna.backend.interfaces.rest.dto.property.PropertyChangeRequestResponseDto;
 import com.megna.backend.interfaces.rest.dto.property.PropertyResponseDto;
 import com.megna.backend.interfaces.rest.dto.property.PropertyUpsertRequestDto;
 import com.megna.backend.interfaces.rest.dto.property.PropertyPhotoRequestDto;
 import com.megna.backend.interfaces.rest.dto.property.SellerPropertyDraftUpsertRequestDto;
-import com.megna.backend.interfaces.rest.mapper.PropertyChangeRequestMapper;
 import com.megna.backend.interfaces.rest.mapper.PropertyMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -62,8 +54,6 @@ public class PropertyService {
     private final PropertyRepository propertyRepository;
     private final InvestorRepository investorRepository;
     private final SellerRepository sellerRepository;
-    private final AdminRepository adminRepository;
-    private final PropertyChangeRequestRepository propertyChangeRequestRepository;
     private final PropertyAddressAutocompleteService propertyAddressAutocompleteService;
     private final FmrLookupService fmrLookupService;
     private final PhotoAssetService photoAssetService;
@@ -436,41 +426,6 @@ public class PropertyService {
         return PropertyMapper.toDto(saved);
     }
 
-    public PropertyChangeRequestResponseDto createChangeRequestBySeller(Long sellerId, Long propertyId, String requestedChanges) {
-        requireSelfSeller(sellerId);
-
-        Property property = propertyRepository.findById(propertyId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Property not found: " + propertyId));
-        requireSellerOwnsProperty(property, sellerId);
-
-        if (property.getStatus() != ACTIVE || property.getSellerWorkflowStatus() != SellerWorkflowStatus.PUBLISHED) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Can only request changes for active published listings");
-        }
-
-        String message = requestedChanges == null ? "" : requestedChanges.trim();
-        if (message.isBlank()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "requestedChanges is required");
-        }
-
-        Seller seller = requireActiveSeller(sellerId);
-
-        PropertyChangeRequest changeRequest = new PropertyChangeRequest();
-        changeRequest.setProperty(property);
-        changeRequest.setSeller(seller);
-        changeRequest.setRequestedChanges(message);
-        changeRequest.setStatus(PropertyChangeRequestStatus.OPEN);
-
-        PropertyChangeRequest saved = propertyChangeRequestRepository.save(changeRequest);
-        sellerThreadService.postSystemMessageForProperty(
-                property.getId(),
-                sellerId,
-                SellerThreadService.TOPIC_CHANGE_REQUEST,
-                saved.getId(),
-                "Seller requested changes: " + message
-        );
-        return PropertyChangeRequestMapper.toDto(saved);
-    }
-
     public PropertyResponseDto assignSeller(Long propertyId, Long sellerId) {
         requireAdmin();
 
@@ -560,62 +515,6 @@ public class PropertyService {
             );
         }
         return PropertyMapper.toDto(saved);
-    }
-
-    public Page<PropertyChangeRequestResponseDto> getAdminChangeRequests(PropertyChangeRequestStatus status, Pageable pageable) {
-        requireAdmin();
-
-        Page<PropertyChangeRequest> page = status == null
-                ? propertyChangeRequestRepository.findAll(pageable)
-                : propertyChangeRequestRepository.findByStatusOrderByCreatedAtDesc(status, pageable);
-
-        return page.map(PropertyChangeRequestMapper::toDto);
-    }
-
-    public PropertyChangeRequestResponseDto moderateChangeRequest(
-            Long requestId,
-            AdminPropertyChangeRequestDecisionAction action,
-            String adminNote
-    ) {
-        long adminId = requireAdminId();
-
-        if (action == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "action is required");
-        }
-
-        PropertyChangeRequest request = propertyChangeRequestRepository.findById(requestId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Property change request not found: " + requestId));
-
-        if (request.getStatus() != PropertyChangeRequestStatus.OPEN) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Change request has already been resolved");
-        }
-
-        Admin admin = adminRepository.findById(adminId).orElse(null);
-
-        request.setStatus(action == AdminPropertyChangeRequestDecisionAction.APPLIED
-                ? PropertyChangeRequestStatus.APPLIED
-                : PropertyChangeRequestStatus.REJECTED);
-        request.setAdminNote(normalizeOptionalText(adminNote));
-        request.setResolvedAt(LocalDateTime.now());
-        request.setResolvedByAdmin(admin);
-
-        PropertyChangeRequest saved = propertyChangeRequestRepository.save(request);
-        sellerThreadService.postSystemMessageForProperty(
-                saved.getProperty().getId(),
-                saved.getSeller().getId(),
-                SellerThreadService.TOPIC_CHANGE_REQUEST,
-                saved.getId(),
-                action == AdminPropertyChangeRequestDecisionAction.APPLIED
-                        ? "Admin applied your change request."
-                        : "Admin rejected your change request."
-        );
-        return PropertyChangeRequestMapper.toDto(saved);
-    }
-
-    public Page<PropertyChangeRequestResponseDto> getSellerChangeRequests(Long sellerId, Pageable pageable) {
-        requireSelfSellerOrAdmin(sellerId);
-        return propertyChangeRequestRepository.findBySellerIdOrderByCreatedAtDesc(sellerId, pageable)
-                .map(PropertyChangeRequestMapper::toDto);
     }
 
     private AuthPrincipal principal() {

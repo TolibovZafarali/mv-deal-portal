@@ -42,7 +42,6 @@ class SellerInquiryIntegrationTest {
         jdbcTemplate.update("DELETE FROM seller_thread_reads");
         jdbcTemplate.update("DELETE FROM seller_thread_messages");
         jdbcTemplate.update("DELETE FROM seller_threads");
-        jdbcTemplate.update("DELETE FROM property_change_requests");
         jdbcTemplate.update("DELETE FROM inquiries");
         jdbcTemplate.update("DELETE FROM property_photos");
         jdbcTemplate.update("DELETE FROM photo_assets");

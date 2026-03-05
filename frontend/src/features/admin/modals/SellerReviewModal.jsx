@@ -4,6 +4,16 @@ import "@/features/admin/modals/SellerReviewModal.css";
 
 const MAX_REVIEW_NOTE_CHARS = 200;
 
+function formatWorkflowLabel(value) {
+  const normalized = String(value ?? "").trim().toUpperCase();
+  if (!normalized) return "—";
+  if (normalized === "SUBMITTED") return "Under Review";
+  return normalized
+    .toLowerCase()
+    .replaceAll("_", " ")
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
 function SellerReviewModalBody({ property, submitting, submitError, onClose, onSubmit }) {
   const [action, setAction] = useState("");
   const [reviewNote, setReviewNote] = useState("");
@@ -35,7 +45,7 @@ function SellerReviewModalBody({ property, submitting, submitError, onClose, onS
       <div className="sellerReview__meta">
         <div><span>Property:</span> #{property.id}</div>
         <div><span>Address:</span> {address || "—"}</div>
-        <div><span>Current Workflow:</span> {property.sellerWorkflowStatus || "—"}</div>
+        <div><span>Current Workflow:</span> {formatWorkflowLabel(property.sellerWorkflowStatus)}</div>
       </div>
 
       <div className="sellerReview__actionGroup">
