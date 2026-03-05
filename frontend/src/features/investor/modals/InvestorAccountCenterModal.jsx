@@ -2,10 +2,27 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { getInquiryByInvestor } from "@/api/modules/inquiryApi";
 import { getInvestorById, updateInvestor } from "@/api/modules/investorApi";
 import { getPropertyId } from "@/api/modules/propertyApi";
+import { changePassword } from "@/api/modules/authApi";
+import { useAuth } from "@/features/auth";
 import "@/features/investor/modals/InvestorAccountCenterModal.css";
 
 const PROFILE_VIEW = "profile";
+const SECURITY_VIEW = "security";
+const NOTIFICATIONS_VIEW = "notifications";
 const MESSAGES_VIEW = "messages";
+const EMPTY_PROFILE = {
+  firstName: "",
+  lastName: "",
+  email: "",
+  notificationEmail: "",
+  phone: "",
+  companyName: "",
+};
+const ACCOUNT_SECTIONS = [
+  { key: PROFILE_VIEW, label: "Profile", icon: "person" },
+  { key: SECURITY_VIEW, label: "Security", icon: "lock" },
+  { key: NOTIFICATIONS_VIEW, label: "Notifications", icon: "notifications" },
+];
 
 function normalizePropertyId(value) {
   const numeric = Number(value);
@@ -71,10 +88,12 @@ function propertyLeadPhoto(property) {
 }
 
 function profileFromInvestor(investor) {
+  const email = investor?.email ?? "";
   return {
     firstName: investor?.firstName ?? "",
     lastName: investor?.lastName ?? "",
-    email: investor?.email ?? "",
+    email,
+    notificationEmail: investor?.notificationEmail ?? email,
     phone: investor?.phone ?? "",
     companyName: investor?.companyName ?? "",
   };
@@ -88,19 +107,30 @@ export default function InvestorAccountCenterModal({
   onViewPropertyDetails,
   restorePropertyListScrollTop = null,
   preferredPropertyId = null,
+  onChangeView,
 }) {
-  const [profile, setProfile] = useState({
-    firstName: "",
-    lastName: "",
-    email: "",
-    phone: "",
-    companyName: "",
-  });
+  const { signOut } = useAuth();
+  const [profile, setProfile] = useState(EMPTY_PROFILE);
+  const [savedProfile, setSavedProfile] = useState(EMPTY_PROFILE);
+  const [profileEditing, setProfileEditing] = useState(false);
   const [profileLoading, setProfileLoading] = useState(false);
   const [profileError, setProfileError] = useState("");
   const [profileSaving, setProfileSaving] = useState(false);
   const [profileSaveError, setProfileSaveError] = useState("");
   const [profileSaveOk, setProfileSaveOk] = useState("");
+  const [notificationEditing, setNotificationEditing] = useState(false);
+  const [notificationSaving, setNotificationSaving] = useState(false);
+  const [notificationSaveError, setNotificationSaveError] = useState("");
+  const [notificationSaveOk, setNotificationSaveOk] = useState("");
+  const [securityForm, setSecurityForm] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmNewPassword: "",
+  });
+  const [securityEditing, setSecurityEditing] = useState(false);
+  const [securitySaving, setSecuritySaving] = useState(false);
+  const [securityError, setSecurityError] = useState("");
+  const [securityOk, setSecurityOk] = useState("");
 
   const [inquiries, setInquiries] = useState([]);
   const [inquiryLoading, setInquiryLoading] = useState(false);
@@ -114,6 +144,8 @@ export default function InvestorAccountCenterModal({
   const threadSearchInputRef = useRef(null);
 
   const isProfileView = view === PROFILE_VIEW;
+  const isSecurityView = view === SECURITY_VIEW;
+  const isNotificationsView = view === NOTIFICATIONS_VIEW;
   const isMessagesView = view === MESSAGES_VIEW;
   const normalizedPreferredPropertyId = normalizePropertyId(preferredPropertyId);
 
@@ -135,7 +167,7 @@ export default function InvestorAccountCenterModal({
   }, [open, onClose]);
 
   useEffect(() => {
-    if (!open || !isProfileView || !investorId) return;
+    if (!open || isMessagesView || !investorId) return;
     let alive = true;
 
     async function loadProfile() {
@@ -143,11 +175,17 @@ export default function InvestorAccountCenterModal({
       setProfileError("");
       setProfileSaveError("");
       setProfileSaveOk("");
+      setNotificationSaveError("");
+      setNotificationSaveOk("");
 
       try {
         const investor = await getInvestorById(investorId);
         if (!alive) return;
-        setProfile(profileFromInvestor(investor));
+        const nextProfile = profileFromInvestor(investor);
+        setProfile(nextProfile);
+        setSavedProfile(nextProfile);
+        setProfileEditing(false);
+        setNotificationEditing(false);
       } catch (error) {
         if (!alive) return;
         setProfileError(error?.message || "Failed to load profile.");
@@ -160,7 +198,7 @@ export default function InvestorAccountCenterModal({
     return () => {
       alive = false;
     };
-  }, [open, isProfileView, investorId]);
+  }, [open, isMessagesView, investorId]);
 
   useEffect(() => {
     if (!open || !isMessagesView || !investorId) return;
@@ -236,6 +274,19 @@ export default function InvestorAccountCenterModal({
       alive = false;
     };
   }, [open, isMessagesView, investorId]);
+
+  useEffect(() => {
+    if (open) return;
+    setSecurityForm({
+      currentPassword: "",
+      newPassword: "",
+      confirmNewPassword: "",
+    });
+    setSecurityEditing(false);
+    setSecuritySaving(false);
+    setSecurityError("");
+    setSecurityOk("");
+  }, [open]);
 
   useEffect(() => {
     if (!open || !isMessagesView) return;
@@ -383,6 +434,7 @@ export default function InvestorAccountCenterModal({
 
     const companyName = cleanString(profile.companyName);
     const phone = cleanString(profile.phone);
+    const notificationEmail = cleanString(profile.notificationEmail || profile.email).toLowerCase();
 
     if (!companyName || !phone) {
       setProfileSaveError("Company and phone are required.");
@@ -395,14 +447,150 @@ export default function InvestorAccountCenterModal({
     setProfileSaveOk("");
 
     try {
-      const updated = await updateInvestor(investorId, { companyName, phone });
-      setProfile(profileFromInvestor(updated));
+      const updated = await updateInvestor(investorId, { companyName, phone, notificationEmail });
+      const nextProfile = profileFromInvestor(updated);
+      setProfile(nextProfile);
+      setSavedProfile(nextProfile);
+      setProfileEditing(false);
       setProfileSaveOk("Profile updated.");
     } catch (error) {
       setProfileSaveError(error?.message || "Failed to save profile.");
     } finally {
       setProfileSaving(false);
     }
+  }
+
+  async function handleNotificationSave(event) {
+    event.preventDefault();
+    if (!investorId) return;
+
+    const companyName = cleanString(profile.companyName);
+    const phone = cleanString(profile.phone);
+    const notificationEmail = cleanString(profile.notificationEmail).toLowerCase();
+
+    if (!notificationEmail) {
+      setNotificationSaveError("Notification email is required.");
+      setNotificationSaveOk("");
+      return;
+    }
+
+    setNotificationSaving(true);
+    setNotificationSaveError("");
+    setNotificationSaveOk("");
+
+    try {
+      const updated = await updateInvestor(investorId, { companyName, phone, notificationEmail });
+      const nextProfile = profileFromInvestor(updated);
+      setProfile(nextProfile);
+      setSavedProfile(nextProfile);
+      setNotificationEditing(false);
+      setNotificationSaveOk("Notification email updated.");
+    } catch (error) {
+      setNotificationSaveError(error?.message || "Failed to save notification email.");
+    } finally {
+      setNotificationSaving(false);
+    }
+  }
+
+  async function handleSecuritySave(event) {
+    event.preventDefault();
+
+    const currentPassword = securityForm.currentPassword;
+    const newPassword = securityForm.newPassword;
+    const confirmNewPassword = securityForm.confirmNewPassword;
+
+    if (currentPassword.length < 8) {
+      setSecurityError("Current password must be at least 8 characters.");
+      setSecurityOk("");
+      return;
+    }
+
+    if (newPassword.length < 8) {
+      setSecurityError("New password must be at least 8 characters.");
+      setSecurityOk("");
+      return;
+    }
+
+    if (newPassword === currentPassword) {
+      setSecurityError("New password must be different from current password.");
+      setSecurityOk("");
+      return;
+    }
+
+    if (newPassword !== confirmNewPassword) {
+      setSecurityError("New password and confirm password must match.");
+      setSecurityOk("");
+      return;
+    }
+
+    setSecuritySaving(true);
+    setSecurityError("");
+    setSecurityOk("");
+
+    try {
+      await changePassword({ currentPassword, newPassword });
+      setSecurityForm({
+        currentPassword: "",
+        newPassword: "",
+        confirmNewPassword: "",
+      });
+      setSecurityEditing(false);
+      setSecurityOk("Password updated.");
+    } catch (error) {
+      setSecurityError(error?.message || "Failed to change password.");
+    } finally {
+      setSecuritySaving(false);
+    }
+  }
+
+  function handleSecurityEditStart() {
+    setSecurityEditing(true);
+    setSecurityError("");
+    setSecurityOk("");
+  }
+
+  function handleSecurityCancel() {
+    setSecurityForm({
+      currentPassword: "",
+      newPassword: "",
+      confirmNewPassword: "",
+    });
+    setSecurityEditing(false);
+    setSecurityError("");
+    setSecurityOk("");
+  }
+
+  function handleProfileEditStart() {
+    setProfileSaveError("");
+    setProfileSaveOk("");
+    setProfileEditing(true);
+  }
+
+  function handleProfileCancel() {
+    setProfile((prev) => ({
+      ...prev,
+      companyName: savedProfile.companyName,
+      phone: savedProfile.phone,
+    }));
+    setProfileSaveError("");
+    setProfileSaveOk("");
+    setProfileEditing(false);
+  }
+
+  function handleNotificationEditStart() {
+    setNotificationSaveError("");
+    setNotificationSaveOk("");
+    setNotificationEditing(true);
+  }
+
+  function handleNotificationCancel() {
+    setProfile((prev) => ({
+      ...prev,
+      notificationEmail: savedProfile.notificationEmail,
+    }));
+    setNotificationSaveError("");
+    setNotificationSaveOk("");
+    setNotificationEditing(false);
   }
 
   const missingInvestor = !investorId;
@@ -420,7 +608,7 @@ export default function InvestorAccountCenterModal({
       className={`invAccountBackdrop ${open ? "invAccountBackdrop--open" : "invAccountBackdrop--closed"}`.trim()}
       role="dialog"
       aria-modal="true"
-      aria-label={isMessagesView ? "Messages" : "Profile"}
+      aria-label={isMessagesView ? "Messages" : "Account"}
       aria-hidden={!open}
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) onClose?.();
@@ -602,8 +790,42 @@ export default function InvestorAccountCenterModal({
             </>
           ) : (
             <>
-              <h2 className="invAccountModal__title">Profile</h2>
-              <p className="invAccountModal__subcopy">Update your contact details used for inquiry follow-up.</p>
+              <h2 className="invAccountModal__title">Account</h2>
+              <p className="invAccountModal__subcopy">Manage your profile, security, and notification settings.</p>
+              <nav className="invAccountModal__accountNav" aria-label="Account sections">
+                {ACCOUNT_SECTIONS.map((section) => {
+                  const active = view === section.key;
+                  return (
+                    <button
+                      key={section.key}
+                      type="button"
+                      className={`invAccountModal__accountNavBtn ${
+                        active ? "invAccountModal__accountNavBtn--active" : ""
+                      }`.trim()}
+                      aria-current={active ? "page" : undefined}
+                      onClick={() => onChangeView?.(section.key)}
+                    >
+                      <span className="material-symbols-outlined invAccountModal__accountNavIcon" aria-hidden="true">
+                        {section.icon}
+                      </span>
+                      <span className="invAccountModal__accountNavLabel">{section.label}</span>
+                    </button>
+                  );
+                })}
+              </nav>
+              <button
+                type="button"
+                className="invAccountModal__logoutBtn"
+                onClick={() => {
+                  onClose?.();
+                  signOut?.();
+                }}
+              >
+                <span className="material-symbols-outlined invAccountModal__logoutIcon" aria-hidden="true">
+                  logout
+                </span>
+                <span>Log out</span>
+              </button>
             </>
           )}
 
@@ -625,7 +847,7 @@ export default function InvestorAccountCenterModal({
           <button
             className="invAccountModal__close"
             type="button"
-            aria-label={isMessagesView ? "Close messages" : "Close profile"}
+            aria-label={isMessagesView ? "Close messages" : "Close account"}
             onClick={onClose}
           >
             ✕
@@ -667,6 +889,7 @@ export default function InvestorAccountCenterModal({
                   <label className="invAccountModal__field">
                     <span>Phone Number</span>
                     <input
+                      disabled={!profileEditing || profileSaving}
                       value={profile.phone}
                       onChange={(event) =>
                         setProfile((prev) => ({ ...prev, phone: event.target.value }))
@@ -676,6 +899,7 @@ export default function InvestorAccountCenterModal({
                   <label className="invAccountModal__field">
                     <span>Company Name</span>
                     <input
+                      disabled={!profileEditing || profileSaving}
                       value={profile.companyName}
                       onChange={(event) =>
                         setProfile((prev) => ({ ...prev, companyName: event.target.value }))
@@ -694,13 +918,197 @@ export default function InvestorAccountCenterModal({
                     </div>
                   ) : null}
 
-                  <button
-                    className="invAccountModal__save"
-                    type="submit"
-                    disabled={profileSaving}
-                  >
-                    {profileSaving ? "Saving..." : "Edit"}
-                  </button>
+                  <div className="invAccountModal__profileActions">
+                    {!profileEditing ? (
+                      <button
+                        className="invAccountModal__save"
+                        type="button"
+                        onClick={handleProfileEditStart}
+                      >
+                        Edit
+                      </button>
+                    ) : (
+                      <>
+                        <button
+                          className="invAccountModal__save invAccountModal__save--secondary"
+                          type="button"
+                          disabled={profileSaving}
+                          onClick={handleProfileCancel}
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          className="invAccountModal__save"
+                          type="submit"
+                          disabled={profileSaving}
+                        >
+                          {profileSaving ? "Saving..." : "Save"}
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </form>
+              ) : null}
+            </section>
+          ) : null}
+
+          {!missingInvestor && isSecurityView ? (
+            <section className="invAccountModal__panel" aria-label="Security">
+              <h3 className="invAccountModal__panelTitle">Security</h3>
+              <p className="invAccountModal__panelSubcopy">
+                Change your sign-in password.
+              </p>
+              {!securityEditing ? (
+                <div className="invAccountModal__settingsList">
+                  <div className="invAccountModal__settingRow">
+                    <div className="invAccountModal__settingMeta">
+                      <h4 className="invAccountModal__settingTitle">Password</h4>
+                      <p className="invAccountModal__settingText">Protected by your current sign-in password.</p>
+                    </div>
+                    <button className="invAccountModal__settingAction" type="button" onClick={handleSecurityEditStart}>
+                      Change Password
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <form className="invAccountModal__profileForm" onSubmit={handleSecuritySave}>
+                  <label className="invAccountModal__field">
+                    <span>Current Password</span>
+                    <input
+                      type="password"
+                      autoComplete="current-password"
+                      disabled={securitySaving}
+                      value={securityForm.currentPassword}
+                      onChange={(event) => {
+                        setSecurityError("");
+                        setSecurityOk("");
+                        setSecurityForm((prev) => ({ ...prev, currentPassword: event.target.value }));
+                      }}
+                    />
+                  </label>
+                  <label className="invAccountModal__field">
+                    <span>New Password</span>
+                    <input
+                      type="password"
+                      autoComplete="new-password"
+                      disabled={securitySaving}
+                      value={securityForm.newPassword}
+                      onChange={(event) => {
+                        setSecurityError("");
+                        setSecurityOk("");
+                        setSecurityForm((prev) => ({ ...prev, newPassword: event.target.value }));
+                      }}
+                    />
+                  </label>
+                  <label className="invAccountModal__field">
+                    <span>Confirm New Password</span>
+                    <input
+                      type="password"
+                      autoComplete="new-password"
+                      disabled={securitySaving}
+                      value={securityForm.confirmNewPassword}
+                      onChange={(event) => {
+                        setSecurityError("");
+                        setSecurityOk("");
+                        setSecurityForm((prev) => ({ ...prev, confirmNewPassword: event.target.value }));
+                      }}
+                    />
+                  </label>
+                  <div className="invAccountModal__settingNote">
+                    Use at least 8 characters. You will stay signed in on this device after changing it.
+                  </div>
+
+                  {securityError ? (
+                    <div className="invAccountModal__formMsg invAccountModal__formMsg--error">
+                      {securityError}
+                    </div>
+                  ) : null}
+                  <div className="invAccountModal__profileActions">
+                    <button
+                      className="invAccountModal__save invAccountModal__save--secondary"
+                      type="button"
+                      disabled={securitySaving}
+                      onClick={handleSecurityCancel}
+                    >
+                      Cancel
+                    </button>
+                    <button className="invAccountModal__save" type="submit" disabled={securitySaving}>
+                      {securitySaving ? "Saving..." : "Save Password"}
+                    </button>
+                  </div>
+                </form>
+              )}
+              {securityOk ? (
+                <div className="invAccountModal__formMsg invAccountModal__formMsg--ok">
+                  {securityOk}
+                </div>
+              ) : null}
+            </section>
+          ) : null}
+
+          {!missingInvestor && isNotificationsView ? (
+            <section className="invAccountModal__panel" aria-label="Notifications">
+              <h3 className="invAccountModal__panelTitle">Notifications</h3>
+              <p className="invAccountModal__panelSubcopy">
+                Set a notification email for deal and platform updates.
+              </p>
+              {profileLoading ? <div className="invAccountModal__notice">Loading account settings...</div> : null}
+              {!profileLoading && profileError ? (
+                <div className="invAccountModal__notice invAccountModal__notice--error">
+                  {profileError}
+                </div>
+              ) : null}
+              {!profileLoading && !profileError ? (
+                <form className="invAccountModal__profileForm" onSubmit={handleNotificationSave}>
+                  <label className="invAccountModal__field">
+                    <span>Notification Email</span>
+                    <input
+                      type="email"
+                      disabled={!notificationEditing || notificationSaving}
+                      value={profile.notificationEmail}
+                      onChange={(event) =>
+                        setProfile((prev) => ({ ...prev, notificationEmail: event.target.value }))
+                      }
+                    />
+                  </label>
+                  <div className="invAccountModal__settingNote">
+                    Separate from your login email. Used for notifications only.
+                  </div>
+                  {notificationSaveError ? (
+                    <div className="invAccountModal__formMsg invAccountModal__formMsg--error">
+                      {notificationSaveError}
+                    </div>
+                  ) : null}
+                  {notificationSaveOk ? (
+                    <div className="invAccountModal__formMsg invAccountModal__formMsg--ok">
+                      {notificationSaveOk}
+                    </div>
+                  ) : null}
+                  <div className="invAccountModal__profileActions">
+                    {!notificationEditing ? (
+                      <button
+                        className="invAccountModal__save"
+                        type="button"
+                        onClick={handleNotificationEditStart}
+                      >
+                        Edit
+                      </button>
+                    ) : (
+                      <>
+                        <button
+                          className="invAccountModal__save invAccountModal__save--secondary"
+                          type="button"
+                          disabled={notificationSaving}
+                          onClick={handleNotificationCancel}
+                        >
+                          Cancel
+                        </button>
+                        <button className="invAccountModal__save" type="submit" disabled={notificationSaving}>
+                          {notificationSaving ? "Saving..." : "Save"}
+                        </button>
+                      </>
+                    )}
+                  </div>
                 </form>
               ) : null}
             </section>

@@ -183,8 +183,17 @@ export default function LoginModal() {
             </button>
           </div>
 
-          {/* DOM order puts button before link so Tab goes password -> Login button.
-              CSS order below makes the link LOOK between fields and button. */}
+          <div className="loginModal__forgot">
+            <Link
+              className="loginModal__forgotLink"
+              to="/forgot-password"
+              replace
+              state={{ modal: true, backgroundLocation: bg, from, forceHomeOnClose }}
+            >
+              Forgot password?
+            </Link>
+          </div>
+
           <button className="loginModal__btn" disabled={loading || !email || !password}>
             {loading ? "Logging in..." : "Login"}
           </button>

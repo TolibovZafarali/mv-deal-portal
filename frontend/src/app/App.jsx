@@ -6,6 +6,8 @@ const AdminLayout = lazy(() => import("@/features/admin/layout/AdminLayout"))
 const InvestorLayout = lazy(() => import("@/features/investor/layout/InvestorLayout"))
 const SellerLayout = lazy(() => import("@/features/seller/layout/SellerLayout"))
 const LoginModal = lazy(() => import("@/features/auth/modals/LoginModal"))
+const ForgotPasswordModal = lazy(() => import("@/features/auth/modals/ForgotPasswordModal"))
+const ResetPasswordModal = lazy(() => import("@/features/auth/modals/ResetPasswordModal"))
 const SignUpModal = lazy(() => import("@/features/auth/modals/SignUpModal"))
 const ApiSmokeTest = lazy(() => import("@/features/dev/pages/ApiSmokeTest"))
 const AppRedirect = lazy(() => import("@/app/routing/AppRedirect"))
@@ -45,6 +47,8 @@ export default function App() {
         <Routes location={backgroundLocation || location}>
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<LoginModal />} />
+          <Route path="/forgot-password" element={<ForgotPasswordModal />} />
+          <Route path="/reset-password" element={<ResetPasswordModal />} />
           <Route path="/signup" element={<SignUpModal />} />
           <Route path="/signup/seller" element={<SignUpModal />} />
 
@@ -88,6 +92,8 @@ export default function App() {
         <Suspense fallback={null}>
           <Routes>
             <Route path="/login" element={<LoginModal />} />
+            <Route path="/forgot-password" element={<ForgotPasswordModal />} />
+            <Route path="/reset-password" element={<ResetPasswordModal />} />
             <Route path="/signup" element={<SignUpModal />} />
             <Route path="/signup/seller" element={<SignUpModal />} />
           </Routes>

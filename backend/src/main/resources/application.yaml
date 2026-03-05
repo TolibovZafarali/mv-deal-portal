@@ -18,6 +18,9 @@ spring:
       max-file-size: 10MB
       max-request-size: 30MB
 app:
+  auth:
+    password-reset-url-base: ${APP_AUTH_PASSWORD_RESET_URL_BASE:http://localhost:5173/reset-password}
+    password-reset-token-ttl-minutes: ${APP_AUTH_PASSWORD_RESET_TOKEN_TTL_MINUTES:30}
   jwt:
     secret: ${JWT_SECRET}
     issuer: ${JWT_ISSUER:megna-backend}

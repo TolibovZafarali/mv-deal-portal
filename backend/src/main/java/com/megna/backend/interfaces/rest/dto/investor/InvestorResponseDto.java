@@ -10,6 +10,7 @@ public record InvestorResponseDto(
         String lastName,
         String companyName,
         String email,
+        String notificationEmail,
         String phone,
         InvestorStatus status,
         String rejectionReason,

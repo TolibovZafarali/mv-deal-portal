@@ -5,7 +5,15 @@ import InvestorAccountCenterModal from "@/features/investor/modals/InvestorAccou
 import "@/features/investor/layout/InvestorLayout.css";
 
 const PROFILE_VIEW = "profile";
+const SECURITY_VIEW = "security";
+const NOTIFICATIONS_VIEW = "notifications";
 const MESSAGES_VIEW = "messages";
+const ACCOUNT_VIEWS = new Set([
+  PROFILE_VIEW,
+  SECURITY_VIEW,
+  NOTIFICATIONS_VIEW,
+  MESSAGES_VIEW,
+]);
 
 function normalizePropertyId(value) {
   const numeric = Number(value);
@@ -17,8 +25,14 @@ export default function InvestorLayout() {
   const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const accountParam = searchParams.get("account");
-  const accountOpen = accountParam === PROFILE_VIEW || accountParam === MESSAGES_VIEW;
-  const accountView = accountParam === MESSAGES_VIEW ? MESSAGES_VIEW : PROFILE_VIEW;
+  const accountOpen = ACCOUNT_VIEWS.has(accountParam);
+  const accountView = accountParam === MESSAGES_VIEW
+    ? MESSAGES_VIEW
+    : accountParam === SECURITY_VIEW
+      ? SECURITY_VIEW
+      : accountParam === NOTIFICATIONS_VIEW
+        ? NOTIFICATIONS_VIEW
+        : PROFILE_VIEW;
   const [propertyDetailsOpener, setPropertyDetailsOpener] = useState(null);
   const [messagesListScrollTop, setMessagesListScrollTop] = useState(null);
   const [messagesSelectedPropertyId, setMessagesSelectedPropertyId] = useState(null);
@@ -27,7 +41,7 @@ export default function InvestorLayout() {
     (nextView) => {
       setSearchParams((prev) => {
         const next = new URLSearchParams(prev);
-        if (nextView === PROFILE_VIEW || nextView === MESSAGES_VIEW) {
+        if (ACCOUNT_VIEWS.has(nextView)) {
           next.set("account", nextView);
         } else {
           next.delete("account");
@@ -93,22 +107,24 @@ export default function InvestorLayout() {
           <button
             className="investorHeader__actionBtn"
             type="button"
+            aria-label="Messages"
             onClick={() => openAccount(MESSAGES_VIEW)}
           >
             <span className="material-symbols-outlined investorHeader__actionIcon" aria-hidden="true">
               forum
             </span>
-            Messages
+            <span className="investorHeader__actionLabel">Messages</span>
           </button>
           <button
             className="investorHeader__actionBtn"
             type="button"
+            aria-label="Account"
             onClick={() => openAccount(PROFILE_VIEW)}
           >
             <span className="material-symbols-outlined investorHeader__actionIcon" aria-hidden="true">
               person
             </span>
-            Profile
+            <span className="investorHeader__actionLabel">Account</span>
           </button>
         </div>
       </header>
@@ -125,6 +141,7 @@ export default function InvestorLayout() {
         onViewPropertyDetails={handleViewPropertyDetails}
         restorePropertyListScrollTop={messagesListScrollTop}
         preferredPropertyId={messagesSelectedPropertyId}
+        onChangeView={setAccountQuery}
       />
     </div>
   );

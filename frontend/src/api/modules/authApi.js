@@ -30,6 +30,21 @@ export async function me(tokenOverride) {
     return data; // { role, status, email, userId, investorId, sellerId }
 }
 
+export async function changePassword(payload) {
+    await apiClient.post(`${AUTH_BASE}/password/change`, payload);
+    return true;
+}
+
+export async function requestPasswordReset(payload) {
+    await apiClient.post(`${AUTH_BASE}/password/forgot`, payload);
+    return true;
+}
+
+export async function resetPassword(payload) {
+    await apiClient.post(`${AUTH_BASE}/password/reset`, payload);
+    return true;
+}
+
 export function logout() {
     clearAccessToken();
 }

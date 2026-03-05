@@ -62,6 +62,10 @@
   line-height: 1;
 }
 
+.investorHeader__actionLabel {
+  display: inline;
+}
+
 .investorMain {
   min-height: 0;
   overflow: hidden;
@@ -69,11 +73,39 @@
 }
 
 @media (max-width: 720px) {
+  .investorShell {
+    grid-template-rows: auto 1fr;
+  }
+
   .investorHeader {
     padding: 0 12px;
+    gap: 12px;
+    min-height: 68px;
+  }
+
+  .investorBrand__logo {
+    height: 34px;
+    max-width: min(150px, 42vw);
   }
 
   .investorHeader__actions {
-    gap: 12px;
+    gap: 10px;
+    min-width: 0;
+  }
+
+  .investorHeader__actionBtn {
+    width: 40px;
+    min-width: 40px;
+    height: 40px;
+    padding: 0;
+    gap: 0;
+  }
+
+  .investorHeader__actionIcon {
+    font-size: 20px;
+  }
+
+  .investorHeader__actionLabel {
+    display: none;
   }
 }

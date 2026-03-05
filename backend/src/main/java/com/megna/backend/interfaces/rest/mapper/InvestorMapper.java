@@ -6,6 +6,7 @@ import com.megna.backend.interfaces.rest.dto.investor.InvestorUpdateRequestDto;
 import com.megna.backend.domain.entity.Investor;
 import com.megna.backend.domain.enums.InvestorStatus;
 
+import java.util.Locale;
 import java.time.LocalDateTime;
 
 public final class InvestorMapper {
@@ -21,6 +22,7 @@ public final class InvestorMapper {
                 entity.getLastName(),
                 entity.getCompanyName(),
                 entity.getEmail(),
+                entity.getNotificationEmail(),
                 entity.getPhone(),
                 entity.getStatus(),
                 entity.getRejectionReason(),
@@ -35,6 +37,12 @@ public final class InvestorMapper {
 
         entity.setCompanyName(dto.companyName());
         entity.setPhone(dto.phone());
+        if (dto.notificationEmail() != null) {
+            String normalized = dto.notificationEmail().trim().toLowerCase(Locale.US);
+            if (!normalized.isBlank()) {
+                entity.setNotificationEmail(normalized);
+            }
+        }
     }
 
 //    Updates Investor approval status.

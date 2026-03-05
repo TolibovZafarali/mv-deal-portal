@@ -204,6 +204,78 @@ class AuthMeIntegrationTest {
                 .andExpect(status().isConflict());
     }
 
+    @Test
+    void changePasswordShouldUpdateAdminPasswordAndAllowRelogin() throws Exception {
+        String email = "password.change.admin@example.com";
+        String currentPassword = "AdminPass123!";
+        String newPassword = "AdminPass456!";
+
+        Admin admin = Admin.builder()
+                .email(email)
+                .passwordHash(passwordEncoder.encode(currentPassword))
+                .build();
+        adminRepository.save(admin);
+
+        String token = loginAndExtractToken(email, currentPassword);
+        String body = objectMapper.writeValueAsString(new ChangePasswordBody(currentPassword, newPassword));
+
+        mockMvc.perform(post("/api/auth/password/change")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new LoginBody(email, currentPassword))))
+                .andExpect(status().isUnauthorized());
+
+        mockMvc.perform(post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new LoginBody(email, newPassword))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.accessToken").isString());
+    }
+
+    @Test
+    void changePasswordShouldRejectWrongCurrentPassword() throws Exception {
+        String email = "password.change.mismatch@example.com";
+        String currentPassword = "AdminPass123!";
+        String newPassword = "AdminPass456!";
+
+        Admin admin = Admin.builder()
+                .email(email)
+                .passwordHash(passwordEncoder.encode(currentPassword))
+                .build();
+        adminRepository.save(admin);
+
+        String token = loginAndExtractToken(email, currentPassword);
+        String body = objectMapper.writeValueAsString(new ChangePasswordBody("WrongPass123!", newPassword));
+
+        mockMvc.perform(post("/api/auth/password/change")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Current password is incorrect"));
+
+        mockMvc.perform(post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new LoginBody(email, currentPassword))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.accessToken").isString());
+    }
+
+    @Test
+    void changePasswordShouldRequireAuthentication() throws Exception {
+        String body = objectMapper.writeValueAsString(new ChangePasswordBody("AdminPass123!", "AdminPass456!"));
+
+        mockMvc.perform(post("/api/auth/password/change")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isUnauthorized());
+    }
+
     private String loginAndExtractToken(String email, String password) throws Exception {
         String body = objectMapper.writeValueAsString(new LoginBody(email, password));
 
@@ -219,4 +291,5 @@ class AuthMeIntegrationTest {
     }
 
     private record LoginBody(String email, String password) {}
+    private record ChangePasswordBody(String currentPassword, String newPassword) {}
 }

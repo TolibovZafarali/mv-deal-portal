@@ -30,6 +30,9 @@ public class Investor {
     @Column(name = "email", nullable = false, length = 255, unique = true)
     private String email;
 
+    @Column(name = "notification_email", length = 255)
+    private String notificationEmail;
+
     @Column(name = "phone", length = 30, nullable = false)
     private String phone;
 
