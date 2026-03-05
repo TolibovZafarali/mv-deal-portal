@@ -84,6 +84,7 @@ export default function AdminLayout() {
     <div className={`adminShell ${effectiveSidebarCollapsed ? "adminShell--collapsed" : ""}`}>
       <aside className={`adminSidebar ${effectiveSidebarCollapsed ? "adminSidebar--collapsed" : ""}`}>
         <div className="adminBrand">
+          <span className="adminBrand__label">ADMIN PORTAL</span>
           <button
             className="adminBrand__collapse"
             type="button"

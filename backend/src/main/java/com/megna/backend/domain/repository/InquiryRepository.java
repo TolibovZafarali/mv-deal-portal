@@ -10,6 +10,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface InquiryRepository extends JpaRepository<Inquiry, Long> {
     Page<Inquiry> findByPropertyId(Long propertyId, Pageable pageable);
@@ -42,4 +43,6 @@ public interface InquiryRepository extends JpaRepository<Inquiry, Long> {
     long countByInvestorId(Long investorId);
 
     long countByPropertySellerId(Long sellerId);
+
+    Optional<Inquiry> findTopByInvestorIdAndPropertyIdOrderByCreatedAtDescIdDesc(Long investorId, Long propertyId);
 }
