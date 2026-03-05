@@ -370,6 +370,9 @@ export default function PropertyUpsertModal({
 }) {
   const isEdit = mode === "edit";
   const isSellerVariant = variant === "seller";
+  const sellerWorkflowStatus = String(initialValue?.sellerWorkflowStatus ?? "").trim().toUpperCase();
+  const isSellerUnderReview =
+    isSellerVariant && isEdit && sellerWorkflowStatus === "SUBMITTED";
   const isAddressLocked = isSellerVariant && isEdit;
 
   const [form, setForm] = useState(DEFAULT_FORM);
@@ -716,10 +719,10 @@ export default function PropertyUpsertModal({
     };
   }, [open, isOwnerAssigned, assignedOwner?.email, assignedOwner?.companyName, form.sellerId]);
 
-  const titleText = useMemo(
-    () => (isEdit ? "Edit Property" : "Add Property"),
-    [isEdit],
-  );
+  const titleText = useMemo(() => {
+    if (isSellerUnderReview) return "Property Under Review";
+    return isEdit ? "Edit Property" : "Add Property";
+  }, [isEdit, isSellerUnderReview]);
   const isOccupied = String(form.occupancyStatus ?? "").trim().toUpperCase() === "YES";
   const potentialProfit = useMemo(() => {
     const arv = parseNumericValue(form.arv);
@@ -1408,7 +1411,7 @@ export default function PropertyUpsertModal({
 
   function handleSubmit(e) {
     e.preventDefault();
-    if (submitting || photoUploading || photoUrlAdding) return;
+    if (isSellerUnderReview || submitting || photoUploading || photoUrlAdding) return;
     onSubmit?.(form);
   }
 
@@ -1546,6 +1549,13 @@ export default function PropertyUpsertModal({
         </div>
 
         <form className="propModal__body" onSubmit={handleSubmit}>
+          {isSellerUnderReview ? (
+            <div className="propModal__notice">
+              This property is currently under review by Megna. Editing is disabled until review is complete.
+            </div>
+          ) : null}
+
+          <fieldset className="propModal__fieldset" disabled={isSellerUnderReview}>
           {/* Address */}
           <div className="propSection">
             <div className="propSection__head">
@@ -2514,6 +2524,7 @@ export default function PropertyUpsertModal({
               </div>
             </>
           ) : null}
+          </fieldset>
 
           {/* errors */}
           {hasMissingAddressFields ? (
@@ -2539,7 +2550,16 @@ export default function PropertyUpsertModal({
           {/* Actions */}
           <div className="propActions">
             {mode === "edit" ? (
-              showDeleteConfirm && typeof onDelete === "function" ? (
+              isSellerUnderReview ? (
+                <button
+                  type="button"
+                  className="propBtn propBtn--muted"
+                  onClick={onClose}
+                  disabled={submitting}
+                >
+                  Close
+                </button>
+              ) : showDeleteConfirm && typeof onDelete === "function" ? (
                 <div className="propDeleteConfirm">
                   <div className="propDeleteConfirm__text">
                     Delete this property?{" "}
@@ -2581,14 +2601,16 @@ export default function PropertyUpsertModal({
                     </button>
                   ) : null}
 
-                  <button
-                    type="button"
-                    className="propBtn propBtn--muted"
-                    onClick={onClose}
-                    disabled={submitting || deleting}
-                  >
-                    Cancel
-                  </button>
+                  {!isSellerVariant ? (
+                    <button
+                      type="button"
+                      className="propBtn propBtn--muted"
+                      onClick={onClose}
+                      disabled={submitting || deleting}
+                    >
+                      Cancel
+                    </button>
+                  ) : null}
 
                   <button
                     type="submit"

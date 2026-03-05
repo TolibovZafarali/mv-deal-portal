@@ -67,6 +67,13 @@ public class SellerPropertyController {
         return propertyService.updateBySeller(sellerId, id, dto);
     }
 
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void delete(@PathVariable Long id) {
+        long sellerId = requireSellerId();
+        propertyService.deleteBySeller(sellerId, id);
+    }
+
     @PostMapping("/{id}/submit")
     public PropertyResponseDto submit(@PathVariable Long id) {
         long sellerId = requireSellerId();

@@ -159,9 +159,22 @@ public class PropertyService {
         Property property = propertyRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Property not found: " + id));
 
-        List<String> photoAssetIds = photoAssetService.collectPhotoAssetIds(property.getPhotos());
-        photoAssetService.markDeletedPending(photoAssetIds);
-        propertyRepository.deleteById(id);
+        deletePropertyWithPhotos(property);
+    }
+
+    public void deleteBySeller(Long sellerId, Long propertyId) {
+        requireSelfSeller(sellerId);
+
+        Property property = propertyRepository.findById(propertyId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Property not found: " + propertyId));
+        requireSellerOwnsProperty(property, sellerId);
+
+        SellerWorkflowStatus workflowStatus = property.getSellerWorkflowStatus();
+        if (workflowStatus != SellerWorkflowStatus.DRAFT && workflowStatus != SellerWorkflowStatus.CHANGES_REQUESTED) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Property cannot be deleted in the current workflow state");
+        }
+
+        deletePropertyWithPhotos(property);
     }
 
     public Page<PropertyResponseDto> search(
@@ -316,6 +329,7 @@ public class PropertyService {
         validateUniquePhotoAssetIds(dto.photos());
         Property property = new Property();
         applySellerDraftUpsert(dto, property);
+        validateSellerAddressNotDuplicate(sellerId, property);
         property.setSeller(seller);
         property.setStatus(PropertyStatus.DRAFT);
         property.setSellerWorkflowStatus(SellerWorkflowStatus.DRAFT);
@@ -736,6 +750,12 @@ public class PropertyService {
         property.setCurrentRent(null);
     }
 
+    private void deletePropertyWithPhotos(Property property) {
+        List<String> photoAssetIds = photoAssetService.collectPhotoAssetIds(property.getPhotos());
+        photoAssetService.markDeletedPending(photoAssetIds);
+        propertyRepository.deleteById(property.getId());
+    }
+
     private void refreshCoordinates(Property property, boolean clearWhenUnavailable) {
         if (property == null) return;
 
@@ -782,6 +802,28 @@ public class PropertyService {
                 normalizeAddressPart(property.getState()).toLowerCase(Locale.US),
                 normalizeAddressPart(property.getZip()).toLowerCase(Locale.US)
         );
+    }
+
+    private void validateSellerAddressNotDuplicate(Long sellerId, Property property) {
+        String street1 = normalizeAddressPart(property == null ? null : property.getStreet1()).toLowerCase(Locale.US);
+        String city = normalizeAddressPart(property == null ? null : property.getCity()).toLowerCase(Locale.US);
+        String state = normalizeAddressPart(property == null ? null : property.getState()).toLowerCase(Locale.US);
+        String zip = normalizeAddressPart(property == null ? null : property.getZip()).toLowerCase(Locale.US);
+
+        if (street1.isBlank() || city.isBlank() || state.isBlank() || zip.isBlank()) {
+            return;
+        }
+
+        boolean duplicateExists = propertyRepository.existsBySellerAndNormalizedAddress(
+                sellerId,
+                street1,
+                city,
+                state,
+                zip
+        );
+        if (duplicateExists) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "You already have a property with this address.");
+        }
     }
 
     private static String normalizeAddressPart(String value) {

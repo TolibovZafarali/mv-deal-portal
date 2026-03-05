@@ -6,6 +6,7 @@ import "@/features/seller/layout/SellerLayout.css";
 export default function SellerLayout() {
   const location = useLocation();
   const navigate = useNavigate();
+  const isListingsRoute = /^\/seller\/listings\/?$/.test(location.pathname);
 
   const [summary, setSummary] = useState(null);
   const [summaryLoading, setSummaryLoading] = useState(false);
@@ -82,7 +83,7 @@ export default function SellerLayout() {
         </div>
       </header>
 
-      <main className="sellerMainV2">
+      <main className={`sellerMainV2${isListingsRoute ? " sellerMainV2--lists" : ""}`}>
         <Outlet context={{ dashboardSummary: summary, refreshDashboardSummary: loadSummary, summaryLoading }} />
       </main>
     </div>

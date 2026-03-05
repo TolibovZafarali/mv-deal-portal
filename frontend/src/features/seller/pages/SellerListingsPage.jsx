@@ -3,6 +3,7 @@ import { useOutletContext, useSearchParams } from "react-router-dom";
 import {
   createSellerProperty,
   createSellerPropertyPhotoFromUrl,
+  deleteSellerProperty,
   deleteSellerPropertyPhotoUpload,
   getSellerProperties,
   getSellerPropertyById,
@@ -30,6 +31,19 @@ function fullAddress(property) {
   const line1 = [property?.street1, property?.street2].filter(Boolean).join(", ");
   const stateZip = [property?.state, property?.zip].filter(Boolean).join(" ");
   return [line1, property?.city, stateZip].filter(Boolean).join(", ");
+}
+
+function normalizeAddressToken(value) {
+  return String(value ?? "").trim().toLowerCase();
+}
+
+function sellerAddressKey(street1, city, state, zip) {
+  const s1 = normalizeAddressToken(street1);
+  const c = normalizeAddressToken(city);
+  const st = normalizeAddressToken(state);
+  const z = normalizeAddressToken(zip);
+  if (!s1 || !c || !st || !z) return "";
+  return `${s1}|${c}|${st}|${z}`;
 }
 
 function formatDateTime(value) {
@@ -209,6 +223,8 @@ export default function SellerListingsPage() {
   const [editInitial, setEditInitial] = useState(null);
   const [editSubmitting, setEditSubmitting] = useState(false);
   const [editError, setEditError] = useState("");
+  const [editDeleting, setEditDeleting] = useState(false);
+  const [editDeleteError, setEditDeleteError] = useState("");
   const [editLoadError, setEditLoadError] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
   const [createSubmitting, setCreateSubmitting] = useState(false);
@@ -259,11 +275,19 @@ export default function SellerListingsPage() {
   }, [searchParams, setSearchParams]);
 
   const { published, notPublished } = useMemo(() => sectionRows(rows), [rows]);
-  const draftHeaderCount = Number(outlet?.dashboardSummary?.drafts ?? notPublished.length);
+  const existingAddressKeys = useMemo(() => {
+    const keys = new Set();
+    rows.forEach((row) => {
+      const key = sellerAddressKey(row?.street1, row?.city, row?.state, row?.zip);
+      if (key) keys.add(key);
+    });
+    return keys;
+  }, [rows]);
 
   async function openEditModal(id) {
     setEditLoadError("");
     setEditError("");
+    setEditDeleteError("");
 
     try {
       const full = await getSellerPropertyById(id);
@@ -300,6 +324,24 @@ export default function SellerListingsPage() {
     }
   }
 
+  async function handleEditDelete() {
+    if (!editInitial?.id || editDeleting || editSubmitting) return;
+
+    setEditDeleteError("");
+    setEditDeleting(true);
+    try {
+      await deleteSellerProperty(editInitial.id);
+      setEditOpen(false);
+      setEditInitial(null);
+      setRefreshKey((value) => value + 1);
+      outlet.refreshDashboardSummary?.();
+    } catch (nextError) {
+      setEditDeleteError(nextError?.message || "Failed to delete listing.");
+    } finally {
+      setEditDeleting(false);
+    }
+  }
+
   async function handlePhotoUpload(file) {
     return uploadSellerPropertyPhoto(file);
   }
@@ -325,6 +367,11 @@ export default function SellerListingsPage() {
     setCreateError("");
 
     try {
+      const key = sellerAddressKey(form?.street1, form?.city, form?.state, form?.zip);
+      if (key && existingAddressKeys.has(key)) {
+        throw new Error("You already have a property with this address.");
+      }
+
       const dto = formToSellerDraftDto(form);
       await createSellerProperty(dto);
       stopTimer("success");
@@ -379,10 +426,17 @@ export default function SellerListingsPage() {
 
     return (
       <article key={property.id} className="sellerDashCard">
-        <button
-          type="button"
+        <div
+          role="button"
+          tabIndex={0}
           className="sellerDashCard__focus"
           onClick={() => openEditModal(property.id)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              openEditModal(property.id);
+            }
+          }}
         >
           <div className="sellerDashCard__mediaWrap">
             {photoUrl ? (
@@ -408,37 +462,47 @@ export default function SellerListingsPage() {
               <span>{property?.beds ?? "—"} bd</span>
               <span>{property?.baths ?? "—"} ba</span>
               <span>{property?.livingAreaSqft?.toLocaleString?.("en-US") ?? property?.livingAreaSqft ?? "—"} sqft</span>
-              <span className="sellerDashCard__metaStatus">Updated {formatDateTime(property?.updatedAt)}</span>
+            </div>
+            <p className="sellerDashCard__updated">Updated {formatDateTime(property?.updatedAt)}</p>
+
+            <div
+              className="sellerDashCard__actionRail"
+              onClick={(event) => event.stopPropagation()}
+              onMouseDown={(event) => event.stopPropagation()}
+            >
+              {workflow === "CLOSED" ? (
+                <div className="sellerDashCard__hint sellerDashCard__hint--review">
+                  Listing is closed.
+                </div>
+              ) : workflow === "PUBLISHED" ? (
+                <div className="sellerDashCard__hint sellerDashCard__hint--review">
+                  Property is published on Megna.
+                </div>
+              ) : isUnderReview ? (
+                <div className="sellerDashCard__hint sellerDashCard__hint--review">
+                  {publishHint || "Megna is reviewing this property now."}
+                </div>
+              ) : readyToPublish ? (
+                <button
+                  type="button"
+                  className="sellerDashCard__publishBtn"
+                  onClick={() => handlePublish(property.id)}
+                  disabled={publishing}
+                >
+                  {publishing ? "Publishing..." : "Publish"}
+                </button>
+              ) : (
+                <div className="sellerDashCard__hint">
+                  Fill out all property fields to publish.
+                </div>
+              )}
+
+              {publishError ? (
+                <div className="sellerDashCard__hint sellerDashCard__hint--error">{publishError}</div>
+              ) : null}
             </div>
           </div>
-        </button>
-
-        {workflow !== "PUBLISHED" && workflow !== "CLOSED" ? (
-          <div className="sellerDashCard__footer">
-            {isUnderReview ? (
-              <div className="sellerDashCard__hint sellerDashCard__hint--review">
-                {publishHint || "Megna is reviewing this property now."}
-              </div>
-            ) : readyToPublish ? (
-              <button
-                type="button"
-                className="sellerDashCard__publishBtn"
-                onClick={() => handlePublish(property.id)}
-                disabled={publishing}
-              >
-                {publishing ? "Publishing..." : "Publish"}
-              </button>
-            ) : (
-              <div className="sellerDashCard__hint">
-                Fill out all property fields to publish.
-              </div>
-            )}
-
-            {publishError ? (
-              <div className="sellerDashCard__hint sellerDashCard__hint--error">{publishError}</div>
-            ) : null}
-          </div>
-        ) : null}
+        </div>
       </article>
     );
   }
@@ -453,13 +517,13 @@ export default function SellerListingsPage() {
         <div className="sellerDashSplit__columns">
           <section className="sellerDashSplit__column">
             <header className="sellerDashSplit__heading">
-              <h2>Draft</h2>
-              <span>{draftHeaderCount}</span>
+              <h2>Unpublished</h2>
+              <span>{notPublished.length}</span>
             </header>
             {notPublished.length ? (
               <div className="sellerDashSplit__cards">{notPublished.map((property) => renderCard(property))}</div>
             ) : (
-              <div className="sellerDashSplit__empty">No draft properties.</div>
+              <div className="sellerDashSplit__empty">No unpublished properties.</div>
             )}
           </section>
 
@@ -491,17 +555,21 @@ export default function SellerListingsPage() {
         variant="seller"
         initialValue={editInitial}
         onClose={() => {
-          if (editSubmitting) return;
+          if (editSubmitting || editDeleting) return;
           setEditOpen(false);
           setEditInitial(null);
           setEditError("");
+          setEditDeleteError("");
         }}
         onSubmit={handleEditSubmit}
+        onDelete={handleEditDelete}
         onUploadPhoto={handlePhotoUpload}
         onAddPhotoByUrl={handlePhotoUrlAdd}
         onDeleteUploadedPhoto={handlePhotoUploadDelete}
         submitting={editSubmitting}
+        deleting={editDeleting}
         submitError={editError}
+        deleteError={editDeleteError}
       />
 
       <PropertyUpsertModal

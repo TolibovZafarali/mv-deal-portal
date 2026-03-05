@@ -26,6 +26,11 @@ export async function updateSellerProperty(id, propertyUpsertDto) {
   return data;
 }
 
+export async function deleteSellerProperty(id) {
+  await apiClient.delete(`${BASE}/${id}`);
+  return true;
+}
+
 export async function submitSellerProperty(id) {
   const { data } = await apiClient.post(`${BASE}/${id}/submit`, null);
   return data;
