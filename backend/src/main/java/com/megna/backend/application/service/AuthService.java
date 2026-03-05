@@ -23,6 +23,7 @@ import com.megna.backend.domain.repository.PasswordResetTokenRepository;
 import com.megna.backend.domain.repository.SellerRepository;
 import com.megna.backend.infrastructure.security.jwt.JwtService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -42,6 +43,7 @@ import java.util.function.Consumer;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class AuthService {
 
     private static final String PRINCIPAL_INVESTOR = "INVESTOR";
@@ -166,13 +168,19 @@ public class AuthService {
         passwordResetTokenRepository.save(resetToken);
 
         try {
-            transactionalEmailService.sendTransactional(new TransactionalEmailRequest(
+            boolean sent = transactionalEmailService.sendTransactional(new TransactionalEmailRequest(
                     principal.email(),
                     RESET_PASSWORD_EMAIL_SUBJECT,
                     buildPasswordResetBody(principal.email(), rawToken)
             ));
-        } catch (RuntimeException ignored) {
+            if (!sent) {
+                log.warn("Password reset email was not delivered for principalType={} principalId={}",
+                        principal.type(), principal.id());
+            }
+        } catch (RuntimeException ex) {
             // Keep the endpoint response generic and successful even if email delivery fails.
+            log.warn("Password reset email send threw runtime exception for principalType={} principalId={} type={}",
+                    principal.type(), principal.id(), ex.getClass().getSimpleName());
         }
     }
 
