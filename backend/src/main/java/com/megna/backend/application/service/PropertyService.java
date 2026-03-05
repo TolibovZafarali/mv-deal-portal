@@ -106,7 +106,7 @@ public class PropertyService {
                     .map(PropertyMapper::toDto);
         }
 
-        return propertyRepository.findAll(pageable)
+        return propertyRepository.findAll(PropertySpecifications.visibleToAdmin(), pageable)
                 .map(PropertyMapper::toDto);
     }
 
@@ -219,6 +219,10 @@ public class PropertyService {
                 null,
                 admin ? sellerWorkflowStatus : null
         );
+
+        if (admin) {
+            spec = spec.and(PropertySpecifications.visibleToAdmin());
+        }
 
         return propertyRepository.findAll(spec, pageable)
                 .map(PropertyMapper::toDto);
@@ -686,9 +690,19 @@ public class PropertyService {
     }
 
     private void requireVisibleToPrincipal(Property property, boolean admin) {
+        if (admin && !isVisibleToAdmin(property)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Property not found: " + property.getId());
+        }
         if (!admin && property.getStatus() != ACTIVE) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Property not found: " + property.getId());
         }
+    }
+
+    private boolean isVisibleToAdmin(Property property) {
+        if (property == null || property.getSeller() == null) {
+            return true;
+        }
+        return property.getSellerWorkflowStatus() != SellerWorkflowStatus.DRAFT;
     }
 
     private void validateForActiveStatus(Property property) {

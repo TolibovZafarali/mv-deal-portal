@@ -62,7 +62,6 @@ const STATUSES = [
 
 const SELLER_WORKFLOWS = [
   { label: "All", value: "" },
-  { label: "Draft", value: "DRAFT" },
   { label: "Submitted", value: "SUBMITTED" },
   { label: "Changes Requested", value: "CHANGES_REQUESTED" },
   { label: "Published", value: "PUBLISHED" },

@@ -175,14 +175,10 @@ export default function useAdminQueue({ includeItems = true, pageSize = DEFAULT_
 
       if (!includeItems) {
         try {
-          const [summary, draftByStatusPage, draftByWorkflowPage] = await Promise.all([
+          const [summary, draftByStatusPage] = await Promise.all([
             getAdminQueueSummary(),
             searchProperties(
               { status: "DRAFT" },
-              { page: 0, size: 1, sort: "updatedAt,desc" },
-            ),
-            searchProperties(
-              { sellerWorkflowStatus: "DRAFT" },
               { page: 0, size: 1, sort: "updatedAt,desc" },
             ),
           ]);
@@ -192,7 +188,6 @@ export default function useAdminQueue({ includeItems = true, pageSize = DEFAULT_
             draftProperties: Math.max(
               summary?.draftProperties ?? 0,
               draftByStatusPage?.totalElements ?? 0,
-              draftByWorkflowPage?.totalElements ?? 0,
             ),
             submittedProperties: summary?.submittedProperties ?? 0,
             openChangeRequests: summary?.openChangeRequests ?? 0,
@@ -220,15 +215,11 @@ export default function useAdminQueue({ includeItems = true, pageSize = DEFAULT_
 
       if (includeItems) {
         try {
-          const [summary, items, draftByStatusPage, draftByWorkflowPage] = await Promise.all([
+          const [summary, items, draftByStatusPage] = await Promise.all([
             getAdminQueueSummary(),
             getAdminQueueItems({}, { page: 0, size: pageSize, sort: "createdAt,asc" }),
             searchProperties(
               { status: "DRAFT" },
-              { page: 0, size: 1, sort: "updatedAt,desc" },
-            ),
-            searchProperties(
-              { sellerWorkflowStatus: "DRAFT" },
               { page: 0, size: 1, sort: "updatedAt,desc" },
             ),
           ]);
@@ -239,7 +230,6 @@ export default function useAdminQueue({ includeItems = true, pageSize = DEFAULT_
             draftProperties: Math.max(
               summary?.draftProperties ?? 0,
               draftByStatusPage?.totalElements ?? 0,
-              draftByWorkflowPage?.totalElements ?? 0,
             ),
             submittedProperties: summary?.submittedProperties ?? 0,
             openChangeRequests: summary?.openChangeRequests ?? 0,
@@ -262,13 +252,9 @@ export default function useAdminQueue({ includeItems = true, pageSize = DEFAULT_
         }
       }
 
-      const [draftByStatusRes, draftByWorkflowRes, submittedRes, changeReqRes, pendingRes] = await Promise.allSettled([
+      const [draftByStatusRes, submittedRes, changeReqRes, pendingRes] = await Promise.allSettled([
         searchProperties(
           { status: "DRAFT" },
-          { page: 0, size: 1, sort: "updatedAt,desc" },
-        ),
-        searchProperties(
-          { sellerWorkflowStatus: "DRAFT" },
           { page: 0, size: 1, sort: "updatedAt,desc" },
         ),
         searchProperties(
@@ -290,9 +276,7 @@ export default function useAdminQueue({ includeItems = true, pageSize = DEFAULT_
       const nextPartialErrors = [];
 
       const draftByStatusData = draftByStatusRes.status === "fulfilled" ? draftByStatusRes.value : null;
-      const draftByWorkflowData = draftByWorkflowRes.status === "fulfilled" ? draftByWorkflowRes.value : null;
-      const bothDraftCallsFailed = draftByStatusRes.status === "rejected" && draftByWorkflowRes.status === "rejected";
-      if (bothDraftCallsFailed) {
+      if (draftByStatusRes.status === "rejected") {
         nextPartialErrors.push("Draft properties are temporarily unavailable.");
       }
 
@@ -312,10 +296,7 @@ export default function useAdminQueue({ includeItems = true, pageSize = DEFAULT_
       }
 
       const nextCounts = {
-        draftProperties: Math.max(
-          draftByStatusData?.totalElements ?? 0,
-          draftByWorkflowData?.totalElements ?? 0,
-        ),
+        draftProperties: draftByStatusData?.totalElements ?? 0,
         submittedProperties: submittedData?.totalElements ?? 0,
         openChangeRequests: changeReqData?.totalElements ?? 0,
         pendingInvestors: pendingData?.totalElements ?? 0,
@@ -351,7 +332,7 @@ export default function useAdminQueue({ includeItems = true, pageSize = DEFAULT_
       if (!alive) return;
       setError("Unable to load admin queue right now.");
       setLoading(false);
-      trackAdminEvent("admin.queue.load.error", { includeItems, failures: 5 });
+      trackAdminEvent("admin.queue.load.error", { includeItems, failures: 4 });
     });
 
     return () => {
