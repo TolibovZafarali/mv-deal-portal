@@ -1,5 +1,7 @@
 package com.megna.backend.application.service;
 
+import com.megna.backend.infrastructure.security.SecurityUtils;
+import com.megna.backend.interfaces.rest.dto.auth.ChangePasswordRequestDto;
 import com.megna.backend.interfaces.rest.dto.auth.LoginRequestDto;
 import com.megna.backend.interfaces.rest.dto.auth.LoginResponseDto;
 import com.megna.backend.interfaces.rest.dto.auth.RegisterRequestDto;
@@ -17,9 +19,11 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Locale;
+import java.util.function.Consumer;
 
 @Service
 @RequiredArgsConstructor
@@ -66,6 +70,49 @@ public class AuthService {
 
         String token = jwtService.generateAccessToken(seller);
         return new LoginResponseDto(token, "Bearer", jwtService.getAccessTokenTtlSeconds());
+    }
+
+    @Transactional
+    public void changePassword(ChangePasswordRequestDto dto) {
+        var principal = SecurityUtils.requirePrincipal();
+        String role = principal.role() == null ? "" : principal.role().trim().toUpperCase(Locale.US);
+
+        if (principal.userId() <= 0 || role.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Not authenticated");
+        }
+
+        String currentPassword = dto.currentPassword().trim();
+        String newPassword = dto.newPassword().trim();
+
+        if (currentPassword.equals(newPassword)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "New password must be different");
+        }
+
+        if ("ADMIN".equals(role)) {
+            var admin = adminRepository.findById(principal.userId())
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Not authenticated"));
+            updatePassword(admin.getPasswordHash(), currentPassword, newPassword, admin::setPasswordHash);
+            adminRepository.save(admin);
+            return;
+        }
+
+        if ("INVESTOR".equals(role)) {
+            var investor = investorRepository.findById(principal.userId())
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Not authenticated"));
+            updatePassword(investor.getPasswordHash(), currentPassword, newPassword, investor::setPasswordHash);
+            investorRepository.save(investor);
+            return;
+        }
+
+        if ("SELLER".equals(role)) {
+            var seller = sellerRepository.findById(principal.userId())
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Not authenticated"));
+            updatePassword(seller.getPasswordHash(), currentPassword, newPassword, seller::setPasswordHash);
+            sellerRepository.save(seller);
+            return;
+        }
+
+        throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Not authenticated");
     }
 
     public RegisterResponseDto registerInvestor(RegisterRequestDto dto) {
@@ -121,6 +168,23 @@ public class AuthService {
                 || sellerRepository.existsByEmail(email)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Email already in use");
         }
+    }
+
+    private void updatePassword(
+            String existingPasswordHash,
+            String currentPassword,
+            String newPassword,
+            Consumer<String> setPasswordHash
+    ) {
+        if (!passwordEncoder.matches(currentPassword, existingPasswordHash)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Current password is incorrect");
+        }
+
+        if (passwordEncoder.matches(newPassword, existingPasswordHash)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "New password must be different");
+        }
+
+        setPasswordHash.accept(passwordEncoder.encode(newPassword));
     }
 
     private String normalizeEmail(String email) {

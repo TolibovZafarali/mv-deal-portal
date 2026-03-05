@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { getInquiryByInvestor } from "@/api/modules/inquiryApi";
 import { getInvestorById, updateInvestor } from "@/api/modules/investorApi";
 import { getPropertyId } from "@/api/modules/propertyApi";
+import { changePassword } from "@/api/modules/authApi";
 import { useAuth } from "@/features/auth";
 import "@/features/investor/modals/InvestorAccountCenterModal.css";
 
@@ -121,6 +122,15 @@ export default function InvestorAccountCenterModal({
   const [notificationSaving, setNotificationSaving] = useState(false);
   const [notificationSaveError, setNotificationSaveError] = useState("");
   const [notificationSaveOk, setNotificationSaveOk] = useState("");
+  const [securityForm, setSecurityForm] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmNewPassword: "",
+  });
+  const [securityEditing, setSecurityEditing] = useState(false);
+  const [securitySaving, setSecuritySaving] = useState(false);
+  const [securityError, setSecurityError] = useState("");
+  const [securityOk, setSecurityOk] = useState("");
 
   const [inquiries, setInquiries] = useState([]);
   const [inquiryLoading, setInquiryLoading] = useState(false);
@@ -264,6 +274,19 @@ export default function InvestorAccountCenterModal({
       alive = false;
     };
   }, [open, isMessagesView, investorId]);
+
+  useEffect(() => {
+    if (open) return;
+    setSecurityForm({
+      currentPassword: "",
+      newPassword: "",
+      confirmNewPassword: "",
+    });
+    setSecurityEditing(false);
+    setSecuritySaving(false);
+    setSecurityError("");
+    setSecurityOk("");
+  }, [open]);
 
   useEffect(() => {
     if (!open || !isMessagesView) return;
@@ -467,6 +490,74 @@ export default function InvestorAccountCenterModal({
     } finally {
       setNotificationSaving(false);
     }
+  }
+
+  async function handleSecuritySave(event) {
+    event.preventDefault();
+
+    const currentPassword = securityForm.currentPassword;
+    const newPassword = securityForm.newPassword;
+    const confirmNewPassword = securityForm.confirmNewPassword;
+
+    if (currentPassword.length < 8) {
+      setSecurityError("Current password must be at least 8 characters.");
+      setSecurityOk("");
+      return;
+    }
+
+    if (newPassword.length < 8) {
+      setSecurityError("New password must be at least 8 characters.");
+      setSecurityOk("");
+      return;
+    }
+
+    if (newPassword === currentPassword) {
+      setSecurityError("New password must be different from current password.");
+      setSecurityOk("");
+      return;
+    }
+
+    if (newPassword !== confirmNewPassword) {
+      setSecurityError("New password and confirm password must match.");
+      setSecurityOk("");
+      return;
+    }
+
+    setSecuritySaving(true);
+    setSecurityError("");
+    setSecurityOk("");
+
+    try {
+      await changePassword({ currentPassword, newPassword });
+      setSecurityForm({
+        currentPassword: "",
+        newPassword: "",
+        confirmNewPassword: "",
+      });
+      setSecurityEditing(false);
+      setSecurityOk("Password updated.");
+    } catch (error) {
+      setSecurityError(error?.message || "Failed to change password.");
+    } finally {
+      setSecuritySaving(false);
+    }
+  }
+
+  function handleSecurityEditStart() {
+    setSecurityEditing(true);
+    setSecurityError("");
+    setSecurityOk("");
+  }
+
+  function handleSecurityCancel() {
+    setSecurityForm({
+      currentPassword: "",
+      newPassword: "",
+      confirmNewPassword: "",
+    });
+    setSecurityEditing(false);
+    setSecurityError("");
+    setSecurityOk("");
   }
 
   function handleProfileEditStart() {
@@ -865,19 +956,93 @@ export default function InvestorAccountCenterModal({
             <section className="invAccountModal__panel" aria-label="Security">
               <h3 className="invAccountModal__panelTitle">Security</h3>
               <p className="invAccountModal__panelSubcopy">
-                Account security controls will be available in a future update.
+                Change your sign-in password.
               </p>
-              <div className="invAccountModal__settingsList">
-                <div className="invAccountModal__settingRow">
-                  <div className="invAccountModal__settingMeta">
-                    <h4 className="invAccountModal__settingTitle">Password</h4>
-                    <p className="invAccountModal__settingText">Protected by your current sign-in password.</p>
+              {!securityEditing ? (
+                <div className="invAccountModal__settingsList">
+                  <div className="invAccountModal__settingRow">
+                    <div className="invAccountModal__settingMeta">
+                      <h4 className="invAccountModal__settingTitle">Password</h4>
+                      <p className="invAccountModal__settingText">Protected by your current sign-in password.</p>
+                    </div>
+                    <button className="invAccountModal__settingAction" type="button" onClick={handleSecurityEditStart}>
+                      Change Password
+                    </button>
                   </div>
-                  <button className="invAccountModal__settingAction" type="button" disabled>
-                    Change password (Coming soon)
-                  </button>
                 </div>
-              </div>
+              ) : (
+                <form className="invAccountModal__profileForm" onSubmit={handleSecuritySave}>
+                  <label className="invAccountModal__field">
+                    <span>Current Password</span>
+                    <input
+                      type="password"
+                      autoComplete="current-password"
+                      disabled={securitySaving}
+                      value={securityForm.currentPassword}
+                      onChange={(event) => {
+                        setSecurityError("");
+                        setSecurityOk("");
+                        setSecurityForm((prev) => ({ ...prev, currentPassword: event.target.value }));
+                      }}
+                    />
+                  </label>
+                  <label className="invAccountModal__field">
+                    <span>New Password</span>
+                    <input
+                      type="password"
+                      autoComplete="new-password"
+                      disabled={securitySaving}
+                      value={securityForm.newPassword}
+                      onChange={(event) => {
+                        setSecurityError("");
+                        setSecurityOk("");
+                        setSecurityForm((prev) => ({ ...prev, newPassword: event.target.value }));
+                      }}
+                    />
+                  </label>
+                  <label className="invAccountModal__field">
+                    <span>Confirm New Password</span>
+                    <input
+                      type="password"
+                      autoComplete="new-password"
+                      disabled={securitySaving}
+                      value={securityForm.confirmNewPassword}
+                      onChange={(event) => {
+                        setSecurityError("");
+                        setSecurityOk("");
+                        setSecurityForm((prev) => ({ ...prev, confirmNewPassword: event.target.value }));
+                      }}
+                    />
+                  </label>
+                  <div className="invAccountModal__settingNote">
+                    Use at least 8 characters. You will stay signed in on this device after changing it.
+                  </div>
+
+                  {securityError ? (
+                    <div className="invAccountModal__formMsg invAccountModal__formMsg--error">
+                      {securityError}
+                    </div>
+                  ) : null}
+                  <div className="invAccountModal__profileActions">
+                    <button
+                      className="invAccountModal__save invAccountModal__save--secondary"
+                      type="button"
+                      disabled={securitySaving}
+                      onClick={handleSecurityCancel}
+                    >
+                      Cancel
+                    </button>
+                    <button className="invAccountModal__save" type="submit" disabled={securitySaving}>
+                      {securitySaving ? "Saving..." : "Save Password"}
+                    </button>
+                  </div>
+                </form>
+              )}
+              {securityOk ? (
+                <div className="invAccountModal__formMsg invAccountModal__formMsg--ok">
+                  {securityOk}
+                </div>
+              ) : null}
             </section>
           ) : null}
 

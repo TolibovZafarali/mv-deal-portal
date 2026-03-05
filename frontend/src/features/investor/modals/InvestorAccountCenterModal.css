@@ -572,15 +572,26 @@
 .invAccountModal__settingAction {
   appearance: none;
   border: 1px solid rgba(17, 17, 17, 0.3);
-  background: rgba(17, 17, 17, 0.04);
-  color: rgba(17, 17, 17, 0.64);
+  background: #ffffff;
+  color: #111111;
   min-height: 34px;
   padding: 0 10px;
   font-size: 12px;
+  cursor: pointer;
+  transition: background 180ms ease, color 180ms ease, border-color 180ms ease;
+}
+
+.invAccountModal__settingAction:hover:not(:disabled),
+.invAccountModal__settingAction:focus-visible:not(:disabled) {
+  border-color: #111111;
+  background: #111111;
+  color: #ffffff;
+  outline: none;
 }
 
 .invAccountModal__settingAction:disabled {
   cursor: not-allowed;
+  opacity: 0.65;
 }
 
 .invAccountModal__toggleRow {
