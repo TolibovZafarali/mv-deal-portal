@@ -1,4 +1,6 @@
 .sellerDashSplit {
+  --seller-card-height: 344px;
+  --seller-card-media-height: 156px;
   min-height: 0;
   height: 100%;
   display: flex;
@@ -66,7 +68,7 @@
 .sellerDashSplit__cards {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  grid-auto-rows: 396px;
+  grid-auto-rows: var(--seller-card-height);
   align-items: stretch;
   gap: 10px;
   align-content: start;
@@ -123,14 +125,14 @@
 
 .sellerDashCard__mediaWrap {
   position: relative;
-  flex: 0 0 182px;
+  flex: 0 0 var(--seller-card-media-height);
   overflow: hidden;
 }
 
 .sellerDashCard__media,
 .sellerDashCard__mediaFallback {
   width: 100%;
-  height: 182px;
+  height: var(--seller-card-media-height);
 }
 
 .sellerDashCard__media {
@@ -151,12 +153,12 @@
 
 .sellerDashCard__status {
   position: absolute;
-  top: 10px;
-  left: 10px;
+  top: 8px;
+  left: 8px;
   border: 1px solid rgba(16, 16, 16, 0.42);
   background: #f0f0f0;
-  padding: 4px 8px;
-  font-size: 10px;
+  padding: 3px 7px;
+  font-size: 9px;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -199,7 +201,7 @@
 }
 
 .sellerDashCard__body {
-  padding: 8px 10px 10px;
+  padding: 6px 8px 8px;
   min-height: 0;
   flex: 1;
   display: flex;
@@ -210,8 +212,8 @@
   margin: 0;
   font-size: 14px;
   font-weight: 700;
-  line-height: 1.3;
-  min-height: 2.6em;
+  line-height: 1.25;
+  min-height: 2.5em;
   overflow: hidden;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -219,19 +221,19 @@
 }
 
 .sellerDashCard__meta {
-  margin-top: 8px;
-  padding-top: 6px;
+  margin-top: 6px;
+  padding-top: 5px;
   border-top: 1px solid rgba(16, 16, 16, 0.14);
-  font-size: 13px;
+  font-size: 12px;
   color: rgba(16, 16, 16, 0.76);
   display: flex;
-  gap: 8px;
+  gap: 6px;
   flex-wrap: wrap;
 }
 
 .sellerDashCard__updated {
-  margin: 6px 0 0;
-  font-size: 13px;
+  margin: 4px 0 0;
+  font-size: 12px;
   color: #101010;
   font-weight: 700;
   letter-spacing: 0.01em;
@@ -240,10 +242,10 @@
 .sellerDashCard__actionRail {
   border-top: 1px solid rgba(16, 16, 16, 0.14);
   margin-top: auto;
-  padding-top: 8px;
+  padding-top: 6px;
   display: grid;
-  gap: 6px;
-  min-height: 50px;
+  gap: 4px;
+  min-height: 42px;
 }
 
 .sellerDashCard:hover:not(:focus-within) .sellerDashCard__focus {
@@ -252,14 +254,14 @@
 
 .sellerDashCard__publishBtn {
   width: 100%;
-  min-height: 30px;
+  min-height: 28px;
   border: 1px solid rgba(16, 16, 16, 0.86);
   background: #ffffff;
   color: #101010;
   padding: 0 12px;
   cursor: pointer;
   font: inherit;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.03em;
   text-transform: uppercase;
@@ -282,10 +284,10 @@
 }
 
 .sellerDashCard__hint {
-  font-size: 12px;
+  font-size: 11px;
   color: rgba(16, 16, 16, 0.68);
-  line-height: 1.4;
-  min-height: 30px;
+  line-height: 1.3;
+  min-height: 24px;
   display: flex;
   align-items: center;
 }
@@ -324,7 +326,7 @@
 
 @media (max-width: 1100px) {
   .sellerDashCard__updated {
-    margin-top: 8px;
+    margin-top: 5px;
   }
 }
 
@@ -336,20 +338,12 @@
 
 @media (max-width: 720px) {
   .sellerDashSplit {
+    --seller-card-height: 320px;
+    --seller-card-media-height: 144px;
     gap: 10px;
   }
 
   .sellerDashSplit__cards {
     grid-template-columns: 1fr;
-    grid-auto-rows: 378px;
-  }
-
-  .sellerDashCard__media,
-  .sellerDashCard__mediaFallback {
-    height: 170px;
-  }
-
-  .sellerDashCard__mediaWrap {
-    flex-basis: 170px;
   }
 }

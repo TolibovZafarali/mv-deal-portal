@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Outlet, useLocation, useNavigate } from "react-router-dom";
+import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { getSellerDashboardSummary } from "@/api/modules/sellerDashboardApi";
 import SellerAccountCenterModal from "@/features/seller/modals/SellerAccountCenterModal";
 import "@/features/seller/layout/SellerLayout.css";
@@ -65,7 +65,9 @@ export default function SellerLayout() {
       <header className="sellerTop">
         <div className="sellerTop__bar">
           <div className="sellerTop__left">
-            <img src="/white-logo.svg" alt="Megna" className="sellerBrand__logo" />
+            <Link to="/" className="sellerBrand__homeLink" aria-label="Return to homepage">
+              <img src="/white-logo.svg" alt="Megna" className="sellerBrand__logo" />
+            </Link>
           </div>
 
           <div className="sellerTop__center">
