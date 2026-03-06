@@ -120,6 +120,7 @@ class PhotoAssetServiceTest {
         asset.setId("asset-1");
         asset.setCreatedBySellerId(42L);
         asset.setStatus(PhotoAssetStatus.READY);
+        asset.setUrl("https://example.com/asset-1.jpg");
 
         Property property = new Property();
         property.setId(9L);
@@ -164,6 +165,31 @@ class PhotoAssetServiceTest {
 
         assertEquals(HttpStatus.FORBIDDEN, ex.getStatusCode());
         assertEquals("Photo asset belongs to another principal: asset-2", ex.getReason());
+    }
+
+    @Test
+    void resolveReadyAssetsRejectsReadyAssetWithMissingUrl() {
+        PhotoAsset asset = new PhotoAsset();
+        asset.setId("asset-3");
+        asset.setCreatedByAdminId(77L);
+        asset.setStatus(PhotoAssetStatus.READY);
+        asset.setUrl(null);
+
+        when(photoAssetRepository.findByIdIn(argThat(ids -> ids != null && ids.size() == 1 && ids.contains(asset.getId()))))
+                .thenReturn(List.of(asset));
+        when(propertyPhotoRepository.findFirstByPhotoAssetId(asset.getId())).thenReturn(Optional.empty());
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class, () ->
+                photoAssetService.resolveReadyAssetsOrThrow(
+                        List.of(asset.getId()),
+                        9L,
+                        PhotoAssetPrincipalRole.ADMIN,
+                        77L
+                )
+        );
+
+        assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
+        assertEquals("Photo asset is missing URL: asset-3", ex.getReason());
     }
 
     @Test

@@ -1,12 +1,18 @@
 package com.megna.backend.application.service;
 
 import com.megna.backend.domain.entity.Property;
+import com.megna.backend.domain.entity.PropertyPhoto;
 import com.megna.backend.domain.entity.Seller;
+import com.megna.backend.domain.enums.ClosingTerms;
+import com.megna.backend.domain.enums.ExitStrategy;
+import com.megna.backend.domain.enums.OccupancyStatus;
 import com.megna.backend.domain.enums.PropertyStatus;
+import com.megna.backend.domain.enums.SellerWorkflowStatus;
 import com.megna.backend.domain.repository.InvestorRepository;
 import com.megna.backend.domain.repository.PropertyRepository;
 import com.megna.backend.domain.repository.SellerRepository;
 import com.megna.backend.infrastructure.security.AuthPrincipal;
+import com.megna.backend.interfaces.rest.dto.property.AdminPropertySellerReviewAction;
 import com.megna.backend.interfaces.rest.dto.property.PropertyUpsertRequestDto;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -23,6 +29,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -55,6 +62,12 @@ class PropertyServiceTest {
 
     @Mock
     private PhotoAssetService photoAssetService;
+
+    @Mock
+    private SellerThreadService sellerThreadService;
+
+    @Mock
+    private PropertyPublicationNotificationService propertyPublicationNotificationService;
 
     @InjectMocks
     private PropertyService propertyService;
@@ -122,6 +135,71 @@ class PropertyServiceTest {
 
         verify(fmrLookupService).lookup("62001", 3);
         assertEquals(new BigDecimal("1270"), existing.getFmr());
+    }
+
+    @Test
+    void updateTransitionToActiveEnqueuesInvestorNotifications() {
+        Property existing = activeReadyProperty(21L);
+        existing.setStatus(PropertyStatus.DRAFT);
+        when(propertyRepository.findById(21L)).thenReturn(Optional.of(existing));
+
+        propertyService.update(21L, activeDto("62001", 3));
+
+        verify(propertyPublicationNotificationService).enqueueForFirstPublication(21L);
+    }
+
+    @Test
+    void updateAlreadyActiveDoesNotEnqueueInvestorNotifications() {
+        Property existing = activeReadyProperty(22L);
+        existing.setStatus(PropertyStatus.ACTIVE);
+        when(propertyRepository.findById(22L)).thenReturn(Optional.of(existing));
+
+        propertyService.update(22L, activeDto("62001", 3));
+
+        verify(propertyPublicationNotificationService, never()).enqueueForFirstPublication(any());
+    }
+
+    @Test
+    void updateToActiveRejectsPhotoWithoutUrlBeforeSave() {
+        authenticateAsAdmin();
+
+        Property existing = activeReadyProperty(23L);
+        existing.setStatus(PropertyStatus.DRAFT);
+
+        PropertyPhoto missingUrlPhoto = new PropertyPhoto();
+        missingUrlPhoto.setPhotoAssetId("asset-2");
+        missingUrlPhoto.setProperty(existing);
+        missingUrlPhoto.setUrl(null);
+
+        ArrayList<PropertyPhoto> photos = new ArrayList<>(existing.getPhotos());
+        photos.add(missingUrlPhoto);
+        existing.setPhotos(photos);
+
+        when(propertyRepository.findById(23L)).thenReturn(Optional.of(existing));
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class, () ->
+                propertyService.update(23L, activeDto("62001", 3))
+        );
+
+        assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
+        assertEquals("Cannot save property while photo URL is missing for asset: asset-2", ex.getReason());
+        verify(propertyRepository, never()).save(existing);
+    }
+
+    @Test
+    void reviewSellerPropertyApproveEnqueuesInvestorNotifications() {
+        authenticateAsAdmin();
+
+        Property property = activeReadyProperty(30L);
+        property.setStatus(PropertyStatus.DRAFT);
+        property.setSellerWorkflowStatus(SellerWorkflowStatus.SUBMITTED);
+        property.setSeller(seller(99L));
+
+        when(propertyRepository.findById(30L)).thenReturn(Optional.of(property));
+
+        propertyService.reviewSellerProperty(30L, AdminPropertySellerReviewAction.PUBLISH, "Looks good");
+
+        verify(propertyPublicationNotificationService).enqueueForFirstPublication(30L);
     }
 
     @Test
@@ -245,5 +323,54 @@ class PropertyServiceTest {
                 null,
                 null
         );
+    }
+
+    private static PropertyUpsertRequestDto activeDto(String zip, Integer beds) {
+        return new PropertyUpsertRequestDto(
+                PropertyStatus.ACTIVE,
+                "123 Main St",
+                null,
+                "St Louis",
+                "MO",
+                zip,
+                new BigDecimal("120000"),
+                new BigDecimal("185000"),
+                new BigDecimal("25000"),
+                beds,
+                new BigDecimal("2.0"),
+                1200,
+                1988,
+                8,
+                5,
+                OccupancyStatus.NO,
+                null,
+                ExitStrategy.FLIP,
+                ClosingTerms.CASH_ONLY,
+                null,
+                null
+        );
+    }
+
+    private static Property activeReadyProperty(Long id) {
+        Property property = existingProperty(id, "62001", 3, new BigDecimal("990"));
+        property.setStreet1("123 Main St");
+        property.setCity("St Louis");
+        property.setState("MO");
+        property.setAskingPrice(new BigDecimal("120000"));
+        property.setArv(new BigDecimal("185000"));
+        property.setEstRepairs(new BigDecimal("25000"));
+        property.setBaths(new BigDecimal("2.0"));
+        property.setLivingAreaSqft(1200);
+        property.setYearBuilt(1988);
+        property.setOccupancyStatus(OccupancyStatus.NO);
+        property.setExitStrategy(ExitStrategy.FLIP);
+        property.setClosingTerms(ClosingTerms.CASH_ONLY);
+
+        PropertyPhoto photo = new PropertyPhoto();
+        photo.setPhotoAssetId("asset-1");
+        photo.setUrl("https://example.com/photo.jpg");
+        photo.setProperty(property);
+        property.setPhotos(java.util.List.of(photo));
+        return property;
     }
 }

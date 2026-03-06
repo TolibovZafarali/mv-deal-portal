@@ -380,6 +380,9 @@ public class PhotoAssetService {
             if (asset.getStatus() != PhotoAssetStatus.READY) {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Photo asset is not ready: " + asset.getId());
             }
+            if (!StringUtils.hasText(asset.getUrl())) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Photo asset is missing URL: " + asset.getId());
+            }
             if (existingPropertyId != null && !existingPropertyId.equals(currentPropertyId)) {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Photo asset already attached to another property: " + asset.getId());
             }
@@ -758,8 +761,11 @@ public class PhotoAssetService {
             if (asset == null) {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Photo asset not found: " + photo.getPhotoAssetId());
             }
+            if (!StringUtils.hasText(asset.getUrl())) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Photo asset is missing URL: " + photo.getPhotoAssetId());
+            }
             photo.setUrl(asset.getUrl());
-            photo.setThumbnailUrl(asset.getThumbnailUrl());
+            photo.setThumbnailUrl(StringUtils.hasText(asset.getThumbnailUrl()) ? asset.getThumbnailUrl() : asset.getUrl());
         }
     }
 

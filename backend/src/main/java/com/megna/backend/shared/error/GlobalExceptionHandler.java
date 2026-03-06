@@ -1,6 +1,7 @@
 package com.megna.backend.shared.error;
 
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.beans.TypeMismatchException;
@@ -101,6 +102,27 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(body);
     }
 
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ApiError> handleDataIntegrityViolation(DataIntegrityViolationException ex, HttpServletRequest req) {
+        String normalized = normalizeDbErrorMessage(ex);
+        String detail = "Request violates database constraints";
+
+        if (normalized.contains("property_photos") && normalized.contains("url") && normalized.contains("cannot be null")) {
+            detail = "One or more photos are missing URL values. Re-upload the photo and try again.";
+        }
+
+        ApiError body = new ApiError(
+                Instant.now(),
+                HttpStatus.BAD_REQUEST.value(),
+                HttpStatus.BAD_REQUEST.getReasonPhrase(),
+                detail,
+                req.getRequestURI(),
+                null
+        );
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiError> handleGeneric(Exception ex, HttpServletRequest req) {
         ApiError body = new ApiError(
@@ -113,5 +135,14 @@ public class GlobalExceptionHandler {
         );
 
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(body);
+    }
+
+    private static String normalizeDbErrorMessage(DataIntegrityViolationException ex) {
+        String direct = ex.getMostSpecificCause() == null ? null : ex.getMostSpecificCause().getMessage();
+        if (direct != null && !direct.isBlank()) {
+            return direct.toLowerCase();
+        }
+        String fallback = ex.getMessage();
+        return fallback == null ? "" : fallback.toLowerCase();
     }
 }
