@@ -40,6 +40,7 @@ class AuthPasswordResetIntegrationTest {
 
     @BeforeEach
     void setUp() {
+        jdbcTemplate.update("DELETE FROM refresh_tokens");
         jdbcTemplate.update("DELETE FROM password_reset_tokens");
         jdbcTemplate.update("DELETE FROM inquiries");
         jdbcTemplate.update("DELETE FROM sellers");
