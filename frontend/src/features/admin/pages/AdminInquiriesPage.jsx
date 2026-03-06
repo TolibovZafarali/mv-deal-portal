@@ -18,6 +18,7 @@ import PropertyUpsertModal from "@/features/admin/modals/PropertyUpsertModal";
 import "@/features/admin/pages/AdminInquiriesPage.css";
 
 const LOAD_CAP = 500;
+const MOBILE_VIEW_MEDIA_QUERY = "(max-width: 980px)";
 
 function cleanString(value) {
   return String(value ?? "").trim();
@@ -166,6 +167,11 @@ export default function AdminInquiriesPage() {
   const [propertyMetaById, setPropertyMetaById] = useState({});
   const [selectedInvestorId, setSelectedInvestorId] = useState(null);
   const [selectedPropertyId, setSelectedPropertyId] = useState(null);
+  const [mobileStage, setMobileStage] = useState("investors");
+  const [isMobileViewport, setIsMobileViewport] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return window.matchMedia(MOBILE_VIEW_MEDIA_QUERY).matches;
+  });
   const [replyBody, setReplyBody] = useState("");
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState("");
@@ -181,6 +187,23 @@ export default function AdminInquiriesPage() {
   const [editDeleting, setEditDeleting] = useState(false);
   const [editDeleteError, setEditDeleteError] = useState("");
   const replyInputRef = useRef(null);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return undefined;
+    const mediaQuery = window.matchMedia(MOBILE_VIEW_MEDIA_QUERY);
+    const handleChange = (event) => {
+      setIsMobileViewport(event.matches);
+    };
+    setIsMobileViewport(mediaQuery.matches);
+
+    if (typeof mediaQuery.addEventListener === "function") {
+      mediaQuery.addEventListener("change", handleChange);
+      return () => mediaQuery.removeEventListener("change", handleChange);
+    }
+
+    mediaQuery.addListener(handleChange);
+    return () => mediaQuery.removeListener(handleChange);
+  }, []);
 
   useEffect(() => {
     let alive = true;
@@ -460,14 +483,29 @@ export default function AdminInquiriesPage() {
 
     const exists = propertyThreads.some((thread) => thread.propertyId === selectedPropertyId);
     if (!exists) {
-      setSelectedPropertyId(propertyThreads[0].propertyId);
+      setSelectedPropertyId(isMobileViewport ? null : propertyThreads[0].propertyId);
     }
-  }, [selectedInvestor, selectedPropertyId]);
+  }, [selectedInvestor, selectedPropertyId, isMobileViewport]);
 
   const selectedThread = useMemo(
     () => selectedInvestor?.propertyThreads?.find((thread) => thread.propertyId === selectedPropertyId) ?? null,
     [selectedInvestor, selectedPropertyId],
   );
+
+  useEffect(() => {
+    if (!isMobileViewport) return;
+    if (!selectedInvestor) {
+      setMobileStage("investors");
+      return;
+    }
+    if (mobileStage === "chat" && !selectedThread) {
+      setMobileStage("properties");
+    }
+  }, [isMobileViewport, selectedInvestor, selectedThread, mobileStage]);
+
+  const mobileStageClass = `adminInqThreads--stage${
+    mobileStage.charAt(0).toUpperCase()
+  }${mobileStage.slice(1)}`;
 
   useEffect(() => {
     const textarea = replyInputRef.current;
@@ -618,7 +656,7 @@ export default function AdminInquiriesPage() {
   }
 
   return (
-    <section className="adminInqThreads">
+    <section className={`adminInqThreads ${mobileStageClass}`.trim()}>
       {loading ? <div className="adminInqThreads__notice">Loading inquiry threads...</div> : null}
       {!loading && error ? <div className="adminInqThreads__notice adminInqThreads__notice--error">{error}</div> : null}
 
@@ -646,6 +684,10 @@ export default function AdminInquiriesPage() {
                     className={`adminInqThreads__investorBtn ${active ? "adminInqThreads__investorBtn--active" : ""}`.trim()}
                     onClick={() => {
                       setSelectedInvestorId(investor.investorId);
+                      if (isMobileViewport) {
+                        setSelectedPropertyId(null);
+                        setMobileStage("properties");
+                      }
                       setReplyBody("");
                       setSendError("");
                     }}
@@ -667,7 +709,21 @@ export default function AdminInquiriesPage() {
           </aside>
 
           <aside className="adminInqThreads__col adminInqThreads__col--properties" aria-label="Properties">
-            <h3 className="adminInqThreads__railTitle">Properties</h3>
+            <div className="adminInqThreads__railHead">
+              <button
+                type="button"
+                className="adminInqThreads__mobileBackBtn"
+                aria-label="Back to investors"
+                onClick={() => {
+                  setMobileStage("investors");
+                  setReplyBody("");
+                  setSendError("");
+                }}
+              >
+                <span className="material-symbols-outlined" aria-hidden="true">arrow_back</span>
+              </button>
+              <h3 className="adminInqThreads__railTitle">Properties</h3>
+            </div>
             <div className="adminInqThreads__propertyList">
               {!selectedInvestor || selectedInvestor.propertyThreads.length === 0 ? (
                 <div className="adminInqThreads__empty adminInqThreads__empty--rail">
@@ -695,6 +751,9 @@ export default function AdminInquiriesPage() {
                       className={`adminInqThreads__propertyCard ${active ? "adminInqThreads__propertyCard--active" : ""}`.trim()}
                       onClick={() => {
                         setSelectedPropertyId(thread.propertyId);
+                        if (isMobileViewport) {
+                          setMobileStage("chat");
+                        }
                         setReplyBody("");
                         setSendError("");
                       }}
@@ -702,6 +761,9 @@ export default function AdminInquiriesPage() {
                         if (event.key === "Enter" || event.key === " ") {
                           event.preventDefault();
                           setSelectedPropertyId(thread.propertyId);
+                          if (isMobileViewport) {
+                            setMobileStage("chat");
+                          }
                           setReplyBody("");
                           setSendError("");
                         }
@@ -750,9 +812,23 @@ export default function AdminInquiriesPage() {
 
           <section className="adminInqThreads__col adminInqThreads__col--chat" aria-label="Conversation">
             <div className="adminInqThreads__chatHead">
-              <h3 className="adminInqThreads__chatTitle">
-                {selectedThread ? resolvePropertyMeta(selectedThread.propertyId).address : "Conversation"}
-              </h3>
+              <div className="adminInqThreads__chatHeadTop">
+                <button
+                  type="button"
+                  className="adminInqThreads__mobileBackBtn"
+                  aria-label="Back to properties"
+                  onClick={() => {
+                    setMobileStage("properties");
+                    setReplyBody("");
+                    setSendError("");
+                  }}
+                >
+                  <span className="material-symbols-outlined" aria-hidden="true">arrow_back</span>
+                </button>
+                <h3 className="adminInqThreads__chatTitle">
+                  {selectedThread ? resolvePropertyMeta(selectedThread.propertyId).address : "Conversation"}
+                </h3>
+              </div>
               <p className="adminInqThreads__chatHint">
                 Review inquiry history and reply as Megna Team.
               </p>
