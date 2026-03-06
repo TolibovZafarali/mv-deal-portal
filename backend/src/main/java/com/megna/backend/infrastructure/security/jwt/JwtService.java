@@ -34,28 +34,44 @@ public class JwtService {
     }
 
     public String generateAccessToken(Investor investor) {
-        return buildToken(investor.getEmail(), investor.getId(), "INVESTOR");
+        return generateAccessToken(investor, null);
+    }
+
+    public String generateAccessToken(Investor investor, Long sessionId) {
+        return buildToken(investor.getEmail(), investor.getId(), "INVESTOR", sessionId);
     }
 
     public String generateAccessToken(Admin admin) {
-        return buildToken(admin.getEmail(), admin.getId(), "ADMIN");
+        return generateAccessToken(admin, null);
+    }
+
+    public String generateAccessToken(Admin admin, Long sessionId) {
+        return buildToken(admin.getEmail(), admin.getId(), "ADMIN", sessionId);
     }
 
     public String generateAccessToken(Seller seller) {
-        return buildToken(seller.getEmail(), seller.getId(), "SELLER");
+        return generateAccessToken(seller, null);
     }
 
-    private String buildToken(String email, long id, String role) {
+    public String generateAccessToken(Seller seller, Long sessionId) {
+        return buildToken(seller.getEmail(), seller.getId(), "SELLER", sessionId);
+    }
+
+    private String buildToken(String email, long id, String role, Long sessionId) {
         Instant now = Instant.now();
         Instant exp = now.plus(props.getAccessTokenTtlMinutes(), ChronoUnit.MINUTES);
 
-        return Jwts.builder()
+        var builder = Jwts.builder()
                 .issuer(props.getIssuer())
                 .subject(email)
                 .issuedAt(Date.from(now))
                 .expiration(Date.from(exp))
                 .claim("userId", id)
-                .claim("role", role)
+                .claim("role", role);
+        if (sessionId != null && sessionId > 0) {
+            builder.claim("sessionId", sessionId);
+        }
+        return builder
                 .signWith(key, Jwts.SIG.HS256)
                 .compact();
     }

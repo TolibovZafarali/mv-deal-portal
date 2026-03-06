@@ -77,9 +77,9 @@ public class AuthService {
             Admin admin = adminOpt.get();
             ensurePasswordMatches(dto.password(), admin.getPasswordHash());
 
-            LoginResponseDto loginResponse = buildLoginResponse(jwtService.generateAccessToken(admin));
-            String refreshToken = issueRefreshToken(PRINCIPAL_ADMIN, admin.getId());
-            return new LoginSessionResult(loginResponse, refreshToken);
+            RefreshTokenIssue session = issueRefreshToken(PRINCIPAL_ADMIN, admin.getId());
+            LoginResponseDto loginResponse = buildLoginResponse(jwtService.generateAccessToken(admin, session.sessionId()));
+            return new LoginSessionResult(loginResponse, session.rawToken());
         }
 
         var investorOpt = investorRepository.findByEmail(email);
@@ -87,9 +87,9 @@ public class AuthService {
             Investor investor = investorOpt.get();
             ensurePasswordMatches(dto.password(), investor.getPasswordHash());
 
-            LoginResponseDto loginResponse = buildLoginResponse(jwtService.generateAccessToken(investor));
-            String refreshToken = issueRefreshToken(PRINCIPAL_INVESTOR, investor.getId());
-            return new LoginSessionResult(loginResponse, refreshToken);
+            RefreshTokenIssue session = issueRefreshToken(PRINCIPAL_INVESTOR, investor.getId());
+            LoginResponseDto loginResponse = buildLoginResponse(jwtService.generateAccessToken(investor, session.sessionId()));
+            return new LoginSessionResult(loginResponse, session.rawToken());
         }
 
         Seller seller = sellerRepository.findByEmail(email)
@@ -97,9 +97,9 @@ public class AuthService {
 
         ensurePasswordMatches(dto.password(), seller.getPasswordHash());
 
-        LoginResponseDto loginResponse = buildLoginResponse(jwtService.generateAccessToken(seller));
-        String refreshToken = issueRefreshToken(PRINCIPAL_SELLER, seller.getId());
-        return new LoginSessionResult(loginResponse, refreshToken);
+        RefreshTokenIssue session = issueRefreshToken(PRINCIPAL_SELLER, seller.getId());
+        LoginResponseDto loginResponse = buildLoginResponse(jwtService.generateAccessToken(seller, session.sessionId()));
+        return new LoginSessionResult(loginResponse, session.rawToken());
     }
 
     @Transactional
@@ -122,7 +122,7 @@ public class AuthService {
 
         Long principalId = refreshToken.getPrincipalId();
         String principalType = normalizePrincipalType(refreshToken.getPrincipalType());
-        LoginResponseDto loginResponse = resolveAccessTokenForPrincipal(principalType, principalId);
+        LoginResponseDto loginResponse = resolveAccessTokenForPrincipal(principalType, principalId, refreshToken.getId());
 
         if (loginResponse == null) {
             refreshToken.setRevokedAt(now);
@@ -374,28 +374,28 @@ public class AuthService {
         return new LoginResponseDto(token, "Bearer", jwtService.getAccessTokenTtlSeconds());
     }
 
-    private LoginResponseDto resolveAccessTokenForPrincipal(String principalType, Long principalId) {
+    private LoginResponseDto resolveAccessTokenForPrincipal(String principalType, Long principalId, Long sessionId) {
         if (principalId == null || principalId <= 0 || principalType.isBlank()) {
             return null;
         }
 
         if (PRINCIPAL_ADMIN.equals(principalType)) {
             return adminRepository.findById(principalId)
-                    .map(jwtService::generateAccessToken)
+                    .map(admin -> jwtService.generateAccessToken(admin, sessionId))
                     .map(this::buildLoginResponse)
                     .orElse(null);
         }
 
         if (PRINCIPAL_INVESTOR.equals(principalType)) {
             return investorRepository.findById(principalId)
-                    .map(jwtService::generateAccessToken)
+                    .map(investor -> jwtService.generateAccessToken(investor, sessionId))
                     .map(this::buildLoginResponse)
                     .orElse(null);
         }
 
         if (PRINCIPAL_SELLER.equals(principalType)) {
             return sellerRepository.findById(principalId)
-                    .map(jwtService::generateAccessToken)
+                    .map(seller -> jwtService.generateAccessToken(seller, sessionId))
                     .map(this::buildLoginResponse)
                     .orElse(null);
         }
@@ -403,7 +403,7 @@ public class AuthService {
         return null;
     }
 
-    private String issueRefreshToken(String principalType, Long principalId) {
+    private RefreshTokenIssue issueRefreshToken(String principalType, Long principalId) {
         LocalDateTime now = LocalDateTime.now();
         revokeActiveRefreshTokens(principalType, principalId, now);
 
@@ -415,7 +415,7 @@ public class AuthService {
         refreshToken.setExpiresAt(now.plusMinutes(resolveRefreshTokenTtlMinutes()));
         refreshTokenRepository.save(refreshToken);
 
-        return rawToken;
+        return new RefreshTokenIssue(rawToken, refreshToken.getId());
     }
 
     private void revokeActiveRefreshTokens(String principalType, Long principalId, LocalDateTime revokedAt) {
@@ -527,6 +527,7 @@ public class AuthService {
     }
 
     private record PrincipalRef(String type, Long id, String email) {}
+    private record RefreshTokenIssue(String rawToken, Long sessionId) {}
 
     public record LoginSessionResult(LoginResponseDto loginResponse, String refreshToken) {}
 }
