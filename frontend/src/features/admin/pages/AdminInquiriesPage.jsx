@@ -16,6 +16,7 @@ import {
 import { assignPropertySeller } from "@/api/modules/sellerPropertyApi";
 import PropertyUpsertModal from "@/features/admin/modals/PropertyUpsertModal";
 import { buildPropertyUpsertPayloadWithStatus } from "@/shared/utils/propertyUpsertMapping";
+import { PROPERTY_STATUS } from "@/shared/constants/propertyWorkflow";
 import "@/features/admin/pages/AdminInquiriesPage.css";
 
 const LOAD_CAP = 500;
@@ -297,7 +298,7 @@ export default function AdminInquiriesPage() {
 
     threadMap.forEach((thread) => {
       const propertyStatus = cleanString(propertyMetaById?.[thread.propertyId]?.status).toUpperCase();
-      if (propertyStatus !== "ACTIVE") return;
+      if (propertyStatus !== PROPERTY_STATUS.ACTIVE) return;
 
       const messages = [...thread.messages].sort((left, right) => {
         const diff = dateValue(left.createdAt) - dateValue(right.createdAt);

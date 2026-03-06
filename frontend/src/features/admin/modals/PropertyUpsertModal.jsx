@@ -5,12 +5,12 @@ import { numOrEmpty } from "@/shared/utils/formValue";
 import { getAddressSuggestions, lookupPropertyFmr } from "@/api/modules/propertyApi";
 import { getSellerById, searchAdminSellers } from "@/api/modules/sellerApi";
 import { acquireModalBodyLock } from "@/shared/ui/modal/bodyLock";
-
-const STATUS = [
-  { label: "Draft", value: "DRAFT" },
-  { label: "Active", value: "ACTIVE" },
-  { label: "Closed", value: "CLOSED" },
-];
+import {
+  PROPERTY_STATUS,
+  PROPERTY_STATUS_UPSERT_OPTIONS,
+  SELLER_WORKFLOW_STATUS,
+  normalizeStatusToken,
+} from "@/shared/constants/propertyWorkflow";
 
 const OCCUPANCY = [
   { label: "—", value: "" },
@@ -541,7 +541,7 @@ function PhotoPreviewOverlay({
 }
 
 const DEFAULT_FORM = {
-  status: "DRAFT",
+  status: PROPERTY_STATUS.DRAFT,
   street1: "",
   street2: "",
   city: "",
@@ -584,11 +584,11 @@ export default function PropertyUpsertModal({
 }) {
   const isEdit = mode === "edit";
   const isSellerVariant = variant === "seller";
-  const sellerWorkflowStatus = String(initialValue?.sellerWorkflowStatus ?? "").trim().toUpperCase();
+  const sellerWorkflowStatus = normalizeStatusToken(initialValue?.sellerWorkflowStatus);
   const isSellerUnderReview =
-    isSellerVariant && isEdit && sellerWorkflowStatus === "SUBMITTED";
+    isSellerVariant && isEdit && sellerWorkflowStatus === SELLER_WORKFLOW_STATUS.SUBMITTED;
   const isSellerPublished =
-    isSellerVariant && isEdit && sellerWorkflowStatus === "PUBLISHED";
+    isSellerVariant && isEdit && sellerWorkflowStatus === SELLER_WORKFLOW_STATUS.PUBLISHED;
   const isSellerEditLocked = isSellerUnderReview || isSellerPublished;
   const isAddressLocked = isSellerVariant && isEdit;
 
@@ -757,7 +757,7 @@ export default function PropertyUpsertModal({
     const normalizedSaleComps = normalizeSaleComps(initialValue.saleComps);
 
     setForm({
-      status: initialValue.status ?? "DRAFT",
+      status: initialValue.status ?? PROPERTY_STATUS.DRAFT,
       street1: initialValue.street1 ?? "",
       street2: initialValue.street2 ?? "",
       city: initialValue.city ?? "",
@@ -1036,7 +1036,7 @@ export default function PropertyUpsertModal({
 
   const isActiveWithMissingRequired =
     !isSellerVariant &&
-    form.status === "ACTIVE" &&
+    form.status === PROPERTY_STATUS.ACTIVE &&
     activeMissingRequiredFieldsForMessage.length > 0;
   const hasMissingAddressFields = missingAddressFields.length > 0;
 
@@ -2635,7 +2635,7 @@ export default function PropertyUpsertModal({
                 </div>
 
                 <div className="propStatus">
-                  {STATUS.map((s) => (
+                  {PROPERTY_STATUS_UPSERT_OPTIONS.map((s) => (
                     <button
                       key={s.value}
                       type="button"

@@ -28,16 +28,19 @@ import {
 } from "@/features/admin/utils/adminTelemetry";
 import { formatPriceInput } from "@/shared/utils/priceFormatting";
 import { buildPropertyUpsertPayloadWithStatus } from "@/shared/utils/propertyUpsertMapping";
+import {
+  PROPERTY_STATUS_FILTER_OPTIONS,
+  PROPERTY_STATUS_ORDER,
+  SELLER_WORKFLOW_FILTER_OPTIONS,
+  STATUS_LABEL_ALIASES,
+  formatStatusLabel,
+  propertyStatusTone,
+} from "@/shared/constants/propertyWorkflow";
 
 const PAGE_SIZE = 20;
 const PROPERTIES_PRIMARY_INLINE_MIN_WIDTH = 980;
 const PROPERTIES_INLINE_FILTERS_MIN_WIDTH = 1420;
 const ADMIN_PROPERTIES_MOBILE_QUERY = "(max-width: 980px)";
-const PROPERTY_STATUS_ORDER = {
-  ACTIVE: 0,
-  DRAFT: 1,
-  CLOSED: 2,
-};
 
 const OCCUPANCY = [
   { label: "All", value: "" },
@@ -50,21 +53,6 @@ const EXIT_STRATEGIES = [
   { label: "Flip", value: "FLIP" },
   { label: "Rental", value: "RENTAL" },
   { label: "Wholesale", value: "WHOLESALE" },
-];
-
-const STATUSES = [
-  { label: "All", value: "" },
-  { label: "Draft", value: "DRAFT" },
-  { label: "Active", value: "ACTIVE" },
-  { label: "Closed", value: "CLOSED" },
-];
-
-const SELLER_WORKFLOWS = [
-  { label: "All", value: "" },
-  { label: "Under Review", value: "SUBMITTED" },
-  { label: "Changes Requested", value: "CHANGES_REQUESTED" },
-  { label: "Published", value: "PUBLISHED" },
-  { label: "Closed", value: "CLOSED" },
 ];
 
 const SECONDARY_COLUMN_OPTIONS = [
@@ -96,15 +84,6 @@ function propertyAddressLineOne(property) {
 function propertyAddressLineTwo(property) {
   const stateZip = [property?.state, property?.zip].filter(Boolean).join(" ");
   return [property?.city, stateZip].filter(Boolean).join(", ");
-}
-
-function prettyEnum(v) {
-  if (!v) return "—";
-  if (String(v).trim().toUpperCase() === "SUBMITTED") return "Under Review";
-  return String(v)
-    .toLowerCase()
-    .replaceAll("_", " ")
-    .replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
 function sellerDisplayLabel(property) {
@@ -259,7 +238,7 @@ function AdminPropertiesDesktopRow({
       {secondaryColumnSet.has("fmr") ? <td className="adminProps__tdRight">{money(property.fmr)}</td> : null}
       {secondaryColumnSet.has("exit") ? (
         <td className="adminProps__tdCenter">
-          {prettyEnum(property.exitStrategy)}
+          {formatStatusLabel(property.exitStrategy)}
         </td>
       ) : null}
       {secondaryColumnSet.has("sqft") ? (
@@ -286,7 +265,7 @@ function AdminPropertiesDesktopRow({
         {ownerName}
       </td>
       <td className="adminProps__tdCenter">
-        {prettyEnum(property.sellerWorkflowStatus)}
+        {formatStatusLabel(property.sellerWorkflowStatus, STATUS_LABEL_ALIASES)}
       </td>
       {secondaryColumnSet.has("reviewNote") ? (
         <td className="adminProps__tdCenter">
@@ -305,7 +284,7 @@ function AdminPropertiesDesktopRow({
       ) : null}
       <td className="adminProps__tdCenter">
         <span className={`adminProps__statusBadge adminProps__statusBadge--${statusTone}`}>
-          {prettyEnum(property.status)}
+          {formatStatusLabel(property.status, STATUS_LABEL_ALIASES)}
         </span>
       </td>
 
@@ -350,10 +329,7 @@ function PropertiesTable({
           {sortedRows.map((property) => {
             const lineOne = propertyAddressLineOne(property);
             const lineTwo = propertyAddressLineTwo(property);
-            const statusKey = String(property?.status ?? "").trim().toUpperCase();
-            const statusTone = ["ACTIVE", "DRAFT", "CLOSED"].includes(statusKey)
-              ? statusKey.toLowerCase()
-              : "unknown";
+            const statusTone = propertyStatusTone(property?.status);
 
             if (isMobileView) {
               return (
@@ -659,7 +635,7 @@ export default function AdminPropertiesPage() {
           value={filters.status}
           onChange={(e) => updateFilter("status", e.target.value)}
         >
-          {STATUSES.map((o) => (
+          {PROPERTY_STATUS_FILTER_OPTIONS.map((o) => (
             <option key={o.label} value={o.value}>
               {o.label}
             </option>
@@ -767,7 +743,7 @@ export default function AdminPropertiesPage() {
           value={filters.sellerWorkflowStatus}
           onChange={(e) => updateFilter("sellerWorkflowStatus", e.target.value)}
         >
-          {SELLER_WORKFLOWS.map((o) => (
+          {SELLER_WORKFLOW_FILTER_OPTIONS.map((o) => (
             <option key={o.label} value={o.value}>
               {o.label}
             </option>
