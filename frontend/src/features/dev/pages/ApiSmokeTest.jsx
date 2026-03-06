@@ -101,7 +101,7 @@ export default function ApiSmokeTest() {
           </button>
 
           <button
-            className="api-smoke__btn api-smoke__btn-danger"
+            className="api-smoke__btn api-smoke__btn--danger"
             disabled={loading}
             onClick={() => {
               logout()

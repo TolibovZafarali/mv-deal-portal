@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { getInquiryByInvestor } from "@/api/modules/inquiryApi";
 import { getInquiryRepliesByInvestor } from "@/api/modules/inquiryReplyApi";
 import { getInvestorById, updateInvestor } from "@/api/modules/investorApi";
-import { getPropertyId } from "@/api/modules/propertyApi";
+import { getPropertyById } from "@/api/modules/propertyApi";
 import { changePassword } from "@/api/modules/authApi";
 import { useAuth } from "@/features/auth";
 import "@/features/investor/modals/InvestorAccountCenterModal.css";
@@ -249,7 +249,7 @@ export default function InvestorAccountCenterModal({
 
         const details = await Promise.allSettled(
           propertyIds.map(async (id) => {
-            const property = await getPropertyId(id);
+            const property = await getPropertyById(id);
             return [
               id,
               {

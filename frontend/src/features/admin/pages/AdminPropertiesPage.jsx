@@ -5,7 +5,7 @@ import {
   createProperty,
   deletePropertyPhotoUpload,
   deleteProperty,
-  getPropertyId,
+  getPropertyById,
   searchProperties,
   uploadPropertyPhoto,
   updateProperty,
@@ -659,7 +659,7 @@ export default function AdminPropertiesPage() {
     setEditSubmitting(false);
 
     try {
-      const full = await getPropertyId(id);
+      const full = await getPropertyById(id);
       setEditId(id);
       setEditInitial(full);
       setEditOpen(true);

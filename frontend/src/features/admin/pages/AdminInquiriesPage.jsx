@@ -9,7 +9,7 @@ import {
   createPropertyPhotoFromUrl,
   deleteProperty,
   deletePropertyPhotoUpload,
-  getPropertyId,
+  getPropertyById,
   updateProperty,
   uploadPropertyPhoto,
 } from "@/api/modules/propertyApi";
@@ -264,7 +264,7 @@ export default function AdminInquiriesPage() {
         const propertyEntries = await Promise.all(
           propertyIds.map(async (propertyId) => {
             try {
-              const property = await getPropertyId(propertyId);
+              const property = await getPropertyById(propertyId);
               return [
                 propertyId,
                 {
@@ -520,7 +520,7 @@ export default function AdminInquiriesPage() {
     setEditSubmitting(false);
 
     try {
-      const full = await getPropertyId(id);
+      const full = await getPropertyById(id);
       setEditId(id);
       setEditInitial(full);
       setEditOpen(true);

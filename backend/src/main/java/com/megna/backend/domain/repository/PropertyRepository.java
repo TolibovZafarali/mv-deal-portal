@@ -9,7 +9,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.repository.query.Param;
 
-import java.util.Collection;
 import java.util.Optional;
 
 public interface PropertyRepository extends JpaRepository<Property, Long>, JpaSpecificationExecutor<Property> {
@@ -18,8 +17,6 @@ public interface PropertyRepository extends JpaRepository<Property, Long>, JpaSp
     Optional<Property> findByIdForUpdate(@Param("id") Long id);
 
     long countBySellerIdAndSellerWorkflowStatus(Long sellerId, SellerWorkflowStatus status);
-
-    long countBySellerIdAndSellerWorkflowStatusIn(Long sellerId, Collection<SellerWorkflowStatus> statuses);
 
     @Query("""
             select count(p) > 0

@@ -9,7 +9,7 @@ export async function getProperties(pageOpts = {}) {
     return data;
 }
 
-export async function getPropertyId(id) {
+export async function getPropertyById(id) {
     const { data } = await apiClient.get(`${BASE}/${id}`);
     return data;
 }
