@@ -44,5 +44,19 @@ public interface InquiryRepository extends JpaRepository<Inquiry, Long> {
 
     long countByPropertySellerId(Long sellerId);
 
+    @Query("""
+            select count(i)
+            from Inquiry i
+            where i.property.status = :status
+              and not exists (
+                    select 1
+                    from InquiryAdminReply r
+                    where r.investor.id = i.investor.id
+                      and r.property.id = i.property.id
+                      and r.createdAt >= i.createdAt
+                )
+            """)
+    long countNotRepliedByAdminAndPropertyStatus(@Param("status") PropertyStatus status);
+
     Optional<Inquiry> findTopByInvestorIdAndPropertyIdOrderByCreatedAtDescIdDesc(Long investorId, Long propertyId);
 }

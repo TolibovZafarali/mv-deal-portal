@@ -91,12 +91,14 @@ public class AdminQueueService {
                 .getTotalElements();
 
         long failedInquiries = inquiryRepository.countByEmailStatus(EmailStatus.FAILED);
+        long unrepliedInquiries = inquiryRepository.countNotRepliedByAdminAndPropertyStatus(PropertyStatus.ACTIVE);
 
         return new AdminQueueSummaryDto(
                 draftProperties,
                 submittedProperties,
                 pendingInvestors,
-                failedInquiries
+                failedInquiries,
+                unrepliedInquiries
         );
     }
 

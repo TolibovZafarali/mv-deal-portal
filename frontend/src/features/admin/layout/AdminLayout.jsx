@@ -72,7 +72,7 @@ export default function AdminLayout() {
   const badges = {
     properties: counts.draftProperties,
     investors: counts.pendingInvestors,
-    inquiries: counts.failedInquiries,
+    inquiries: counts.unrepliedInquiries,
   };
 
   function handleLogout() {

@@ -4,6 +4,7 @@ public record AdminQueueSummaryDto(
         long draftProperties,
         long submittedProperties,
         long pendingInvestors,
-        long failedInquiries
+        long failedInquiries,
+        long unrepliedInquiries
 ) {
 }

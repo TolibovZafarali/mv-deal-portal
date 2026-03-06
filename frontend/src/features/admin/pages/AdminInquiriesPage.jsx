@@ -1,11 +1,20 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { getInquiries } from "@/api/modules/inquiryApi";
 import {
   createAdminInquiryReply,
   getAdminInquiryReplies,
 } from "@/api/modules/inquiryReplyApi";
 import { getInvestorById } from "@/api/modules/investorApi";
-import { getPropertyId } from "@/api/modules/propertyApi";
+import {
+  createPropertyPhotoFromUrl,
+  deleteProperty,
+  deletePropertyPhotoUpload,
+  getPropertyId,
+  updateProperty,
+  uploadPropertyPhoto,
+} from "@/api/modules/propertyApi";
+import { assignPropertySeller } from "@/api/modules/sellerPropertyApi";
+import PropertyUpsertModal from "@/features/admin/modals/PropertyUpsertModal";
 import "@/features/admin/pages/AdminInquiriesPage.css";
 
 const LOAD_CAP = 500;
@@ -24,16 +33,6 @@ function parseDate(value) {
 function dateValue(value) {
   const date = parseDate(value);
   return date ? date.getTime() : 0;
-}
-
-function prettyDate(value) {
-  const date = parseDate(value);
-  if (!date) return "—";
-  return date.toLocaleString("en-US", {
-    month: "short",
-    day: "2-digit",
-    year: "numeric",
-  });
 }
 
 function prettyDateTime(value) {
@@ -80,6 +79,86 @@ function investorNameFromModel(investor) {
   return full || cleanString(investor?.email) || "Unknown Investor";
 }
 
+function cleanStr(value) {
+  const normalized = String(value ?? "").trim();
+  return normalized.length ? normalized : null;
+}
+
+function parseNum(value) {
+  const raw = String(value ?? "").trim();
+  if (!raw) return null;
+  const normalized = raw.replaceAll(",", "").replaceAll("$", "");
+  const numeric = Number(normalized);
+  return Number.isFinite(numeric) ? numeric : null;
+}
+
+function parseIntNum(value) {
+  const numeric = parseNum(value);
+  if (numeric === null) return null;
+  const parsed = Number.parseInt(String(numeric), 10);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function mapPhotosForUpsert(photos) {
+  if (!Array.isArray(photos)) return [];
+
+  return photos
+    .map((photo) => ({
+      photoAssetId: cleanStr(photo?.photoAssetId),
+      caption: cleanStr(photo?.caption),
+    }))
+    .filter((photo) => Boolean(photo.photoAssetId))
+    .map((photo, idx) => ({
+      photoAssetId: photo.photoAssetId,
+      sortOrder: idx,
+      caption: photo.caption,
+    }));
+}
+
+function mapSaleCompsForUpsert(saleComps) {
+  if (!Array.isArray(saleComps)) return [];
+
+  return saleComps
+    .map((comp, idx) => ({
+      address: cleanStr(comp?.address),
+      soldPrice: parseNum(comp?.soldPrice),
+      soldDate: cleanStr(comp?.soldDate),
+      beds: parseIntNum(comp?.beds),
+      baths: parseNum(comp?.baths),
+      livingAreaSqft: parseIntNum(comp?.livingAreaSqft),
+      distanceMiles: parseNum(comp?.distanceMiles),
+      notes: cleanStr(comp?.notes),
+      sortOrder: idx,
+    }))
+    .filter((comp) => Boolean(comp.address));
+}
+
+function formToUpsertDto(form) {
+  return {
+    status: form.status,
+    street1: cleanStr(form.street1),
+    street2: cleanStr(form.street2),
+    city: cleanStr(form.city),
+    state: cleanStr(form.state),
+    zip: cleanStr(form.zip),
+    askingPrice: parseNum(form.askingPrice),
+    arv: parseNum(form.arv),
+    estRepairs: parseNum(form.estRepairs),
+    beds: parseIntNum(form.beds),
+    baths: parseNum(form.baths),
+    livingAreaSqft: parseIntNum(form.livingAreaSqft),
+    yearBuilt: parseIntNum(form.yearBuilt),
+    roofAge: parseIntNum(form.roofAge),
+    hvac: parseIntNum(form.hvac),
+    occupancyStatus: cleanStr(form.occupancyStatus),
+    currentRent: cleanStr(form.occupancyStatus) === "YES" ? parseNum(form.currentRent) : null,
+    exitStrategy: cleanStr(form.exitStrategy),
+    closingTerms: cleanStr(form.closingTerms),
+    photos: mapPhotosForUpsert(form.photos),
+    saleComps: mapSaleCompsForUpsert(form.saleComps),
+  };
+}
+
 export default function AdminInquiriesPage() {
   const [inquiries, setInquiries] = useState([]);
   const [replies, setReplies] = useState([]);
@@ -92,6 +171,16 @@ export default function AdminInquiriesPage() {
   const [sendError, setSendError] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editId, setEditId] = useState(null);
+  const [editInitial, setEditInitial] = useState(null);
+  const [editSubmitting, setEditSubmitting] = useState(false);
+  const [editError, setEditError] = useState("");
+  const [editLoadError, setEditLoadError] = useState("");
+  const [editDeleting, setEditDeleting] = useState(false);
+  const [editDeleteError, setEditDeleteError] = useState("");
+  const replyInputRef = useRef(null);
 
   useEffect(() => {
     let alive = true;
@@ -181,6 +270,7 @@ export default function AdminInquiriesPage() {
                 {
                   address: cleanString(propertyAddress(property)) || `Property #${propertyId}`,
                   photoUrl: propertyLeadPhoto(property),
+                  status: cleanString(property?.status).toUpperCase(),
                   askingPrice: property?.askingPrice ?? null,
                   beds: property?.beds ?? null,
                   baths: property?.baths ?? null,
@@ -192,6 +282,7 @@ export default function AdminInquiriesPage() {
                 {
                   address: `Property #${propertyId}`,
                   photoUrl: "",
+                  status: "",
                   askingPrice: null,
                   beds: null,
                   baths: null,
@@ -223,7 +314,7 @@ export default function AdminInquiriesPage() {
     return () => {
       alive = false;
     };
-  }, []);
+  }, [refreshKey]);
 
   const investorThreads = useMemo(() => {
     const byInvestor = new Map();
@@ -284,6 +375,9 @@ export default function AdminInquiriesPage() {
     });
 
     threadMap.forEach((thread) => {
+      const propertyStatus = cleanString(propertyMetaById?.[thread.propertyId]?.status).toUpperCase();
+      if (propertyStatus !== "ACTIVE") return;
+
       const messages = [...thread.messages].sort((left, right) => {
         const diff = dateValue(left.createdAt) - dateValue(right.createdAt);
         if (diff !== 0) return diff;
@@ -291,9 +385,18 @@ export default function AdminInquiriesPage() {
       });
 
       const latest = messages[messages.length - 1] ?? null;
-      const pendingCount = messages.filter(
-        (message) => message.kind === "INQUIRY" && message.emailStatus !== "SENT",
-      ).length;
+      let pendingCount = 0;
+      let hasReplyAfter = false;
+      for (let index = messages.length - 1; index >= 0; index -= 1) {
+        const message = messages[index];
+        if (message.kind === "REPLY") {
+          hasReplyAfter = true;
+          continue;
+        }
+        if (!hasReplyAfter && message.kind === "INQUIRY") {
+          pendingCount += 1;
+        }
+      }
 
       const normalizedThread = {
         investorId: thread.investorId,
@@ -328,7 +431,7 @@ export default function AdminInquiriesPage() {
         ),
       }))
       .sort((left, right) => dateValue(right.latestAt) - dateValue(left.latestAt));
-  }, [inquiries, replies]);
+  }, [inquiries, replies, propertyMetaById]);
 
   useEffect(() => {
     if (!investorThreads.length) {
@@ -366,6 +469,13 @@ export default function AdminInquiriesPage() {
     [selectedInvestor, selectedPropertyId],
   );
 
+  useEffect(() => {
+    const textarea = replyInputRef.current;
+    if (!textarea) return;
+    textarea.style.height = "0px";
+    textarea.style.height = `${Math.max(46, textarea.scrollHeight)}px`;
+  }, [replyBody, selectedThread]);
+
   async function handleSendReply(event) {
     event.preventDefault();
     if (!selectedInvestorId || !selectedPropertyId) return;
@@ -395,6 +505,99 @@ export default function AdminInquiriesPage() {
     }
   }
 
+  async function syncPropertyOwner(propertyId, sellerId) {
+    if (!propertyId) return;
+    const normalizedSellerId = sellerId === "" || sellerId === null || sellerId === undefined
+      ? null
+      : Number(sellerId);
+    const safeSellerId = Number.isFinite(normalizedSellerId) ? normalizedSellerId : null;
+    await assignPropertySeller(propertyId, safeSellerId);
+  }
+
+  async function openEditModal(id) {
+    setEditLoadError("");
+    setEditError("");
+    setEditSubmitting(false);
+
+    try {
+      const full = await getPropertyId(id);
+      setEditId(id);
+      setEditInitial(full);
+      setEditOpen(true);
+    } catch (nextError) {
+      setEditLoadError(nextError?.message || "Failed to load property details.");
+    }
+  }
+
+  async function handlePhotoUpload(file) {
+    return uploadPropertyPhoto(file);
+  }
+
+  async function handlePhotoUrlAdd(url) {
+    return createPropertyPhotoFromUrl(url);
+  }
+
+  async function handlePhotoUploadDelete(uploadId) {
+    if (!uploadId) return;
+    try {
+      await deletePropertyPhotoUpload(uploadId);
+    } catch {
+      // best-effort staged upload cleanup
+    }
+  }
+
+  async function handleEditSubmit(form) {
+    if (!editId) return;
+
+    setEditSubmitting(true);
+    setEditError("");
+
+    try {
+      const dto = formToUpsertDto(form);
+      await updateProperty(editId, dto);
+      const currentSellerId = editInitial?.sellerId ?? null;
+      const nextSellerId = form?.sellerId === "" || form?.sellerId === null || form?.sellerId === undefined
+        ? null
+        : Number(form.sellerId);
+      const normalizedNextSellerId = Number.isFinite(nextSellerId) ? nextSellerId : null;
+      if (currentSellerId !== normalizedNextSellerId) {
+        await syncPropertyOwner(editId, normalizedNextSellerId);
+      }
+
+      setEditOpen(false);
+      setEditId(null);
+      setEditInitial(null);
+      setRefreshKey((prev) => prev + 1);
+    } catch (nextError) {
+      setEditError(nextError?.message || "Failed to update property.");
+    } finally {
+      setEditSubmitting(false);
+    }
+  }
+
+  async function handleEditDelete() {
+    if (!editId) return;
+
+    setEditDeleting(true);
+    setEditDeleteError("");
+
+    try {
+      await deleteProperty(editId);
+
+      setEditOpen(false);
+      setEditId(null);
+      setEditInitial(null);
+      setEditError("");
+      setEditLoadError("");
+
+      setRefreshKey((prev) => prev + 1);
+    } catch (nextError) {
+      setEditDeleteError(nextError?.message || "Failed to delete property.");
+    } finally {
+      setEditDeleting(false);
+    }
+  }
+
   function resolveInvestorMeta(investorId) {
     return investorMetaById[investorId] || {
       name: `Investor #${investorId ?? "—"}`,
@@ -407,6 +610,7 @@ export default function AdminInquiriesPage() {
     return propertyMetaById[propertyId] || {
       address: `Property #${propertyId ?? "—"}`,
       photoUrl: "",
+      status: "",
       askingPrice: null,
       beds: null,
       baths: null,
@@ -432,6 +636,9 @@ export default function AdminInquiriesPage() {
               {investorThreads.map((investor) => {
                 const meta = resolveInvestorMeta(investor.investorId);
                 const active = investor.investorId === selectedInvestorId;
+                const pendingPropertyCount = investor.propertyThreads.filter(
+                  (thread) => thread.pendingCount > 0,
+                ).length;
                 return (
                   <button
                     key={investor.investorId}
@@ -443,7 +650,14 @@ export default function AdminInquiriesPage() {
                       setSendError("");
                     }}
                   >
-                    <span className="adminInqThreads__investorName">{meta.name}</span>
+                    <span className="adminInqThreads__investorNameRow">
+                      <span className="adminInqThreads__investorName">{meta.name}</span>
+                      {pendingPropertyCount > 0 ? (
+                        <span className="adminInqThreads__investorPendingBadge">
+                          {pendingPropertyCount}
+                        </span>
+                      ) : null}
+                    </span>
                     <span className="adminInqThreads__investorSub">{meta.companyName || "—"}</span>
                     <span className="adminInqThreads__investorSub">{meta.email || "—"}</span>
                   </button>
@@ -475,13 +689,22 @@ export default function AdminInquiriesPage() {
                       active ? "adminInqThreads__propertyItem--active" : ""
                     }`.trim()}
                   >
-                    <button
-                      type="button"
+                    <div
+                      role="button"
+                      tabIndex={0}
                       className={`adminInqThreads__propertyCard ${active ? "adminInqThreads__propertyCard--active" : ""}`.trim()}
                       onClick={() => {
                         setSelectedPropertyId(thread.propertyId);
                         setReplyBody("");
                         setSendError("");
+                      }}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          setSelectedPropertyId(thread.propertyId);
+                          setReplyBody("");
+                          setSendError("");
+                        }
                       }}
                     >
                       {propertyMeta.photoUrl ? (
@@ -501,12 +724,24 @@ export default function AdminInquiriesPage() {
                         <strong>{money(propertyMeta.askingPrice)}</strong>
                         <span>{propertyMeta.beds ?? "—"} bd • {propertyMeta.baths ?? "—"} ba</span>
                       </span>
-                      <span className={pendingClass}>
-                        {thread.pendingCount > 0
-                          ? `${thread.pendingCount} pending`
-                          : `Updated ${prettyDate(thread.latestAt)}`}
+                      <span className="adminInqThreads__propertyMetaRow">
+                        <span className={pendingClass}>
+                          {thread.pendingCount > 0 ? "Awaiting response" : "Responded"}
+                        </span>
+                        {active ? (
+                          <button
+                            type="button"
+                            className="adminInqThreads__propertyViewBtn"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              openEditModal(thread.propertyId);
+                            }}
+                          >
+                            View
+                          </button>
+                        ) : null}
                       </span>
-                    </button>
+                    </div>
                   </div>
                 );
               })}
@@ -555,8 +790,8 @@ export default function AdminInquiriesPage() {
             </div>
 
             <form className="adminInqThreads__composer" onSubmit={handleSendReply}>
-              <input
-                type="text"
+              <textarea
+                ref={replyInputRef}
                 className="adminInqThreads__composerInput"
                 placeholder="Write a reply as Megna Team"
                 value={replyBody}
@@ -565,6 +800,7 @@ export default function AdminInquiriesPage() {
                   if (sendError) setSendError("");
                 }}
                 disabled={!selectedThread || sending}
+                rows={1}
               />
               <button
                 type="submit"
@@ -579,6 +815,35 @@ export default function AdminInquiriesPage() {
           </section>
         </div>
       ) : null}
+
+      {editLoadError ? (
+        <div className="adminInqThreads__notice adminInqThreads__notice--error">
+          {editLoadError}
+        </div>
+      ) : null}
+
+      <PropertyUpsertModal
+        open={editOpen}
+        mode="edit"
+        initialValue={editInitial}
+        onClose={() => {
+          if (editSubmitting || editDeleting) return;
+          setEditOpen(false);
+          setEditId(null);
+          setEditInitial(null);
+          setEditError("");
+          setEditDeleteError("");
+        }}
+        onSubmit={handleEditSubmit}
+        onUploadPhoto={handlePhotoUpload}
+        onAddPhotoByUrl={handlePhotoUrlAdd}
+        onDeleteUploadedPhoto={handlePhotoUploadDelete}
+        submitting={editSubmitting}
+        submitError={editError}
+        onDelete={handleEditDelete}
+        deleting={editDeleting}
+        deleteError={editDeleteError}
+      />
     </section>
   );
 }

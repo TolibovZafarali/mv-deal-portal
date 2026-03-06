@@ -108,6 +108,7 @@ export default function useAdminQueue({ includeItems = true, pageSize = DEFAULT_
     submittedProperties: 0,
     pendingInvestors: 0,
     failedInquiries: 0,
+    unrepliedInquiries: 0,
   });
   const [sections, setSections] = useState({
     submittedListings: [],
@@ -160,6 +161,7 @@ export default function useAdminQueue({ includeItems = true, pageSize = DEFAULT_
             submittedProperties: summary?.submittedProperties ?? 0,
             pendingInvestors: summary?.pendingInvestors ?? 0,
             failedInquiries: summary?.failedInquiries ?? 0,
+            unrepliedInquiries: summary?.unrepliedInquiries ?? 0,
           };
 
           setCounts(nextCounts);
@@ -200,6 +202,7 @@ export default function useAdminQueue({ includeItems = true, pageSize = DEFAULT_
             submittedProperties: summary?.submittedProperties ?? 0,
             pendingInvestors: summary?.pendingInvestors ?? 0,
             failedInquiries: summary?.failedInquiries ?? 0,
+            unrepliedInquiries: summary?.unrepliedInquiries ?? 0,
           };
 
           setCounts(nextCounts);
@@ -256,6 +259,7 @@ export default function useAdminQueue({ includeItems = true, pageSize = DEFAULT_
         submittedProperties: submittedData?.totalElements ?? 0,
         pendingInvestors: pendingData?.totalElements ?? 0,
         failedInquiries: 0,
+        unrepliedInquiries: 0,
       };
 
       setCounts(nextCounts);
