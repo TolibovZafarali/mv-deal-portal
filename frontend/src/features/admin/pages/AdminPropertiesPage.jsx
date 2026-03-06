@@ -27,6 +27,7 @@ import {
   startAdminTimer,
 } from "@/features/admin/utils/adminTelemetry";
 import { formatPriceInput } from "@/shared/utils/priceFormatting";
+import { buildPropertyUpsertPayloadWithStatus } from "@/shared/utils/propertyUpsertMapping";
 
 const PAGE_SIZE = 20;
 const PROPERTIES_PRIMARY_INLINE_MIN_WIDTH = 980;
@@ -524,40 +525,6 @@ export default function AdminPropertiesPage() {
     </>
   );
   
-  function mapPhotosForUpsert(photos) {
-    if (!Array.isArray(photos)) return [];
-
-    return photos
-      .map((photo) => ({
-        photoAssetId: cleanStr(photo?.photoAssetId),
-        caption: cleanStr(photo?.caption),
-      }))
-      .filter((photo) => Boolean(photo.photoAssetId))
-      .map((photo, idx) => ({
-        photoAssetId: photo.photoAssetId,
-        sortOrder: idx,
-        caption: photo.caption,
-      }));
-  }
-
-  function mapSaleCompsForUpsert(saleComps) {
-    if (!Array.isArray(saleComps)) return [];
-
-    return saleComps
-      .map((comp, idx) => ({
-        address: cleanStr(comp?.address),
-        soldPrice: parseNum(comp?.soldPrice),
-        soldDate: cleanStr(comp?.soldDate),
-        beds: parseIntNum(comp?.beds),
-        baths: parseNum(comp?.baths),
-        livingAreaSqft: parseIntNum(comp?.livingAreaSqft),
-        distanceMiles: parseNum(comp?.distanceMiles),
-        notes: cleanStr(comp?.notes),
-        sortOrder: idx,
-      }))
-      .filter((comp) => Boolean(comp.address));
-  }
-
   async function handlePhotoUpload(file) {
     return uploadPropertyPhoto(file);
   }
@@ -580,33 +547,7 @@ export default function AdminPropertiesPage() {
     setAddError("");
 
     try {
-      const dto = {
-        status: form.status,
-        street1: cleanStr(form.street1),
-        street2: cleanStr(form.street2),
-        city: cleanStr(form.city),
-        state: cleanStr(form.state),
-        zip: cleanStr(form.zip),
-
-        askingPrice: parseNum(form.askingPrice),
-        arv: parseNum(form.arv),
-        estRepairs: parseNum(form.estRepairs),
-
-        beds: parseIntNum(form.beds),
-        baths: parseNum(form.baths),
-        livingAreaSqft: parseIntNum(form.livingAreaSqft),
-        yearBuilt: parseIntNum(form.yearBuilt),
-        roofAge: parseIntNum(form.roofAge),
-        hvac: parseIntNum(form.hvac),
-
-        occupancyStatus: cleanStr(form.occupancyStatus),
-        currentRent: cleanStr(form.occupancyStatus) === "YES" ? parseNum(form.currentRent) : null,
-        exitStrategy: cleanStr(form.exitStrategy),
-        closingTerms: cleanStr(form.closingTerms),
-
-        photos: mapPhotosForUpsert(form.photos),
-        saleComps: mapSaleCompsForUpsert(form.saleComps),
-      };
+      const dto = formToUpsertDto(form);
 
       const created = await createProperty(dto);
       if (form?.sellerId !== "" && form?.sellerId !== null && form?.sellerId !== undefined) {
@@ -624,33 +565,7 @@ export default function AdminPropertiesPage() {
   }
 
   function formToUpsertDto(form) {
-    return {
-      status: form.status,
-      street1: cleanStr(form.street1),
-      street2: cleanStr(form.street2),
-      city: cleanStr(form.city),
-      state: cleanStr(form.state),
-      zip: cleanStr(form.zip),
-
-      askingPrice: parseNum(form.askingPrice),
-      arv: parseNum(form.arv),
-      estRepairs: parseNum(form.estRepairs),
-
-      beds: parseIntNum(form.beds),
-      baths: parseNum(form.baths),
-      livingAreaSqft: parseIntNum(form.livingAreaSqft),
-      yearBuilt: parseIntNum(form.yearBuilt),
-      roofAge: parseIntNum(form.roofAge),
-      hvac: parseIntNum(form.hvac),
-
-      occupancyStatus: cleanStr(form.occupancyStatus),
-      currentRent: cleanStr(form.occupancyStatus) === "YES" ? parseNum(form.currentRent) : null,
-      exitStrategy: cleanStr(form.exitStrategy),
-      closingTerms: cleanStr(form.closingTerms),
-
-      photos: mapPhotosForUpsert(form.photos),
-      saleComps: mapSaleCompsForUpsert(form.saleComps),
-    };
+    return buildPropertyUpsertPayloadWithStatus(form);
   }
 
   async function openEditModal(id) {

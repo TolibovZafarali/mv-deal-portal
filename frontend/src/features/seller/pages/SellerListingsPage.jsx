@@ -13,6 +13,7 @@ import {
 } from "@/api/modules/sellerPropertyApi";
 import { startSellerTimer, trackSellerEvent } from "@/features/seller/utils/sellerTelemetry";
 import PropertyUpsertModal from "@/features/admin/modals/PropertyUpsertModal";
+import { buildSellerPropertyDraftPayload } from "@/shared/utils/propertyUpsertMapping";
 import "@/features/seller/pages/SellerListingsPage.css";
 
 const PAGE_SIZE = 30;
@@ -115,83 +116,8 @@ function statusLabel(property) {
   return prettyEnum(workflow);
 }
 
-function cleanStr(value) {
-  const normalized = String(value ?? "").trim();
-  return normalized.length ? normalized : null;
-}
-
-function parseNum(value) {
-  const raw = String(value ?? "").trim();
-  if (!raw) return null;
-  const normalized = raw.replaceAll(",", "").replaceAll("$", "");
-  const n = Number(normalized);
-  return Number.isFinite(n) ? n : null;
-}
-
-function parseIntNum(value) {
-  const n = parseNum(value);
-  if (n === null) return null;
-  const i = Number.parseInt(String(n), 10);
-  return Number.isFinite(i) ? i : null;
-}
-
-function mapPhotosForUpsert(photos) {
-  if (!Array.isArray(photos)) return [];
-
-  return photos
-    .map((photo) => ({
-      photoAssetId: cleanStr(photo?.photoAssetId),
-      caption: cleanStr(photo?.caption),
-    }))
-    .filter((photo) => Boolean(photo.photoAssetId))
-    .map((photo, idx) => ({
-      photoAssetId: photo.photoAssetId,
-      sortOrder: idx,
-      caption: photo.caption,
-    }));
-}
-
-function mapSaleCompsForUpsert(saleComps) {
-  if (!Array.isArray(saleComps)) return [];
-
-  return saleComps
-    .map((comp, idx) => ({
-      address: cleanStr(comp?.address),
-      soldPrice: parseNum(comp?.soldPrice),
-      soldDate: cleanStr(comp?.soldDate),
-      beds: parseIntNum(comp?.beds),
-      baths: parseNum(comp?.baths),
-      livingAreaSqft: parseIntNum(comp?.livingAreaSqft),
-      distanceMiles: parseNum(comp?.distanceMiles),
-      notes: cleanStr(comp?.notes),
-      sortOrder: idx,
-    }))
-    .filter((comp) => Boolean(comp.address));
-}
-
 function formToSellerDraftDto(form) {
-  return {
-    street1: cleanStr(form.street1),
-    street2: cleanStr(form.street2),
-    city: cleanStr(form.city),
-    state: cleanStr(form.state),
-    zip: cleanStr(form.zip),
-    askingPrice: parseNum(form.askingPrice),
-    arv: parseNum(form.arv),
-    estRepairs: parseNum(form.estRepairs),
-    beds: parseIntNum(form.beds),
-    baths: parseNum(form.baths),
-    livingAreaSqft: parseIntNum(form.livingAreaSqft),
-    yearBuilt: parseIntNum(form.yearBuilt),
-    roofAge: parseIntNum(form.roofAge),
-    hvac: parseIntNum(form.hvac),
-    occupancyStatus: cleanStr(form.occupancyStatus),
-    currentRent: cleanStr(form.occupancyStatus) === "YES" ? parseNum(form.currentRent) : null,
-    exitStrategy: cleanStr(form.exitStrategy),
-    closingTerms: cleanStr(form.closingTerms),
-    photos: mapPhotosForUpsert(form.photos),
-    saleComps: mapSaleCompsForUpsert(form.saleComps),
-  };
+  return buildSellerPropertyDraftPayload(form);
 }
 
 function sectionRows(rows) {
