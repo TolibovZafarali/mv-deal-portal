@@ -145,6 +145,249 @@ function parseIntNum(v) {
   return Number.isFinite(i) ? i : null;
 }
 
+function SecondaryColumnsMenu({
+  secondaryColumns,
+  secondaryColumnSet,
+  toggleSecondaryColumn,
+}) {
+  return (
+    <details className="adminProps__columnsMenu">
+      <summary className="adminProps__columnsBtn">
+        <span className="material-symbols-outlined">view_column</span>
+        Columns
+        {secondaryColumns.length ? ` (${secondaryColumns.length})` : ""}
+      </summary>
+      <div className="adminProps__columnsBody">
+        {SECONDARY_COLUMN_OPTIONS.map((column) => (
+          <label key={column.key} className="adminProps__columnOption">
+            <input
+              type="checkbox"
+              checked={secondaryColumnSet.has(column.key)}
+              onChange={() => toggleSecondaryColumn(column.key)}
+            />
+            <span>{column.label}</span>
+          </label>
+        ))}
+      </div>
+    </details>
+  );
+}
+
+function PropertiesTableHeader({ isMobileView, secondaryColumnSet }) {
+  if (isMobileView) {
+    return (
+      <tr>
+        <th>Address</th>
+        <th className="adminProps__thRight">Asking Price</th>
+      </tr>
+    );
+  }
+
+  return (
+    <tr>
+      <th>Address</th>
+      <th className="adminProps__thRight">Asking Price</th>
+      {secondaryColumnSet.has("arv") ? <th className="adminProps__thRight">After Repair Value (ARV)</th> : null}
+      {secondaryColumnSet.has("repairs") ? <th className="adminProps__thRight">Estimated Repairs</th> : null}
+      {secondaryColumnSet.has("fmr") ? <th className="adminProps__thRight">Fair Market Rent (FMR)</th> : null}
+      {secondaryColumnSet.has("exit") ? <th className="adminProps__thCenter">Exit Strategy</th> : null}
+      {secondaryColumnSet.has("sqft") ? <th className="adminProps__thRight">Square Footage</th> : null}
+      {secondaryColumnSet.has("beds") ? <th className="adminProps__thCenter">Beds</th> : null}
+      {secondaryColumnSet.has("baths") ? <th className="adminProps__thCenter">Baths</th> : null}
+      {secondaryColumnSet.has("year") ? <th className="adminProps__thCenter">Year Built</th> : null}
+      <th className="adminProps__thCenter">Seller Owner</th>
+      <th className="adminProps__thCenter">Seller Workflow</th>
+      {secondaryColumnSet.has("reviewNote") ? <th className="adminProps__thCenter">Review Note</th> : null}
+      <th className="adminProps__thCenter">Status</th>
+      <th className="adminProps__thIcon"></th>
+    </tr>
+  );
+}
+
+function AdminPropertiesMobileRow({ property, lineOne, lineTwo, statusTone, onOpenEdit }) {
+  return (
+    <tr
+      className={`adminProps__row adminProps__row--${statusTone} adminProps__row--mobileInteractive`}
+      role="button"
+      tabIndex={0}
+      aria-label={`Edit property ${lineOne || `#${property.id}`}`}
+      onClick={() => onOpenEdit(property.id)}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          onOpenEdit(property.id);
+        }
+      }}
+    >
+      <td className="adminProps__tdAddress">
+        <div className="adminProps__addrMain">{lineOne || "—"}</div>
+        <div className="adminProps__addrSub">{lineTwo || "—"}</div>
+      </td>
+      <td className="adminProps__tdRight">
+        {money(property.askingPrice)}
+      </td>
+    </tr>
+  );
+}
+
+function AdminPropertiesDesktopRow({
+  property,
+  lineOne,
+  lineTwo,
+  statusTone,
+  secondaryColumnSet,
+  ownerName,
+  onOpenReviewNote,
+  onOpenEdit,
+}) {
+  return (
+    <tr className={`adminProps__row adminProps__row--${statusTone}`}>
+      <td className="adminProps__tdAddress">
+        <div className="adminProps__addrMain">{lineOne || "—"}</div>
+        <div className="adminProps__addrSub">{lineTwo || "—"}</div>
+      </td>
+
+      <td className="adminProps__tdRight">
+        {money(property.askingPrice)}
+      </td>
+      {secondaryColumnSet.has("arv") ? <td className="adminProps__tdRight">{money(property.arv)}</td> : null}
+      {secondaryColumnSet.has("repairs") ? (
+        <td className="adminProps__tdRight">
+          {money(property.estRepairs)}
+        </td>
+      ) : null}
+      {secondaryColumnSet.has("fmr") ? <td className="adminProps__tdRight">{money(property.fmr)}</td> : null}
+      {secondaryColumnSet.has("exit") ? (
+        <td className="adminProps__tdCenter">
+          {prettyEnum(property.exitStrategy)}
+        </td>
+      ) : null}
+      {secondaryColumnSet.has("sqft") ? (
+        <td className="adminProps__tdRight">
+          {property.livingAreaSqft?.toLocaleString("en-US") ?? "—"}
+        </td>
+      ) : null}
+      {secondaryColumnSet.has("beds") ? (
+        <td className="adminProps__tdCenter">
+          {property.beds ?? "—"}
+        </td>
+      ) : null}
+      {secondaryColumnSet.has("baths") ? (
+        <td className="adminProps__tdCenter">
+          {property.baths ?? "—"}
+        </td>
+      ) : null}
+      {secondaryColumnSet.has("year") ? (
+        <td className="adminProps__tdCenter">
+          {property.yearBuilt ?? "—"}
+        </td>
+      ) : null}
+      <td className="adminProps__tdCenter">
+        {ownerName}
+      </td>
+      <td className="adminProps__tdCenter">
+        {prettyEnum(property.sellerWorkflowStatus)}
+      </td>
+      {secondaryColumnSet.has("reviewNote") ? (
+        <td className="adminProps__tdCenter">
+          {property.sellerReviewNote ? (
+            <button
+              className="adminProps__textBtn"
+              type="button"
+              onClick={() => onOpenReviewNote(property)}
+            >
+              View
+            </button>
+          ) : (
+            "—"
+          )}
+        </td>
+      ) : null}
+      <td className="adminProps__tdCenter">
+        <span className={`adminProps__statusBadge adminProps__statusBadge--${statusTone}`}>
+          {prettyEnum(property.status)}
+        </span>
+      </td>
+
+      <td className="adminProps__tdIcon">
+        <div className="adminProps__actionsCol">
+          <button
+            className="adminProps__editBtn"
+            type="button"
+            title="Edit"
+            aria-label={`Edit property ${property.id}`}
+            onClick={() => onOpenEdit(property.id)}
+          >
+            <span className="material-symbols-outlined">
+              edit
+            </span>
+          </button>
+        </div>
+      </td>
+    </tr>
+  );
+}
+
+function PropertiesTable({
+  isMobileView,
+  sortedRows,
+  secondaryColumnSet,
+  ownerNameForProperty,
+  onOpenEdit,
+  onOpenReviewNote,
+}) {
+  return (
+    <div className="adminProps__tableWrap">
+      <table className="adminProps__table">
+        <thead>
+          <PropertiesTableHeader
+            isMobileView={isMobileView}
+            secondaryColumnSet={secondaryColumnSet}
+          />
+        </thead>
+
+        <tbody>
+          {sortedRows.map((property) => {
+            const lineOne = propertyAddressLineOne(property);
+            const lineTwo = propertyAddressLineTwo(property);
+            const statusKey = String(property?.status ?? "").trim().toUpperCase();
+            const statusTone = ["ACTIVE", "DRAFT", "CLOSED"].includes(statusKey)
+              ? statusKey.toLowerCase()
+              : "unknown";
+
+            if (isMobileView) {
+              return (
+                <AdminPropertiesMobileRow
+                  key={`prop-row-${property.id}`}
+                  property={property}
+                  lineOne={lineOne}
+                  lineTwo={lineTwo}
+                  statusTone={statusTone}
+                  onOpenEdit={onOpenEdit}
+                />
+              );
+            }
+
+            return (
+              <AdminPropertiesDesktopRow
+                key={`prop-row-${property.id}`}
+                property={property}
+                lineOne={lineOne}
+                lineTwo={lineTwo}
+                statusTone={statusTone}
+                secondaryColumnSet={secondaryColumnSet}
+                ownerName={ownerNameForProperty(property)}
+                onOpenReviewNote={onOpenReviewNote}
+                onOpenEdit={onOpenEdit}
+              />
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 export default function AdminPropertiesPage() {
   const location = useLocation();
   const sellerScope = useMemo(() => {
@@ -396,6 +639,15 @@ export default function AdminPropertiesPage() {
   function ownerNameForProperty(property) {
     if (property?.sellerId === null || property?.sellerId === undefined) return "Unassigned";
     return sellerNameById[property.sellerId] || sellerDisplayLabel(property) || "Loading...";
+  }
+
+  function openReviewNoteModal(property) {
+    setReviewNoteModal({
+      open: true,
+      note: property?.sellerReviewNote,
+      sellerId: property?.sellerId ?? null,
+      sellerLabel: sellerDisplayLabel(property),
+    });
   }
 
   const primaryFilters = (
@@ -739,25 +991,11 @@ export default function AdminPropertiesPage() {
             </div>
             <div className="adminProps__sectionActions">
               {!isMobileView ? (
-                <details className="adminProps__columnsMenu">
-                  <summary className="adminProps__columnsBtn">
-                    <span className="material-symbols-outlined">view_column</span>
-                    Columns
-                    {secondaryColumns.length ? ` (${secondaryColumns.length})` : ""}
-                  </summary>
-                  <div className="adminProps__columnsBody">
-                    {SECONDARY_COLUMN_OPTIONS.map((column) => (
-                      <label key={column.key} className="adminProps__columnOption">
-                        <input
-                          type="checkbox"
-                          checked={secondaryColumnSet.has(column.key)}
-                          onChange={() => toggleSecondaryColumn(column.key)}
-                        />
-                        <span>{column.label}</span>
-                      </label>
-                    ))}
-                  </div>
-                </details>
+                <SecondaryColumnsMenu
+                  secondaryColumns={secondaryColumns}
+                  secondaryColumnSet={secondaryColumnSet}
+                  toggleSecondaryColumn={toggleSecondaryColumn}
+                />
               ) : null}
               <button
                 className="adminProps__addBtn"
@@ -779,168 +1017,14 @@ export default function AdminPropertiesPage() {
             </div>
           ) : (
             <>
-              <div className="adminProps__tableWrap">
-                <table className="adminProps__table">
-                  <thead>
-                    <tr>
-                      {isMobileView ? (
-                        <>
-                          <th>Address</th>
-                          <th className="adminProps__thRight">Asking Price</th>
-                        </>
-                      ) : (
-                        <>
-                          <th>Address</th>
-                          <th className="adminProps__thRight">Asking Price</th>
-                          {secondaryColumnSet.has("arv") ? <th className="adminProps__thRight">After Repair Value (ARV)</th> : null}
-                          {secondaryColumnSet.has("repairs") ? <th className="adminProps__thRight">Estimated Repairs</th> : null}
-                          {secondaryColumnSet.has("fmr") ? <th className="adminProps__thRight">Fair Market Rent (FMR)</th> : null}
-                          {secondaryColumnSet.has("exit") ? <th className="adminProps__thCenter">Exit Strategy</th> : null}
-                          {secondaryColumnSet.has("sqft") ? <th className="adminProps__thRight">Square Footage</th> : null}
-                          {secondaryColumnSet.has("beds") ? <th className="adminProps__thCenter">Beds</th> : null}
-                          {secondaryColumnSet.has("baths") ? <th className="adminProps__thCenter">Baths</th> : null}
-                          {secondaryColumnSet.has("year") ? <th className="adminProps__thCenter">Year Built</th> : null}
-                          <th className="adminProps__thCenter">Seller Owner</th>
-                          <th className="adminProps__thCenter">Seller Workflow</th>
-                          {secondaryColumnSet.has("reviewNote") ? <th className="adminProps__thCenter">Review Note</th> : null}
-                          <th className="adminProps__thCenter">Status</th>
-                          <th className="adminProps__thIcon"></th>
-                        </>
-                      )}
-                    </tr>
-                  </thead>
-
-                  <tbody>
-                    {sortedRows.map((p) => {
-                      const lineOne = propertyAddressLineOne(p);
-                      const lineTwo = propertyAddressLineTwo(p);
-                      const statusKey = String(p?.status ?? "").trim().toUpperCase();
-                      const statusTone = ["ACTIVE", "DRAFT", "CLOSED"].includes(statusKey)
-                        ? statusKey.toLowerCase()
-                        : "unknown";
-
-                      if (isMobileView) {
-                        return (
-                          <tr
-                            key={p.id}
-                            className={`adminProps__row adminProps__row--${statusTone} adminProps__row--mobileInteractive`}
-                            role="button"
-                            tabIndex={0}
-                            aria-label={`Edit property ${lineOne || `#${p.id}`}`}
-                            onClick={() => openEditModal(p.id)}
-                            onKeyDown={(event) => {
-                              if (event.key === "Enter" || event.key === " ") {
-                                event.preventDefault();
-                                openEditModal(p.id);
-                              }
-                            }}
-                          >
-                            <td className="adminProps__tdAddress">
-                              <div className="adminProps__addrMain">{lineOne || "—"}</div>
-                              <div className="adminProps__addrSub">{lineTwo || "—"}</div>
-                            </td>
-                            <td className="adminProps__tdRight">
-                              {money(p.askingPrice)}
-                            </td>
-                          </tr>
-                        );
-                      }
-
-                      return (
-                      <tr key={p.id} className={`adminProps__row adminProps__row--${statusTone}`}>
-                        <td className="adminProps__tdAddress">
-                          <div className="adminProps__addrMain">{lineOne || "—"}</div>
-                          <div className="adminProps__addrSub">{lineTwo || "—"}</div>
-                        </td>
-
-                        <td className="adminProps__tdRight">
-                          {money(p.askingPrice)}
-                        </td>
-                        {secondaryColumnSet.has("arv") ? <td className="adminProps__tdRight">{money(p.arv)}</td> : null}
-                        {secondaryColumnSet.has("repairs") ? (
-                          <td className="adminProps__tdRight">
-                            {money(p.estRepairs)}
-                          </td>
-                        ) : null}
-                        {secondaryColumnSet.has("fmr") ? <td className="adminProps__tdRight">{money(p.fmr)}</td> : null}
-                        {secondaryColumnSet.has("exit") ? (
-                          <td className="adminProps__tdCenter">
-                            {prettyEnum(p.exitStrategy)}
-                          </td>
-                        ) : null}
-                        {secondaryColumnSet.has("sqft") ? (
-                          <td className="adminProps__tdRight">
-                            {p.livingAreaSqft?.toLocaleString("en-US") ?? "—"}
-                          </td>
-                        ) : null}
-                        {secondaryColumnSet.has("beds") ? (
-                          <td className="adminProps__tdCenter">
-                            {p.beds ?? "—"}
-                          </td>
-                        ) : null}
-                        {secondaryColumnSet.has("baths") ? (
-                          <td className="adminProps__tdCenter">
-                            {p.baths ?? "—"}
-                          </td>
-                        ) : null}
-                        {secondaryColumnSet.has("year") ? (
-                          <td className="adminProps__tdCenter">
-                            {p.yearBuilt ?? "—"}
-                          </td>
-                        ) : null}
-                        <td className="adminProps__tdCenter">
-                          {ownerNameForProperty(p)}
-                        </td>
-                        <td className="adminProps__tdCenter">
-                          {prettyEnum(p.sellerWorkflowStatus)}
-                        </td>
-                        {secondaryColumnSet.has("reviewNote") ? (
-                          <td className="adminProps__tdCenter">
-                            {p.sellerReviewNote ? (
-                              <button
-                                className="adminProps__textBtn"
-                                type="button"
-                                onClick={() => setReviewNoteModal({
-                                  open: true,
-                                  note: p.sellerReviewNote,
-                                  sellerId: p.sellerId ?? null,
-                                  sellerLabel: sellerDisplayLabel(p),
-                                })}
-                              >
-                                View
-                              </button>
-                            ) : (
-                              "—"
-                            )}
-                          </td>
-                        ) : null}
-                        <td className="adminProps__tdCenter">
-                          <span className={`adminProps__statusBadge adminProps__statusBadge--${statusTone}`}>
-                            {prettyEnum(p.status)}
-                          </span>
-                        </td>
-
-                        <td className="adminProps__tdIcon">
-                          <div className="adminProps__actionsCol">
-                            <button
-                              className="adminProps__editBtn"
-                              type="button"
-                              title="Edit"
-                              aria-label={`Edit property ${p.id}`}
-                              onClick={() => openEditModal(p.id)}
-                            >
-                              <span className="material-symbols-outlined">
-                                edit
-                              </span>
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+              <PropertiesTable
+                isMobileView={isMobileView}
+                sortedRows={sortedRows}
+                secondaryColumnSet={secondaryColumnSet}
+                ownerNameForProperty={ownerNameForProperty}
+                onOpenEdit={openEditModal}
+                onOpenReviewNote={openReviewNoteModal}
+              />
 
               <AdminPagination
                 page={page}
