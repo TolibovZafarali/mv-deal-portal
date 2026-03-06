@@ -10,6 +10,7 @@ import com.megna.backend.domain.enums.PhotoAssetStatus;
 import com.megna.backend.domain.repository.PhotoAssetRepository;
 import com.megna.backend.domain.repository.PropertyPhotoRepository;
 import com.megna.backend.infrastructure.config.PhotoStorageProperties;
+import com.megna.backend.interfaces.rest.dto.property.PropertyPhotoUploadCompleteRequestDto;
 import com.megna.backend.interfaces.rest.dto.property.PropertyPhotoUploadCompleteResponseDto;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -21,6 +22,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -162,5 +164,44 @@ class PhotoAssetServiceTest {
 
         assertEquals(HttpStatus.FORBIDDEN, ex.getStatusCode());
         assertEquals("Photo asset belongs to another principal: asset-2", ex.getReason());
+    }
+
+    @Test
+    void completeUploadReturnsBadGatewayAndMarksFailedWhenMetadataLookupBlowsUp() {
+        PhotoAsset asset = new PhotoAsset();
+        asset.setId("upload-1");
+        asset.setStatus(PhotoAssetStatus.UPLOADING);
+        asset.setOriginalBucket("mv-photos-prod");
+        asset.setOriginalObjectKey("original/2026/03/upload-1.jpg");
+        asset.setDisplayObjectKey("display/2026/03/upload-1.jpg");
+        asset.setThumbObjectKey("thumb/2026/03/upload-1.jpg");
+        asset.setOriginalContentType("image/jpeg");
+        asset.setOriginalSizeBytes(1234L);
+        asset.setCreatedByAdminId(99L);
+        asset.setExpiresAt(LocalDateTime.now().plusMinutes(5));
+
+        when(photoStorageProperties.getProvider()).thenReturn("gcs");
+        when(photoStorageProperties.getBucket()).thenReturn("mv-photos-prod");
+        when(photoStorageProperties.getPublicBaseUrl()).thenReturn("https://storage.googleapis.com/mv-photos-prod");
+
+        when(photoUploadTokenService.parseAndValidate("token"))
+                .thenReturn(new PhotoUploadTokenService.UploadTokenClaims("upload-1", PhotoAssetPrincipalRole.ADMIN, 99L));
+        when(photoAssetRepository.findById("upload-1")).thenReturn(Optional.of(asset));
+        when(photoAssetRepository.save(any(PhotoAsset.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(photoObjectStorage.head("mv-photos-prod", "original/2026/03/upload-1.jpg"))
+                .thenThrow(new RuntimeException("storage permission denied"));
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class, () ->
+                photoAssetService.completeUpload(
+                        "upload-1",
+                        new PropertyPhotoUploadCompleteRequestDto("token"),
+                        99L
+                )
+        );
+
+        assertEquals(HttpStatus.BAD_GATEWAY, ex.getStatusCode());
+        assertEquals("Photo storage metadata lookup failed", ex.getReason());
+        assertEquals(PhotoAssetStatus.FAILED, asset.getStatus());
+        assertEquals("Photo storage metadata lookup failed", asset.getErrorMessage());
     }
 }
