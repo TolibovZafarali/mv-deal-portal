@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import { NavLink, Outlet } from "react-router-dom";
 import { useAuth } from "@/features/auth";
 import useAdminQueue from "@/features/admin/hooks/useAdminQueue";
 import "@/features/admin/layout/AdminLayout.css";
@@ -11,7 +11,6 @@ const ADMIN_MOBILE_BREAKPOINT_QUERY = "(max-width: 980px)";
 
 export default function AdminLayout() {
   const { signOut } = useAuth();
-  const navigate = useNavigate();
   const { counts } = useAdminQueue({ includeItems: false });
   const [isMobileView, setIsMobileView] = useState(() => {
     if (typeof window === "undefined") return false;
@@ -21,6 +20,7 @@ export default function AdminLayout() {
     if (typeof window === "undefined") return false;
     return window.localStorage.getItem(ADMIN_SIDEBAR_COLLAPSED_KEY) === "1";
   });
+  const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
   const effectiveSidebarCollapsed = !isMobileView && sidebarCollapsed;
 
   useEffect(() => {
@@ -75,10 +75,31 @@ export default function AdminLayout() {
     inquiries: counts.unrepliedInquiries,
   };
 
-  function handleLogout() {
-    signOut();
-    navigate("/", { replace: true })
+  function handleLogoutIntent() {
+    setLogoutConfirmOpen(true);
   }
+
+  function handleLogoutCancel() {
+    setLogoutConfirmOpen(false);
+  }
+
+  function handleLogoutConfirm() {
+    setLogoutConfirmOpen(false);
+    signOut();
+  }
+
+  useEffect(() => {
+    if (!logoutConfirmOpen) return undefined;
+
+    function handleKeyDown(event) {
+      if (event.key === "Escape") setLogoutConfirmOpen(false);
+    }
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [logoutConfirmOpen]);
 
   return (
     <div className={`adminShell ${effectiveSidebarCollapsed ? "adminShell--collapsed" : ""}`}>
@@ -155,7 +176,7 @@ export default function AdminLayout() {
 
         <div className="adminSidebar__spacer" />
 
-        <button className="adminLogout" type="button" onClick={handleLogout} aria-label="Log Out">
+        <button className="adminLogout" type="button" onClick={handleLogoutIntent} aria-label="Log Out">
           <span className="adminLogout__content">
             <span className="adminLogout__label">Log Out</span>
             <span className="adminLogout__icon material-symbols-outlined" aria-hidden="true">logout</span>
@@ -166,6 +187,53 @@ export default function AdminLayout() {
       <main className="adminMain">
         <Outlet context={{ sidebarCollapsed: effectiveSidebarCollapsed }} />
       </main>
+
+      {logoutConfirmOpen ? (
+        <div className="adminLogoutAuthOverlay" onMouseDown={handleLogoutCancel}>
+          <div
+            className="adminLogoutAuthModal"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Log out confirmation"
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <div className="adminLogoutAuthModal__header">
+              <h2 className="adminLogoutAuthModal__title">Log out</h2>
+              <button
+                type="button"
+                className="adminLogoutAuthModal__close"
+                onClick={handleLogoutCancel}
+                aria-label="Close logout confirmation"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="adminLogoutAuthModal__body">
+              <p className="adminLogoutAuthModal__text">
+                Are you sure you want to log out?
+              </p>
+
+              <div className="adminLogoutAuthModal__actions">
+                <button
+                  type="button"
+                  className="adminLogoutAuthModal__btn adminLogoutAuthModal__btn--secondary"
+                  onClick={handleLogoutCancel}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="adminLogoutAuthModal__btn adminLogoutAuthModal__btn--danger"
+                  onClick={handleLogoutConfirm}
+                >
+                  Log Out
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
