@@ -13,6 +13,7 @@ import com.megna.backend.interfaces.rest.dto.property.PropertyPhotoUploadComplet
 import com.megna.backend.interfaces.rest.dto.property.PropertyPhotoUploadCompleteResponseDto;
 import com.megna.backend.interfaces.rest.dto.property.PropertyPhotoUploadInitRequestDto;
 import com.megna.backend.interfaces.rest.dto.property.PropertyPhotoUploadInitResponseDto;
+import lombok.extern.slf4j.Slf4j;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -52,6 +53,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class PhotoAssetService {
 
     private static final DateTimeFormatter OBJECT_DATE_PREFIX = DateTimeFormatter.ofPattern("yyyy/MM");
@@ -187,19 +189,31 @@ public class PhotoAssetService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Upload expired before completion");
         }
 
-        PhotoObjectStorage.StoredObjectMetadata metadata = photoObjectStorage.head(asset.getOriginalBucket(), asset.getOriginalObjectKey())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Uploaded object not found"));
+        PhotoObjectStorage.StoredObjectMetadata metadata;
+        try {
+            metadata = readUploadedObjectMetadata(asset);
 
-        String expectedType = normalizeContentType(asset.getOriginalContentType());
-        String actualType = normalizeContentType(metadata.contentType());
-        if (!expectedType.equals(actualType)) {
-            failAsset(asset, "Uploaded content type does not match init request");
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Uploaded content type does not match init request");
-        }
+            String expectedType = normalizeContentType(asset.getOriginalContentType());
+            String actualType = normalizeContentType(metadata.contentType());
+            if (!expectedType.equals(actualType)) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Uploaded content type does not match init request");
+            }
 
-        if (asset.getOriginalSizeBytes() != null && asset.getOriginalSizeBytes() != metadata.sizeBytes()) {
-            failAsset(asset, "Uploaded size does not match init request");
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Uploaded size does not match init request");
+            if (asset.getOriginalSizeBytes() != null && asset.getOriginalSizeBytes() != metadata.sizeBytes()) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Uploaded size does not match init request");
+            }
+        } catch (ResponseStatusException ex) {
+            failAsset(asset, ex.getReason());
+            if (ex.getStatusCode().is5xxServerError()) {
+                log.error(
+                        "Photo upload pre-processing failed. uploadId={}, bucket={}, objectKey={}",
+                        uploadId,
+                        asset.getOriginalBucket(),
+                        asset.getOriginalObjectKey(),
+                        ex
+                );
+            }
+            throw ex;
         }
 
         asset.setStatus(PhotoAssetStatus.PROCESSING);
@@ -207,18 +221,18 @@ public class PhotoAssetService {
         photoAssetRepository.save(asset);
 
         try {
-            byte[] originalBytes = photoObjectStorage.download(asset.getOriginalBucket(), asset.getOriginalObjectKey());
+            byte[] originalBytes = downloadOriginalObject(asset);
             ProcessedImage processed = processImage(originalBytes);
 
-            photoObjectStorage.upload(
-                    asset.getOriginalBucket(),
+            uploadDerivedObject(
+                    asset,
                     asset.getDisplayObjectKey(),
                     processed.displayBytes(),
                     "image/jpeg",
                     "public, max-age=31536000, immutable"
             );
-            photoObjectStorage.upload(
-                    asset.getOriginalBucket(),
+            uploadDerivedObject(
+                    asset,
                     asset.getThumbObjectKey(),
                     processed.thumbBytes(),
                     "image/jpeg",
@@ -245,8 +259,24 @@ public class PhotoAssetService {
             );
         } catch (ResponseStatusException ex) {
             failAsset(asset, ex.getReason());
+            if (ex.getStatusCode().is5xxServerError()) {
+                log.error(
+                        "Photo upload processing failed. uploadId={}, bucket={}, objectKey={}",
+                        uploadId,
+                        asset.getOriginalBucket(),
+                        asset.getOriginalObjectKey(),
+                        ex
+                );
+            }
             throw ex;
         } catch (Exception ex) {
+            log.error(
+                    "Unexpected photo upload processing failure. uploadId={}, bucket={}, objectKey={}",
+                    uploadId,
+                    asset.getOriginalBucket(),
+                    asset.getOriginalObjectKey(),
+                    ex
+            );
             failAsset(asset, "Failed to process upload");
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to process upload");
         }
@@ -587,6 +617,49 @@ public class PhotoAssetService {
             base = base.substring(0, base.length() - 1);
         }
         return base + "/" + objectKey;
+    }
+
+    private PhotoObjectStorage.StoredObjectMetadata readUploadedObjectMetadata(PhotoAsset asset) {
+        try {
+            return photoObjectStorage.head(asset.getOriginalBucket(), asset.getOriginalObjectKey())
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Uploaded object not found"));
+        } catch (ResponseStatusException ex) {
+            throw ex;
+        } catch (Exception ex) {
+            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "Photo storage metadata lookup failed");
+        }
+    }
+
+    private byte[] downloadOriginalObject(PhotoAsset asset) {
+        try {
+            return photoObjectStorage.download(asset.getOriginalBucket(), asset.getOriginalObjectKey());
+        } catch (ResponseStatusException ex) {
+            throw ex;
+        } catch (Exception ex) {
+            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "Photo storage download failed");
+        }
+    }
+
+    private void uploadDerivedObject(
+            PhotoAsset asset,
+            String objectKey,
+            byte[] bytes,
+            String contentType,
+            String cacheControl
+    ) {
+        try {
+            photoObjectStorage.upload(
+                    asset.getOriginalBucket(),
+                    objectKey,
+                    bytes,
+                    contentType,
+                    cacheControl
+            );
+        } catch (ResponseStatusException ex) {
+            throw ex;
+        } catch (Exception ex) {
+            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "Photo storage upload failed");
+        }
     }
 
     private ProcessedImage processImage(byte[] bytes) {
