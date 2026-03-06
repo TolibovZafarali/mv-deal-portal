@@ -112,7 +112,7 @@ public class PropertyController {
         photoAssetService.deleteUnboundUpload(uploadId, adminId);
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SELLER')")
     @GetMapping("/address-suggestions")
     public List<PropertyAddressSuggestionResponseDto> addressSuggestions(
             @RequestParam(name = "q") String query,
@@ -146,6 +146,7 @@ public class PropertyController {
             @RequestParam(required = false) OccupancyStatus occupancyStatus,
             @RequestParam(required = false) ExitStrategy exitStrategy,
             @RequestParam(required = false) ClosingTerms closingTerms,
+            @RequestParam(required = false) Long sellerId,
             @RequestParam(required = false) SellerWorkflowStatus sellerWorkflowStatus,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
             ) {
@@ -154,7 +155,7 @@ public class PropertyController {
                 minBeds, maxBeds, minBaths,
                 minAskingPrice, maxAskingPrice,
                 minArv, maxArv,
-                occupancyStatus, exitStrategy, closingTerms, sellerWorkflowStatus,
+                occupancyStatus, exitStrategy, closingTerms, sellerId, sellerWorkflowStatus,
                 pageable
         );
     }

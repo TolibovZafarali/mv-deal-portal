@@ -29,6 +29,8 @@ import java.util.regex.Pattern;
 public class PropertyAddressAutocompleteService {
 
     private static final Pattern US_STATE_CODE_PATTERN = Pattern.compile("US-([A-Z]{2})");
+    private static final Pattern LEADING_HOUSE_NUMBER_PATTERN =
+            Pattern.compile("^\\d+[A-Za-z0-9\\-\\/]*\\b.*");
 
     private final HttpClient httpClient;
     private final ObjectMapper objectMapper;
@@ -160,7 +162,10 @@ public class PropertyAddressAutocompleteService {
             JsonNode address = item.path("address");
 
             String display = asText(item, "display_name");
-            String street1 = buildStreetLine1(item, address);
+            String street1 = ensureStreetLineWithHouseNumber(
+                    buildStreetLine1(item, address),
+                    display
+            );
             String city = firstNonBlank(
                     asText(address, "city"),
                     asText(address, "town"),
@@ -172,6 +177,7 @@ public class PropertyAddressAutocompleteService {
             String state = extractStateCode(address);
             String zip = asText(address, "postcode");
 
+            if (!hasClearHouseNumber(street1)) continue;
             if (street1.isBlank() && city.isBlank() && display.isBlank()) continue;
 
             out.add(new PropertyAddressSuggestionResponseDto(
@@ -243,6 +249,27 @@ public class PropertyAddressAutocompleteService {
         if (!name.isBlank()) return name;
 
         return "";
+    }
+
+    private static String ensureStreetLineWithHouseNumber(String street1, String display) {
+        if (hasClearHouseNumber(street1)) return street1;
+        String fromDisplay = extractStreetLineFromDisplay(display);
+        if (!fromDisplay.isBlank()) return fromDisplay;
+        return street1;
+    }
+
+    private static String extractStreetLineFromDisplay(String display) {
+        String normalized = display == null ? "" : display.trim();
+        if (normalized.isBlank()) return "";
+        String firstSegment = normalized.split(",", 2)[0].trim();
+        if (hasClearHouseNumber(firstSegment)) return firstSegment;
+        return "";
+    }
+
+    private static boolean hasClearHouseNumber(String value) {
+        String normalized = value == null ? "" : value.trim();
+        if (normalized.isBlank()) return false;
+        return LEADING_HOUSE_NUMBER_PATTERN.matcher(normalized).matches();
     }
 
     private static String extractStateCode(JsonNode address) {

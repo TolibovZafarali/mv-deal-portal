@@ -10,6 +10,7 @@ public record SellerResponseDto(
         String lastName,
         String companyName,
         String email,
+        String notificationEmail,
         String phone,
         SellerStatus status,
         LocalDateTime createdAt,

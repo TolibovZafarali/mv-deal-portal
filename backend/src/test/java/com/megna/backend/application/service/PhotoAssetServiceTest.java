@@ -3,6 +3,9 @@ package com.megna.backend.application.service;
 import com.megna.backend.application.service.photo.PhotoObjectStorage;
 import com.megna.backend.application.service.photo.PhotoUploadTokenService;
 import com.megna.backend.domain.entity.PhotoAsset;
+import com.megna.backend.domain.entity.Property;
+import com.megna.backend.domain.entity.PropertyPhoto;
+import com.megna.backend.domain.enums.PhotoAssetPrincipalRole;
 import com.megna.backend.domain.enums.PhotoAssetStatus;
 import com.megna.backend.domain.repository.PhotoAssetRepository;
 import com.megna.backend.domain.repository.PropertyPhotoRepository;
@@ -17,6 +20,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -24,6 +30,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -103,5 +110,57 @@ class PhotoAssetServiceTest {
 
         assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
         assertEquals("Photo URL must use http or https", ex.getReason());
+    }
+
+    @Test
+    void resolveReadyAssetsAllowsExistingAssetAttachedToCurrentProperty() {
+        PhotoAsset asset = new PhotoAsset();
+        asset.setId("asset-1");
+        asset.setCreatedBySellerId(42L);
+        asset.setStatus(PhotoAssetStatus.READY);
+
+        Property property = new Property();
+        property.setId(9L);
+
+        PropertyPhoto propertyPhoto = new PropertyPhoto();
+        propertyPhoto.setProperty(property);
+        propertyPhoto.setPhotoAssetId(asset.getId());
+
+        when(photoAssetRepository.findByIdIn(argThat(ids -> ids != null && ids.size() == 1 && ids.contains(asset.getId()))))
+                .thenReturn(List.of(asset));
+        when(propertyPhotoRepository.findFirstByPhotoAssetId(asset.getId())).thenReturn(Optional.of(propertyPhoto));
+
+        Map<String, PhotoAsset> resolved = photoAssetService.resolveReadyAssetsOrThrow(
+                List.of(asset.getId()),
+                9L,
+                PhotoAssetPrincipalRole.ADMIN,
+                77L
+        );
+
+        assertEquals(asset, resolved.get(asset.getId()));
+    }
+
+    @Test
+    void resolveReadyAssetsRejectsAssetOwnedByAnotherPrincipalWhenUnbound() {
+        PhotoAsset asset = new PhotoAsset();
+        asset.setId("asset-2");
+        asset.setCreatedBySellerId(42L);
+        asset.setStatus(PhotoAssetStatus.READY);
+
+        when(photoAssetRepository.findByIdIn(argThat(ids -> ids != null && ids.size() == 1 && ids.contains(asset.getId()))))
+                .thenReturn(List.of(asset));
+        when(propertyPhotoRepository.findFirstByPhotoAssetId(asset.getId())).thenReturn(Optional.empty());
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class, () ->
+                photoAssetService.resolveReadyAssetsOrThrow(
+                        List.of(asset.getId()),
+                        9L,
+                        PhotoAssetPrincipalRole.ADMIN,
+                        77L
+                )
+        );
+
+        assertEquals(HttpStatus.FORBIDDEN, ex.getStatusCode());
+        assertEquals("Photo asset belongs to another principal: asset-2", ex.getReason());
     }
 }

@@ -26,6 +26,11 @@ function prettyEnum(value) {
     .replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
+function sellerDisplayName(seller) {
+  const full = [seller?.firstName, seller?.lastName].filter(Boolean).join(" ").trim();
+  return full || seller?.companyName || seller?.email || "";
+}
+
 export default function AdminSellersPage() {
   const [filters, setFilters] = useState({ q: "" });
   const [searchInput, setSearchInput] = useState("");
@@ -78,6 +83,15 @@ export default function AdminSellersPage() {
     setPage(0);
   }
 
+  function openSellerProperties(seller) {
+    if (!seller?.id || typeof window === "undefined") return;
+
+    const params = new URLSearchParams({ sellerId: String(seller.id) });
+    const sellerName = sellerDisplayName(seller);
+    if (sellerName) params.set("sellerName", sellerName);
+    window.open(`/admin/properties?${params.toString()}`, "_blank", "noopener,noreferrer");
+  }
+
   return (
     <section className="adminSel">
       <AdminFilterBar className="adminSel__filters" rowClassName="adminSel__filterRow" onSubmit={handleSearchSubmit}>
@@ -117,6 +131,7 @@ export default function AdminSellersPage() {
                     <th>Status</th>
                     <th>Created</th>
                     <th>Updated</th>
+                    <th>Properties</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -129,6 +144,15 @@ export default function AdminSellersPage() {
                       <td>{prettyEnum(seller.status)}</td>
                       <td>{prettyDate(seller.createdAt)}</td>
                       <td>{prettyDate(seller.updatedAt)}</td>
+                      <td className="adminSel__tdActions">
+                        <button
+                          className="adminSel__propertiesBtn"
+                          type="button"
+                          onClick={() => openSellerProperties(seller)}
+                        >
+                          View Properties
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>

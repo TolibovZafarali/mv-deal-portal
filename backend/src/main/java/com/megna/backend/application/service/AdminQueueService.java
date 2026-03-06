@@ -3,7 +3,6 @@ package com.megna.backend.application.service;
 import com.megna.backend.domain.entity.Inquiry;
 import com.megna.backend.domain.enums.EmailStatus;
 import com.megna.backend.domain.enums.InvestorStatus;
-import com.megna.backend.domain.enums.PropertyChangeRequestStatus;
 import com.megna.backend.domain.enums.PropertyStatus;
 import com.megna.backend.domain.enums.SellerWorkflowStatus;
 import com.megna.backend.domain.repository.InquiryRepository;
@@ -11,7 +10,6 @@ import com.megna.backend.interfaces.rest.dto.admin.AdminQueueItemDto;
 import com.megna.backend.interfaces.rest.dto.admin.AdminQueueItemType;
 import com.megna.backend.interfaces.rest.dto.admin.AdminQueueSummaryDto;
 import com.megna.backend.interfaces.rest.dto.investor.InvestorResponseDto;
-import com.megna.backend.interfaces.rest.dto.property.PropertyChangeRequestResponseDto;
 import com.megna.backend.interfaces.rest.dto.property.PropertyResponseDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -79,12 +77,6 @@ public class AdminQueueService {
                 )
                 .getTotalElements();
 
-        long openChangeRequests = propertyService.getAdminChangeRequests(
-                        PropertyChangeRequestStatus.OPEN,
-                        PageRequest.of(0, 1)
-                )
-                .getTotalElements();
-
         long pendingInvestors = investorService.search(
                         InvestorStatus.PENDING,
                         null,
@@ -99,13 +91,14 @@ public class AdminQueueService {
                 .getTotalElements();
 
         long failedInquiries = inquiryRepository.countByEmailStatus(EmailStatus.FAILED);
+        long unrepliedInquiries = inquiryRepository.countNotRepliedByAdminAndPropertyStatus(PropertyStatus.ACTIVE);
 
         return new AdminQueueSummaryDto(
                 draftProperties,
                 submittedProperties,
-                openChangeRequests,
                 pendingInvestors,
-                failedInquiries
+                failedInquiries,
+                unrepliedInquiries
         );
     }
 
@@ -146,14 +139,6 @@ public class AdminQueueService {
             );
 
             submittedListings.forEach(property -> items.add(mapSubmittedListing(property)));
-        }
-
-        if (effectiveTypes.contains(AdminQueueItemType.CHANGE_REQUEST)) {
-            Page<PropertyChangeRequestResponseDto> openChangeRequests = propertyService.getAdminChangeRequests(
-                    PropertyChangeRequestStatus.OPEN,
-                    PageRequest.of(0, sourceFetchSize, Sort.by(Sort.Order.asc("createdAt")))
-            );
-            openChangeRequests.forEach(request -> items.add(mapChangeRequest(request)));
         }
 
         if (effectiveTypes.contains(AdminQueueItemType.PENDING_INVESTOR)) {
@@ -208,7 +193,7 @@ public class AdminQueueService {
         String address = joinWithSpace(line1, line2);
 
         String title = address.isBlank() ? "Property #" + property.id() : address;
-        String subtitle = "Listing submitted by seller";
+        String subtitle = "Listing under review";
         LocalDateTime createdAt = property.submittedAt() != null
                 ? property.submittedAt()
                 : (property.updatedAt() != null ? property.updatedAt() : property.createdAt());
@@ -223,20 +208,6 @@ public class AdminQueueService {
                 createdAt,
                 1,
                 "Review listing"
-        );
-    }
-
-    private AdminQueueItemDto mapChangeRequest(PropertyChangeRequestResponseDto request) {
-        return new AdminQueueItemDto(
-                "change-request-" + request.id(),
-                AdminQueueItemType.CHANGE_REQUEST,
-                request.id(),
-                "Change request #" + request.id(),
-                "Property #" + request.propertyId() + " • Seller #" + request.sellerId(),
-                request.requestedChanges(),
-                request.createdAt() != null ? request.createdAt() : request.updatedAt(),
-                1,
-                "Resolve request"
         );
     }
 

@@ -112,7 +112,8 @@ public class InquiryService {
 
     public Page<InquiryResponseDto> getBySellerId(Long sellerId, Pageable pageable) {
         requireSellerSelfOrAdmin(sellerId);
-        return Page.empty(pageable);
+        return inquiryRepository.findByPropertySellerId(sellerId, pageable)
+                .map(InquiryMapper::toDto);
     }
 
     private AuthPrincipal principal() {

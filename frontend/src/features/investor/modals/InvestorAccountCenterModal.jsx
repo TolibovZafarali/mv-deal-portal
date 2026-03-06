@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { getInquiryByInvestor } from "@/api/modules/inquiryApi";
+import { getInquiryRepliesByInvestor } from "@/api/modules/inquiryReplyApi";
 import { getInvestorById, updateInvestor } from "@/api/modules/investorApi";
 import { getPropertyId } from "@/api/modules/propertyApi";
 import { changePassword } from "@/api/modules/authApi";
@@ -134,6 +135,7 @@ export default function InvestorAccountCenterModal({
   const [securityOk, setSecurityOk] = useState("");
 
   const [inquiries, setInquiries] = useState([]);
+  const [replies, setReplies] = useState([]);
   const [inquiryLoading, setInquiryLoading] = useState(false);
   const [inquiryError, setInquiryError] = useState("");
   const [propertyMetaById, setPropertyMetaById] = useState({});
@@ -213,21 +215,34 @@ export default function InvestorAccountCenterModal({
       setInquiryLoading(true);
       setInquiryError("");
       setPropertyMetaById({});
+      setReplies([]);
 
       try {
-        const response = await getInquiryByInvestor(investorId, {
-          page: 0,
-          size: 200,
-          sort: "createdAt,desc",
-        });
+        const [inquiryResponse, replyResponse] = await Promise.all([
+          getInquiryByInvestor(investorId, {
+            page: 0,
+            size: 500,
+            sort: "createdAt,desc",
+          }),
+          getInquiryRepliesByInvestor(investorId, {
+            page: 0,
+            size: 500,
+            sort: "createdAt,desc",
+          }),
+        ]);
 
         if (!alive) return;
 
-        const allInquiries = Array.isArray(response?.content) ? response.content : [];
-        const propertyIds = [...new Set(allInquiries.map((inquiry) => inquiry?.propertyId).filter(Boolean))];
+        const allInquiries = Array.isArray(inquiryResponse?.content) ? inquiryResponse.content : [];
+        const allReplies = Array.isArray(replyResponse?.content) ? replyResponse.content : [];
+        const propertyIds = [...new Set(
+          [...allInquiries.map((inquiry) => inquiry?.propertyId), ...allReplies.map((reply) => reply?.propertyId)]
+            .filter(Boolean),
+        )];
 
         if (!propertyIds.length) {
           setInquiries([]);
+          setReplies([]);
           setPropertyMetaById({});
           return;
         }
@@ -262,11 +277,14 @@ export default function InvestorAccountCenterModal({
         });
 
         const visibleInquiries = allInquiries.filter((inquiry) => visiblePropertyIds.has(inquiry?.propertyId));
+        const visibleReplies = allReplies.filter((reply) => visiblePropertyIds.has(reply?.propertyId));
         setInquiries(visibleInquiries);
+        setReplies(visibleReplies);
         setPropertyMetaById(nextMetaById);
       } catch (error) {
         if (!alive) return;
         setInquiries([]);
+        setReplies([]);
         setPropertyMetaById({});
         setInquiryError(error?.message || "Failed to load messages.");
       } finally {
@@ -319,21 +337,49 @@ export default function InvestorAccountCenterModal({
         grouped.set(propertyId, []);
       }
 
-      grouped.get(propertyId).push(inquiry);
+      grouped.get(propertyId).push({
+        key: `inquiry-${inquiry.id}`,
+        kind: "INQUIRY",
+        id: inquiry.id,
+        createdAt: inquiry.createdAt,
+        body: cleanString(inquiry.messageBody) || "—",
+        emailStatus: inquiry.emailStatus,
+      });
+    });
+
+    replies.forEach((reply) => {
+      const propertyId = reply?.propertyId;
+      if (!propertyId) return;
+
+      if (!grouped.has(propertyId)) {
+        grouped.set(propertyId, []);
+      }
+
+      grouped.get(propertyId).push({
+        key: `reply-${reply.id}`,
+        kind: "REPLY",
+        id: reply.id,
+        createdAt: reply.createdAt,
+        body: cleanString(reply.body) || "—",
+        emailStatus: reply.emailStatus,
+      });
     });
 
     return [...grouped.entries()]
-      .map(([propertyId, threadInquiries]) => {
-        const messages = [...threadInquiries].sort((a, b) => {
+      .map(([propertyId, threadMessages]) => {
+        const messages = [...threadMessages].sort((a, b) => {
           const dateA = parseDate(a?.createdAt);
           const dateB = parseDate(b?.createdAt);
           const timeA = dateA ? dateA.getTime() : 0;
           const timeB = dateB ? dateB.getTime() : 0;
-          return timeA - timeB;
+          if (timeA !== timeB) return timeA - timeB;
+          return String(a?.key ?? "").localeCompare(String(b?.key ?? ""));
         });
 
         const latest = messages[messages.length - 1] ?? null;
-        const pendingCount = messages.filter((item) => item?.emailStatus !== "SENT").length;
+        const pendingCount = messages.filter(
+          (item) => item?.kind === "INQUIRY" && item?.emailStatus !== "SENT",
+        ).length;
 
         return {
           propertyId,
@@ -350,7 +396,7 @@ export default function InvestorAccountCenterModal({
         const timeB = dateB ? dateB.getTime() : 0;
         return timeB - timeA;
       });
-  }, [inquiries]);
+  }, [inquiries, replies]);
 
   useEffect(() => {
     if (!isMessagesView) return;
@@ -1179,30 +1225,26 @@ export default function InvestorAccountCenterModal({
                       <div className="invAccountModal__chatTimeline">
                         {selectedThread.messages.map((message) => {
                           const delivered = message?.emailStatus === "SENT";
+                          const isReply = message?.kind === "REPLY";
 
                           return (
-                            <div className="invAccountModal__chatExchange" key={message.id}>
-                              <article className="invAccountModal__chatBubble invAccountModal__chatBubble--outgoing">
+                            <div className="invAccountModal__chatExchange" key={message.key}>
+                              <article
+                                className={`invAccountModal__chatBubble ${
+                                  isReply
+                                    ? "invAccountModal__chatBubble--incoming"
+                                    : "invAccountModal__chatBubble--outgoing"
+                                }`.trim()}
+                              >
                                 <div className="invAccountModal__chatBubbleHead">
-                                  <span className="invAccountModal__chatAuthor">You</span>
+                                  <span className="invAccountModal__chatAuthor">{isReply ? "Megna Team" : "You"}</span>
                                   <span className="invAccountModal__chatTime">{prettyDateTime(message.createdAt)}</span>
                                 </div>
 
-                                <p className="invAccountModal__chatBody">{cleanString(message.messageBody) || "—"}</p>
-                              </article>
-
-                              <article className="invAccountModal__chatBubble invAccountModal__chatBubble--incoming">
-                                <div className="invAccountModal__chatBubbleHead">
-                                  <span className="invAccountModal__chatAuthor">Megna Team</span>
-                                  <span className="invAccountModal__statusText">
-                                    {delivered ? "Inbox received" : "Delivery pending"}
-                                  </span>
-                                </div>
-                                <p className="invAccountModal__chatBody">
-                                  {delivered
-                                    ? "We received your inquiry and a team member will follow up by email."
-                                    : "We are routing your inquiry to the Megna admin inbox now."}
-                                </p>
+                                <p className="invAccountModal__chatBody">{message.body || "—"}</p>
+                                <span className="invAccountModal__statusText">
+                                  {delivered ? "Inbox received" : "Delivery pending"}
+                                </span>
                               </article>
                             </div>
                           );
@@ -1216,12 +1258,18 @@ export default function InvestorAccountCenterModal({
                   {selectedThread ? (
                     <div className="invAccountModal__chatState" role="status" aria-live="polite">
                       <span className="invAccountModal__chatStateBadge">
-                        {selectedThread.pendingCount > 0 ? "Message sent" : "Inbox received"}
+                        {selectedThread.messages.some((message) => message.kind === "REPLY")
+                          ? "Reply received"
+                          : selectedThread.pendingCount > 0
+                            ? "Message sent"
+                            : "Inbox received"}
                       </span>
                       <p className="invAccountModal__chatStateText">
-                        {selectedThread.pendingCount > 0
-                          ? "Your message was sent successfully. Please wait for a response from Megna Team."
-                          : "Your inquiry is in the Megna Team inbox. Please wait for their follow-up response."}
+                        {selectedThread.messages.some((message) => message.kind === "REPLY")
+                          ? "Megna Team replied in this thread. Keep the conversation here for follow-up."
+                          : selectedThread.pendingCount > 0
+                            ? "Your message was sent successfully. Please wait for a response from Megna Team."
+                            : "Your inquiry is in the Megna Team inbox. Please wait for their follow-up response."}
                       </p>
                     </div>
                   ) : (

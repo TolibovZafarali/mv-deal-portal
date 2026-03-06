@@ -60,6 +60,8 @@ app:
     postmark-api-base-url: ${POSTMARK_API_BASE_URL:https://api.postmarkapp.com}
     postmark-server-token: ${POSTMARK_SERVER_TOKEN:}
     postmark-message-stream: ${POSTMARK_MESSAGE_STREAM:outbound}
+  features:
+    seller-threads-enabled: ${APP_FEATURES_SELLER_THREADS_ENABLED:false}
 
 server:
   port: ${PORT:8080}

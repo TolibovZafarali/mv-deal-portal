@@ -1,34 +1,28 @@
 package com.megna.backend.application.service;
 
 import com.megna.backend.application.specification.PropertySpecifications;
-import com.megna.backend.domain.entity.Admin;
 import com.megna.backend.domain.entity.Investor;
 import com.megna.backend.domain.entity.PhotoAsset;
 import com.megna.backend.domain.entity.Property;
-import com.megna.backend.domain.entity.PropertyChangeRequest;
 import com.megna.backend.domain.entity.Seller;
 import com.megna.backend.domain.enums.ClosingTerms;
 import com.megna.backend.domain.enums.ExitStrategy;
 import com.megna.backend.domain.enums.InvestorStatus;
 import com.megna.backend.domain.enums.OccupancyStatus;
-import com.megna.backend.domain.enums.PropertyChangeRequestStatus;
+import com.megna.backend.domain.enums.PhotoAssetPrincipalRole;
 import com.megna.backend.domain.enums.PropertyStatus;
 import com.megna.backend.domain.enums.SellerStatus;
 import com.megna.backend.domain.enums.SellerWorkflowStatus;
-import com.megna.backend.domain.repository.AdminRepository;
 import com.megna.backend.domain.repository.InvestorRepository;
-import com.megna.backend.domain.repository.PropertyChangeRequestRepository;
 import com.megna.backend.domain.repository.PropertyRepository;
 import com.megna.backend.domain.repository.SellerRepository;
 import com.megna.backend.infrastructure.security.AuthPrincipal;
 import com.megna.backend.infrastructure.security.SecurityUtils;
-import com.megna.backend.interfaces.rest.dto.property.AdminPropertyChangeRequestDecisionAction;
 import com.megna.backend.interfaces.rest.dto.property.AdminPropertySellerReviewAction;
-import com.megna.backend.interfaces.rest.dto.property.PropertyChangeRequestResponseDto;
 import com.megna.backend.interfaces.rest.dto.property.PropertyResponseDto;
 import com.megna.backend.interfaces.rest.dto.property.PropertyUpsertRequestDto;
 import com.megna.backend.interfaces.rest.dto.property.PropertyPhotoRequestDto;
-import com.megna.backend.interfaces.rest.mapper.PropertyChangeRequestMapper;
+import com.megna.backend.interfaces.rest.dto.property.SellerPropertyDraftUpsertRequestDto;
 import com.megna.backend.interfaces.rest.mapper.PropertyMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -60,11 +54,10 @@ public class PropertyService {
     private final PropertyRepository propertyRepository;
     private final InvestorRepository investorRepository;
     private final SellerRepository sellerRepository;
-    private final AdminRepository adminRepository;
-    private final PropertyChangeRequestRepository propertyChangeRequestRepository;
     private final PropertyAddressAutocompleteService propertyAddressAutocompleteService;
     private final FmrLookupService fmrLookupService;
     private final PhotoAssetService photoAssetService;
+    private final SellerThreadService sellerThreadService;
 
     public PropertyResponseDto create(PropertyUpsertRequestDto dto) {
         validateUniquePhotoAssetIds(dto.photos());
@@ -72,7 +65,7 @@ public class PropertyService {
         normalizeCurrentRentForOccupancy(property);
         if (dto.photos() != null) {
             long adminId = requireAdminId();
-            hydratePhotoAssets(property, null, adminId);
+            hydratePhotoAssets(property, null, PhotoAssetPrincipalRole.ADMIN, adminId);
         }
         refreshCoordinates(property, true);
         refreshFmr(property);
@@ -103,7 +96,7 @@ public class PropertyService {
                     .map(PropertyMapper::toDto);
         }
 
-        return propertyRepository.findAll(pageable)
+        return propertyRepository.findAll(PropertySpecifications.visibleToAdmin(), pageable)
                 .map(PropertyMapper::toDto);
     }
 
@@ -121,7 +114,7 @@ public class PropertyService {
 
         if (dto.photos() != null) {
             long adminId = requireAdminId();
-            hydratePhotoAssets(property, property.getId(), adminId);
+            hydratePhotoAssets(property, property.getId(), PhotoAssetPrincipalRole.ADMIN, adminId);
 
             List<String> updatedPhotoAssetIds = photoAssetService.collectPhotoAssetIds(property.getPhotos());
             photoAssetService.forEachRemovedAsset(
@@ -156,9 +149,22 @@ public class PropertyService {
         Property property = propertyRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Property not found: " + id));
 
-        List<String> photoAssetIds = photoAssetService.collectPhotoAssetIds(property.getPhotos());
-        photoAssetService.markDeletedPending(photoAssetIds);
-        propertyRepository.deleteById(id);
+        deletePropertyWithPhotos(property);
+    }
+
+    public void deleteBySeller(Long sellerId, Long propertyId) {
+        requireSelfSeller(sellerId);
+
+        Property property = propertyRepository.findById(propertyId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Property not found: " + propertyId));
+        requireSellerOwnsProperty(property, sellerId);
+
+        SellerWorkflowStatus workflowStatus = property.getSellerWorkflowStatus();
+        if (workflowStatus != SellerWorkflowStatus.DRAFT && workflowStatus != SellerWorkflowStatus.CHANGES_REQUESTED) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Property cannot be deleted in the current workflow state");
+        }
+
+        deletePropertyWithPhotos(property);
     }
 
     public Page<PropertyResponseDto> search(
@@ -179,11 +185,52 @@ public class PropertyService {
             SellerWorkflowStatus sellerWorkflowStatus,
             Pageable pageable
     ) {
+        return search(
+                status,
+                query,
+                city,
+                state,
+                minBeds,
+                maxBeds,
+                minBaths,
+                minAskingPrice,
+                maxAskingPrice,
+                minArv,
+                maxArv,
+                occupancyStatus,
+                exitStrategy,
+                closingTerms,
+                null,
+                sellerWorkflowStatus,
+                pageable
+        );
+    }
+
+    public Page<PropertyResponseDto> search(
+            PropertyStatus status,
+            String query,
+            String city,
+            String state,
+            Integer minBeds,
+            Integer maxBeds,
+            BigDecimal minBaths,
+            BigDecimal minAskingPrice,
+            BigDecimal maxAskingPrice,
+            BigDecimal minArv,
+            BigDecimal maxArv,
+            OccupancyStatus occupancyStatus,
+            ExitStrategy exitStrategy,
+            ClosingTerms closingTerms,
+            Long sellerId,
+            SellerWorkflowStatus sellerWorkflowStatus,
+            Pageable pageable
+    ) {
         validateSearchFilters(minBeds, maxBeds, minBaths, minAskingPrice, maxAskingPrice, minArv, maxArv);
 
         boolean admin = requireApprovedInvestorOrAdmin();
 
         PropertyStatus effectiveStatus = admin ? status : ACTIVE;
+        Long effectiveSellerId = admin ? sellerId : null;
 
         var spec = PropertySpecifications.withFilters(
                 effectiveStatus,
@@ -200,9 +247,13 @@ public class PropertyService {
                 occupancyStatus,
                 exitStrategy,
                 closingTerms,
-                null,
+                effectiveSellerId,
                 admin ? sellerWorkflowStatus : null
         );
+
+        if (admin) {
+            spec = spec.and(PropertySpecifications.visibleToAdmin());
+        }
 
         return propertyRepository.findAll(spec, pageable)
                 .map(PropertyMapper::toDto);
@@ -306,16 +357,16 @@ public class PropertyService {
         return PropertyMapper.toDto(property);
     }
 
-    public PropertyResponseDto createBySeller(Long sellerId, PropertyUpsertRequestDto dto) {
+    public PropertyResponseDto createBySeller(Long sellerId, SellerPropertyDraftUpsertRequestDto dto) {
         requireSelfSeller(sellerId);
         Seller seller = requireActiveSeller(sellerId);
 
-        if (dto.photos() != null && !dto.photos().isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Seller draft photo uploads are not supported yet");
-        }
-
-        Property property = PropertyMapper.toEntity(dto);
+        validateUniquePhotoAssetIds(dto.photos());
+        Property property = new Property();
+        applySellerDraftUpsert(dto, property);
+        validateSellerAddressNotDuplicate(sellerId, property);
         property.setSeller(seller);
+        property.setCreatedBySeller(seller);
         property.setStatus(PropertyStatus.DRAFT);
         property.setSellerWorkflowStatus(SellerWorkflowStatus.DRAFT);
         property.setSellerReviewNote(null);
@@ -324,6 +375,10 @@ public class PropertyService {
         property.setPublishedAt(null);
         normalizeCurrentRentForOccupancy(property);
 
+        if (dto.photos() != null) {
+            hydratePhotoAssets(property, null, PhotoAssetPrincipalRole.SELLER, sellerId);
+        }
+
         refreshCoordinates(property, true);
         refreshFmr(property);
 
@@ -331,7 +386,7 @@ public class PropertyService {
         return PropertyMapper.toDto(saved);
     }
 
-    public PropertyResponseDto updateBySeller(Long sellerId, Long propertyId, PropertyUpsertRequestDto dto) {
+    public PropertyResponseDto updateBySeller(Long sellerId, Long propertyId, SellerPropertyDraftUpsertRequestDto dto) {
         requireSelfSeller(sellerId);
 
         Property property = propertyRepository.findById(propertyId)
@@ -343,21 +398,34 @@ public class PropertyService {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Property is not editable in the current workflow state");
         }
 
-        if (dto.photos() != null && !dto.photos().isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Seller draft photo uploads are not supported yet");
-        }
-
+        validateUniquePhotoAssetIds(dto.photos());
         String originalAddressFingerprint = addressFingerprint(property);
         String originalZip = FmrLookupService.normalizeZip(property.getZip());
         Integer originalBeds = property.getBeds();
+        List<String> originalPhotoAssetIds = photoAssetService.collectPhotoAssetIds(property.getPhotos());
 
-        PropertyMapper.applyUpsert(dto, property);
+        applySellerDraftUpsert(dto, property);
         property.setStatus(PropertyStatus.DRAFT);
         normalizeCurrentRentForOccupancy(property);
 
         boolean addressChanged = !Objects.equals(originalAddressFingerprint, addressFingerprint(property));
+        if (addressChanged) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Property address cannot be changed after initial save");
+        }
+
+        if (dto.photos() != null) {
+            hydratePhotoAssets(property, property.getId(), PhotoAssetPrincipalRole.SELLER, sellerId);
+
+            List<String> updatedPhotoAssetIds = photoAssetService.collectPhotoAssetIds(property.getPhotos());
+            photoAssetService.forEachRemovedAsset(
+                    originalPhotoAssetIds,
+                    updatedPhotoAssetIds,
+                    photoAssetService::markDeletedPending
+            );
+        }
+
         boolean coordinatesMissing = property.getLatitude() == null || property.getLongitude() == null;
-        if (addressChanged || coordinatesMissing) {
+        if (coordinatesMissing) {
             refreshCoordinates(property, true);
         }
 
@@ -390,35 +458,14 @@ public class PropertyService {
         property.setSubmittedAt(LocalDateTime.now());
 
         Property saved = propertyRepository.save(property);
+        sellerThreadService.postSystemMessageForProperty(
+                saved.getId(),
+                sellerId,
+                SellerThreadService.TOPIC_WORKFLOW,
+                saved.getId(),
+                "Listing submitted for review."
+        );
         return PropertyMapper.toDto(saved);
-    }
-
-    public PropertyChangeRequestResponseDto createChangeRequestBySeller(Long sellerId, Long propertyId, String requestedChanges) {
-        requireSelfSeller(sellerId);
-
-        Property property = propertyRepository.findById(propertyId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Property not found: " + propertyId));
-        requireSellerOwnsProperty(property, sellerId);
-
-        if (property.getStatus() != ACTIVE || property.getSellerWorkflowStatus() != SellerWorkflowStatus.PUBLISHED) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Can only request changes for active published listings");
-        }
-
-        String message = requestedChanges == null ? "" : requestedChanges.trim();
-        if (message.isBlank()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "requestedChanges is required");
-        }
-
-        Seller seller = requireActiveSeller(sellerId);
-
-        PropertyChangeRequest changeRequest = new PropertyChangeRequest();
-        changeRequest.setProperty(property);
-        changeRequest.setSeller(seller);
-        changeRequest.setRequestedChanges(message);
-        changeRequest.setStatus(PropertyChangeRequestStatus.OPEN);
-
-        PropertyChangeRequest saved = propertyChangeRequestRepository.save(changeRequest);
-        return PropertyChangeRequestMapper.toDto(saved);
     }
 
     public PropertyResponseDto assignSeller(Long propertyId, Long sellerId) {
@@ -428,6 +475,14 @@ public class PropertyService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Property not found: " + propertyId));
 
         if (sellerId == null) {
+            Long currentSellerId = property.getSeller() == null ? null : property.getSeller().getId();
+            Long creatorSellerId = property.getCreatedBySeller() == null ? null : property.getCreatedBySeller().getId();
+            if (currentSellerId != null && Objects.equals(currentSellerId, creatorSellerId)) {
+                throw new ResponseStatusException(
+                        HttpStatus.CONFLICT,
+                        "Cannot unassign the seller who originally created this property"
+                );
+            }
             property.setSeller(null);
             property.setSellerWorkflowStatus(null);
             property.setSellerReviewNote(null);
@@ -492,54 +547,24 @@ public class PropertyService {
         }
 
         Property saved = propertyRepository.save(property);
+        if (action == AdminPropertySellerReviewAction.REQUEST_CHANGES) {
+            sellerThreadService.postSystemMessageForProperty(
+                    saved.getId(),
+                    saved.getSeller().getId(),
+                    SellerThreadService.TOPIC_WORKFLOW,
+                    saved.getId(),
+                    "Admin requested changes: " + normalizedNote
+            );
+        } else {
+            sellerThreadService.postSystemMessageForProperty(
+                    saved.getId(),
+                    saved.getSeller().getId(),
+                    SellerThreadService.TOPIC_WORKFLOW,
+                    saved.getId(),
+                    "Listing approved and published."
+            );
+        }
         return PropertyMapper.toDto(saved);
-    }
-
-    public Page<PropertyChangeRequestResponseDto> getAdminChangeRequests(PropertyChangeRequestStatus status, Pageable pageable) {
-        requireAdmin();
-
-        Page<PropertyChangeRequest> page = status == null
-                ? propertyChangeRequestRepository.findAll(pageable)
-                : propertyChangeRequestRepository.findByStatusOrderByCreatedAtDesc(status, pageable);
-
-        return page.map(PropertyChangeRequestMapper::toDto);
-    }
-
-    public PropertyChangeRequestResponseDto moderateChangeRequest(
-            Long requestId,
-            AdminPropertyChangeRequestDecisionAction action,
-            String adminNote
-    ) {
-        long adminId = requireAdminId();
-
-        if (action == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "action is required");
-        }
-
-        PropertyChangeRequest request = propertyChangeRequestRepository.findById(requestId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Property change request not found: " + requestId));
-
-        if (request.getStatus() != PropertyChangeRequestStatus.OPEN) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Change request has already been resolved");
-        }
-
-        Admin admin = adminRepository.findById(adminId).orElse(null);
-
-        request.setStatus(action == AdminPropertyChangeRequestDecisionAction.APPLIED
-                ? PropertyChangeRequestStatus.APPLIED
-                : PropertyChangeRequestStatus.REJECTED);
-        request.setAdminNote(normalizeOptionalText(adminNote));
-        request.setResolvedAt(LocalDateTime.now());
-        request.setResolvedByAdmin(admin);
-
-        PropertyChangeRequest saved = propertyChangeRequestRepository.save(request);
-        return PropertyChangeRequestMapper.toDto(saved);
-    }
-
-    public Page<PropertyChangeRequestResponseDto> getSellerChangeRequests(Long sellerId, Pageable pageable) {
-        requireSelfSellerOrAdmin(sellerId);
-        return propertyChangeRequestRepository.findBySellerIdOrderByCreatedAtDesc(sellerId, pageable)
-                .map(PropertyChangeRequestMapper::toDto);
     }
 
     private AuthPrincipal principal() {
@@ -614,9 +639,19 @@ public class PropertyService {
     }
 
     private void requireVisibleToPrincipal(Property property, boolean admin) {
+        if (admin && !isVisibleToAdmin(property)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Property not found: " + property.getId());
+        }
         if (!admin && property.getStatus() != ACTIVE) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Property not found: " + property.getId());
         }
+    }
+
+    private boolean isVisibleToAdmin(Property property) {
+        if (property == null || property.getSeller() == null) {
+            return true;
+        }
+        return property.getSellerWorkflowStatus() != SellerWorkflowStatus.DRAFT;
     }
 
     private void validateForActiveStatus(Property property) {
@@ -678,6 +713,12 @@ public class PropertyService {
         property.setCurrentRent(null);
     }
 
+    private void deletePropertyWithPhotos(Property property) {
+        List<String> photoAssetIds = photoAssetService.collectPhotoAssetIds(property.getPhotos());
+        photoAssetService.markDeletedPending(photoAssetIds);
+        propertyRepository.deleteById(property.getId());
+    }
+
     private void refreshCoordinates(Property property, boolean clearWhenUnavailable) {
         if (property == null) return;
 
@@ -726,6 +767,28 @@ public class PropertyService {
         );
     }
 
+    private void validateSellerAddressNotDuplicate(Long sellerId, Property property) {
+        String street1 = normalizeAddressPart(property == null ? null : property.getStreet1()).toLowerCase(Locale.US);
+        String city = normalizeAddressPart(property == null ? null : property.getCity()).toLowerCase(Locale.US);
+        String state = normalizeAddressPart(property == null ? null : property.getState()).toLowerCase(Locale.US);
+        String zip = normalizeAddressPart(property == null ? null : property.getZip()).toLowerCase(Locale.US);
+
+        if (street1.isBlank() || city.isBlank() || state.isBlank() || zip.isBlank()) {
+            return;
+        }
+
+        boolean duplicateExists = propertyRepository.existsBySellerAndNormalizedAddress(
+                sellerId,
+                street1,
+                city,
+                state,
+                zip
+        );
+        if (duplicateExists) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "You already have a property with this address.");
+        }
+    }
+
     private static String normalizeAddressPart(String value) {
         return value == null ? "" : value.trim();
     }
@@ -738,12 +801,103 @@ public class PropertyService {
         return authPrincipal.userId();
     }
 
-    private void hydratePhotoAssets(Property property, Long currentPropertyId, long adminId) {
+    private void applySellerDraftUpsert(SellerPropertyDraftUpsertRequestDto dto, Property property) {
+        if (dto == null || property == null) return;
+
+        property.setStreet1(normalizeOptionalText(dto.street1()));
+        property.setStreet2(normalizeOptionalText(dto.street2()));
+        property.setCity(normalizeOptionalText(dto.city()));
+        property.setState(normalizeOptionalText(dto.state()));
+        property.setZip(normalizeOptionalText(dto.zip()));
+
+        property.setAskingPrice(dto.askingPrice());
+        property.setArv(dto.arv());
+        property.setEstRepairs(dto.estRepairs());
+
+        property.setBeds(dto.beds());
+        property.setBaths(dto.baths());
+        property.setLivingAreaSqft(dto.livingAreaSqft());
+        property.setYearBuilt(dto.yearBuilt());
+        property.setRoofAge(dto.roofAge());
+        property.setHvac(dto.hvac());
+
+        property.setOccupancyStatus(dto.occupancyStatus());
+        property.setCurrentRent(dto.currentRent());
+        property.setExitStrategy(dto.exitStrategy());
+        property.setClosingTerms(dto.closingTerms());
+
+        if (dto.photos() != null) {
+            PropertyMapper.applyUpsert(
+                    new PropertyUpsertRequestDto(
+                            PropertyStatus.DRAFT,
+                            dto.street1() == null ? "" : dto.street1(),
+                            dto.street2(),
+                            dto.city() == null ? "" : dto.city(),
+                            dto.state() == null ? "" : dto.state(),
+                            dto.zip() == null ? "" : dto.zip(),
+                            dto.askingPrice(),
+                            dto.arv(),
+                            dto.estRepairs(),
+                            dto.beds(),
+                            dto.baths(),
+                            dto.livingAreaSqft(),
+                            dto.yearBuilt(),
+                            dto.roofAge(),
+                            dto.hvac(),
+                            dto.occupancyStatus(),
+                            dto.currentRent(),
+                            dto.exitStrategy(),
+                            dto.closingTerms(),
+                            dto.photos(),
+                            dto.saleComps()
+                    ),
+                    property
+            );
+            return;
+        }
+
+        if (dto.saleComps() != null) {
+            PropertyMapper.applyUpsert(
+                    new PropertyUpsertRequestDto(
+                            PropertyStatus.DRAFT,
+                            dto.street1() == null ? "" : dto.street1(),
+                            dto.street2(),
+                            dto.city() == null ? "" : dto.city(),
+                            dto.state() == null ? "" : dto.state(),
+                            dto.zip() == null ? "" : dto.zip(),
+                            dto.askingPrice(),
+                            dto.arv(),
+                            dto.estRepairs(),
+                            dto.beds(),
+                            dto.baths(),
+                            dto.livingAreaSqft(),
+                            dto.yearBuilt(),
+                            dto.roofAge(),
+                            dto.hvac(),
+                            dto.occupancyStatus(),
+                            dto.currentRent(),
+                            dto.exitStrategy(),
+                            dto.closingTerms(),
+                            null,
+                            dto.saleComps()
+                    ),
+                    property
+            );
+        }
+    }
+
+    private void hydratePhotoAssets(
+            Property property,
+            Long currentPropertyId,
+            PhotoAssetPrincipalRole principalRole,
+            long principalId
+    ) {
         List<String> photoAssetIds = photoAssetService.collectPhotoAssetIds(property.getPhotos());
         Map<String, PhotoAsset> resolvedAssets = photoAssetService.resolveReadyAssetsOrThrow(
                 photoAssetIds,
                 currentPropertyId,
-                adminId
+                principalRole,
+                principalId
         );
         photoAssetService.applyAssetUrlsToPhotos(property.getPhotos(), resolvedAssets);
     }

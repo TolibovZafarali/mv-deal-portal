@@ -123,6 +123,14 @@ public final class PropertySpecifications {
                 .and(eqSellerWorkflowStatus(sellerWorkflowStatus));
     }
 
+    public static Specification<Property> visibleToAdmin() {
+        return (root, query, cb) -> cb.or(
+                cb.isNull(root.get("seller")),
+                cb.isNull(root.get("sellerWorkflowStatus")),
+                cb.notEqual(root.get("sellerWorkflowStatus"), SellerWorkflowStatus.DRAFT)
+        );
+    }
+
 
     private static Specification<Property> matchesSearchTerm(String query) {
         return (root, criteriaQuery, cb) -> {

@@ -19,6 +19,7 @@ const AdminPropertiesPage = lazy(() => import("@/features/admin/pages/AdminPrope
 const InvestorHome = lazy(() => import("@/features/investor/pages/InvestorHome"))
 const InvestorPending = lazy(() => import("@/features/investor/pages/InvestorPending"))
 const SellerListingsPage = lazy(() => import("@/features/seller/pages/SellerListingsPage"))
+const SellerListingEditorPage = lazy(() => import("@/features/seller/pages/SellerListingEditorPage"))
 const SellerInboxPage = lazy(() => import("@/features/seller/pages/SellerInboxPage"))
 const SellerProfilePage = lazy(() => import("@/features/seller/pages/SellerProfilePage"))
 
@@ -78,7 +79,10 @@ export default function App() {
           <Route element={<ProtectedRoute roles={["SELLER"]} />}>
             <Route path="/seller" element={<SellerLayout />}>
               <Route index element={<Navigate to="listings" replace />} />
+              <Route path="command" element={<Navigate to="/seller/listings" replace />} />
               <Route path="listings" element={<SellerListingsPage />} />
+              <Route path="listings/new" element={<SellerListingEditorPage />} />
+              <Route path="listings/:id/edit" element={<SellerListingEditorPage />} />
               <Route path="inbox" element={<SellerInboxPage />} />
               <Route path="profile" element={<SellerProfilePage />} />
             </Route>

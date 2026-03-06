@@ -84,6 +84,24 @@ body.mv-admin-layout .propModal {
   gap: 14px;
 }
 
+.propModal__notice {
+  border: 1px solid var(--border-muted);
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.4;
+  padding: 10px 12px;
+}
+
+.propModal__fieldset {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
 /* sections */
 .propSection {
   border-top: 1px solid var(--border-muted);
@@ -168,8 +186,26 @@ select.propField__input {
   border-color: var(--text);
 }
 
+.propField__input:disabled,
+.propField__input[readonly] {
+  background: rgba(242, 242, 242, 0.12);
+  border-color: rgba(242, 242, 242, 0.18);
+  color: rgba(242, 242, 242, 0.58);
+  cursor: not-allowed;
+}
+
+.propField__input:disabled::placeholder,
+.propField__input[readonly]::placeholder {
+  color: rgba(242, 242, 242, 0.4);
+}
+
 .propField__input--error {
   border-color: rgba(255, 120, 120, 0.95);
+}
+
+.propModal__fieldset:disabled .propField__label,
+.propModal__fieldset:disabled .propField__help {
+  color: rgba(242, 242, 242, 0.44);
 }
 
 .propAddressAutocomplete {
@@ -815,6 +851,10 @@ select.propField__input {
   margin-top: 6px;
 }
 
+.propActions--single {
+  grid-template-columns: 1fr;
+}
+
 .propBtn {
   border: 1px solid var(--text);
   background: transparent;
@@ -830,6 +870,18 @@ select.propField__input {
 .propBtn:hover {
   background: var(--text);
   color: var(--bg);
+}
+
+.propBtn--muted {
+  border-color: var(--border-muted);
+  color: var(--muted);
+}
+
+.propBtn--muted:hover:not(:disabled),
+.propBtn--muted:focus-visible {
+  background: transparent;
+  color: var(--text);
+  border-color: var(--text);
 }
 
 .propBtn:disabled {

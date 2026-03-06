@@ -37,7 +37,6 @@ class PropertyPhotoUrlEndpointIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        jdbcTemplate.update("DELETE FROM property_change_requests");
         jdbcTemplate.update("DELETE FROM inquiries");
         jdbcTemplate.update("DELETE FROM property_photos");
         jdbcTemplate.update("DELETE FROM photo_assets");

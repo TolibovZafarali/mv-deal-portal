@@ -4,6 +4,7 @@ import com.megna.backend.application.service.photo.PhotoObjectStorage;
 import com.megna.backend.application.service.photo.PhotoUploadTokenService;
 import com.megna.backend.domain.entity.PhotoAsset;
 import com.megna.backend.domain.entity.PropertyPhoto;
+import com.megna.backend.domain.enums.PhotoAssetPrincipalRole;
 import com.megna.backend.domain.enums.PhotoAssetStatus;
 import com.megna.backend.domain.repository.PhotoAssetRepository;
 import com.megna.backend.domain.repository.PropertyPhotoRepository;
@@ -65,6 +66,20 @@ public class PhotoAssetService {
 
     @Transactional
     public PropertyPhotoUploadInitResponseDto initUpload(PropertyPhotoUploadInitRequestDto request, long adminId) {
+        return initUpload(request, PhotoAssetPrincipalRole.ADMIN, adminId);
+    }
+
+    @Transactional
+    public PropertyPhotoUploadInitResponseDto initUploadForSeller(PropertyPhotoUploadInitRequestDto request, long sellerId) {
+        return initUpload(request, PhotoAssetPrincipalRole.SELLER, sellerId);
+    }
+
+    @Transactional
+    public PropertyPhotoUploadInitResponseDto initUpload(
+            PropertyPhotoUploadInitRequestDto request,
+            PhotoAssetPrincipalRole principalRole,
+            long principalId
+    ) {
         validateStorageConfigured();
 
         String contentType = normalizeContentType(request.contentType());
@@ -83,7 +98,7 @@ public class PhotoAssetService {
 
         PhotoAsset asset = new PhotoAsset();
         asset.setId(uploadId);
-        asset.setCreatedByAdminId(adminId);
+        assignAssetOwner(asset, principalRole, principalId);
         asset.setStatus(PhotoAssetStatus.UPLOADING);
         asset.setOriginalBucket(photoStorageProperties.getBucket());
         asset.setOriginalObjectKey(originalObjectKey);
@@ -103,7 +118,12 @@ public class PhotoAssetService {
                 requiredHeaders
         );
 
-        String uploadToken = photoUploadTokenService.generate(uploadId, adminId, expiresAt.toInstant(java.time.ZoneOffset.UTC));
+        String uploadToken = photoUploadTokenService.generate(
+                uploadId,
+                principalRole,
+                principalId,
+                expiresAt.toInstant(java.time.ZoneOffset.UTC)
+        );
 
         return new PropertyPhotoUploadInitResponseDto(
                 uploadId,
@@ -121,18 +141,39 @@ public class PhotoAssetService {
             PropertyPhotoUploadCompleteRequestDto request,
             long adminId
     ) {
+        return completeUpload(uploadId, request, PhotoAssetPrincipalRole.ADMIN, adminId);
+    }
+
+    @Transactional
+    public PropertyPhotoUploadCompleteResponseDto completeUploadForSeller(
+            String uploadId,
+            PropertyPhotoUploadCompleteRequestDto request,
+            long sellerId
+    ) {
+        return completeUpload(uploadId, request, PhotoAssetPrincipalRole.SELLER, sellerId);
+    }
+
+    @Transactional
+    public PropertyPhotoUploadCompleteResponseDto completeUpload(
+            String uploadId,
+            PropertyPhotoUploadCompleteRequestDto request,
+            PhotoAssetPrincipalRole principalRole,
+            long principalId
+    ) {
         validateStorageConfigured();
 
         PhotoUploadTokenService.UploadTokenClaims claims = photoUploadTokenService.parseAndValidate(request.uploadToken());
-        if (!uploadId.equals(claims.uploadId()) || adminId != claims.adminId()) {
+        if (!uploadId.equals(claims.uploadId())
+                || claims.principalRole() != principalRole
+                || principalId != claims.principalId()) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Upload token does not match request");
         }
 
         PhotoAsset asset = photoAssetRepository.findById(uploadId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Upload not found"));
 
-        if (!adminIdMatches(asset, adminId)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Upload belongs to another admin");
+        if (isAssetOwnedByAnotherPrincipal(asset, principalRole, principalId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Upload belongs to another principal");
         }
 
         if (asset.getStatus() == PhotoAssetStatus.DELETED || asset.getStatus() == PhotoAssetStatus.DELETED_PENDING) {
@@ -213,11 +254,21 @@ public class PhotoAssetService {
 
     @Transactional
     public void deleteUnboundUpload(String uploadId, long adminId) {
+        deleteUnboundUpload(uploadId, PhotoAssetPrincipalRole.ADMIN, adminId);
+    }
+
+    @Transactional
+    public void deleteUnboundUploadForSeller(String uploadId, long sellerId) {
+        deleteUnboundUpload(uploadId, PhotoAssetPrincipalRole.SELLER, sellerId);
+    }
+
+    @Transactional
+    public void deleteUnboundUpload(String uploadId, PhotoAssetPrincipalRole principalRole, long principalId) {
         PhotoAsset asset = photoAssetRepository.findById(uploadId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Upload not found"));
 
-        if (!adminIdMatches(asset, adminId)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Upload belongs to another admin");
+        if (isAssetOwnedByAnotherPrincipal(asset, principalRole, principalId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Upload belongs to another principal");
         }
 
         if (propertyPhotoRepository.existsByPhotoAssetId(uploadId)) {
@@ -229,11 +280,25 @@ public class PhotoAssetService {
 
     @Transactional
     public PropertyPhotoUploadCompleteResponseDto createFromUrl(String rawUrl, long adminId) {
+        return createFromUrl(rawUrl, PhotoAssetPrincipalRole.ADMIN, adminId);
+    }
+
+    @Transactional
+    public PropertyPhotoUploadCompleteResponseDto createFromUrlForSeller(String rawUrl, long sellerId) {
+        return createFromUrl(rawUrl, PhotoAssetPrincipalRole.SELLER, sellerId);
+    }
+
+    @Transactional
+    public PropertyPhotoUploadCompleteResponseDto createFromUrl(
+            String rawUrl,
+            PhotoAssetPrincipalRole principalRole,
+            long principalId
+    ) {
         String normalizedUrl = normalizeExternalPhotoUrl(rawUrl);
 
         PhotoAsset asset = new PhotoAsset();
         asset.setId(UUID.randomUUID().toString());
-        asset.setCreatedByAdminId(adminId);
+        assignAssetOwner(asset, principalRole, principalId);
         asset.setStatus(PhotoAssetStatus.READY);
         asset.setUrl(normalizedUrl);
         asset.setThumbnailUrl(normalizedUrl);
@@ -251,7 +316,12 @@ public class PhotoAssetService {
     }
 
     @Transactional(readOnly = true)
-    public Map<String, PhotoAsset> resolveReadyAssetsOrThrow(Collection<String> assetIds, Long currentPropertyId, long adminId) {
+    public Map<String, PhotoAsset> resolveReadyAssetsOrThrow(
+            Collection<String> assetIds,
+            Long currentPropertyId,
+            PhotoAssetPrincipalRole principalRole,
+            long principalId
+    ) {
         Set<String> uniqueIds = assetIds == null
                 ? Set.of()
                 : assetIds.stream().filter(StringUtils::hasText).collect(Collectors.toCollection(HashSet::new));
@@ -269,19 +339,20 @@ public class PhotoAssetService {
 
         Map<String, PhotoAsset> byId = new HashMap<>();
         for (PhotoAsset asset : assets) {
-            if (asset.getCreatedByAdminId() != null && !adminIdMatches(asset, adminId)) {
-                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Photo asset belongs to another admin: " + asset.getId());
+            Long existingPropertyId = propertyPhotoRepository.findFirstByPhotoAssetId(asset.getId())
+                    .map(existing -> existing.getProperty() != null ? existing.getProperty().getId() : null)
+                    .orElse(null);
+            boolean attachedToCurrentProperty = existingPropertyId != null && existingPropertyId.equals(currentPropertyId);
+
+            if (!attachedToCurrentProperty && isAssetOwnedByAnotherPrincipal(asset, principalRole, principalId)) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Photo asset belongs to another principal: " + asset.getId());
             }
             if (asset.getStatus() != PhotoAssetStatus.READY) {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Photo asset is not ready: " + asset.getId());
             }
-
-            propertyPhotoRepository.findFirstByPhotoAssetId(asset.getId()).ifPresent(existing -> {
-                Long existingPropertyId = existing.getProperty() != null ? existing.getProperty().getId() : null;
-                if (existingPropertyId != null && !existingPropertyId.equals(currentPropertyId)) {
-                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Photo asset already attached to another property: " + asset.getId());
-                }
-            });
+            if (existingPropertyId != null && !existingPropertyId.equals(currentPropertyId)) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Photo asset already attached to another property: " + asset.getId());
+            }
 
             byId.put(asset.getId(), asset);
         }
@@ -418,8 +489,33 @@ public class PhotoAssetService {
         return uri.toString();
     }
 
-    private boolean adminIdMatches(PhotoAsset asset, long adminId) {
-        return asset.getCreatedByAdminId() != null && asset.getCreatedByAdminId() == adminId;
+    private void assignAssetOwner(PhotoAsset asset, PhotoAssetPrincipalRole principalRole, long principalId) {
+        if (principalRole == PhotoAssetPrincipalRole.ADMIN) {
+            asset.setCreatedByAdminId(principalId);
+            asset.setCreatedBySellerId(null);
+            return;
+        }
+        asset.setCreatedBySellerId(principalId);
+        asset.setCreatedByAdminId(null);
+    }
+
+    private boolean isAssetOwnedByAnotherPrincipal(
+            PhotoAsset asset,
+            PhotoAssetPrincipalRole principalRole,
+            long principalId
+    ) {
+        Long ownerAdminId = asset.getCreatedByAdminId();
+        Long ownerSellerId = asset.getCreatedBySellerId();
+
+        if (ownerAdminId == null && ownerSellerId == null) {
+            return false;
+        }
+
+        if (principalRole == PhotoAssetPrincipalRole.ADMIN) {
+            return ownerAdminId == null || ownerAdminId != principalId;
+        }
+
+        return ownerSellerId == null || ownerSellerId != principalId;
     }
 
     private void validateStorageConfigured() {

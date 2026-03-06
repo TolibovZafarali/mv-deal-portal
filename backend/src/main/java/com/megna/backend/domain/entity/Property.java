@@ -101,6 +101,10 @@ public class Property {
     @JoinColumn(name = "seller_id")
     private Seller seller;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "created_by_seller_id")
+    private Seller createdBySeller;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "seller_workflow_status", length = 30)
     private SellerWorkflowStatus sellerWorkflowStatus;

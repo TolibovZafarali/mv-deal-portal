@@ -41,7 +41,6 @@ class AuthPasswordResetIntegrationTest {
     @BeforeEach
     void setUp() {
         jdbcTemplate.update("DELETE FROM password_reset_tokens");
-        jdbcTemplate.update("DELETE FROM property_change_requests");
         jdbcTemplate.update("DELETE FROM inquiries");
         jdbcTemplate.update("DELETE FROM sellers");
         jdbcTemplate.update("DELETE FROM investors");
