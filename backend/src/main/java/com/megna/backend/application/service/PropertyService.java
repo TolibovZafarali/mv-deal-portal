@@ -4,6 +4,7 @@ import com.megna.backend.application.specification.PropertySpecifications;
 import com.megna.backend.domain.entity.Investor;
 import com.megna.backend.domain.entity.PhotoAsset;
 import com.megna.backend.domain.entity.Property;
+import com.megna.backend.domain.entity.PropertyPhoto;
 import com.megna.backend.domain.entity.Seller;
 import com.megna.backend.domain.enums.ClosingTerms;
 import com.megna.backend.domain.enums.ExitStrategy;
@@ -29,6 +30,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -58,7 +60,9 @@ public class PropertyService {
     private final FmrLookupService fmrLookupService;
     private final PhotoAssetService photoAssetService;
     private final SellerThreadService sellerThreadService;
+    private final PropertyPublicationNotificationService propertyPublicationNotificationService;
 
+    @Transactional
     public PropertyResponseDto create(PropertyUpsertRequestDto dto) {
         validateUniquePhotoAssetIds(dto.photos());
         Property property = PropertyMapper.toEntity(dto);
@@ -71,7 +75,8 @@ public class PropertyService {
         refreshFmr(property);
         validateForActiveStatus(property);
         syncSellerWorkflowForAdminManagedProperty(property);
-        Property saved = propertyRepository.save(property);
+        Property saved = saveProperty(property);
+        enqueueInvestorNotificationsIfFirstActivePublish(saved, null);
         return PropertyMapper.toDto(saved);
     }
 
@@ -100,10 +105,12 @@ public class PropertyService {
                 .map(PropertyMapper::toDto);
     }
 
+    @Transactional
     public PropertyResponseDto update(Long id, PropertyUpsertRequestDto dto) {
         validateUniquePhotoAssetIds(dto.photos());
         Property property = propertyRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Property not found: " + id));
+        PropertyStatus originalStatus = property.getStatus();
 
         String originalAddressFingerprint = addressFingerprint(property);
         String originalZip = FmrLookupService.normalizeZip(property.getZip());
@@ -141,7 +148,8 @@ public class PropertyService {
         validateForActiveStatus(property);
         syncSellerWorkflowForAdminManagedProperty(property);
 
-        Property saved = propertyRepository.save(property);
+        Property saved = saveProperty(property);
+        enqueueInvestorNotificationsIfFirstActivePublish(saved, originalStatus);
         return PropertyMapper.toDto(saved);
     }
 
@@ -382,7 +390,7 @@ public class PropertyService {
         refreshCoordinates(property, true);
         refreshFmr(property);
 
-        Property saved = propertyRepository.save(property);
+        Property saved = saveProperty(property);
         return PropertyMapper.toDto(saved);
     }
 
@@ -437,7 +445,7 @@ public class PropertyService {
             refreshFmr(property);
         }
 
-        Property saved = propertyRepository.save(property);
+        Property saved = saveProperty(property);
         return PropertyMapper.toDto(saved);
     }
 
@@ -457,7 +465,7 @@ public class PropertyService {
         property.setSellerWorkflowStatus(SellerWorkflowStatus.SUBMITTED);
         property.setSubmittedAt(LocalDateTime.now());
 
-        Property saved = propertyRepository.save(property);
+        Property saved = saveProperty(property);
         sellerThreadService.postSystemMessageForProperty(
                 saved.getId(),
                 sellerId,
@@ -505,10 +513,11 @@ public class PropertyService {
             }
         }
 
-        Property saved = propertyRepository.save(property);
+        Property saved = saveProperty(property);
         return PropertyMapper.toDto(saved);
     }
 
+    @Transactional
     public PropertyResponseDto reviewSellerProperty(Long propertyId, AdminPropertySellerReviewAction action, String reviewNote) {
         requireAdmin();
 
@@ -518,6 +527,7 @@ public class PropertyService {
 
         Property property = propertyRepository.findById(propertyId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Property not found: " + propertyId));
+        PropertyStatus originalStatus = property.getStatus();
 
         if (property.getSeller() == null) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Property is not assigned to a seller");
@@ -546,7 +556,8 @@ public class PropertyService {
             validateForActiveStatus(property);
         }
 
-        Property saved = propertyRepository.save(property);
+        Property saved = saveProperty(property);
+        enqueueInvestorNotificationsIfFirstActivePublish(saved, originalStatus);
         if (action == AdminPropertySellerReviewAction.REQUEST_CHANGES) {
             sellerThreadService.postSystemMessageForProperty(
                     saved.getId(),
@@ -921,6 +932,71 @@ public class PropertyService {
         if (property.getSellerWorkflowStatus() == null) {
             property.setSellerWorkflowStatus(SellerWorkflowStatus.DRAFT);
         }
+    }
+
+    private void enqueueInvestorNotificationsIfFirstActivePublish(Property property, PropertyStatus previousStatus) {
+        if (property == null || property.getId() == null) return;
+        if (property.getStatus() != PropertyStatus.ACTIVE) return;
+        if (previousStatus == PropertyStatus.ACTIVE) return;
+
+        propertyPublicationNotificationService.enqueueForFirstPublication(property.getId());
+    }
+
+    private Property saveProperty(Property property) {
+        validatePhotosBeforeSave(property);
+        return propertyRepository.save(property);
+    }
+
+    private void validatePhotosBeforeSave(Property property) {
+        if (property == null || property.getPhotos() == null || property.getPhotos().isEmpty()) {
+            return;
+        }
+
+        boolean hasMissingPhotoUrl = property.getPhotos().stream().anyMatch(photo ->
+                photo != null
+                        && StringUtils.hasText(photo.getPhotoAssetId())
+                        && !StringUtils.hasText(photo.getUrl())
+        );
+        if (hasMissingPhotoUrl) {
+            AuthPrincipal authPrincipal = principal();
+            hydratePhotoAssets(
+                    property,
+                    property.getId(),
+                    resolvePhotoAssetPrincipalRole(authPrincipal.role()),
+                    authPrincipal.userId()
+            );
+        }
+
+        for (PropertyPhoto photo : property.getPhotos()) {
+            if (photo == null) {
+                continue;
+            }
+
+            photo.setProperty(property);
+
+            if (!StringUtils.hasText(photo.getPhotoAssetId())) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Photo asset id is required for every photo");
+            }
+            if (!StringUtils.hasText(photo.getUrl())) {
+                throw new ResponseStatusException(
+                        HttpStatus.BAD_REQUEST,
+                        "Cannot save property while photo URL is missing for asset: " + photo.getPhotoAssetId()
+                );
+            }
+            if (!StringUtils.hasText(photo.getThumbnailUrl())) {
+                photo.setThumbnailUrl(photo.getUrl());
+            }
+        }
+    }
+
+    private PhotoAssetPrincipalRole resolvePhotoAssetPrincipalRole(String role) {
+        if ("ADMIN".equalsIgnoreCase(role)) {
+            return PhotoAssetPrincipalRole.ADMIN;
+        }
+        if ("SELLER".equalsIgnoreCase(role)) {
+            return PhotoAssetPrincipalRole.SELLER;
+        }
+        throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Forbidden");
     }
 
     private static String normalizeOptionalText(String value) {

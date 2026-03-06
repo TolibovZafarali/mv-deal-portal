@@ -3,13 +3,13 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { register, registerSeller } from "@/api";
 import "@/features/auth/modals/SignUpModal.css";
 import { getPasswordStrength } from "@/shared/utils/passwordStrength";
+import { useAuthModalClose } from "@/features/auth/modals/useAuthModalClose";
 
 const STEP_INFO = 0;
 const STEP_PASSWORD = 1;
 const STEP_DONE = 2;
 const ROLE_BUYER = "INVESTOR";
 const ROLE_SELLER = "SELLER";
-const CLOSE_ANIMATION_MS = 180;
 
 export default function SignUpModal() {
   const navigate = useNavigate();
@@ -42,13 +42,16 @@ export default function SignUpModal() {
   const [direction, setDirection] = useState("forward"); // "forward" | "back"
   const [animKey, setAnimKey] = useState(0);
   const [hasStepTransition, setHasStepTransition] = useState(false);
-  const [isClosing, setIsClosing] = useState(false);
 
   const bg = location.state?.backgroundLocation || { pathname: "/" };
   const phoneRef = useRef(null);
-  const closeTimerRef = useRef(null);
-  const closingRef = useRef(false);
   const isSellerSignup = selectedRole === ROLE_SELLER;
+  const { isClosing, close } = useAuthModalClose({
+    navigate,
+    hasBackground,
+    backgroundLocation: bg,
+    forceHomeOnClose,
+  });
 
   useEffect(() => {
     const stateRole = location.state?.signupRole;
@@ -68,43 +71,6 @@ export default function SignUpModal() {
     setStep(nextStep);
     setAnimKey((k) => k + 1);
   }
-
-  function close() {
-    if (closingRef.current) return;
-
-    closingRef.current = true;
-    setIsClosing(true);
-    closeTimerRef.current = window.setTimeout(() => {
-      if (forceHomeOnClose) {
-        navigate("/", { replace: true });
-        return;
-      }
-
-      if (hasBackground) {
-        navigate(bg, { replace: true });
-        return;
-      }
-
-      navigate("/", { replace: true });
-    }, CLOSE_ANIMATION_MS);
-  }
-
-  useEffect(() => {
-    return () => {
-      if (closeTimerRef.current) {
-        window.clearTimeout(closeTimerRef.current);
-      }
-    };
-  }, []);
-
-  useEffect(() => {
-    function onKeyDown(e) {
-      if (e.key === "Escape") close();
-    }
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasBackground, forceHomeOnClose]);
 
   const infoValid = useMemo(() => {
     return Boolean(

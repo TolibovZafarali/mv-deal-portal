@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useOutletContext } from "react-router-dom";
-import { getPropertyId, searchProperties } from "@/api/modules/propertyApi";
+import { getPropertyById, searchProperties } from "@/api/modules/propertyApi";
 import { createInquiry, getInquiryByInvestor } from "@/api/modules/inquiryApi";
 import {
   addInvestorFavoriteProperty,
@@ -232,7 +232,7 @@ export default function InvestorDashboard() {
     }
 
     try {
-      const property = await getPropertyId(propertyId);
+      const property = await getPropertyById(propertyId);
       const fetchedId = property?.id;
       if (fetchedId === null || fetchedId === undefined) return;
 

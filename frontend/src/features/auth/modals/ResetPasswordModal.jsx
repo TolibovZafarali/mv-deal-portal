@@ -1,10 +1,9 @@
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { resetPassword } from "@/api";
 import "@/features/auth/modals/ResetPasswordModal.css";
 import { getPasswordStrength } from "@/shared/utils/passwordStrength";
-
-const CLOSE_ANIMATION_MS = 180;
+import { useAuthModalClose } from "@/features/auth/modals/useAuthModalClose";
 
 export default function ResetPasswordModal() {
   const navigate = useNavigate();
@@ -21,12 +20,14 @@ export default function ResetPasswordModal() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
-  const [isClosing, setIsClosing] = useState(false);
-
-  const closeTimerRef = useRef(null);
-  const closingRef = useRef(false);
   const token = (searchParams.get("token") || "").trim();
   const passwordStrength = useMemo(() => getPasswordStrength(newPassword), [newPassword]);
+  const { isClosing, close } = useAuthModalClose({
+    navigate,
+    hasBackground,
+    backgroundLocation: bg,
+    forceHomeOnClose,
+  });
 
   const loginLinkState = hasBackground
     ? {
@@ -40,44 +41,6 @@ export default function ResetPasswordModal() {
   function goToLogin() {
     navigate("/login", { replace: true, state: loginLinkState });
   }
-
-  function close() {
-    if (closingRef.current) return;
-
-    closingRef.current = true;
-    setIsClosing(true);
-    closeTimerRef.current = window.setTimeout(() => {
-      if (forceHomeOnClose) {
-        navigate("/", { replace: true });
-        return;
-      }
-
-      if (hasBackground) {
-        navigate(bg, { replace: true });
-        return;
-      }
-
-      navigate("/", { replace: true });
-    }, CLOSE_ANIMATION_MS);
-  }
-
-  useEffect(() => {
-    return () => {
-      if (closeTimerRef.current) {
-        window.clearTimeout(closeTimerRef.current);
-      }
-    };
-  }, []);
-
-  useEffect(() => {
-    function onKeyDown(event) {
-      if (event.key === "Escape") close();
-    }
-
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasBackground, forceHomeOnClose]);
 
   async function handleSubmit(event) {
     event.preventDefault();

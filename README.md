@@ -50,7 +50,6 @@ Admins can create/manage property listings, approve investor access, and receive
 - Exit strategy
 - Closing terms
 - Photos (admin upload; stored as GCS-backed photo assets)
-- Notes / description
 
 ### Investor
 - Name, email, phone
@@ -127,7 +126,6 @@ Quick pointers:
 - Properties can be saved as `DRAFT` with incomplete/nullable fields (to allow partial entry).
 - Only properties with `status = ACTIVE` are visible to approved investors.
 - When the admin sets a property to `ACTIVE`, the backend must validate required fields (reject if missing):
-  - `title`
   - `street_1`, `city`, `state`, `zip`
   - `asking_price`
   - `occupancy_status`, `exit_strategy`, `closing_terms`
