@@ -26,7 +26,7 @@ function serializeParams(params) {
 
 export const apiClient = axios.create({
     baseURL,
-    timeout: 15000,
+    timeout: 30000,
     paramsSerializer: {
         serialize: serializeParams,
     },
@@ -61,6 +61,9 @@ apiClient.interceptors.response.use(
         }
 
         const message = 
+            error?.code === "ECONNABORTED"
+                ? "Request timed out. Please try again."
+                :
             data?.message || 
             data?.error || 
             error?.message || 
