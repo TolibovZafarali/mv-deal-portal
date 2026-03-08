@@ -25,13 +25,15 @@ const SellerProfilePage = lazy(() => import("@/features/seller/pages/SellerProfi
 
 function Home() {
   const location = useLocation()
-  const { isAuthed, bootstrapping } = useAuth()
+  const { isAuthed, bootstrapping, refresh, sessionRestoreError } = useAuth()
 
   return (
     <HomePage
       location={location}
       isAuthed={isAuthed}
       bootstrapping={bootstrapping}
+      retrySessionRestore={refresh}
+      sessionRestoreError={sessionRestoreError}
     />
   )
 }

@@ -7,6 +7,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
+import org.springframework.http.ResponseCookie.ResponseCookieBuilder;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
@@ -34,11 +35,7 @@ public class AuthRefreshCookieService {
     }
 
     public void writeRefreshToken(HttpServletResponse response, String rawToken) {
-        ResponseCookie cookie = ResponseCookie.from(authProperties.getRefreshCookieName(), rawToken)
-                .httpOnly(true)
-                .secure(authProperties.isRefreshCookieSecure())
-                .sameSite(authProperties.getRefreshCookieSameSite())
-                .path(authProperties.getRefreshCookiePath())
+        ResponseCookie cookie = baseCookie(rawToken)
                 .maxAge(Duration.ofDays(resolveRefreshTokenTtlDays()))
                 .build();
 
@@ -46,19 +43,35 @@ public class AuthRefreshCookieService {
     }
 
     public void clearRefreshToken(HttpServletResponse response) {
-        ResponseCookie cookie = ResponseCookie.from(authProperties.getRefreshCookieName(), "")
-                .httpOnly(true)
-                .secure(authProperties.isRefreshCookieSecure())
-                .sameSite(authProperties.getRefreshCookieSameSite())
-                .path(authProperties.getRefreshCookiePath())
+        ResponseCookie cookie = baseCookie("")
                 .maxAge(Duration.ZERO)
                 .build();
 
         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
     }
 
+    private ResponseCookieBuilder baseCookie(String value) {
+        ResponseCookieBuilder builder = ResponseCookie.from(authProperties.getRefreshCookieName(), value)
+                .httpOnly(true)
+                .secure(authProperties.isRefreshCookieSecure())
+                .sameSite(authProperties.getRefreshCookieSameSite())
+                .path(authProperties.getRefreshCookiePath());
+
+        String domain = resolveCookieDomain();
+        if (!domain.isBlank()) {
+            builder.domain(domain);
+        }
+
+        return builder;
+    }
+
     private long resolveRefreshTokenTtlDays() {
         long ttlDays = authProperties.getRefreshTokenTtlDays();
         return ttlDays > 0 ? ttlDays : 30;
+    }
+
+    private String resolveCookieDomain() {
+        String configuredDomain = authProperties.getRefreshCookieDomain();
+        return configuredDomain == null ? "" : configuredDomain.trim();
     }
 }
