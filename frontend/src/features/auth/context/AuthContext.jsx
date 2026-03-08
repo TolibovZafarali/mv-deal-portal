@@ -10,6 +10,14 @@ import {
 } from "@/api/core/tokenStorage"
 
 const AuthContext = createContext(null)
+const PROFILE_LOAD_ATTEMPTS = 2
+const PROFILE_RETRY_DELAY_MS = 250
+
+function wait(ms) {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms)
+  })
+}
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
@@ -43,54 +51,80 @@ export function AuthProvider({ children }) {
     setUser(null)
   }, [])
 
-  const handleSessionExpired = useCallback((shouldBroadcast) => {
-    suppressExpiredRedirectRef.current = false
-    clearLocalSession()
+  const isUnauthorizedError = useCallback((error) => {
+    return Number(error?.status) === 401
+  }, [])
 
-    if (shouldBroadcast) {
-      publishAuthSync(AUTH_SYNC_EXPIRED)
+  const revokeServerSession = useCallback(async () => {
+    try {
+      await logout()
+    } catch {
+      clearAccessToken()
+    }
+  }, [])
+
+  const loadProfile = useCallback(async (token) => {
+    let lastError = null
+
+    for (let attempt = 0; attempt < PROFILE_LOAD_ATTEMPTS; attempt += 1) {
+      try {
+        return await me(token)
+      } catch (error) {
+        lastError = error
+
+        if (isUnauthorizedError(error) || attempt === PROFILE_LOAD_ATTEMPTS - 1) {
+          throw error
+        }
+
+        await wait(PROFILE_RETRY_DELAY_MS * (attempt + 1))
+      }
     }
 
+    throw lastError ?? new Error("Failed to load profile")
+  }, [isUnauthorizedError])
+
+  const resolveAuthenticatedProfile = useCallback(async (token) => {
+    const profile = await loadProfile(token)
+    const investorStatus = String(profile?.status ?? "").trim().toUpperCase()
+
+    if (profile?.role === "INVESTOR" && investorStatus.startsWith("PENDING")) {
+      await revokeServerSession()
+      clearLocalSession()
+
+      const err = new Error(
+        "Your account is in review. Please wait for our team to reach out.",
+      )
+      err.code = "ACCOUNT_PENDING"
+      throw err
+    }
+
+    suppressExpiredRedirectRef.current = false
+    setUser(profile)
+    return profile
+  }, [clearLocalSession, loadProfile, revokeServerSession])
+
+  const handleSessionExpired = useCallback(() => {
+    suppressExpiredRedirectRef.current = false
+    clearLocalSession()
     openLoginOnHome()
   }, [clearLocalSession, openLoginOnHome])
 
   const bootstrap = useCallback(async () => {
     setBootstrapping(true)
-    let recoveredSession = false
 
     try {
       const session = await refreshSession()
-      recoveredSession = Boolean(session?.accessToken)
-      const profile = await me(session?.accessToken)
-      const investorStatus = String(profile?.status ?? "").trim().toUpperCase()
-
-      if (profile?.role === "INVESTOR" && investorStatus.startsWith("PENDING")) {
-        try {
-          await logout()
-        } catch {
-          // Clear local auth even if cookie revocation fails.
-        }
-
+      return await resolveAuthenticatedProfile(session?.accessToken)
+    } catch (error) {
+      if (isUnauthorizedError(error)) {
         clearLocalSession()
-        return
       }
 
-      suppressExpiredRedirectRef.current = false
-      setUser(profile)
-    } catch {
-      if (recoveredSession) {
-        try {
-          await logout()
-        } catch {
-          // Clear local auth even if cookie revocation fails.
-        }
-      }
-
-      clearLocalSession()
+      return null
     } finally {
       setBootstrapping(false)
     }
-  }, [clearLocalSession])
+  }, [clearLocalSession, isUnauthorizedError, resolveAuthenticatedProfile])
 
   useEffect(() => {
     bootstrap()
@@ -99,7 +133,7 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     function onExpired() {
       if (suppressExpiredRedirectRef.current) return
-      handleSessionExpired(true)
+      handleSessionExpired()
     }
 
     window.addEventListener("mv:auth:expired", onExpired)
@@ -119,7 +153,7 @@ export function AuthProvider({ children }) {
 
       if (type === AUTH_SYNC_EXPIRED) {
         if (suppressExpiredRedirectRef.current) return
-        handleSessionExpired(false)
+        handleSessionExpired()
       }
     })
   }, [clearLocalSession, handleSessionExpired, navigate])
@@ -127,41 +161,29 @@ export function AuthProvider({ children }) {
   const signIn = useCallback(async (email, password) => {
     suppressExpiredRedirectRef.current = false
     const session = await login({ email, password })
+
     try {
-      const profile = await me(session?.accessToken)
-      const investorStatus = String(profile?.status ?? "").trim().toUpperCase()
-
-      if (profile?.role === "INVESTOR" && investorStatus.startsWith("PENDING")) {
-        try {
-          await logout()
-        } catch {
-          // Clear local auth even if cookie revocation fails.
-        }
-
-        clearLocalSession()
-
-        const err = new Error(
-          "Your account is in review. Please wait for our team to reach out.",
-        )
-        err.code = "ACCOUNT_PENDING"
-        throw err
-      }
-
-      setUser(profile)
-      return profile
+      return await resolveAuthenticatedProfile(session?.accessToken)
     } catch (error) {
-      if (error?.code !== "ACCOUNT_PENDING") {
-        try {
-          await logout()
-        } catch {
-          // Clear local auth even if cookie revocation fails.
-        }
+      if (error?.code === "ACCOUNT_PENDING") {
+        throw error
       }
 
-      clearLocalSession()
+      if (isUnauthorizedError(error)) {
+        await revokeServerSession()
+        clearLocalSession()
+        throw error
+      }
+
+      const recoveredProfile = await bootstrap()
+
+      if (recoveredProfile) {
+        return recoveredProfile
+      }
+
       throw error
     }
-  }, [clearLocalSession])
+  }, [bootstrap, clearLocalSession, isUnauthorizedError, resolveAuthenticatedProfile, revokeServerSession])
 
   const signOut = useCallback(async () => {
     suppressExpiredRedirectRef.current = true

@@ -80,8 +80,13 @@ async function refreshAccessToken() {
                 return nextToken;
             })
             .catch((error) => {
-                notifyAuthExpired();
-                throw normalizeApiError(error);
+                const normalizedError = normalizeApiError(error);
+
+                if (normalizedError.status === 401) {
+                    notifyAuthExpired();
+                }
+
+                throw normalizedError;
             })
             .finally(() => {
                 refreshRequest = null;
