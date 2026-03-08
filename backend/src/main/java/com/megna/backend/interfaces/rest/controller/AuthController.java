@@ -50,9 +50,15 @@ public class AuthController {
     @PostMapping("/refresh")
     public LoginResponseDto refresh(HttpServletRequest request, HttpServletResponse response) {
         String refreshToken = refreshTokenCookieService.resolveRefreshToken(request);
-        AuthService.LoginSessionResult result = authService.refresh(refreshToken);
-        refreshTokenCookieService.addRefreshCookie(response, result.refreshToken());
-        return result.loginResponse();
+
+        try {
+            AuthService.LoginSessionResult result = authService.refresh(refreshToken);
+            refreshTokenCookieService.addRefreshCookie(response, result.refreshToken());
+            return result.loginResponse();
+        } catch (ResponseStatusException ex) {
+            refreshTokenCookieService.clearRefreshCookie(response);
+            throw ex;
+        }
     }
 
     @PostMapping("/logout")

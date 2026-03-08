@@ -11,3 +11,7 @@ frontend/.vite/
 backend/target/
 backend/uploads/
 backend/.idea/
+
+# Generated local artifacts (non-source)
+output/
+tmp/

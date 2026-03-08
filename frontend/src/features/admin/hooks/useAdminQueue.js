@@ -6,6 +6,10 @@ import {
   ADMIN_QUEUE_REFRESH_CHANNEL,
   trackAdminEvent,
 } from "@/features/admin/utils/adminTelemetry";
+import {
+  PROPERTY_STATUS,
+  SELLER_WORKFLOW_STATUS,
+} from "@/shared/constants/propertyWorkflow";
 
 const DEFAULT_QUEUE_PAGE_SIZE = 8;
 
@@ -77,7 +81,7 @@ function toSectionsFromQueueItems(items) {
         city: "",
         state: "",
         zip: "",
-        sellerWorkflowStatus: "SUBMITTED",
+        sellerWorkflowStatus: SELLER_WORKFLOW_STATUS.SUBMITTED,
         submittedAt: item.createdAt,
         updatedAt: item.createdAt,
         createdAt: item.createdAt,
@@ -147,7 +151,7 @@ export default function useAdminQueue({ includeItems = true, pageSize = DEFAULT_
           const [summary, draftByStatusPage] = await Promise.all([
             getAdminQueueSummary(),
             searchProperties(
-              { status: "DRAFT" },
+              { status: PROPERTY_STATUS.DRAFT },
               { page: 0, size: 1, sort: "updatedAt,desc" },
             ),
           ]);
@@ -187,7 +191,7 @@ export default function useAdminQueue({ includeItems = true, pageSize = DEFAULT_
             getAdminQueueSummary(),
             getAdminQueueItems({}, { page: 0, size: pageSize, sort: "createdAt,asc" }),
             searchProperties(
-              { status: "DRAFT" },
+              { status: PROPERTY_STATUS.DRAFT },
               { page: 0, size: 1, sort: "updatedAt,desc" },
             ),
           ]);
@@ -222,11 +226,11 @@ export default function useAdminQueue({ includeItems = true, pageSize = DEFAULT_
 
       const [draftByStatusRes, submittedRes, pendingRes] = await Promise.allSettled([
         searchProperties(
-          { status: "DRAFT" },
+          { status: PROPERTY_STATUS.DRAFT },
           { page: 0, size: 1, sort: "updatedAt,desc" },
         ),
         searchProperties(
-          { sellerWorkflowStatus: "SUBMITTED" },
+          { sellerWorkflowStatus: SELLER_WORKFLOW_STATUS.SUBMITTED },
           { page: 0, size: includeItems ? pageSize : 1, sort: "submittedAt,asc" },
         ),
         searchAdminInvestors(

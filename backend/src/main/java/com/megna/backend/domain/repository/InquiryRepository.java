@@ -32,17 +32,7 @@ public interface InquiryRepository extends JpaRepository<Inquiry, Long> {
 
     List<Inquiry> findByEmailStatus(EmailStatus emailStatus);
 
-    List<Inquiry> findByPropertyIdAndEmailStatus(Long propertyId, EmailStatus emailStatus);
-
-    List<Inquiry> findByInvestorIdAndEmailStatus(Long investorId, EmailStatus emailStatus);
-
     long countByEmailStatus(EmailStatus emailStatus);
-
-    long countByPropertyId(Long propertyId);
-
-    long countByInvestorId(Long investorId);
-
-    long countByPropertySellerId(Long sellerId);
 
     @Query("""
             select count(i)

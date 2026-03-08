@@ -83,6 +83,12 @@
   color: var(--text);
 }
 
+.api-smoke__hint {
+  margin-top: 10px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
 .api-smoke__status {
   margin: 16px 0 10px;
   color: var(--muted);

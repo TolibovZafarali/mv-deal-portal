@@ -1,5 +1,13 @@
 import { apiClient } from "@/api/core/apiClient";
 import { buildPageParams, cleanParams } from "@/api/core/params";
+import {
+    completePhotoUpload,
+    createPhotoFromUrl,
+    deletePhotoUpload,
+    initPhotoUpload,
+    uploadPhoto,
+    uploadPhotoToSignedUrl,
+} from "@/api/modules/propertyPhotoUploadFlow";
 
 const BASE = "/api/properties";
 
@@ -9,7 +17,7 @@ export async function getProperties(pageOpts = {}) {
     return data;
 }
 
-export async function getPropertyId(id) {
+export async function getPropertyById(id) {
     const { data } = await apiClient.get(`${BASE}/${id}`);
     return data;
 }
@@ -25,69 +33,27 @@ export async function updateProperty(id, propertyUpsertDto) {
 }
 
 export async function initPropertyPhotoUpload(file) {
-    const payload = {
-        fileName: String(file?.name ?? "upload.jpg"),
-        contentType: String(file?.type ?? "").trim().toLowerCase(),
-        sizeBytes: Number(file?.size ?? 0),
-    };
-
-    const { data } = await apiClient.post(`${BASE}/photos/uploads/init`, payload, {
-        timeout: 15000,
-    });
-    return data;
+    return initPhotoUpload(BASE, file);
 }
 
 export async function uploadPropertyPhotoToSignedUrl(uploadUrl, file, requiredHeaders = {}) {
-    const response = await fetch(uploadUrl, {
-        method: "PUT",
-        headers: requiredHeaders,
-        body: file,
-    });
-
-    if (!response.ok) {
-        throw new Error(`Upload failed (${response.status})`);
-    }
-
-    return true;
+    return uploadPhotoToSignedUrl(uploadUrl, file, requiredHeaders);
 }
 
 export async function completePropertyPhotoUpload(uploadId, uploadToken) {
-    const { data } = await apiClient.post(`${BASE}/photos/uploads/${uploadId}/complete`, {
-        uploadToken,
-    }, {
-        timeout: 30000,
-    });
-
-    return data;
+    return completePhotoUpload(BASE, uploadId, uploadToken);
 }
 
 export async function createPropertyPhotoFromUrl(url) {
-    const { data } = await apiClient.post(`${BASE}/photos/urls`, {
-        url: String(url ?? "").trim(),
-    });
-    return data;
+    return createPhotoFromUrl(BASE, url);
 }
 
 export async function uploadPropertyPhoto(file) {
-    const init = await initPropertyPhotoUpload(file);
-
-    await uploadPropertyPhotoToSignedUrl(
-        init?.uploadUrl,
-        file,
-        init?.requiredHeaders ?? {},
-    );
-
-    const completed = await completePropertyPhotoUpload(init?.uploadId, init?.uploadToken);
-    return {
-        ...completed,
-        uploadId: init?.uploadId,
-    };
+    return uploadPhoto(BASE, file);
 }
 
 export async function deletePropertyPhotoUpload(uploadId) {
-    if (!uploadId) return true;
-    await apiClient.delete(`${BASE}/photos/uploads/${uploadId}`);
-    return true;
+    return deletePhotoUpload(BASE, uploadId);
 }
 
 export async function deleteProperty(id) {

@@ -146,7 +146,13 @@ function getInitialRole(location) {
     return ROLE_INVESTOR;
 }
 
-export default function HomePage({ location, isAuthed, bootstrapping }) {
+export default function HomePage({
+    location,
+    isAuthed,
+    bootstrapping,
+    retrySessionRestore,
+    sessionRestoreError,
+}) {
     const homeRef = useRef(null);
     const homeWhyRef = useRef(null);
     const homeDealsRef = useRef(null);
@@ -161,6 +167,7 @@ export default function HomePage({ location, isAuthed, bootstrapping }) {
     const [whyStats, setWhyStats] = useState({ hours: 0, multiplier: 0, percent: 0 });
     const [selectedRole, setSelectedRole] = useState(() => getInitialRole(location));
     const roleContent = ROLE_CONTENT[selectedRole] || ROLE_CONTENT[ROLE_INVESTOR];
+    const showGuestCtas = !isAuthed && !sessionRestoreError;
 
     useEffect(() => {
         document.documentElement.classList.add("homeHideScrollbar");
@@ -421,7 +428,7 @@ export default function HomePage({ location, isAuthed, bootstrapping }) {
                             <Link to="/app" className="homeHeader__link">
                                 Dashboard
                             </Link>
-                        ) : (
+                        ) : showGuestCtas ? (
                             <>
                                 <Link
                                     to="/signup"
@@ -438,6 +445,14 @@ export default function HomePage({ location, isAuthed, bootstrapping }) {
                                     Login
                                 </Link>
                             </>
+                        ) : (
+                            <button
+                                type="button"
+                                className="homeHeader__link homeHeader__linkButton"
+                                onClick={() => retrySessionRestore?.()}
+                            >
+                                Retry Session
+                            </button>
                         )}
                     </nav>
                 </div>
@@ -482,7 +497,21 @@ export default function HomePage({ location, isAuthed, bootstrapping }) {
                                 {roleContent.heroSubtitle}
                             </p>
 
-                            {!isAuthed && (
+                            {sessionRestoreError ? (
+                                <div className="homeSessionNotice" role="status">
+                                    <p className="homeSessionNotice__title">Session restore unavailable</p>
+                                    <p className="homeSessionNotice__text">{sessionRestoreError}</p>
+                                    <button
+                                        type="button"
+                                        className="homeReady__btn"
+                                        onClick={() => retrySessionRestore?.()}
+                                    >
+                                        Retry session
+                                    </button>
+                                </div>
+                            ) : null}
+
+                            {showGuestCtas && (
                                 <div style={HERO_CTA_ROW_STYLE}>
                                     <Link
                                         to={roleContent.heroCtaTo}
@@ -656,6 +685,17 @@ export default function HomePage({ location, isAuthed, bootstrapping }) {
                                     Open Dashboard
                                 </Link>
                             </div>
+                        ) : sessionRestoreError ? (
+                            <div className="homeReady__authed">
+                                <p className="homeReady__authedText">{sessionRestoreError}</p>
+                                <button
+                                    type="button"
+                                    className="homeReady__btn homeReady__btn--wide"
+                                    onClick={() => retrySessionRestore?.()}
+                                >
+                                    Retry session
+                                </button>
+                            </div>
                         ) : (
                             <div className="homeReady__roles">
                                 <article
@@ -694,7 +734,7 @@ export default function HomePage({ location, isAuthed, bootstrapping }) {
                             </div>
                         )}
 
-                        {!isAuthed ? (
+                        {showGuestCtas ? (
                             <div className="homeReady__foot">
                                 <Link
                                     to="/login"

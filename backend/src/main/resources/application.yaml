@@ -23,6 +23,7 @@ app:
     password-reset-token-ttl-minutes: ${APP_AUTH_PASSWORD_RESET_TOKEN_TTL_MINUTES:30}
     refresh-token-ttl-minutes: ${APP_AUTH_REFRESH_TOKEN_TTL_MINUTES:20160}
     refresh-cookie-name: ${APP_AUTH_REFRESH_COOKIE_NAME:mv_refresh_token}
+    refresh-cookie-domain: ${APP_AUTH_REFRESH_COOKIE_DOMAIN:}
     refresh-cookie-path: ${APP_AUTH_REFRESH_COOKIE_PATH:/api/auth}
     refresh-cookie-secure: ${APP_AUTH_REFRESH_COOKIE_SECURE:false}
     refresh-cookie-same-site: ${APP_AUTH_REFRESH_COOKIE_SAME_SITE:Lax}

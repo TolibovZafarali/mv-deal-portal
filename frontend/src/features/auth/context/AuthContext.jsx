@@ -1,12 +1,29 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { getAccessToken, login, logout, me } from "@/api"
+import { login, logout, me, refreshSession } from "@/api"
+import {
+  AUTH_SYNC_EXPIRED,
+  AUTH_SYNC_LOGOUT,
+  clearAccessToken,
+  publishAuthSync,
+  subscribeToAuthSync,
+} from "@/api/core/tokenStorage"
 
 const AuthContext = createContext(null)
+const PROFILE_LOAD_ATTEMPTS = 2
+const PROFILE_RETRY_DELAY_MS = 250
+const SESSION_RESTORE_ERROR_MESSAGE = "We couldn't restore your session right now. Retry in a moment."
+
+function wait(ms) {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms)
+  })
+}
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [bootstrapping, setBootstrapping] = useState(true)
+  const [sessionRestoreError, setSessionRestoreError] = useState("")
   const suppressExpiredRedirectRef = useRef(false)
 
   const navigate = useNavigate()
@@ -31,53 +48,50 @@ export function AuthProvider({ children }) {
     })
   }, [navigate])
 
-  const bootstrap = useCallback(async () => {
-    const token = getAccessToken()
+  const clearLocalSession = useCallback(() => {
+    clearAccessToken()
+    setUser(null)
+  }, [])
 
-    if (!token) {
-      setUser(null)
-      setBootstrapping(false)
-      return
-    }
+  const isUnauthorizedError = useCallback((error) => {
+    return Number(error?.status) === 401
+  }, [])
 
+  const revokeServerSession = useCallback(async () => {
     try {
-      const profile = await me()
-      suppressExpiredRedirectRef.current = false
-      setUser(profile)
+      await logout()
     } catch {
-      logout()
-      setUser(null)
-      openLoginOnHome()
-    } finally {
-      setBootstrapping(false)
+      clearAccessToken()
     }
-  }, [openLoginOnHome])
+  }, [])
 
-  useEffect(() => {
-    bootstrap()
-  }, [bootstrap])
+  const loadProfile = useCallback(async (token) => {
+    let lastError = null
 
-  useEffect(() => {
-    function onExpired() {
-      if (suppressExpiredRedirectRef.current) return
-      setUser(null)
-      openLoginOnHome()
+    for (let attempt = 0; attempt < PROFILE_LOAD_ATTEMPTS; attempt += 1) {
+      try {
+        return await me(token)
+      } catch (error) {
+        lastError = error
+
+        if (isUnauthorizedError(error) || attempt === PROFILE_LOAD_ATTEMPTS - 1) {
+          throw error
+        }
+
+        await wait(PROFILE_RETRY_DELAY_MS * (attempt + 1))
+      }
     }
 
-    window.addEventListener("mv:auth:expired", onExpired)
-    return () => window.removeEventListener("mv:auth:expired", onExpired)
-  }, [openLoginOnHome])
+    throw lastError ?? new Error("Failed to load profile")
+  }, [isUnauthorizedError])
 
-  const signIn = useCallback(async (email, password) => {
-    suppressExpiredRedirectRef.current = false
-    await login({ email, password })
-
-    const profile = await me()
+  const resolveAuthenticatedProfile = useCallback(async (token) => {
+    const profile = await loadProfile(token)
     const investorStatus = String(profile?.status ?? "").trim().toUpperCase()
 
     if (profile?.role === "INVESTOR" && investorStatus.startsWith("PENDING")) {
-      logout()
-      setUser(null)
+      await revokeServerSession()
+      clearLocalSession()
 
       const err = new Error(
         "Your account is in review. Please wait for our team to reach out.",
@@ -86,28 +100,127 @@ export function AuthProvider({ children }) {
       throw err
     }
 
+    suppressExpiredRedirectRef.current = false
+    setSessionRestoreError("")
     setUser(profile)
     return profile
-  }, [])
+  }, [clearLocalSession, loadProfile, revokeServerSession])
 
-  const signOut = useCallback(() => {
+  const handleSessionExpired = useCallback(() => {
+    suppressExpiredRedirectRef.current = false
+    setSessionRestoreError("")
+    clearLocalSession()
+    openLoginOnHome()
+  }, [clearLocalSession, openLoginOnHome])
+
+  const bootstrap = useCallback(async () => {
+    setBootstrapping(true)
+    setSessionRestoreError("")
+
+    try {
+      const session = await refreshSession()
+      return await resolveAuthenticatedProfile(session?.accessToken)
+    } catch (error) {
+      if (isUnauthorizedError(error)) {
+        clearLocalSession()
+        setSessionRestoreError("")
+        return null
+      }
+
+      setSessionRestoreError(SESSION_RESTORE_ERROR_MESSAGE)
+      return null
+    } finally {
+      setBootstrapping(false)
+    }
+  }, [clearLocalSession, isUnauthorizedError, resolveAuthenticatedProfile])
+
+  useEffect(() => {
+    bootstrap()
+  }, [bootstrap])
+
+  useEffect(() => {
+    function onExpired() {
+      if (suppressExpiredRedirectRef.current) return
+      handleSessionExpired()
+    }
+
+    window.addEventListener("mv:auth:expired", onExpired)
+    return () => window.removeEventListener("mv:auth:expired", onExpired)
+  }, [handleSessionExpired])
+
+  useEffect(() => {
+    return subscribeToAuthSync((payload) => {
+      const type = String(payload?.type ?? "").trim().toLowerCase()
+
+      if (type === AUTH_SYNC_LOGOUT) {
+        suppressExpiredRedirectRef.current = true
+        setSessionRestoreError("")
+        clearLocalSession()
+        navigate("/", { replace: true })
+        return
+      }
+
+      if (type === AUTH_SYNC_EXPIRED) {
+        if (suppressExpiredRedirectRef.current) return
+        handleSessionExpired()
+      }
+    })
+  }, [clearLocalSession, handleSessionExpired, navigate])
+
+  const signIn = useCallback(async (email, password) => {
+    suppressExpiredRedirectRef.current = false
+    setSessionRestoreError("")
+    const session = await login({ email, password })
+
+    try {
+      return await resolveAuthenticatedProfile(session?.accessToken)
+    } catch (error) {
+      if (error?.code === "ACCOUNT_PENDING") {
+        throw error
+      }
+
+      if (isUnauthorizedError(error)) {
+        await revokeServerSession()
+        clearLocalSession()
+        throw error
+      }
+
+      const recoveredProfile = await bootstrap()
+
+      if (recoveredProfile) {
+        return recoveredProfile
+      }
+
+      throw error
+    }
+  }, [bootstrap, clearLocalSession, isUnauthorizedError, resolveAuthenticatedProfile, revokeServerSession])
+
+  const signOut = useCallback(async () => {
     suppressExpiredRedirectRef.current = true
-    logout()
-    setUser(null)
-    navigate("/", { replace: true })
-  }, [navigate])
+    try {
+      await logout()
+    } catch {
+      // Clear local auth even if cookie revocation fails.
+    } finally {
+      setSessionRestoreError("")
+      clearLocalSession()
+      publishAuthSync(AUTH_SYNC_LOGOUT)
+      navigate("/", { replace: true })
+    }
+  }, [clearLocalSession, navigate])
 
   const value = useMemo(
     () => ({
       user,
       bootstrapping,
+      sessionRestoreError,
       bootstrap,
       isAuthed: !!user,
       signIn,
       signOut,
       refresh: bootstrap,
     }),
-    [bootstrapping, bootstrap, signIn, signOut, user],
+    [bootstrapping, bootstrap, sessionRestoreError, signIn, signOut, user],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

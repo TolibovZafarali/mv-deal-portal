@@ -13,19 +13,16 @@ import {
 } from "@/api/modules/sellerPropertyApi";
 import { startSellerTimer, trackSellerEvent } from "@/features/seller/utils/sellerTelemetry";
 import PropertyUpsertModal from "@/features/admin/modals/PropertyUpsertModal";
+import { buildSellerPropertyDraftPayload } from "@/shared/utils/propertyUpsertMapping";
+import {
+  SELLER_WORKFLOW_STATUS,
+  STATUS_LABEL_ALIASES,
+  formatStatusLabel,
+  normalizeStatusToken,
+} from "@/shared/constants/propertyWorkflow";
 import "@/features/seller/pages/SellerListingsPage.css";
 
 const PAGE_SIZE = 30;
-
-function prettyEnum(value) {
-  if (!value) return "—";
-  const normalized = String(value).trim().toUpperCase();
-  if (normalized === "NEEDS_ACTION") return "Draft";
-  return normalized
-    .toLowerCase()
-    .replaceAll("_", " ")
-    .replace(/\b\w/g, (char) => char.toUpperCase());
-}
 
 function fullAddress(property) {
   const line1 = [property?.street1, property?.street2].filter(Boolean).join(", ");
@@ -66,7 +63,8 @@ function primaryPhoto(property) {
 }
 
 function workflowValue(property) {
-  return String(property?.sellerWorkflowStatus ?? "DRAFT").toUpperCase();
+  const normalized = normalizeStatusToken(property?.sellerWorkflowStatus);
+  return normalized || SELLER_WORKFLOW_STATUS.DRAFT;
 }
 
 function hasValue(value) {
@@ -102,96 +100,21 @@ function statusLabel(property) {
   const workflow = workflowValue(property);
   const isReady = isPropertyReadyToPublish(property);
 
-  if (workflow === "CHANGES_REQUESTED") {
+  if (workflow === SELLER_WORKFLOW_STATUS.CHANGES_REQUESTED) {
     return isReady ? "Ready to Submit" : "Needs Details";
   }
-  if (workflow === "DRAFT") {
+  if (workflow === SELLER_WORKFLOW_STATUS.DRAFT) {
     return isReady ? "Ready to Submit" : "Draft";
   }
-  if (workflow === "SUBMITTED") {
+  if (workflow === SELLER_WORKFLOW_STATUS.SUBMITTED) {
     return "Under Review";
   }
 
-  return prettyEnum(workflow);
-}
-
-function cleanStr(value) {
-  const normalized = String(value ?? "").trim();
-  return normalized.length ? normalized : null;
-}
-
-function parseNum(value) {
-  const raw = String(value ?? "").trim();
-  if (!raw) return null;
-  const normalized = raw.replaceAll(",", "").replaceAll("$", "");
-  const n = Number(normalized);
-  return Number.isFinite(n) ? n : null;
-}
-
-function parseIntNum(value) {
-  const n = parseNum(value);
-  if (n === null) return null;
-  const i = Number.parseInt(String(n), 10);
-  return Number.isFinite(i) ? i : null;
-}
-
-function mapPhotosForUpsert(photos) {
-  if (!Array.isArray(photos)) return [];
-
-  return photos
-    .map((photo) => ({
-      photoAssetId: cleanStr(photo?.photoAssetId),
-      caption: cleanStr(photo?.caption),
-    }))
-    .filter((photo) => Boolean(photo.photoAssetId))
-    .map((photo, idx) => ({
-      photoAssetId: photo.photoAssetId,
-      sortOrder: idx,
-      caption: photo.caption,
-    }));
-}
-
-function mapSaleCompsForUpsert(saleComps) {
-  if (!Array.isArray(saleComps)) return [];
-
-  return saleComps
-    .map((comp, idx) => ({
-      address: cleanStr(comp?.address),
-      soldPrice: parseNum(comp?.soldPrice),
-      soldDate: cleanStr(comp?.soldDate),
-      beds: parseIntNum(comp?.beds),
-      baths: parseNum(comp?.baths),
-      livingAreaSqft: parseIntNum(comp?.livingAreaSqft),
-      distanceMiles: parseNum(comp?.distanceMiles),
-      notes: cleanStr(comp?.notes),
-      sortOrder: idx,
-    }))
-    .filter((comp) => Boolean(comp.address));
+  return formatStatusLabel(workflow, STATUS_LABEL_ALIASES);
 }
 
 function formToSellerDraftDto(form) {
-  return {
-    street1: cleanStr(form.street1),
-    street2: cleanStr(form.street2),
-    city: cleanStr(form.city),
-    state: cleanStr(form.state),
-    zip: cleanStr(form.zip),
-    askingPrice: parseNum(form.askingPrice),
-    arv: parseNum(form.arv),
-    estRepairs: parseNum(form.estRepairs),
-    beds: parseIntNum(form.beds),
-    baths: parseNum(form.baths),
-    livingAreaSqft: parseIntNum(form.livingAreaSqft),
-    yearBuilt: parseIntNum(form.yearBuilt),
-    roofAge: parseIntNum(form.roofAge),
-    hvac: parseIntNum(form.hvac),
-    occupancyStatus: cleanStr(form.occupancyStatus),
-    currentRent: cleanStr(form.occupancyStatus) === "YES" ? parseNum(form.currentRent) : null,
-    exitStrategy: cleanStr(form.exitStrategy),
-    closingTerms: cleanStr(form.closingTerms),
-    photos: mapPhotosForUpsert(form.photos),
-    saleComps: mapSaleCompsForUpsert(form.saleComps),
-  };
+  return buildSellerPropertyDraftPayload(form);
 }
 
 function sectionRows(rows) {
@@ -200,7 +123,7 @@ function sectionRows(rows) {
 
   rows.forEach((row) => {
     const workflow = workflowValue(row);
-    if (workflow === "PUBLISHED" || workflow === "SUBMITTED") {
+    if (workflow === SELLER_WORKFLOW_STATUS.PUBLISHED || workflow === SELLER_WORKFLOW_STATUS.SUBMITTED) {
       published.push(row);
     } else {
       notPublished.push(row);
@@ -417,13 +340,13 @@ export default function SellerListingsPage() {
     const workflow = workflowValue(property);
     const readyToPublish = isPropertyReadyToPublish(property);
     const statusTone =
-      readyToPublish && (workflow === "DRAFT" || workflow === "CHANGES_REQUESTED")
+      readyToPublish && (workflow === SELLER_WORKFLOW_STATUS.DRAFT || workflow === SELLER_WORKFLOW_STATUS.CHANGES_REQUESTED)
         ? "ready_to_publish"
         : workflow.toLowerCase();
     const publishing = Boolean(publishingIds[property.id]);
     const publishError = String(publishErrors[property.id] ?? "").trim();
     const publishHint = String(publishHints[property.id] ?? "").trim();
-    const isUnderReview = workflow === "SUBMITTED" || publishHint.length > 0;
+    const isUnderReview = workflow === SELLER_WORKFLOW_STATUS.SUBMITTED || publishHint.length > 0;
 
     return (
       <article key={property.id} className="sellerDashCard">
@@ -471,11 +394,11 @@ export default function SellerListingsPage() {
               onClick={(event) => event.stopPropagation()}
               onMouseDown={(event) => event.stopPropagation()}
             >
-              {workflow === "CLOSED" ? (
+              {workflow === SELLER_WORKFLOW_STATUS.CLOSED ? (
                 <div className="sellerDashCard__hint sellerDashCard__hint--review">
                   Listing is closed.
                 </div>
-              ) : workflow === "PUBLISHED" ? (
+              ) : workflow === SELLER_WORKFLOW_STATUS.PUBLISHED ? (
                 <div className="sellerDashCard__hint sellerDashCard__hint--review">
                   Property is published on Megna.
                 </div>

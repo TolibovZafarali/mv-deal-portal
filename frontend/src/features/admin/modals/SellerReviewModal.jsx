@@ -1,18 +1,13 @@
 import { useMemo, useState } from "react";
 import Modal from "@/shared/ui/modal/Modal";
 import "@/features/admin/modals/SellerReviewModal.css";
+import {
+  SELLER_REVIEW_ACTION,
+  STATUS_LABEL_ALIASES,
+  formatStatusLabel,
+} from "@/shared/constants/propertyWorkflow";
 
 const MAX_REVIEW_NOTE_CHARS = 200;
-
-function formatWorkflowLabel(value) {
-  const normalized = String(value ?? "").trim().toUpperCase();
-  if (!normalized) return "—";
-  if (normalized === "SUBMITTED") return "Under Review";
-  return normalized
-    .toLowerCase()
-    .replaceAll("_", " ")
-    .replace(/\b\w/g, (char) => char.toUpperCase());
-}
 
 function SellerReviewModalBody({ property, submitting, submitError, onClose, onSubmit }) {
   const [action, setAction] = useState("");
@@ -31,7 +26,7 @@ function SellerReviewModalBody({ property, submitting, submitError, onClose, onS
     .join(", ");
   const address = [line1, line2].filter(Boolean).join(", ");
 
-  const requiresNote = useMemo(() => action === "REQUEST_CHANGES", [action]);
+  const requiresNote = useMemo(() => action === SELLER_REVIEW_ACTION.REQUEST_CHANGES, [action]);
   const remainingNoteChars = Math.max(0, MAX_REVIEW_NOTE_CHARS - reviewNote.length);
 
   function handleSubmit() {
@@ -45,22 +40,22 @@ function SellerReviewModalBody({ property, submitting, submitError, onClose, onS
       <div className="sellerReview__meta">
         <div><span>Property:</span> #{property.id}</div>
         <div><span>Address:</span> {address || "—"}</div>
-        <div><span>Current Workflow:</span> {formatWorkflowLabel(property.sellerWorkflowStatus)}</div>
+        <div><span>Current Workflow:</span> {formatStatusLabel(property.sellerWorkflowStatus, STATUS_LABEL_ALIASES)}</div>
       </div>
 
       <div className="sellerReview__actionGroup">
         <button
-          className={`sellerReview__choice ${action === "PUBLISH" ? "sellerReview__choice--active" : ""}`}
+          className={`sellerReview__choice ${action === SELLER_REVIEW_ACTION.PUBLISH ? "sellerReview__choice--active" : ""}`}
           type="button"
-          onClick={() => setAction("PUBLISH")}
+          onClick={() => setAction(SELLER_REVIEW_ACTION.PUBLISH)}
           disabled={submitting}
         >
           Publish
         </button>
         <button
-          className={`sellerReview__choice sellerReview__choice--warning ${action === "REQUEST_CHANGES" ? "sellerReview__choice--warningActive" : ""}`}
+          className={`sellerReview__choice sellerReview__choice--warning ${action === SELLER_REVIEW_ACTION.REQUEST_CHANGES ? "sellerReview__choice--warningActive" : ""}`}
           type="button"
-          onClick={() => setAction("REQUEST_CHANGES")}
+          onClick={() => setAction(SELLER_REVIEW_ACTION.REQUEST_CHANGES)}
           disabled={submitting}
         >
           Request Changes

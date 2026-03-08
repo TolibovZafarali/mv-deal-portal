@@ -15,6 +15,4 @@ public interface PropertyPhotoRepository extends JpaRepository<PropertyPhoto, Lo
     Optional<PropertyPhoto> findFirstByPhotoAssetId(String photoAssetId);
 
     boolean existsByPhotoAssetId(String photoAssetId);
-
-    List<PropertyPhoto> findByPhotoAssetIdIn(List<String> photoAssetIds);
 }

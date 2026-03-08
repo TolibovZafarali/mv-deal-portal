@@ -116,6 +116,7 @@ public class AuthService {
         LocalDateTime now = LocalDateTime.now();
         if (refreshToken.getExpiresAt() == null || refreshToken.getExpiresAt().isBefore(now)) {
             refreshToken.setRevokedAt(now);
+            refreshToken.setLastUsedAt(now);
             refreshTokenRepository.save(refreshToken);
             throw invalidRefreshToken();
         }
@@ -126,6 +127,7 @@ public class AuthService {
 
         if (loginResponse == null) {
             refreshToken.setRevokedAt(now);
+            refreshToken.setLastUsedAt(now);
             refreshTokenRepository.save(refreshToken);
             throw invalidRefreshToken();
         }

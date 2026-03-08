@@ -5,12 +5,12 @@ import { numOrEmpty } from "@/shared/utils/formValue";
 import { getAddressSuggestions, lookupPropertyFmr } from "@/api/modules/propertyApi";
 import { getSellerById, searchAdminSellers } from "@/api/modules/sellerApi";
 import { acquireModalBodyLock } from "@/shared/ui/modal/bodyLock";
-
-const STATUS = [
-  { label: "Draft", value: "DRAFT" },
-  { label: "Active", value: "ACTIVE" },
-  { label: "Closed", value: "CLOSED" },
-];
+import {
+  PROPERTY_STATUS,
+  PROPERTY_STATUS_UPSERT_OPTIONS,
+  SELLER_WORKFLOW_STATUS,
+  normalizeStatusToken,
+} from "@/shared/constants/propertyWorkflow";
 
 const OCCUPANCY = [
   { label: "—", value: "" },
@@ -326,8 +326,222 @@ function ensureImageIsReachable(url, timeoutMs = 9000) {
   });
 }
 
+function AddressSuggestionDropdown({
+  searching,
+  error,
+  suggestions,
+  hasSearched,
+  onPick,
+  keyPrefix = "",
+}) {
+  return (
+    <div className="propAddressSuggest" role="listbox">
+      {searching ? (
+        <div className="propAddressSuggest__status">Searching addresses...</div>
+      ) : null}
+
+      {!searching && error ? (
+        <div className="propAddressSuggest__status propAddressSuggest__status--error">
+          {error}
+        </div>
+      ) : null}
+
+      {!searching && !error && suggestions.length === 0 && hasSearched ? (
+        <div className="propAddressSuggest__status">No suggestions found.</div>
+      ) : null}
+
+      {!searching && !error
+        ? suggestions.map((suggestion) => {
+            const title =
+              suggestion.street1 || suggestion.display || "Suggested address";
+            const meta =
+              formatAddressSuggestionMeta(suggestion) || suggestion.display;
+
+            return (
+              <button
+                key={keyPrefix ? `${keyPrefix}-${suggestion.key}` : suggestion.key}
+                type="button"
+                className="propAddressSuggest__item"
+                onMouseDown={(event) => {
+                  event.preventDefault();
+                  onPick(suggestion);
+                }}
+              >
+                <span className="propAddressSuggest__title">{title}</span>
+                {meta ? (
+                  <span className="propAddressSuggest__meta">{meta}</span>
+                ) : null}
+              </button>
+            );
+          })
+        : null}
+    </div>
+  );
+}
+
+function PropertyModalActions({
+  mode,
+  isSellerEditLocked,
+  showDeleteConfirm,
+  onDelete,
+  onClose,
+  setShowDeleteConfirm,
+  deleting,
+  submitting,
+  isSubmitDisabled,
+}) {
+  const canDelete = typeof onDelete === "function";
+  const isEditMode = mode === "edit";
+
+  return (
+    <div className={`propActions${isSellerEditLocked ? " propActions--single" : ""}`}>
+      {isEditMode ? (
+        isSellerEditLocked ? (
+          <button
+            type="button"
+            className="propBtn propBtn--muted"
+            onClick={onClose}
+            disabled={submitting}
+          >
+            Close
+          </button>
+        ) : showDeleteConfirm && canDelete ? (
+          <div className="propDeleteConfirm">
+            <div className="propDeleteConfirm__text">
+              Delete this property?{" "}
+              <span className="propDeleteConfirm__sub">
+                (This cannot be undone)
+              </span>
+            </div>
+
+            <div className="propDeleteConfirm__actions">
+              <button
+                type="button"
+                className="propBtn propBtn--muted"
+                disabled={submitting || deleting}
+                onClick={() => setShowDeleteConfirm(false)}
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                className="propBtn propBtn--danger"
+                disabled={submitting || deleting}
+                onClick={() => onDelete?.()}
+              >
+                {deleting ? "Deleting..." : "Yes, Delete"}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <>
+            {canDelete ? (
+              <button
+                type="button"
+                className="propBtn propBtn--danger"
+                disabled={submitting || deleting}
+                onClick={() => setShowDeleteConfirm(true)}
+              >
+                Delete
+              </button>
+            ) : null}
+
+            <button
+              type="submit"
+              className="propBtn propBtn--primary"
+              disabled={isSubmitDisabled}
+            >
+              {submitting ? "Saving..." : "Save"}
+            </button>
+          </>
+        )
+      ) : (
+        <>
+          <button
+            type="button"
+            className="propBtn propBtn--muted"
+            onClick={onClose}
+            disabled={submitting}
+          >
+            Cancel
+          </button>
+
+          <button
+            type="submit"
+            className="propBtn propBtn--primary"
+            disabled={isSubmitDisabled}
+          >
+            {submitting ? "Adding..." : "Add"}
+          </button>
+        </>
+      )}
+    </div>
+  );
+}
+
+function PhotoPreviewOverlay({
+  open,
+  photo,
+  photoIndex,
+  canNavigate,
+  onNavigate,
+  onClose,
+}) {
+  if (!open || !photo?.url) return null;
+
+  return (
+    <div
+      className="propPhotoPreview"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Full size property photo"
+      onMouseDown={(event) => {
+        event.stopPropagation();
+        if (event.target === event.currentTarget) onClose();
+      }}
+    >
+      {canNavigate ? (
+        <button
+          type="button"
+          className="propPhotoPreview__nav propPhotoPreview__nav--prev"
+          aria-label="Previous photo"
+          onClick={() => onNavigate(-1)}
+        >
+          ‹
+        </button>
+      ) : null}
+
+      <button
+        type="button"
+        className="propPhotoPreview__close"
+        aria-label="Close full size photo"
+        onClick={onClose}
+      >
+        ✕
+      </button>
+      <img
+        src={photo.url}
+        alt={`Property photo ${photoIndex + 1}`}
+        className="propPhotoPreview__image"
+      />
+
+      {canNavigate ? (
+        <button
+          type="button"
+          className="propPhotoPreview__nav propPhotoPreview__nav--next"
+          aria-label="Next photo"
+          onClick={() => onNavigate(1)}
+        >
+          ›
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
 const DEFAULT_FORM = {
-  status: "DRAFT",
+  status: PROPERTY_STATUS.DRAFT,
   street1: "",
   street2: "",
   city: "",
@@ -370,11 +584,11 @@ export default function PropertyUpsertModal({
 }) {
   const isEdit = mode === "edit";
   const isSellerVariant = variant === "seller";
-  const sellerWorkflowStatus = String(initialValue?.sellerWorkflowStatus ?? "").trim().toUpperCase();
+  const sellerWorkflowStatus = normalizeStatusToken(initialValue?.sellerWorkflowStatus);
   const isSellerUnderReview =
-    isSellerVariant && isEdit && sellerWorkflowStatus === "SUBMITTED";
+    isSellerVariant && isEdit && sellerWorkflowStatus === SELLER_WORKFLOW_STATUS.SUBMITTED;
   const isSellerPublished =
-    isSellerVariant && isEdit && sellerWorkflowStatus === "PUBLISHED";
+    isSellerVariant && isEdit && sellerWorkflowStatus === SELLER_WORKFLOW_STATUS.PUBLISHED;
   const isSellerEditLocked = isSellerUnderReview || isSellerPublished;
   const isAddressLocked = isSellerVariant && isEdit;
 
@@ -543,7 +757,7 @@ export default function PropertyUpsertModal({
     const normalizedSaleComps = normalizeSaleComps(initialValue.saleComps);
 
     setForm({
-      status: initialValue.status ?? "DRAFT",
+      status: initialValue.status ?? PROPERTY_STATUS.DRAFT,
       street1: initialValue.street1 ?? "",
       street2: initialValue.street2 ?? "",
       city: initialValue.city ?? "",
@@ -822,7 +1036,7 @@ export default function PropertyUpsertModal({
 
   const isActiveWithMissingRequired =
     !isSellerVariant &&
-    form.status === "ACTIVE" &&
+    form.status === PROPERTY_STATUS.ACTIVE &&
     activeMissingRequiredFieldsForMessage.length > 0;
   const hasMissingAddressFields = missingAddressFields.length > 0;
 
@@ -1586,61 +1800,13 @@ export default function PropertyUpsertModal({
                   />
 
                   {shouldShowAddressSuggestions ? (
-                    <div className="propAddressSuggest" role="listbox">
-                      {addressSuggesting ? (
-                        <div className="propAddressSuggest__status">
-                          Searching addresses...
-                        </div>
-                      ) : null}
-
-                      {!addressSuggesting && addressSuggestError ? (
-                        <div className="propAddressSuggest__status propAddressSuggest__status--error">
-                          {addressSuggestError}
-                        </div>
-                      ) : null}
-
-                      {!addressSuggesting &&
-                      !addressSuggestError &&
-                      addressSuggestions.length === 0 &&
-                      addressSuggestHasSearched ? (
-                        <div className="propAddressSuggest__status">
-                          No suggestions found.
-                        </div>
-                      ) : null}
-
-                      {!addressSuggesting && !addressSuggestError
-                        ? addressSuggestions.map((suggestion) => {
-                            const title =
-                              suggestion.street1 ||
-                              suggestion.display ||
-                              "Suggested address";
-                            const meta =
-                              formatAddressSuggestionMeta(suggestion) ||
-                              suggestion.display;
-
-                            return (
-                              <button
-                                key={suggestion.key}
-                                type="button"
-                                className="propAddressSuggest__item"
-                                onMouseDown={(event) => {
-                                  event.preventDefault();
-                                  applyAddressSuggestion(suggestion);
-                                }}
-                              >
-                                <span className="propAddressSuggest__title">
-                                  {title}
-                                </span>
-                                {meta ? (
-                                  <span className="propAddressSuggest__meta">
-                                    {meta}
-                                  </span>
-                                ) : null}
-                              </button>
-                            );
-                          })
-                        : null}
-                    </div>
+                    <AddressSuggestionDropdown
+                      searching={addressSuggesting}
+                      error={addressSuggestError}
+                      suggestions={addressSuggestions}
+                      hasSearched={addressSuggestHasSearched}
+                      onPick={applyAddressSuggestion}
+                    />
                   ) : null}
                 </div>
               </div>
@@ -2110,61 +2276,14 @@ export default function PropertyUpsertModal({
                       />
 
                       {shouldShowCompAddressSuggestions ? (
-                        <div className="propAddressSuggest" role="listbox">
-                          {compAddressSuggesting ? (
-                            <div className="propAddressSuggest__status">
-                              Searching addresses...
-                            </div>
-                          ) : null}
-
-                          {!compAddressSuggesting && compAddressSuggestError ? (
-                            <div className="propAddressSuggest__status propAddressSuggest__status--error">
-                              {compAddressSuggestError}
-                            </div>
-                          ) : null}
-
-                          {!compAddressSuggesting &&
-                          !compAddressSuggestError &&
-                          compAddressSuggestions.length === 0 &&
-                          compAddressSuggestHasSearched ? (
-                            <div className="propAddressSuggest__status">
-                              No suggestions found.
-                            </div>
-                          ) : null}
-
-                          {!compAddressSuggesting && !compAddressSuggestError
-                            ? compAddressSuggestions.map((suggestion) => {
-                                const title =
-                                  suggestion.street1 ||
-                                  suggestion.display ||
-                                  "Suggested address";
-                                const meta =
-                                  formatAddressSuggestionMeta(suggestion) ||
-                                  suggestion.display;
-
-                                return (
-                                  <button
-                                    key={`comp-${suggestion.key}`}
-                                    type="button"
-                                    className="propAddressSuggest__item"
-                                    onMouseDown={(event) => {
-                                      event.preventDefault();
-                                      applyCompAddressSuggestion(suggestion);
-                                    }}
-                                  >
-                                    <span className="propAddressSuggest__title">
-                                      {title}
-                                    </span>
-                                    {meta ? (
-                                      <span className="propAddressSuggest__meta">
-                                        {meta}
-                                      </span>
-                                    ) : null}
-                                  </button>
-                                );
-                              })
-                            : null}
-                        </div>
+                        <AddressSuggestionDropdown
+                          searching={compAddressSuggesting}
+                          error={compAddressSuggestError}
+                          suggestions={compAddressSuggestions}
+                          hasSearched={compAddressSuggestHasSearched}
+                          onPick={applyCompAddressSuggestion}
+                          keyPrefix="comp"
+                        />
                       ) : null}
                     </div>
                   </div>
@@ -2516,7 +2635,7 @@ export default function PropertyUpsertModal({
                 </div>
 
                 <div className="propStatus">
-                  {STATUS.map((s) => (
+                  {PROPERTY_STATUS_UPSERT_OPTIONS.map((s) => (
                     <button
                       key={s.value}
                       type="button"
@@ -2554,140 +2673,28 @@ export default function PropertyUpsertModal({
           ) : null}
 
           {/* Actions */}
-          <div className={`propActions${isSellerEditLocked ? " propActions--single" : ""}`}>
-            {mode === "edit" ? (
-              isSellerEditLocked ? (
-                <button
-                  type="button"
-                  className="propBtn propBtn--muted"
-                  onClick={onClose}
-                  disabled={submitting}
-                >
-                  Close
-                </button>
-              ) : showDeleteConfirm && typeof onDelete === "function" ? (
-                <div className="propDeleteConfirm">
-                  <div className="propDeleteConfirm__text">
-                    Delete this property?{" "}
-                    <span className="propDeleteConfirm__sub">
-                      (This cannot be undone)
-                    </span>
-                  </div>
-
-                  <div className="propDeleteConfirm__actions">
-                    <button
-                      type="button"
-                      className="propBtn propBtn--muted"
-                      disabled={submitting || deleting}
-                      onClick={() => setShowDeleteConfirm(false)}
-                    >
-                      Cancel
-                    </button>
-
-                    <button
-                      type="button"
-                      className="propBtn propBtn--danger"
-                      disabled={submitting || deleting}
-                      onClick={() => onDelete?.()}
-                    >
-                      {deleting ? "Deleting..." : "Yes, Delete"}
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <>
-                  {typeof onDelete === "function" ? (
-                    <button
-                      type="button"
-                      className="propBtn propBtn--danger"
-                      disabled={submitting || deleting}
-                      onClick={() => setShowDeleteConfirm(true)}
-                    >
-                      Delete
-                    </button>
-                  ) : null}
-
-                  <button
-                    type="submit"
-                    className="propBtn propBtn--primary"
-                    disabled={isSubmitDisabled}
-                  >
-                    {submitting ? "Saving..." : "Save"}
-                  </button>
-                </>
-              )
-            ) : (
-              <>
-                <button
-                  type="button"
-                  className="propBtn propBtn--muted"
-                  onClick={onClose}
-                  disabled={submitting}
-                >
-                  Cancel
-                </button>
-
-                <button
-                  type="submit"
-                  className="propBtn propBtn--primary"
-                  disabled={isSubmitDisabled}
-                >
-                  {submitting ? "Adding..." : "Add"}
-                </button>
-              </>
-            )}
-          </div>
+          <PropertyModalActions
+            mode={mode}
+            isSellerEditLocked={isSellerEditLocked}
+            showDeleteConfirm={showDeleteConfirm}
+            onDelete={onDelete}
+            onClose={onClose}
+            setShowDeleteConfirm={setShowDeleteConfirm}
+            deleting={deleting}
+            submitting={submitting}
+            isSubmitDisabled={isSubmitDisabled}
+          />
         </form>
       </div>
 
-      {photoPreviewOpen && previewPhoto?.url ? (
-        <div
-          className="propPhotoPreview"
-          role="dialog"
-          aria-modal="true"
-          aria-label="Full size property photo"
-          onMouseDown={(event) => {
-            event.stopPropagation();
-            if (event.target === event.currentTarget) setPhotoPreviewOpen(false);
-          }}
-        >
-          {canNavigatePreview ? (
-            <button
-              type="button"
-              className="propPhotoPreview__nav propPhotoPreview__nav--prev"
-              aria-label="Previous photo"
-              onClick={() => movePreviewPhoto(-1)}
-            >
-              ‹
-            </button>
-          ) : null}
-
-          <button
-            type="button"
-            className="propPhotoPreview__close"
-            aria-label="Close full size photo"
-            onClick={() => setPhotoPreviewOpen(false)}
-          >
-            ✕
-          </button>
-          <img
-            src={previewPhoto.url}
-            alt={`Property photo ${photoPreviewIndex + 1}`}
-            className="propPhotoPreview__image"
-          />
-
-          {canNavigatePreview ? (
-            <button
-              type="button"
-              className="propPhotoPreview__nav propPhotoPreview__nav--next"
-              aria-label="Next photo"
-              onClick={() => movePreviewPhoto(1)}
-            >
-              ›
-            </button>
-          ) : null}
-        </div>
-      ) : null}
+      <PhotoPreviewOverlay
+        open={photoPreviewOpen}
+        photo={previewPhoto}
+        photoIndex={photoPreviewIndex}
+        canNavigate={canNavigatePreview}
+        onNavigate={movePreviewPhoto}
+        onClose={() => setPhotoPreviewOpen(false)}
+      />
     </div>
   );
 }

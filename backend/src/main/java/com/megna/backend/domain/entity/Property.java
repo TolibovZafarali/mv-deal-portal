@@ -122,6 +122,9 @@ public class Property {
     @Column(name = "published_at")
     private LocalDateTime publishedAt;
 
+    @Column(name = "investor_notification_enqueued_at")
+    private LocalDateTime investorNotificationEnqueuedAt;
+
     // DB-managed timestamps
     @Column(name = "created_at", nullable = false, insertable = false, updatable = false)
     private LocalDateTime createdAt;

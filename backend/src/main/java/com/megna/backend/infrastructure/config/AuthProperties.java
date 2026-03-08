@@ -15,6 +15,7 @@ public class AuthProperties {
 
     private long refreshTokenTtlMinutes = 20160;
     private String refreshCookieName = "mv_refresh_token";
+    private String refreshCookieDomain = "";
     private String refreshCookiePath = "/api/auth";
     private boolean refreshCookieSecure = false;
     private String refreshCookieSameSite = "Lax";

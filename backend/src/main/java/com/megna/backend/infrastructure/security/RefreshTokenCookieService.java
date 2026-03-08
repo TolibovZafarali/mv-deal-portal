@@ -24,11 +24,8 @@ public class RefreshTokenCookieService {
         }
 
         long ttlMinutes = Math.max(authProperties.getRefreshTokenTtlMinutes(), 1L);
-        ResponseCookie cookie = ResponseCookie.from(cookieName(), refreshToken)
-                .httpOnly(true)
-                .secure(authProperties.isRefreshCookieSecure())
-                .sameSite(cookieSameSite())
-                .path(cookiePath())
+        ResponseCookie.ResponseCookieBuilder builder = baseCookie(refreshToken);
+        ResponseCookie cookie = builder
                 .maxAge(Duration.ofMinutes(ttlMinutes))
                 .build();
 
@@ -36,11 +33,7 @@ public class RefreshTokenCookieService {
     }
 
     public void clearRefreshCookie(HttpServletResponse response) {
-        ResponseCookie cookie = ResponseCookie.from(cookieName(), "")
-                .httpOnly(true)
-                .secure(authProperties.isRefreshCookieSecure())
-                .sameSite(cookieSameSite())
-                .path(cookiePath())
+        ResponseCookie cookie = baseCookie("")
                 .maxAge(Duration.ZERO)
                 .build();
 
@@ -60,6 +53,21 @@ public class RefreshTokenCookieService {
         return (name == null || name.isBlank()) ? "mv_refresh_token" : name.trim();
     }
 
+    private ResponseCookie.ResponseCookieBuilder baseCookie(String value) {
+        ResponseCookie.ResponseCookieBuilder builder = ResponseCookie.from(cookieName(), value)
+                .httpOnly(true)
+                .secure(authProperties.isRefreshCookieSecure())
+                .sameSite(cookieSameSite())
+                .path(cookiePath());
+
+        String domain = cookieDomain();
+        if (!domain.isBlank()) {
+            builder.domain(domain);
+        }
+
+        return builder;
+    }
+
     private String cookiePath() {
         String path = authProperties.getRefreshCookiePath();
         if (path == null || path.isBlank()) {
@@ -75,5 +83,10 @@ public class RefreshTokenCookieService {
             return "Lax";
         }
         return sameSite.trim();
+    }
+
+    private String cookieDomain() {
+        String domain = authProperties.getRefreshCookieDomain();
+        return domain == null ? "" : domain.trim();
     }
 }

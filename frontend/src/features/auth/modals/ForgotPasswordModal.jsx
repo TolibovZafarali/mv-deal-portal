@@ -1,9 +1,8 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { requestPasswordReset } from "@/api";
 import "@/features/auth/modals/ForgotPasswordModal.css";
-
-const CLOSE_ANIMATION_MS = 180;
+import { useAuthModalClose } from "@/features/auth/modals/useAuthModalClose";
 
 export default function ForgotPasswordModal() {
   const navigate = useNavigate();
@@ -16,48 +15,12 @@ export default function ForgotPasswordModal() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
-  const [isClosing, setIsClosing] = useState(false);
-
-  const closeTimerRef = useRef(null);
-  const closingRef = useRef(false);
-
-  function close() {
-    if (closingRef.current) return;
-
-    closingRef.current = true;
-    setIsClosing(true);
-    closeTimerRef.current = window.setTimeout(() => {
-      if (forceHomeOnClose) {
-        navigate("/", { replace: true });
-        return;
-      }
-
-      if (hasBackground) {
-        navigate(bg, { replace: true });
-        return;
-      }
-
-      navigate("/", { replace: true });
-    }, CLOSE_ANIMATION_MS);
-  }
-
-  useEffect(() => {
-    return () => {
-      if (closeTimerRef.current) {
-        window.clearTimeout(closeTimerRef.current);
-      }
-    };
-  }, []);
-
-  useEffect(() => {
-    function onKeyDown(event) {
-      if (event.key === "Escape") close();
-    }
-
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasBackground, forceHomeOnClose]);
+  const { isClosing, close } = useAuthModalClose({
+    navigate,
+    hasBackground,
+    backgroundLocation: bg,
+    forceHomeOnClose,
+  });
 
   async function handleSubmit(event) {
     event.preventDefault();

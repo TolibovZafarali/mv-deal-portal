@@ -1,9 +1,8 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/features/auth";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import "@/features/auth/modals/LoginModal.css";
-
-const CLOSE_ANIMATION_MS = 180;
+import { useAuthModalClose } from "@/features/auth/modals/useAuthModalClose";
 
 export default function LoginModal() {
   const { signIn, user } = useAuth();
@@ -29,47 +28,12 @@ export default function LoginModal() {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [isClosing, setIsClosing] = useState(false);
-
-  const closeTimerRef = useRef(null);
-  const closingRef = useRef(false);
-
-  function close() {
-    if (closingRef.current) return;
-
-    closingRef.current = true;
-    setIsClosing(true);
-    closeTimerRef.current = window.setTimeout(() => {
-      if (forceHomeOnClose) {
-        navigate("/", { replace: true });
-        return;
-      }
-
-      if (hasBackground) {
-        navigate(bg, { replace: true });
-        return;
-      }
-
-      navigate("/", { replace: true });
-    }, CLOSE_ANIMATION_MS);
-  }
-
-  useEffect(() => {
-    return () => {
-      if (closeTimerRef.current) {
-        window.clearTimeout(closeTimerRef.current);
-      }
-    };
-  }, []);
-
-  useEffect(() => {
-    function onKeyDown(e) {
-      if (e.key === "Escape") close();
-    }
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasBackground]);
+  const { isClosing, close } = useAuthModalClose({
+    navigate,
+    hasBackground,
+    backgroundLocation: bg,
+    forceHomeOnClose,
+  });
 
   useEffect(() => {
     if (forcedMessage) setError(forcedMessage);

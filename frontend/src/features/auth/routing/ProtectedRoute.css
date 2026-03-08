@@ -5,6 +5,45 @@
     color: var(--text);
 }
 
+.route-guard--recoverable {
+    max-width: 560px;
+}
+
+.route-guard--recoverable h2 {
+    margin: 0 0 10px;
+}
+
+.route-guard--recoverable p {
+    margin: 0;
+    color: var(--muted);
+}
+
+.route-guard__actions {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: 18px;
+}
+
+.route-guard__btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    padding: 0 18px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: var(--panel);
+    color: var(--text);
+    text-decoration: none;
+    font: inherit;
+    cursor: pointer;
+}
+
+.route-guard__btn--ghost {
+    background: transparent;
+}
+
 .route-guard--forbidden h2 {
     margin: 0 0 10px;
 }
