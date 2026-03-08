@@ -1,5 +1,13 @@
-import { useState } from "react"
-import { getAccessToken, getPendingInvestors, login, logout, me } from "@/api"
+import { useEffect, useState } from "react"
+import {
+  getAccessToken,
+  getPendingInvestors,
+  login,
+  logout,
+  me,
+  refreshSession,
+  subscribeToAccessToken,
+} from "@/api"
 import "@/features/dev/pages/ApiSmokeTest.css"
 
 function pretty(value) {
@@ -16,8 +24,13 @@ export default function ApiSmokeTest() {
   const [statusLine, setStatusLine] = useState("")
   const [output, setOutput] = useState("")
   const [loading, setLoading] = useState(false)
+  const [token, setToken] = useState(() => getAccessToken())
 
-  const token = getAccessToken()
+  useEffect(() => {
+    return subscribeToAccessToken((nextToken) => {
+      setToken(nextToken)
+    })
+  }, [])
 
   async function run(label, fn) {
     setLoading(true)
@@ -42,7 +55,7 @@ export default function ApiSmokeTest() {
     <div className="api-smoke">
       <h2 className="api-smoke__title">API Smoke Test</h2>
       <p className="api-smoke__subtitle">
-        Goal: prove Axios + proxy + JWT interceptor work end-to-end.
+        Goal: prove refresh-cookie session recovery and in-memory Bearer auth work end-to-end.
       </p>
 
       <div className="api-smoke__card">
@@ -83,6 +96,14 @@ export default function ApiSmokeTest() {
           <button
             className="api-smoke__btn"
             disabled={loading}
+            onClick={() => run("Refresh Session", () => refreshSession())}
+          >
+            /auth/refresh
+          </button>
+
+          <button
+            className="api-smoke__btn"
+            disabled={loading}
             onClick={() => run("Me", () => me())}
           >
             /auth/me
@@ -103,21 +124,26 @@ export default function ApiSmokeTest() {
           <button
             className="api-smoke__btn api-smoke__btn--danger"
             disabled={loading}
-            onClick={() => {
-              logout()
-              setStatusLine("🧼 Token cleared")
-              setOutput("")
-            }}
+            onClick={() =>
+              run("Logout", async () => {
+                await logout()
+                return { session: "cleared" }
+              })
+            }
           >
-            Logout (clear token)
+            Logout
           </button>
         </div>
 
         <div className="api-smoke__token">
-          <span className="api-smoke__tokenLabel">Token</span>
+          <span className="api-smoke__tokenLabel">Access token (memory)</span>
           <span className="api-smoke__tokenValue">
             {token ? `${token.slice(0, 20)}...` : "(none)"}
           </span>
+        </div>
+
+        <div className="api-smoke__hint">
+          Refresh token lives in an HttpOnly cookie and is not readable from JavaScript.
         </div>
       </div>
 

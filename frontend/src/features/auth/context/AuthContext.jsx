@@ -1,6 +1,13 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { getAccessToken, login, logout, me } from "@/api"
+import { login, logout, me, refreshSession } from "@/api"
+import {
+  AUTH_SYNC_EXPIRED,
+  AUTH_SYNC_LOGOUT,
+  clearAccessToken,
+  publishAuthSync,
+  subscribeToAuthSync,
+} from "@/api/core/tokenStorage"
 
 const AuthContext = createContext(null)
 
@@ -31,27 +38,59 @@ export function AuthProvider({ children }) {
     })
   }, [navigate])
 
-  const bootstrap = useCallback(async () => {
-    const token = getAccessToken()
+  const clearLocalSession = useCallback(() => {
+    clearAccessToken()
+    setUser(null)
+  }, [])
 
-    if (!token) {
-      setUser(null)
-      setBootstrapping(false)
-      return
+  const handleSessionExpired = useCallback((shouldBroadcast) => {
+    suppressExpiredRedirectRef.current = false
+    clearLocalSession()
+
+    if (shouldBroadcast) {
+      publishAuthSync(AUTH_SYNC_EXPIRED)
     }
 
+    openLoginOnHome()
+  }, [clearLocalSession, openLoginOnHome])
+
+  const bootstrap = useCallback(async () => {
+    setBootstrapping(true)
+    let recoveredSession = false
+
     try {
-      const profile = await me()
+      const session = await refreshSession()
+      recoveredSession = Boolean(session?.accessToken)
+      const profile = await me(session?.accessToken)
+      const investorStatus = String(profile?.status ?? "").trim().toUpperCase()
+
+      if (profile?.role === "INVESTOR" && investorStatus.startsWith("PENDING")) {
+        try {
+          await logout()
+        } catch {
+          // Clear local auth even if cookie revocation fails.
+        }
+
+        clearLocalSession()
+        return
+      }
+
       suppressExpiredRedirectRef.current = false
       setUser(profile)
     } catch {
-      logout()
-      setUser(null)
-      openLoginOnHome()
+      if (recoveredSession) {
+        try {
+          await logout()
+        } catch {
+          // Clear local auth even if cookie revocation fails.
+        }
+      }
+
+      clearLocalSession()
     } finally {
       setBootstrapping(false)
     }
-  }, [openLoginOnHome])
+  }, [clearLocalSession])
 
   useEffect(() => {
     bootstrap()
@@ -60,42 +99,82 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     function onExpired() {
       if (suppressExpiredRedirectRef.current) return
-      setUser(null)
-      openLoginOnHome()
+      handleSessionExpired(true)
     }
 
     window.addEventListener("mv:auth:expired", onExpired)
     return () => window.removeEventListener("mv:auth:expired", onExpired)
-  }, [openLoginOnHome])
+  }, [handleSessionExpired])
+
+  useEffect(() => {
+    return subscribeToAuthSync((payload) => {
+      const type = String(payload?.type ?? "").trim().toLowerCase()
+
+      if (type === AUTH_SYNC_LOGOUT) {
+        suppressExpiredRedirectRef.current = true
+        clearLocalSession()
+        navigate("/", { replace: true })
+        return
+      }
+
+      if (type === AUTH_SYNC_EXPIRED) {
+        if (suppressExpiredRedirectRef.current) return
+        handleSessionExpired(false)
+      }
+    })
+  }, [clearLocalSession, handleSessionExpired, navigate])
 
   const signIn = useCallback(async (email, password) => {
     suppressExpiredRedirectRef.current = false
-    await login({ email, password })
+    const session = await login({ email, password })
+    try {
+      const profile = await me(session?.accessToken)
+      const investorStatus = String(profile?.status ?? "").trim().toUpperCase()
 
-    const profile = await me()
-    const investorStatus = String(profile?.status ?? "").trim().toUpperCase()
+      if (profile?.role === "INVESTOR" && investorStatus.startsWith("PENDING")) {
+        try {
+          await logout()
+        } catch {
+          // Clear local auth even if cookie revocation fails.
+        }
 
-    if (profile?.role === "INVESTOR" && investorStatus.startsWith("PENDING")) {
-      logout()
-      setUser(null)
+        clearLocalSession()
 
-      const err = new Error(
-        "Your account is in review. Please wait for our team to reach out.",
-      )
-      err.code = "ACCOUNT_PENDING"
-      throw err
+        const err = new Error(
+          "Your account is in review. Please wait for our team to reach out.",
+        )
+        err.code = "ACCOUNT_PENDING"
+        throw err
+      }
+
+      setUser(profile)
+      return profile
+    } catch (error) {
+      if (error?.code !== "ACCOUNT_PENDING") {
+        try {
+          await logout()
+        } catch {
+          // Clear local auth even if cookie revocation fails.
+        }
+      }
+
+      clearLocalSession()
+      throw error
     }
+  }, [clearLocalSession])
 
-    setUser(profile)
-    return profile
-  }, [])
-
-  const signOut = useCallback(() => {
+  const signOut = useCallback(async () => {
     suppressExpiredRedirectRef.current = true
-    logout()
-    setUser(null)
-    navigate("/", { replace: true })
-  }, [navigate])
+    try {
+      await logout()
+    } catch {
+      // Clear local auth even if cookie revocation fails.
+    } finally {
+      clearLocalSession()
+      publishAuthSync(AUTH_SYNC_LOGOUT)
+      navigate("/", { replace: true })
+    }
+  }, [clearLocalSession, navigate])
 
   const value = useMemo(
     () => ({

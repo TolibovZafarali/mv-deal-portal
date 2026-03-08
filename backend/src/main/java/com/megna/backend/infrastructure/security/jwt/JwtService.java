@@ -45,6 +45,10 @@ public class JwtService {
         return buildToken(seller.getEmail(), seller.getId(), "SELLER");
     }
 
+    public String generateAccessToken(String email, long id, String role) {
+        return buildToken(email, id, role);
+    }
+
     private String buildToken(String email, long id, String role) {
         Instant now = Instant.now();
         Instant exp = now.plus(props.getAccessTokenTtlMinutes(), ChronoUnit.MINUTES);

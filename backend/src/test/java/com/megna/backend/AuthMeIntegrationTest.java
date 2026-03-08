@@ -46,6 +46,7 @@ class AuthMeIntegrationTest {
     @BeforeEach
     void setUp() {
         adminRepository.deleteAll();
+        jdbcTemplate.update("DELETE FROM refresh_tokens");
         jdbcTemplate.update("DELETE FROM seller_thread_reads");
         jdbcTemplate.update("DELETE FROM seller_thread_messages");
         jdbcTemplate.update("DELETE FROM seller_threads");

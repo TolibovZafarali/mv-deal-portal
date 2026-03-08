@@ -21,6 +21,11 @@ app:
   auth:
     password-reset-url-base: ${APP_AUTH_PASSWORD_RESET_URL_BASE:http://localhost:5173/reset-password}
     password-reset-token-ttl-minutes: ${APP_AUTH_PASSWORD_RESET_TOKEN_TTL_MINUTES:30}
+    refresh-token-ttl-days: ${APP_AUTH_REFRESH_TOKEN_TTL_DAYS:30}
+    refresh-cookie-name: ${APP_AUTH_REFRESH_COOKIE_NAME:mv_refresh_token}
+    refresh-cookie-path: ${APP_AUTH_REFRESH_COOKIE_PATH:/api/auth}
+    refresh-cookie-same-site: ${APP_AUTH_REFRESH_COOKIE_SAME_SITE:Lax}
+    refresh-cookie-secure: ${APP_AUTH_REFRESH_COOKIE_SECURE:false}
   jwt:
     secret: ${JWT_SECRET}
     issuer: ${JWT_ISSUER:megna-backend}

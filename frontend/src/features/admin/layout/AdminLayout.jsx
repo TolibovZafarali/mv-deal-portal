@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import { NavLink, Outlet } from "react-router-dom";
 import { useAuth } from "@/features/auth";
 import useAdminQueue from "@/features/admin/hooks/useAdminQueue";
 import "@/features/admin/layout/AdminLayout.css";
@@ -11,7 +11,6 @@ const ADMIN_MOBILE_BREAKPOINT_QUERY = "(max-width: 980px)";
 
 export default function AdminLayout() {
   const { signOut } = useAuth();
-  const navigate = useNavigate();
   const { counts } = useAdminQueue({ includeItems: false });
   const [isMobileView, setIsMobileView] = useState(() => {
     if (typeof window === "undefined") return false;
@@ -77,7 +76,6 @@ export default function AdminLayout() {
 
   function handleLogout() {
     signOut();
-    navigate("/", { replace: true })
   }
 
   return (

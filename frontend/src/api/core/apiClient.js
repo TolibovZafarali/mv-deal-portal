@@ -1,9 +1,13 @@
 import axios from "axios";
-import { clearAccessToken, getAccessToken } from "@/api/core/tokenStorage";
+import {
+    AUTH_SYNC_EXPIRED,
+    clearAccessToken,
+    getAccessToken,
+    publishAuthSync,
+    setAccessToken,
+} from "@/api/core/tokenStorage";
 
-// In dev, Vite proxy already forwards /api -> http://localhost:8080
-// In prod, set VITE_API_BASE_URL to the backend domain
-const baseURL = import.meta.env.VITE_API_BASE_URL || "";
+const baseURL = "";
 
 function serializeParams(params) {
     const usp = new URLSearchParams();
@@ -24,48 +28,125 @@ function serializeParams(params) {
     return usp.toString();
 }
 
-export const apiClient = axios.create({
+function normalizeApiError(error) {
+    const status = error?.response?.status ?? null;
+    const data = error?.response?.data ?? null;
+    const message =
+        data?.message ||
+        data?.error ||
+        error?.message ||
+        "Request failed";
+
+    return { status, message, data };
+}
+
+function notifyAuthExpired() {
+    clearAccessToken();
+    publishAuthSync(AUTH_SYNC_EXPIRED);
+
+    if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("mv:auth:expired"));
+    }
+}
+
+const clientConfig = {
     baseURL,
     timeout: 15000,
+    withCredentials: true,
     paramsSerializer: {
         serialize: serializeParams,
     },
-});
+};
 
-// Attach JWT automatically if it exists
+const refreshClient = axios.create(clientConfig);
+export const apiClient = axios.create(clientConfig);
+
+let refreshRequest = null;
+
+async function refreshAccessToken() {
+    if (!refreshRequest) {
+        refreshRequest = refreshClient
+            .post("/api/auth/refresh", null, {
+                mvSkipAuthHeader: true,
+            })
+            .then(({ data }) => {
+                const nextToken = data?.accessToken;
+
+                if (!nextToken) {
+                    throw new Error("Refresh succeeded without an access token");
+                }
+
+                setAccessToken(nextToken);
+                return nextToken;
+            })
+            .catch((error) => {
+                notifyAuthExpired();
+                throw normalizeApiError(error);
+            })
+            .finally(() => {
+                refreshRequest = null;
+            });
+    }
+
+    return refreshRequest;
+}
+
 apiClient.interceptors.request.use((config) => {
+    if (config?.mvSkipAuthHeader) {
+        return config;
+    }
+
     const token = getAccessToken();
 
     if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
+        if (!config.headers) {
+            config.headers = {};
+        }
+
+        if (!config.headers.Authorization && !config.headers.authorization) {
+            config.headers.Authorization = `Bearer ${token}`;
+        }
     }
 
     return config;
 });
 
-// Error handling
 apiClient.interceptors.response.use(
     (response) => response,
-    (error) => {
-        const status = error?.response?.status ?? null;
-        const data = error?.response?.data ?? null;
+    async (error) => {
+        const normalizedError = normalizeApiError(error);
+        const status = normalizedError.status;
         const hadAuthHeader = Boolean(
             error?.config?.headers?.Authorization ||
             error?.config?.headers?.authorization
         );
 
-        // If token is bad/expired, force logout
-        if (status === 401 && hadAuthHeader) {
-            clearAccessToken();
-            window.dispatchEvent(new CustomEvent("mv:auth:expired"));
+        if (
+            status === 401 &&
+            hadAuthHeader &&
+            !error?.config?.mvSkipAuthRefresh &&
+            !error?.config?._mvRetriedAfterRefresh
+        ) {
+            try {
+                const nextToken = await refreshAccessToken();
+
+                return apiClient({
+                    ...error.config,
+                    headers: {
+                        ...(error.config?.headers || {}),
+                        Authorization: `Bearer ${nextToken}`,
+                    },
+                    _mvRetriedAfterRefresh: true,
+                });
+            } catch (refreshError) {
+                return Promise.reject(refreshError);
+            }
         }
 
-        const message = 
-            data?.message || 
-            data?.error || 
-            error?.message || 
-            "Request failed";
+        if (status === 401 && hadAuthHeader) {
+            notifyAuthExpired();
+        }
 
-        return Promise.reject({ status, message, data });
+        return Promise.reject(normalizedError);
     }
 );

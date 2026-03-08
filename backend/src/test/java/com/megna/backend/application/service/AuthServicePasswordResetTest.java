@@ -7,6 +7,7 @@ import com.megna.backend.domain.entity.PasswordResetToken;
 import com.megna.backend.domain.repository.AdminRepository;
 import com.megna.backend.domain.repository.InvestorRepository;
 import com.megna.backend.domain.repository.PasswordResetTokenRepository;
+import com.megna.backend.domain.repository.RefreshTokenRepository;
 import com.megna.backend.domain.repository.SellerRepository;
 import com.megna.backend.infrastructure.config.AuthProperties;
 import com.megna.backend.infrastructure.security.jwt.JwtService;
@@ -52,6 +53,9 @@ class AuthServicePasswordResetTest {
 
     @Mock
     private PasswordResetTokenRepository passwordResetTokenRepository;
+
+    @Mock
+    private RefreshTokenRepository refreshTokenRepository;
 
     @Mock
     private PasswordEncoder passwordEncoder;
@@ -156,6 +160,7 @@ class AuthServicePasswordResetTest {
                 sellerRepository,
                 adminRepository,
                 passwordResetTokenRepository,
+                refreshTokenRepository,
                 passwordEncoder,
                 jwtService,
                 transactionalEmailService,
