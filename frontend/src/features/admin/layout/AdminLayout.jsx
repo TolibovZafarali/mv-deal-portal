@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { NavLink, Outlet } from "react-router-dom";
+import { Link, NavLink, Outlet } from "react-router-dom";
 import { useAuth } from "@/features/auth";
 import useAdminQueue from "@/features/admin/hooks/useAdminQueue";
 import "@/features/admin/layout/AdminLayout.css";
@@ -105,7 +105,9 @@ export default function AdminLayout() {
     <div className={`adminShell ${effectiveSidebarCollapsed ? "adminShell--collapsed" : ""}`}>
       <aside className={`adminSidebar ${effectiveSidebarCollapsed ? "adminSidebar--collapsed" : ""}`}>
         <div className="adminBrand">
-          <span className="adminBrand__label">ADMIN PORTAL</span>
+          <Link className="adminBrand__home" to="/" aria-label="Go to homepage">
+            <img className="adminBrand__logo" src="/white-logo.svg" alt="Admin Portal" />
+          </Link>
           <button
             className="adminBrand__collapse"
             type="button"

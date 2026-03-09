@@ -39,17 +39,20 @@
   position: relative;
 }
 
-.adminBrand__label {
-  font-size: 13px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  white-space: nowrap;
-  overflow: hidden;
+.adminBrand__home {
+  display: block;
+  line-height: 0;
   opacity: 1;
   max-width: 180px;
   position: absolute;
   left: 50%;
   transform: translateX(-50%);
+}
+
+.adminBrand__logo {
+  display: block;
+  width: 150px;
+  height: auto;
 }
 
 .adminBrand__collapse {
@@ -69,7 +72,7 @@
   justify-content: center;
 }
 
-.adminShell--collapsed .adminBrand__label {
+.adminShell--collapsed .adminBrand__home {
   opacity: 0;
   max-width: 0;
   transform: translateX(-50%);
