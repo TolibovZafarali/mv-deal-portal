@@ -7,7 +7,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @SpringBootApplication
 @EnableScheduling
 public class BackendApplication {
-	// No-op touchpoint for deployment trigger verification.
+	// No-op touchpoint for backend redeploy verification.
 
 	public static void main(String[] args) {
 		SpringApplication.run(BackendApplication.class, args);
