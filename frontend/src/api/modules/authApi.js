@@ -3,8 +3,11 @@ import { clearAccessToken, setAccessToken } from "@/api/core/tokenStorage";
 
 const AUTH_BASE = "/api/auth";
 const AUTH_REQUEST_CONFIG = {
+    withCredentials: true,
     mvSkipAuthHeader: true,
     mvSkipAuthRefresh: true,
+    skipAuthRefresh: true,
+    skipAuthToken: true,
 };
 
 export async function register(registerDto) {
@@ -22,7 +25,7 @@ export async function login(credentials) {
 
     if (data?.accessToken) setAccessToken(data.accessToken);
 
-    return data; // { accessToken, tokenType, expiresInSeconds }
+    return data;
 }
 
 export async function refreshSession() {
@@ -33,13 +36,17 @@ export async function refreshSession() {
     return data;
 }
 
+export async function refreshAccessToken() {
+    return refreshSession();
+}
+
 export async function me(tokenOverride) {
     const config = tokenOverride
         ? { headers: { Authorization: `Bearer ${tokenOverride}` } }
         : undefined;
-    
+
     const { data } = await apiClient.get(`${AUTH_BASE}/me`, config);
-    return data; // { role, status, email, userId, investorId, sellerId }
+    return data;
 }
 
 export async function changePassword(payload) {

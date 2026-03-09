@@ -292,6 +292,156 @@
   border-color: rgba(170, 38, 38, 0.95);
 }
 
+.adminLogoutAuthOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  animation: adminAuthOverlayFadeIn 180ms ease-out both;
+}
+
+.adminLogoutAuthModal {
+  width: min(420px, 92vw);
+  background: rgba(16, 16, 16, 0.96);
+  min-height: 0;
+  padding: 20px 14px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  transform-origin: center;
+  animation: adminAuthModalIn 220ms ease-out both;
+}
+
+.adminLogoutAuthModal__header {
+  width: 92%;
+  margin: 0 auto;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding-top: 0;
+  padding-bottom: 6px;
+}
+
+.adminLogoutAuthModal__title {
+  margin: 0;
+  font-size: 26px;
+  letter-spacing: 0.2px;
+  text-transform: capitalize;
+}
+
+.adminLogoutAuthModal__close {
+  cursor: pointer;
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  font-size: 22px;
+  line-height: 1;
+  color: var(--text);
+  border: none;
+  background: transparent;
+  position: absolute;
+  top: 15px;
+  right: 15px;
+}
+
+.adminLogoutAuthModal__body {
+  width: 92%;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 6px;
+  padding-bottom: 2px;
+}
+
+.adminLogoutAuthModal__text {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.adminLogoutAuthModal__actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.adminLogoutAuthModal__btn {
+  border: 1px solid var(--text);
+  background: transparent;
+  color: var(--text);
+  padding: 12px 18px;
+  cursor: pointer;
+  transition: background 180ms ease, color 180ms ease, border-color 180ms ease;
+  flex: 1;
+}
+
+.adminLogoutAuthModal__btn:hover,
+.adminLogoutAuthModal__btn:focus-visible {
+  background: var(--text);
+  color: var(--bg);
+  border-color: var(--text);
+  outline: none;
+}
+
+.adminLogoutAuthModal__btn--secondary {
+  border-color: var(--border-muted);
+  color: var(--muted);
+}
+
+.adminLogoutAuthModal__btn--secondary:hover,
+.adminLogoutAuthModal__btn--secondary:focus-visible {
+  border-color: var(--text);
+  color: var(--text);
+  background: transparent;
+}
+
+.adminLogoutAuthModal__btn--danger {
+  border-color: rgba(170, 38, 38, 0.95);
+  color: rgba(170, 38, 38, 0.95);
+}
+
+.adminLogoutAuthModal__btn--danger:hover,
+.adminLogoutAuthModal__btn--danger:focus-visible {
+  border-color: rgba(170, 38, 38, 0.95);
+  background: rgba(170, 38, 38, 0.95);
+  color: #ffffff;
+}
+
+@keyframes adminAuthOverlayFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes adminAuthModalIn {
+  from {
+    opacity: 0;
+    transform: scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .adminLogoutAuthOverlay,
+  .adminLogoutAuthModal {
+    animation: none;
+  }
+}
+
 .adminMain {
   background: var(--admin-main-bg); /* bright panel */
   color: var(--admin-main-text);
@@ -322,8 +472,9 @@
     border-top: 1px solid var(--border-muted);
     padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
     display: grid;
-    grid-template-columns: minmax(0, 1fr);
+    grid-template-columns: repeat(5, minmax(0, 1fr));
     align-items: center;
+    gap: 8px;
   }
 
   .adminBrand,
@@ -332,8 +483,8 @@
   }
 
   .adminNav {
+    grid-column: 1 / span 4;
     padding-top: 0;
-    gap: 8px;
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
@@ -377,6 +528,25 @@
   }
 
   .adminLogout {
+    display: flex;
+    grid-column: 5;
+    height: 52px;
+    padding: 0;
+    border-color: var(--border-muted);
+    justify-content: center;
+  }
+
+  .adminLogout__content {
+    justify-content: center;
+    gap: 0;
+  }
+
+  .adminLogout__icon {
+    margin-left: 0;
+    font-size: 19px;
+  }
+
+  .adminLogout__label {
     display: none;
   }
 

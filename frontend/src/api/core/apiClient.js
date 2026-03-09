@@ -32,10 +32,12 @@ function normalizeApiError(error) {
     const status = error?.response?.status ?? null;
     const data = error?.response?.data ?? null;
     const message =
-        data?.message ||
-        data?.error ||
-        error?.message ||
-        "Request failed";
+        error?.code === "ECONNABORTED"
+            ? "Request timed out. Please try again."
+            : data?.message ||
+              data?.error ||
+              error?.message ||
+              "Request failed";
 
     return { status, message, data };
 }
@@ -51,7 +53,7 @@ function notifyAuthExpired() {
 
 const clientConfig = {
     baseURL,
-    timeout: 15000,
+    timeout: 30000,
     withCredentials: true,
     paramsSerializer: {
         serialize: serializeParams,
@@ -68,12 +70,15 @@ async function refreshAccessToken() {
         refreshRequest = refreshClient
             .post("/api/auth/refresh", null, {
                 mvSkipAuthHeader: true,
+                mvSkipAuthRefresh: true,
+                skipAuthRefresh: true,
+                skipAuthToken: true,
             })
             .then(({ data }) => {
                 const nextToken = data?.accessToken;
 
                 if (!nextToken) {
-                    throw new Error("Refresh succeeded without an access token");
+                    throw new Error("Refresh response did not include access token");
                 }
 
                 setAccessToken(nextToken);
@@ -97,7 +102,7 @@ async function refreshAccessToken() {
 }
 
 apiClient.interceptors.request.use((config) => {
-    if (config?.mvSkipAuthHeader) {
+    if (config?.mvSkipAuthHeader || config?.skipAuthToken) {
         return config;
     }
 
@@ -121,27 +126,35 @@ apiClient.interceptors.response.use(
     async (error) => {
         const normalizedError = normalizeApiError(error);
         const status = normalizedError.status;
+        const originalConfig = error?.config ?? {};
         const hadAuthHeader = Boolean(
-            error?.config?.headers?.Authorization ||
-            error?.config?.headers?.authorization
+            originalConfig?.headers?.Authorization ||
+            originalConfig?.headers?.authorization,
+        );
+        const shouldSkipRefresh = Boolean(
+            originalConfig?.mvSkipAuthRefresh || originalConfig?.skipAuthRefresh,
+        );
+        const alreadyRetried = Boolean(
+            originalConfig?._mvRetriedAfterRefresh || originalConfig?._retry,
         );
 
         if (
             status === 401 &&
             hadAuthHeader &&
-            !error?.config?.mvSkipAuthRefresh &&
-            !error?.config?._mvRetriedAfterRefresh
+            !shouldSkipRefresh &&
+            !alreadyRetried
         ) {
             try {
                 const nextToken = await refreshAccessToken();
 
                 return apiClient({
-                    ...error.config,
+                    ...originalConfig,
                     headers: {
-                        ...(error.config?.headers || {}),
+                        ...(originalConfig?.headers || {}),
                         Authorization: `Bearer ${nextToken}`,
                     },
                     _mvRetriedAfterRefresh: true,
+                    _retry: true,
                 });
             } catch (refreshError) {
                 return Promise.reject(refreshError);
@@ -153,5 +166,5 @@ apiClient.interceptors.response.use(
         }
 
         return Promise.reject(normalizedError);
-    }
+    },
 );

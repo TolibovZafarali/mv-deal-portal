@@ -4,7 +4,7 @@ import com.megna.backend.application.service.AuthService;
 import com.megna.backend.domain.repository.AdminRepository;
 import com.megna.backend.domain.repository.InvestorRepository;
 import com.megna.backend.domain.repository.SellerRepository;
-import com.megna.backend.infrastructure.security.AuthRefreshCookieService;
+import com.megna.backend.infrastructure.security.RefreshTokenCookieService;
 import com.megna.backend.infrastructure.security.SecurityUtils;
 import com.megna.backend.interfaces.rest.dto.auth.ChangePasswordRequestDto;
 import com.megna.backend.interfaces.rest.dto.auth.ForgotPasswordRequestDto;
@@ -38,28 +38,25 @@ public class AuthController {
     private final InvestorRepository investorRepository;
     private final SellerRepository sellerRepository;
     private final AdminRepository adminRepository;
-    private final AuthRefreshCookieService authRefreshCookieService;
+    private final RefreshTokenCookieService refreshTokenCookieService;
 
     @PostMapping("/login")
-    public LoginResponseDto login(
-            @Valid @RequestBody LoginRequestDto dto,
-            HttpServletResponse response
-    ) {
-        AuthService.AuthSession session = authService.login(dto);
-        authRefreshCookieService.writeRefreshToken(response, session.refreshToken());
-        return session.loginResponse();
+    public LoginResponseDto login(@Valid @RequestBody LoginRequestDto dto, HttpServletResponse response) {
+        AuthService.LoginSessionResult result = authService.login(dto);
+        refreshTokenCookieService.addRefreshCookie(response, result.refreshToken());
+        return result.loginResponse();
     }
 
     @PostMapping("/refresh")
     public LoginResponseDto refresh(HttpServletRequest request, HttpServletResponse response) {
-        String rawRefreshToken = authRefreshCookieService.readRefreshToken(request);
+        String refreshToken = refreshTokenCookieService.resolveRefreshToken(request);
 
         try {
-            AuthService.AuthSession session = authService.refresh(rawRefreshToken);
-            authRefreshCookieService.writeRefreshToken(response, session.refreshToken());
-            return session.loginResponse();
+            AuthService.LoginSessionResult result = authService.refresh(refreshToken);
+            refreshTokenCookieService.addRefreshCookie(response, result.refreshToken());
+            return result.loginResponse();
         } catch (ResponseStatusException ex) {
-            authRefreshCookieService.clearRefreshToken(response);
+            refreshTokenCookieService.clearRefreshCookie(response);
             throw ex;
         }
     }
@@ -67,9 +64,9 @@ public class AuthController {
     @PostMapping("/logout")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void logout(HttpServletRequest request, HttpServletResponse response) {
-        String rawRefreshToken = authRefreshCookieService.readRefreshToken(request);
-        authService.logout(rawRefreshToken);
-        authRefreshCookieService.clearRefreshToken(response);
+        String refreshToken = refreshTokenCookieService.resolveRefreshToken(request);
+        authService.logout(refreshToken);
+        refreshTokenCookieService.clearRefreshCookie(response);
     }
 
     @PreAuthorize("isAuthenticated()")

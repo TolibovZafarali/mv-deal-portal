@@ -61,6 +61,35 @@
   line-height: 1;
 }
 
+.adminInqThreads__railHead {
+  display: flex;
+  align-items: center;
+}
+
+.adminInqThreads__mobileBackBtn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  margin-left: 8px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+}
+
+.adminInqThreads__mobileBackBtn .material-symbols-outlined {
+  font-size: 24px;
+  line-height: 1;
+}
+
+.adminInqThreads__mobileBackBtn:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
 .adminInqThreads__investorList,
 .adminInqThreads__propertyList {
   min-height: 0;
@@ -306,6 +335,16 @@
   gap: 8px;
 }
 
+.adminInqThreads__chatHeadTop {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.adminInqThreads__chatHeadTop .adminInqThreads__chatTitle {
+  min-width: 0;
+}
+
 .adminInqThreads__chatTitle {
   margin: 0;
   font-size: 32px;
@@ -489,12 +528,22 @@
   .adminInqThreads__shell {
     min-height: 100%;
     grid-template-columns: 1fr;
-    grid-template-rows: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 2fr);
+    grid-template-rows: minmax(0, 1fr);
+  }
+
+  .adminInqThreads__col {
+    display: none;
+  }
+
+  .adminInqThreads--stageInvestors .adminInqThreads__col--investors,
+  .adminInqThreads--stageProperties .adminInqThreads__col--properties,
+  .adminInqThreads--stageChat .adminInqThreads__col--chat {
+    display: grid;
   }
 
   .adminInqThreads__col--investors {
     border-right: 0;
-    border-bottom: 1px solid rgba(17, 17, 17, 0.24);
+    border-bottom: 0;
   }
 
   .adminInqThreads__investorList {
@@ -508,7 +557,15 @@
 
   .adminInqThreads__col--properties {
     border-right: 0;
-    border-bottom: 1px solid rgba(244, 244, 239, 0.25);
+    border-bottom: 0;
+  }
+
+  .adminInqThreads__railHead .adminInqThreads__railTitle {
+    padding: 16px 16px 16px 8px;
+  }
+
+  .adminInqThreads__mobileBackBtn {
+    display: inline-flex;
   }
 
   .adminInqThreads__propertyList {

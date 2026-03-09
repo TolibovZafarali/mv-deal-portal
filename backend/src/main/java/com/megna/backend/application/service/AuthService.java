@@ -2,19 +2,10 @@ package com.megna.backend.application.service;
 
 import com.megna.backend.application.service.email.TransactionalEmailRequest;
 import com.megna.backend.application.service.email.TransactionalEmailService;
+import com.megna.backend.domain.entity.Admin;
+import com.megna.backend.domain.entity.Investor;
 import com.megna.backend.domain.entity.PasswordResetToken;
 import com.megna.backend.domain.entity.RefreshToken;
-import com.megna.backend.infrastructure.config.AuthProperties;
-import com.megna.backend.infrastructure.security.SecurityUtils;
-import com.megna.backend.interfaces.rest.dto.auth.ChangePasswordRequestDto;
-import com.megna.backend.interfaces.rest.dto.auth.ForgotPasswordRequestDto;
-import com.megna.backend.interfaces.rest.dto.auth.LoginRequestDto;
-import com.megna.backend.interfaces.rest.dto.auth.LoginResponseDto;
-import com.megna.backend.interfaces.rest.dto.auth.RegisterRequestDto;
-import com.megna.backend.interfaces.rest.dto.auth.RegisterResponseDto;
-import com.megna.backend.interfaces.rest.dto.auth.ResetPasswordRequestDto;
-import com.megna.backend.interfaces.rest.dto.auth.SellerRegisterResponseDto;
-import com.megna.backend.domain.entity.Investor;
 import com.megna.backend.domain.entity.Seller;
 import com.megna.backend.domain.enums.InvestorStatus;
 import com.megna.backend.domain.enums.SellerStatus;
@@ -23,7 +14,17 @@ import com.megna.backend.domain.repository.InvestorRepository;
 import com.megna.backend.domain.repository.PasswordResetTokenRepository;
 import com.megna.backend.domain.repository.RefreshTokenRepository;
 import com.megna.backend.domain.repository.SellerRepository;
+import com.megna.backend.infrastructure.config.AuthProperties;
+import com.megna.backend.infrastructure.security.SecurityUtils;
 import com.megna.backend.infrastructure.security.jwt.JwtService;
+import com.megna.backend.interfaces.rest.dto.auth.ChangePasswordRequestDto;
+import com.megna.backend.interfaces.rest.dto.auth.ForgotPasswordRequestDto;
+import com.megna.backend.interfaces.rest.dto.auth.LoginRequestDto;
+import com.megna.backend.interfaces.rest.dto.auth.LoginResponseDto;
+import com.megna.backend.interfaces.rest.dto.auth.RegisterRequestDto;
+import com.megna.backend.interfaces.rest.dto.auth.RegisterResponseDto;
+import com.megna.backend.interfaces.rest.dto.auth.ResetPasswordRequestDto;
+import com.megna.backend.interfaces.rest.dto.auth.SellerRegisterResponseDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -48,13 +49,13 @@ import java.util.function.Consumer;
 @Slf4j
 public class AuthService {
 
+    private static final String PRINCIPAL_ADMIN = "ADMIN";
     private static final String PRINCIPAL_INVESTOR = "INVESTOR";
     private static final String PRINCIPAL_SELLER = "SELLER";
     private static final String INVALID_RESET_TOKEN_MESSAGE = "Invalid or expired reset token";
     private static final String INVALID_REFRESH_TOKEN_MESSAGE = "Invalid or expired refresh token";
     private static final String RESET_PASSWORD_EMAIL_SUBJECT = "Reset your Megna password";
-    private static final int RESET_TOKEN_BYTE_LENGTH = 32;
-    private static final int REFRESH_TOKEN_BYTE_LENGTH = 32;
+    private static final int OPAQUE_TOKEN_BYTE_LENGTH = 32;
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
     private final InvestorRepository investorRepository;
@@ -68,91 +69,86 @@ public class AuthService {
     private final AuthProperties authProperties;
 
     @Transactional
-    public AuthSession login(LoginRequestDto dto) {
+    public LoginSessionResult login(LoginRequestDto dto) {
         String email = normalizeEmail(dto.email());
 
         var adminOpt = adminRepository.findByEmail(email);
         if (adminOpt.isPresent()) {
-            var admin = adminOpt.get();
-            if (!passwordEncoder.matches(dto.password(), admin.getPasswordHash())) {
-                throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials");
-            }
+            Admin admin = adminOpt.get();
+            ensurePasswordMatches(dto.password(), admin.getPasswordHash());
 
-            return issueSession(new PrincipalRef("ADMIN", admin.getId(), admin.getEmail()));
+            RefreshTokenIssue session = issueRefreshToken(PRINCIPAL_ADMIN, admin.getId());
+            LoginResponseDto loginResponse = buildLoginResponse(jwtService.generateAccessToken(admin, session.sessionId()));
+            return new LoginSessionResult(loginResponse, session.rawToken());
         }
 
         var investorOpt = investorRepository.findByEmail(email);
         if (investorOpt.isPresent()) {
             Investor investor = investorOpt.get();
+            ensurePasswordMatches(dto.password(), investor.getPasswordHash());
 
-            if (!passwordEncoder.matches(dto.password(), investor.getPasswordHash())) {
-                throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials");
-            }
-
-            return issueSession(new PrincipalRef(PRINCIPAL_INVESTOR, investor.getId(), investor.getEmail()));
+            RefreshTokenIssue session = issueRefreshToken(PRINCIPAL_INVESTOR, investor.getId());
+            LoginResponseDto loginResponse = buildLoginResponse(jwtService.generateAccessToken(investor, session.sessionId()));
+            return new LoginSessionResult(loginResponse, session.rawToken());
         }
 
         Seller seller = sellerRepository.findByEmail(email)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials"));
 
-        if (!passwordEncoder.matches(dto.password(), seller.getPasswordHash())) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials");
-        }
+        ensurePasswordMatches(dto.password(), seller.getPasswordHash());
 
-        return issueSession(new PrincipalRef(PRINCIPAL_SELLER, seller.getId(), seller.getEmail()));
+        RefreshTokenIssue session = issueRefreshToken(PRINCIPAL_SELLER, seller.getId());
+        LoginResponseDto loginResponse = buildLoginResponse(jwtService.generateAccessToken(seller, session.sessionId()));
+        return new LoginSessionResult(loginResponse, session.rawToken());
     }
 
     @Transactional
-    public AuthSession refresh(String rawRefreshToken) {
-        String normalizedToken = normalizeToken(rawRefreshToken);
-        if (normalizedToken.isBlank()) {
+    public LoginSessionResult refresh(String rawRefreshToken) {
+        String token = normalizeOpaqueToken(rawRefreshToken);
+        if (token.isBlank()) {
             throw invalidRefreshToken();
         }
 
-        RefreshToken refreshToken = refreshTokenRepository.findByTokenHash(hashToken(normalizedToken))
+        String tokenHash = hashToken(token);
+        RefreshToken refreshToken = refreshTokenRepository.findByTokenHashAndRevokedAtIsNull(tokenHash)
                 .orElseThrow(this::invalidRefreshToken);
 
         LocalDateTime now = LocalDateTime.now();
-        if (refreshToken.getRevokedAt() != null) {
-            throw invalidRefreshToken();
-        }
-
-        if (refreshToken.getExpiresAt() == null || !refreshToken.getExpiresAt().isAfter(now)) {
+        if (refreshToken.getExpiresAt() == null || refreshToken.getExpiresAt().isBefore(now)) {
             refreshToken.setRevokedAt(now);
             refreshToken.setLastUsedAt(now);
             refreshTokenRepository.save(refreshToken);
             throw invalidRefreshToken();
         }
 
-        refreshToken.setRevokedAt(now);
+        Long principalId = refreshToken.getPrincipalId();
+        String principalType = normalizePrincipalType(refreshToken.getPrincipalType());
+        LoginResponseDto loginResponse = resolveAccessTokenForPrincipal(principalType, principalId, refreshToken.getId());
+
+        if (loginResponse == null) {
+            refreshToken.setRevokedAt(now);
+            refreshToken.setLastUsedAt(now);
+            refreshTokenRepository.save(refreshToken);
+            throw invalidRefreshToken();
+        }
+
+        String nextRawToken = generateOpaqueToken();
+        refreshToken.setTokenHash(hashToken(nextRawToken));
+        refreshToken.setExpiresAt(now.plusMinutes(resolveRefreshTokenTtlMinutes()));
         refreshToken.setLastUsedAt(now);
         refreshTokenRepository.save(refreshToken);
 
-        PrincipalRef principal = resolveSessionPrincipal(
-                refreshToken.getPrincipalType(),
-                refreshToken.getPrincipalId()
-        );
-
-        return issueSession(principal);
+        return new LoginSessionResult(loginResponse, nextRawToken);
     }
 
     @Transactional
     public void logout(String rawRefreshToken) {
-        String normalizedToken = normalizeToken(rawRefreshToken);
-        if (normalizedToken.isBlank()) {
+        String token = normalizeOpaqueToken(rawRefreshToken);
+        if (token.isBlank()) {
             return;
         }
 
-        refreshTokenRepository.findByTokenHash(hashToken(normalizedToken)).ifPresent(refreshToken -> {
-            if (refreshToken.getRevokedAt() != null) {
-                return;
-            }
-
-            LocalDateTime now = LocalDateTime.now();
-            refreshToken.setRevokedAt(now);
-            refreshToken.setLastUsedAt(now);
-            refreshTokenRepository.save(refreshToken);
-        });
+        refreshTokenRepository.revokeByTokenHash(hashToken(token), LocalDateTime.now());
     }
 
     @Transactional
@@ -171,30 +167,32 @@ public class AuthService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "New password must be different");
         }
 
-        if ("ADMIN".equals(role)) {
+        LocalDateTime now = LocalDateTime.now();
+
+        if (PRINCIPAL_ADMIN.equals(role)) {
             var admin = adminRepository.findById(principal.userId())
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Not authenticated"));
             updatePassword(admin.getPasswordHash(), currentPassword, newPassword, admin::setPasswordHash);
             adminRepository.save(admin);
-            revokeAllRefreshTokens("ADMIN", principal.userId());
+            revokeActiveRefreshTokens(PRINCIPAL_ADMIN, admin.getId(), now);
             return;
         }
 
-        if ("INVESTOR".equals(role)) {
+        if (PRINCIPAL_INVESTOR.equals(role)) {
             var investor = investorRepository.findById(principal.userId())
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Not authenticated"));
             updatePassword(investor.getPasswordHash(), currentPassword, newPassword, investor::setPasswordHash);
             investorRepository.save(investor);
-            revokeAllRefreshTokens(PRINCIPAL_INVESTOR, principal.userId());
+            revokeActiveRefreshTokens(PRINCIPAL_INVESTOR, investor.getId(), now);
             return;
         }
 
-        if ("SELLER".equals(role)) {
+        if (PRINCIPAL_SELLER.equals(role)) {
             var seller = sellerRepository.findById(principal.userId())
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Not authenticated"));
             updatePassword(seller.getPasswordHash(), currentPassword, newPassword, seller::setPasswordHash);
             sellerRepository.save(seller);
-            revokeAllRefreshTokens(PRINCIPAL_SELLER, principal.userId());
+            revokeActiveRefreshTokens(PRINCIPAL_SELLER, seller.getId(), now);
             return;
         }
 
@@ -218,7 +216,7 @@ public class AuthService {
                 principal.id()
         );
 
-        String rawToken = generateResetToken();
+        String rawToken = generateOpaqueToken();
         PasswordResetToken resetToken = new PasswordResetToken();
         resetToken.setPrincipalType(principal.type());
         resetToken.setPrincipalId(principal.id());
@@ -258,9 +256,7 @@ public class AuthService {
             throw invalidResetToken();
         }
 
-        String principalType = resetToken.getPrincipalType() == null
-                ? ""
-                : resetToken.getPrincipalType().trim().toUpperCase(Locale.US);
+        String principalType = normalizePrincipalType(resetToken.getPrincipalType());
 
         if (PRINCIPAL_INVESTOR.equals(principalType)) {
             Investor investor = investorRepository.findById(resetToken.getPrincipalId())
@@ -282,13 +278,13 @@ public class AuthService {
 
         resetToken.setUsedAt(now);
         passwordResetTokenRepository.save(resetToken);
-        revokeAllRefreshTokens(principalType, resetToken.getPrincipalId());
         passwordResetTokenRepository.markActiveTokensUsed(
                 principalType,
                 resetToken.getPrincipalId(),
                 now,
                 resetToken.getId()
         );
+        revokeActiveRefreshTokens(principalType, resetToken.getPrincipalId(), now);
     }
 
     public RegisterResponseDto registerInvestor(RegisterRequestDto dto) {
@@ -347,6 +343,12 @@ public class AuthService {
         }
     }
 
+    private void ensurePasswordMatches(String rawPassword, String passwordHash) {
+        if (!passwordEncoder.matches(rawPassword, passwordHash)) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials");
+        }
+    }
+
     private void updatePassword(
             String existingPasswordHash,
             String currentPassword,
@@ -370,9 +372,78 @@ public class AuthService {
         }
     }
 
+    private LoginResponseDto buildLoginResponse(String token) {
+        return new LoginResponseDto(token, "Bearer", jwtService.getAccessTokenTtlSeconds());
+    }
+
+    private LoginResponseDto resolveAccessTokenForPrincipal(String principalType, Long principalId, Long sessionId) {
+        if (principalId == null || principalId <= 0 || principalType.isBlank()) {
+            return null;
+        }
+
+        if (PRINCIPAL_ADMIN.equals(principalType)) {
+            return adminRepository.findById(principalId)
+                    .map(admin -> jwtService.generateAccessToken(admin, sessionId))
+                    .map(this::buildLoginResponse)
+                    .orElse(null);
+        }
+
+        if (PRINCIPAL_INVESTOR.equals(principalType)) {
+            return investorRepository.findById(principalId)
+                    .map(investor -> jwtService.generateAccessToken(investor, sessionId))
+                    .map(this::buildLoginResponse)
+                    .orElse(null);
+        }
+
+        if (PRINCIPAL_SELLER.equals(principalType)) {
+            return sellerRepository.findById(principalId)
+                    .map(seller -> jwtService.generateAccessToken(seller, sessionId))
+                    .map(this::buildLoginResponse)
+                    .orElse(null);
+        }
+
+        return null;
+    }
+
+    private RefreshTokenIssue issueRefreshToken(String principalType, Long principalId) {
+        LocalDateTime now = LocalDateTime.now();
+        revokeActiveRefreshTokens(principalType, principalId, now);
+
+        String rawToken = generateOpaqueToken();
+        RefreshToken refreshToken = new RefreshToken();
+        refreshToken.setPrincipalType(principalType);
+        refreshToken.setPrincipalId(principalId);
+        refreshToken.setTokenHash(hashToken(rawToken));
+        refreshToken.setExpiresAt(now.plusMinutes(resolveRefreshTokenTtlMinutes()));
+        refreshTokenRepository.save(refreshToken);
+
+        return new RefreshTokenIssue(rawToken, refreshToken.getId());
+    }
+
+    private void revokeActiveRefreshTokens(String principalType, Long principalId, LocalDateTime revokedAt) {
+        if (principalType == null || principalType.isBlank() || principalId == null || principalId <= 0) {
+            return;
+        }
+        refreshTokenRepository.revokeActiveByPrincipal(principalType, principalId, revokedAt);
+    }
+
     private String normalizeEmail(String email) {
         if (email == null) return "";
         return email.trim().toLowerCase(Locale.US);
+    }
+
+    private String normalizeOpaqueToken(String token) {
+        if (token == null) {
+            return "";
+        }
+        return token.trim();
+    }
+
+    private String normalizePrincipalType(String principalType) {
+        if (principalType == null) {
+            return "";
+        }
+        return principalType.trim().toUpperCase(Locale.US);
     }
 
     private PrincipalRef resolvePasswordResetPrincipal(String email) {
@@ -396,9 +467,9 @@ public class AuthService {
         return ttlMinutes > 0 ? ttlMinutes : 30;
     }
 
-    private long resolveRefreshTokenTtlDays() {
-        long ttlDays = authProperties.getRefreshTokenTtlDays();
-        return ttlDays > 0 ? ttlDays : 30;
+    private long resolveRefreshTokenTtlMinutes() {
+        long ttlMinutes = authProperties.getRefreshTokenTtlMinutes();
+        return ttlMinutes > 0 ? ttlMinutes : 20160;
     }
 
     private String buildPasswordResetBody(String recipientEmail, String rawToken) {
@@ -429,59 +500,10 @@ public class AuthService {
         return baseUrl + separator + "token=" + urlEncode(rawToken);
     }
 
-    private String generateResetToken() {
-        return generateSecureToken(RESET_TOKEN_BYTE_LENGTH);
-    }
-
-    private String generateRefreshToken() {
-        return generateSecureToken(REFRESH_TOKEN_BYTE_LENGTH);
-    }
-
-    private String generateSecureToken(int byteLength) {
-        byte[] bytes = new byte[byteLength];
+    private String generateOpaqueToken() {
+        byte[] bytes = new byte[OPAQUE_TOKEN_BYTE_LENGTH];
         SECURE_RANDOM.nextBytes(bytes);
         return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
-    }
-
-    private AuthSession issueSession(PrincipalRef principal) {
-        String accessToken = jwtService.generateAccessToken(principal.email(), principal.id(), principal.type());
-        String refreshTokenValue = generateRefreshToken();
-
-        RefreshToken refreshToken = new RefreshToken();
-        refreshToken.setPrincipalType(principal.type());
-        refreshToken.setPrincipalId(principal.id());
-        refreshToken.setTokenHash(hashToken(refreshTokenValue));
-        refreshToken.setExpiresAt(LocalDateTime.now().plusDays(resolveRefreshTokenTtlDays()));
-        refreshTokenRepository.save(refreshToken);
-
-        return new AuthSession(
-                new LoginResponseDto(accessToken, "Bearer", jwtService.getAccessTokenTtlSeconds()),
-                refreshTokenValue
-        );
-    }
-
-    private PrincipalRef resolveSessionPrincipal(String principalType, Long principalId) {
-        String normalizedType = principalType == null ? "" : principalType.trim().toUpperCase(Locale.US);
-        if (principalId == null || principalId <= 0L) {
-            throw invalidRefreshToken();
-        }
-
-        if ("ADMIN".equals(normalizedType)) {
-            var admin = adminRepository.findById(principalId).orElseThrow(this::invalidRefreshToken);
-            return new PrincipalRef("ADMIN", admin.getId(), admin.getEmail());
-        }
-
-        if (PRINCIPAL_INVESTOR.equals(normalizedType)) {
-            var investor = investorRepository.findById(principalId).orElseThrow(this::invalidRefreshToken);
-            return new PrincipalRef(PRINCIPAL_INVESTOR, investor.getId(), investor.getEmail());
-        }
-
-        if (PRINCIPAL_SELLER.equals(normalizedType)) {
-            var seller = sellerRepository.findById(principalId).orElseThrow(this::invalidRefreshToken);
-            return new PrincipalRef(PRINCIPAL_SELLER, seller.getId(), seller.getEmail());
-        }
-
-        throw invalidRefreshToken();
     }
 
     private String hashToken(String rawToken) {
@@ -492,21 +514,6 @@ public class AuthService {
         } catch (NoSuchAlgorithmException ex) {
             throw new IllegalStateException("SHA-256 is not available", ex);
         }
-    }
-
-    private void revokeAllRefreshTokens(String principalType, Long principalId) {
-        if (principalId == null || principalId <= 0L) {
-            return;
-        }
-
-        refreshTokenRepository.revokeActiveTokens(principalType, principalId, LocalDateTime.now());
-    }
-
-    private String normalizeToken(String rawToken) {
-        if (rawToken == null) {
-            return "";
-        }
-        return rawToken.trim();
     }
 
     private String urlEncode(String value) {
@@ -522,6 +529,7 @@ public class AuthService {
     }
 
     private record PrincipalRef(String type, Long id, String email) {}
+    private record RefreshTokenIssue(String rawToken, Long sessionId) {}
 
-    public record AuthSession(LoginResponseDto loginResponse, String refreshToken) {}
+    public record LoginSessionResult(LoginResponseDto loginResponse, String refreshToken) {}
 }

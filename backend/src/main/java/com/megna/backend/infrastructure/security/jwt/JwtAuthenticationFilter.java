@@ -1,5 +1,6 @@
 package com.megna.backend.infrastructure.security.jwt;
 
+import com.megna.backend.domain.repository.RefreshTokenRepository;
 import com.megna.backend.infrastructure.security.AuthPrincipal;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
@@ -17,12 +18,14 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Locale;
 
 @Component
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
+    private final RefreshTokenRepository refreshTokenRepository;
 
     @Override
     protected void doFilterInternal(
@@ -56,10 +59,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             Claims claims = jwtService.parseAndValidate(token);
 
             String email = claims.getSubject();
-            String role = claims.get("role", String.class); // e.g. "INVESTOR" or "ADMIN"
+            String role = claims.get("role", String.class);
+            role = role == null ? "" : role.trim().toUpperCase(Locale.US);
 
             Number userIdNum = claims.get("userId", Number.class);
             long userId = (userIdNum == null) ? 0L : userIdNum.longValue();
+            Number sessionIdNum = claims.get("sessionId", Number.class);
+            Long sessionId = sessionIdNum == null ? null : sessionIdNum.longValue();
+
+            if (!isTokenBoundToActiveSession(role, userId, sessionId)) {
+                throw new BadCredentialsException("Invalid or expired token");
+            }
 
             AuthPrincipal principal = new AuthPrincipal(email, userId, role);
 
@@ -80,6 +90,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             // Let Spring Security's entry point produce the 401 ApiError response
             throw new BadCredentialsException("Invalid or expired token", ex);
         }
+    }
+
+    private boolean isTokenBoundToActiveSession(String role, long userId, Long sessionId) {
+        if (role == null || role.isBlank() || userId <= 0 || sessionId == null || sessionId <= 0) {
+            return false;
+        }
+
+        return refreshTokenRepository
+                .findTopByPrincipalTypeAndPrincipalIdAndRevokedAtIsNullOrderByCreatedAtDescIdDesc(role, userId)
+                .map(activeSession -> sessionId.equals(activeSession.getId()))
+                .orElse(false);
     }
 
     @Override
