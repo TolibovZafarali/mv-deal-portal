@@ -152,6 +152,7 @@ export default function HomePage({
     bootstrapping,
     retrySessionRestore,
     sessionRestoreError,
+    signOut,
 }) {
     const homeRef = useRef(null);
     const homeWhyRef = useRef(null);
@@ -168,6 +169,8 @@ export default function HomePage({
     const [selectedRole, setSelectedRole] = useState(() => getInitialRole(location));
     const roleContent = ROLE_CONTENT[selectedRole] || ROLE_CONTENT[ROLE_INVESTOR];
     const showGuestCtas = !isAuthed && !sessionRestoreError;
+    const handleRetrySession = () => retrySessionRestore?.();
+    const handleSignOut = () => signOut?.();
 
     useEffect(() => {
         document.documentElement.classList.add("homeHideScrollbar");
@@ -446,13 +449,22 @@ export default function HomePage({
                                 </Link>
                             </>
                         ) : (
-                            <button
-                                type="button"
-                                className="homeHeader__link homeHeader__linkButton"
-                                onClick={() => retrySessionRestore?.()}
-                            >
-                                Retry Session
-                            </button>
+                            <>
+                                <button
+                                    type="button"
+                                    className="homeHeader__link homeHeader__linkButton"
+                                    onClick={handleRetrySession}
+                                >
+                                    Retry Session
+                                </button>
+                                <button
+                                    type="button"
+                                    className="homeHeader__link homeHeader__linkButton"
+                                    onClick={handleSignOut}
+                                >
+                                    Log out
+                                </button>
+                            </>
                         )}
                     </nav>
                 </div>
@@ -501,13 +513,22 @@ export default function HomePage({
                                 <div className="homeSessionNotice" role="status">
                                     <p className="homeSessionNotice__title">Session restore unavailable</p>
                                     <p className="homeSessionNotice__text">{sessionRestoreError}</p>
-                                    <button
-                                        type="button"
-                                        className="homeReady__btn"
-                                        onClick={() => retrySessionRestore?.()}
-                                    >
-                                        Retry session
-                                    </button>
+                                    <div className="homeSessionActions">
+                                        <button
+                                            type="button"
+                                            className="homeReady__btn"
+                                            onClick={handleRetrySession}
+                                        >
+                                            Retry session
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className="homeReady__btn homeReady__btn--ghost"
+                                            onClick={handleSignOut}
+                                        >
+                                            Log out
+                                        </button>
+                                    </div>
                                 </div>
                             ) : null}
 
@@ -688,13 +709,22 @@ export default function HomePage({
                         ) : sessionRestoreError ? (
                             <div className="homeReady__authed">
                                 <p className="homeReady__authedText">{sessionRestoreError}</p>
-                                <button
-                                    type="button"
-                                    className="homeReady__btn homeReady__btn--wide"
-                                    onClick={() => retrySessionRestore?.()}
-                                >
-                                    Retry session
-                                </button>
+                                <div className="homeSessionActions">
+                                    <button
+                                        type="button"
+                                        className="homeReady__btn homeReady__btn--wide"
+                                        onClick={handleRetrySession}
+                                    >
+                                        Retry session
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className="homeReady__btn homeReady__btn--ghost homeReady__btn--wide"
+                                        onClick={handleSignOut}
+                                    >
+                                        Log out
+                                    </button>
+                                </div>
                             </div>
                         ) : (
                             <div className="homeReady__roles">

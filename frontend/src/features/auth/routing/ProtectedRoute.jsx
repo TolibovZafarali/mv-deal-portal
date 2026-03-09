@@ -3,7 +3,7 @@ import { useAuth } from "@/features/auth/context/AuthContext"
 import "@/features/auth/routing/ProtectedRoute.css"
 
 export default function ProtectedRoute({ roles }) {
-  const { user, bootstrapping, isAuthed, refresh, sessionRestoreError } = useAuth()
+  const { user, bootstrapping, isAuthed, refresh, sessionRestoreError, signOut } = useAuth()
   const location = useLocation()
 
   if (bootstrapping) {
@@ -18,6 +18,9 @@ export default function ProtectedRoute({ roles }) {
         <div className="route-guard__actions">
           <button type="button" className="route-guard__btn" onClick={() => refresh()}>
             Retry session
+          </button>
+          <button type="button" className="route-guard__btn route-guard__btn--ghost" onClick={() => signOut()}>
+            Log out
           </button>
           <Link to="/" replace className="route-guard__btn route-guard__btn--ghost">
             Go home
