@@ -11,6 +11,7 @@ Use one reusable Postmark layout plus content-only templates:
 - `welcome-cid-v1`
 - `investor-new-property-published-cid-v1`
 - `admin-inquiry-created-cid-v1`
+- `admin-inquiry-follow-up-cid-v1`
 
 All templates use the same HTTPS logo URL:
 
@@ -26,6 +27,7 @@ All templates use the same HTTPS logo URL:
 - Welcome content HTML: `/Users/zafaralitolibov/Documents/mv-deal-portal/docs/email/postmark-welcome-content-v1.html`
 - Investor property-published content HTML: `/Users/zafaralitolibov/Documents/mv-deal-portal/docs/email/postmark-investor-new-property-published-content-v1.html`
 - Admin inquiry-created content HTML: `/Users/zafaralitolibov/Documents/mv-deal-portal/docs/email/postmark-admin-inquiry-created-content-v1.html`
+- Admin inquiry-follow-up content HTML: `/Users/zafaralitolibov/Documents/mv-deal-portal/docs/email/postmark-admin-inquiry-follow-up-content-v1.html`
 
 ## Postmark UI setup
 
@@ -35,7 +37,8 @@ All templates use the same HTTPS logo URL:
 4. Create template `welcome-cid-v1`, select that layout, paste welcome content HTML.
 5. Create template `investor-new-property-published-cid-v1`, select that layout, paste investor property-published content HTML.
 6. Create template `admin-inquiry-created-cid-v1`, select that layout, paste admin inquiry-created content HTML.
-7. Add template subject as `{{subject}}` for each template.
+7. Create template `admin-inquiry-follow-up-cid-v1`, select that layout, paste admin inquiry-follow-up content HTML.
+8. Add template subject as `{{subject}}` for each template.
 
 ## Text bodies
 
@@ -93,6 +96,31 @@ Created: {{created_at}}
 
 Inquiry Message:
 {{inquiry_message}}
+
+{{action_text}}: {{action_url}}
+
+{{footer_text}}
+```
+
+Admin inquiry follow-up:
+
+```txt
+{{title}}
+
+{{message}}
+
+Inquiry ID: {{inquiry_id}}
+Thread ID: {{thread_id}}
+Investor Name: {{investor_name}}
+Investor Email: {{investor_email}}
+Property: {{property_address}}
+Last Message: {{last_message_at}}
+
+Previous Message:
+{{previous_message_excerpt}}
+
+New Follow-Up Message:
+{{follow_up_message}}
 
 {{action_text}}: {{action_url}}
 
@@ -181,6 +209,28 @@ Admin inquiry-created model:
 }
 ```
 
+Admin inquiry-follow-up model:
+
+```json
+{
+  "subject": "Investor follow-up on inquiry",
+  "logo_url": "https://raw.githubusercontent.com/TolibovZafarali/mv-deal-portal/dev/frontend/public/white-logo.png",
+  "title": "An investor sent a follow-up message",
+  "message": "There is a new follow-up in an existing inquiry thread.",
+  "inquiry_id": "inquiry_12345",
+  "thread_id": "thread_98765",
+  "investor_name": "John Doe",
+  "investor_email": "john.doe@example.com",
+  "property_address": "123 Main St, Dallas, TX",
+  "last_message_at": "2026-03-09 2:15 PM CT",
+  "previous_message_excerpt": "Can you confirm current occupancy and recent rent comps?",
+  "follow_up_message": "Also, please share whether seller financing is open for discussion.",
+  "action_text": "Open Inquiry Thread",
+  "action_url": "https://example.com/admin/inquiries/inquiry_12345",
+  "footer_text": "This notification was sent to admins because an investor followed up on an inquiry."
+}
+```
+
 ## Send payload example (HTTPS logo, no attachments)
 
 ```json
@@ -239,6 +289,30 @@ For admin inquiry-created emails, switch `TemplateAlias` and model values:
     "action_text": "Open Inquiry",
     "action_url": "https://example.com/admin/inquiries/inquiry_12345",
     "footer_text": "This notification was sent to admins because a new inquiry was created."
+  }
+}
+```
+
+For admin inquiry follow-up emails, switch `TemplateAlias` and model values:
+
+```json
+{
+  "TemplateAlias": "admin-inquiry-follow-up-cid-v1",
+  "TemplateModel": {
+    "subject": "Investor follow-up on inquiry",
+    "title": "An investor sent a follow-up message",
+    "message": "There is a new follow-up in an existing inquiry thread.",
+    "inquiry_id": "inquiry_12345",
+    "thread_id": "thread_98765",
+    "investor_name": "John Doe",
+    "investor_email": "john.doe@example.com",
+    "property_address": "123 Main St, Dallas, TX",
+    "last_message_at": "2026-03-09 2:15 PM CT",
+    "previous_message_excerpt": "Can you confirm current occupancy and recent rent comps?",
+    "follow_up_message": "Also, please share whether seller financing is open for discussion.",
+    "action_text": "Open Inquiry Thread",
+    "action_url": "https://example.com/admin/inquiries/inquiry_12345",
+    "footer_text": "This notification was sent to admins because an investor followed up on an inquiry."
   }
 }
 ```

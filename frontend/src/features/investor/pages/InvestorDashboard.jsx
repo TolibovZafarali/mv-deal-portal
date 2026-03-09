@@ -598,6 +598,13 @@ export default function InvestorDashboard() {
     setSelectedPropertyId(property.id);
   }
 
+  function handleCardFocusKeyDown(event, property) {
+    if (event.target !== event.currentTarget) return;
+    if (event.key !== "Enter" && event.key !== " ") return;
+    event.preventDefault();
+    handleCardClick(property);
+  }
+
   function handleMapSelectProperty(propertyId) {
     selectedPropertyOriginRef.current = "map";
     setSelectedPropertyId(propertyId);
@@ -973,10 +980,12 @@ export default function InvestorDashboard() {
                       </svg>
                     </button>
 
-                    <button
-                      type="button"
+                    <div
                       className="invDash__cardFocus"
+                      role="button"
+                      tabIndex={0}
                       onClick={() => handleCardClick(property)}
+                      onKeyDown={(event) => handleCardFocusKeyDown(event, property)}
                     >
                       {leadPhoto ? (
                         <div className="invDash__cardImgWrap">
@@ -1069,7 +1078,7 @@ export default function InvestorDashboard() {
                           Click again for details
                         </p>
                       </div>
-                    </button>
+                    </div>
                   </article>
                 );
               })}

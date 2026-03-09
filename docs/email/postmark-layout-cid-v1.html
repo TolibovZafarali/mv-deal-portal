@@ -3,8 +3,14 @@
 <head>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+  <meta name="color-scheme" content="dark light" />
+  <meta name="supported-color-schemes" content="dark light" />
   <title>{{subject}}</title>
   <style type="text/css">
+    :root {
+      color-scheme: dark;
+      supported-color-schemes: dark;
+    }
     body { margin: 0; padding: 0; background: #101010; }
     .mv-wrap { width: 100%; background: #101010; padding: 24px 12px; }
     .mv-card { width: 600px; max-width: 600px; background: #101010; border: 1px solid #3a3a3a; }
@@ -12,20 +18,47 @@
     .mv-muted { color: #b8b8b8; }
     .mv-light { color: #f2f2f2; }
     .mv-line { height: 1px; line-height: 1px; font-size: 0; background: #3a3a3a; }
+    a[x-apple-data-detectors] { color: inherit !important; text-decoration: none !important; }
+    u + .mv-body .mv-wrap,
+    u + .mv-body .mv-card {
+      background: #101010 !important;
+    }
+    u + .mv-body .mv-card,
+    u + .mv-body .mv-line {
+      border-color: #3a3a3a !important;
+      background-color: #3a3a3a !important;
+    }
+    u + .mv-body .mv-light { color: #f2f2f2 !important; }
+    u + .mv-body .mv-muted { color: #b8b8b8 !important; }
+    @media (prefers-color-scheme: dark) {
+      body,
+      .mv-wrap,
+      .mv-card {
+        background: #101010 !important;
+      }
+      .mv-light { color: #f2f2f2 !important; }
+      .mv-muted { color: #b8b8b8 !important; }
+    }
   </style>
 </head>
-<body>
-  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" class="mv-wrap">
+<body class="mv-body" style="margin:0;padding:0;background:#101010;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" class="mv-wrap" bgcolor="#101010" style="width:100%;background:#101010;background-image:linear-gradient(#101010,#101010);padding:24px 12px;">
     <tr>
-      <td align="center">
-        <table role="presentation" cellspacing="0" cellpadding="0" class="mv-card">
+      <td align="center" bgcolor="#101010" style="background:#101010;background-image:linear-gradient(#101010,#101010);">
+        <table role="presentation" width="600" cellspacing="0" cellpadding="0" class="mv-card" bgcolor="#101010" style="width:100%;max-width:600px;background:#101010;background-image:linear-gradient(#101010,#101010);border:1px solid #3a3a3a;">
           <tr>
-            <td align="center" style="padding: 28px 24px 12px;">
-              <img src="{{logo_url}}" alt="MV Deal Portal" width="180" style="display: block; width: 180px; max-width: 100%; height: auto; border: 0;" />
+            <td align="center" bgcolor="#0b0b0b" style="padding: 24px 24px 12px; background:#0b0b0b; background-image:linear-gradient(#0b0b0b,#0b0b0b);">
+              <table role="presentation" width="520" cellspacing="0" cellpadding="0" align="center" style="width:100%;max-width:520px;margin:0 auto;">
+                <tr>
+                  <td align="center" bgcolor="#0b0b0b" style="padding:4px 0;background:#0b0b0b;background-image:linear-gradient(#0b0b0b,#0b0b0b);">
+                    <img src="{{logo_url}}" alt="MV Deal Portal" width="180" style="display: block; width: 180px; max-width: 100%; height: auto; border: 0;" />
+                  </td>
+                </tr>
+              </table>
             </td>
           </tr>
           <tr>
-            <td style="padding: 0 24px;">
+            <td bgcolor="#0b0b0b" style="padding: 0 24px; background:#0b0b0b; background-image:linear-gradient(#0b0b0b,#0b0b0b);">
               <div class="mv-line">&nbsp;</div>
             </td>
           </tr>

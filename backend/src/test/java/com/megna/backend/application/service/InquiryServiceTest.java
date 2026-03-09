@@ -38,6 +38,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -97,6 +98,8 @@ class InquiryServiceTest {
         when(investorRepository.findById(10L)).thenReturn(Optional.of(investor));
         when(inquiryRepository.findTopByInvestorIdAndPropertyIdOrderByCreatedAtDescIdDesc(10L, 101L))
                 .thenReturn(Optional.empty());
+        when(inquiryAdminReplyRepository.findTopByInvestorIdAndPropertyIdOrderByCreatedAtDescIdDesc(10L, 101L))
+                .thenReturn(Optional.empty());
         when(transactionalEmailService.sendTransactional(any())).thenReturn(true);
 
         List<EmailStatus> persistedStatuses = new ArrayList<>();
@@ -137,6 +140,8 @@ class InquiryServiceTest {
         when(propertyRepository.findById(101L)).thenReturn(Optional.of(property));
         when(investorRepository.findById(10L)).thenReturn(Optional.of(investor));
         when(inquiryRepository.findTopByInvestorIdAndPropertyIdOrderByCreatedAtDescIdDesc(10L, 101L))
+                .thenReturn(Optional.empty());
+        when(inquiryAdminReplyRepository.findTopByInvestorIdAndPropertyIdOrderByCreatedAtDescIdDesc(10L, 101L))
                 .thenReturn(Optional.empty());
         when(transactionalEmailService.sendTransactional(any())).thenReturn(false);
         when(inquiryRepository.save(any(Inquiry.class))).thenAnswer(invocation -> {
@@ -196,6 +201,7 @@ class InquiryServiceTest {
         InquiryAdminReply latestReply = new InquiryAdminReply();
         latestReply.setId(901L);
         latestReply.setCreatedAt(LocalDateTime.now().minusMinutes(1));
+        latestReply.setMessageBody("Can you confirm occupancy?");
 
         when(propertyRepository.findById(101L)).thenReturn(Optional.of(property));
         when(investorRepository.findById(10L)).thenReturn(Optional.of(investor));
@@ -215,6 +221,17 @@ class InquiryServiceTest {
         InquiryResponseDto response = inquiryService.create(sampleCreateRequest());
         assertEquals(EmailStatus.FAILED, response.emailStatus());
         verify(inquiryRepository, times(1)).save(any(Inquiry.class));
+
+        ArgumentCaptor<TransactionalEmailRequest> emailCaptor = ArgumentCaptor.forClass(TransactionalEmailRequest.class);
+        verify(transactionalEmailService).sendTransactional(emailCaptor.capture());
+        assertEquals("admin-inquiry-follow-up-cid-v1", emailCaptor.getValue().templateAlias());
+        @SuppressWarnings("unchecked")
+        Map<String, Object> templateModel = (Map<String, Object>) emailCaptor.getValue().templateModel();
+        assertEquals("902", templateModel.get("inquiry_id"));
+        assertEquals("10-101", templateModel.get("thread_id"));
+        assertEquals("Can you confirm occupancy?", templateModel.get("previous_message_excerpt"));
+        assertEquals("Please send terms and showing details.", templateModel.get("follow_up_message"));
+        assertNotNull(templateModel.get("last_message_at"));
     }
 
     private InquiryCreateRequestDto sampleCreateRequest() {
