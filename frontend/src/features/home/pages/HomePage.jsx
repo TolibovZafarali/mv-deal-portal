@@ -1,4 +1,4 @@
-import { startTransition, useEffect, useRef, useState } from "react";
+import { startTransition, useEffect, useEffectEvent, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { getClosedPropertyPreviews } from "@/api/modules/propertyApi";
 import {
@@ -89,6 +89,13 @@ function getDealSummary(property) {
     return "Closed opportunity surfaced through the Megna preview flow.";
 }
 
+const ABOUT_SCENE_CONTENT = {
+    label: "About us",
+    title: "Built for calmer deal execution.",
+    text:
+        "Megna is a focused real estate marketplace built to remove noise and keep serious buyers and sellers aligned from first look to final close.",
+};
+
 function SectionHeading({ eyebrow, title, lead, className = "" }) {
     return (
         <div className={`homeSectionHeading ${className}`.trim()}>
@@ -99,7 +106,7 @@ function SectionHeading({ eyebrow, title, lead, className = "" }) {
     );
 }
 
-function DealCard({ property, featured = false, delay = 0 }) {
+function DealCard({ property, delay = 0 }) {
     const leadPhoto = property?.photos?.[0]?.thumbnailUrl || property?.photos?.[0]?.url || "";
     const address = fullAddress(property) || "Address unavailable";
     const market = [property?.city, property?.state].filter(Boolean).join(", ");
@@ -112,7 +119,7 @@ function DealCard({ property, featured = false, delay = 0 }) {
 
     return (
         <article
-            className={`homeShowcase__card ${featured ? "homeShowcase__card--featured" : ""} homeReveal`}
+            className="homeShowcase__card homeReveal"
             data-delay={delay}
         >
             <div className="homeShowcase__imageWrap">
@@ -173,10 +180,15 @@ export default function HomePage({
 }) {
     const homeRef = useRef(null);
     const metricsRef = useRef(null);
+    const sceneFrameRef = useRef(null);
+    const aboutCloseTimerRef = useRef(0);
     const [selectedRole, setSelectedRole] = useState(() => getInitialRole(location));
     const [metricValues, setMetricValues] = useState(() => buildEmptyMetrics(ROLE_CONTENT[ROLE_INVESTOR].metrics));
     const [metricsVisible, setMetricsVisible] = useState(false);
     const [sceneHovered, setSceneHovered] = useState(false);
+    const [aboutPageOpen, setAboutPageOpen] = useState(false);
+    const [aboutPageReady, setAboutPageReady] = useState(false);
+    const [aboutPageClosing, setAboutPageClosing] = useState(false);
     const [closedDeals, setClosedDeals] = useState([]);
     const [closedDealsLoading, setClosedDealsLoading] = useState(true);
     const [closedDealsError, setClosedDealsError] = useState("");
@@ -190,6 +202,66 @@ export default function HomePage({
         startTransition(() => {
             setSelectedRole(role);
         });
+    };
+
+    const setSceneExpandMetrics = () => {
+        const root = homeRef.current;
+        const frame = sceneFrameRef.current;
+        if (!root || !frame || typeof window === "undefined") return;
+
+        const rect = frame.getBoundingClientRect();
+        if (!rect.width || !rect.height) return;
+
+        const viewportWidth = window.innerWidth || rect.width;
+        const viewportHeight = window.innerHeight || rect.height;
+        const scaleX = rect.width / viewportWidth;
+        const scaleY = rect.height / viewportHeight;
+        const translateX = rect.left + rect.width / 2 - viewportWidth / 2;
+        const translateY = rect.top + rect.height / 2 - viewportHeight / 2;
+
+        root.style.setProperty("--scene-origin-scale-x", scaleX.toFixed(4));
+        root.style.setProperty("--scene-origin-scale-y", scaleY.toFixed(4));
+        root.style.setProperty("--scene-origin-x", `${translateX.toFixed(1)}px`);
+        root.style.setProperty("--scene-origin-y", `${translateY.toFixed(1)}px`);
+    };
+
+    const openScene = () => {
+        window.clearTimeout(aboutCloseTimerRef.current);
+        setAboutPageClosing(false);
+        setSceneExpandMetrics();
+        window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+        setAboutPageOpen(true);
+        window.requestAnimationFrame(() => {
+            window.requestAnimationFrame(() => {
+                setAboutPageReady(true);
+            });
+        });
+    };
+
+    const closeScene = () => {
+        window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+        window.requestAnimationFrame(() => {
+            setSceneExpandMetrics();
+            setAboutPageClosing(true);
+            setAboutPageReady(false);
+        });
+        window.clearTimeout(aboutCloseTimerRef.current);
+        aboutCloseTimerRef.current = window.setTimeout(() => {
+            setAboutPageOpen(false);
+            setAboutPageClosing(false);
+        }, 760);
+    };
+
+    const handleEscapeClose = useEffectEvent(() => {
+        closeScene();
+    });
+
+    const handleSceneToggle = () => {
+        if (aboutPageOpen) {
+            closeScene();
+            return;
+        }
+        openScene();
     };
 
     useEffect(() => {
@@ -375,6 +447,34 @@ export default function HomePage({
         }
     }, [selectedRole]);
 
+    useEffect(() => {
+        if (!aboutPageOpen) return undefined;
+
+        const onResize = () => {
+            setSceneExpandMetrics();
+        };
+
+        const onKeyDown = (event) => {
+            if (event.key === "Escape") {
+                handleEscapeClose();
+            }
+        };
+
+        window.addEventListener("resize", onResize);
+        window.addEventListener("keydown", onKeyDown);
+
+        return () => {
+            window.removeEventListener("resize", onResize);
+            window.removeEventListener("keydown", onKeyDown);
+        };
+    }, [aboutPageOpen]);
+
+    useEffect(() => {
+        return () => {
+            window.clearTimeout(aboutCloseTimerRef.current);
+        };
+    }, []);
+
     if (bootstrapping) {
         return (
             <div className="homeBoot">
@@ -385,7 +485,10 @@ export default function HomePage({
     }
 
     return (
-        <div ref={homeRef} className="home">
+        <div
+            ref={homeRef}
+            className={`home ${aboutPageOpen ? "home--aboutOpen" : ""} ${aboutPageReady ? "home--aboutReady" : ""} ${aboutPageClosing ? "home--aboutClosing" : ""}`}
+        >
             <div className="homeProgress" aria-hidden="true" />
 
             <header className="homeHeader">
@@ -529,19 +632,31 @@ export default function HomePage({
                             </div>
                         </div>
 
-                        <div className="homeHero__scene homeReveal homeReveal--right" aria-hidden="true" data-delay="240">
+                        <div className="homeHero__scene homeReveal homeReveal--right" data-delay="240">
                             <div
+                                ref={sceneFrameRef}
                                 className="homeHero__sceneFrame"
                                 onPointerEnter={() => setSceneHovered(true)}
                                 onPointerLeave={() => setSceneHovered(false)}
+                                onClick={handleSceneToggle}
+                                role="button"
+                                tabIndex={0}
+                                aria-label={aboutPageOpen ? "Close about us page" : "Open about us page"}
+                                aria-expanded={aboutPageOpen}
+                                onKeyDown={(event) => {
+                                    if (event.key === "Enter" || event.key === " ") {
+                                        event.preventDefault();
+                                        handleSceneToggle();
+                                    }
+                                }}
                             >
                                 <div className="homeHero__sceneImage" />
                                 <div className="homeHero__sceneGradient" />
 
-                                <div key={`scene-copy-${selectedRole}`} className="homeHero__sceneText homeRoleMotion">
-                                    <p className="homeHero__sceneLabel">{roleContent.hero.spotlightLabel}</p>
-                                    <h2 className="homeHero__sceneTitle">{roleContent.hero.spotlightTitle}</h2>
-                                    <p className="homeHero__sceneCopy">{roleContent.hero.spotlightText}</p>
+                                <div className={`homeHero__sceneText ${aboutPageOpen ? "" : "homeRoleMotion"}`}>
+                                    <p className="homeHero__sceneLabel">{ABOUT_SCENE_CONTENT.label}</p>
+                                    <h2 className="homeHero__sceneTitle">{ABOUT_SCENE_CONTENT.title}</h2>
+                                    <p className="homeHero__sceneCopy">{ABOUT_SCENE_CONTENT.text}</p>
                                 </div>
                             </div>
 
@@ -564,7 +679,23 @@ export default function HomePage({
                     </div>
                 </section>
 
-                <section id="perspective" className="homeStory" aria-label="Perspective">
+                {aboutPageOpen ? (
+                    <section className={`homeAboutPage ${aboutPageReady ? "is-visible" : ""}`} aria-label="About us page" />
+                ) : null}
+
+                {aboutPageOpen ? (
+                    <div
+                        className={`homeAboutTransition ${aboutPageReady ? "is-open" : ""} ${aboutPageClosing ? "is-closing" : ""}`}
+                        aria-hidden="true"
+                    >
+                        <div className="homeAboutTransition__image" />
+                        <div className="homeAboutTransition__gradient" />
+                        <div className="homeAboutTransition__veil" />
+                    </div>
+                ) : null}
+                {aboutPageOpen ? null : (
+                    <>
+                        <section id="perspective" className="homeStory" aria-label="Perspective">
                     <div className="homeShell">
                         <div className="homeReveal" data-delay="40">
                             <div key={`story-top-${selectedRole}`} className="homeStory__top homeRoleMotion">
@@ -655,14 +786,16 @@ export default function HomePage({
                         </div>
 
                         {closedDealsLoading ? (
-                            <div className="homeShowcase__grid homeShowcase__grid--loading">
-                                {Array.from({ length: 4 }).map((_, index) => (
-                                    <div
-                                        key={`placeholder-${index}`}
-                                        className={`homeShowcase__placeholder ${index === 0 ? "homeShowcase__placeholder--featured" : ""} homeReveal`}
-                                        data-delay={index * 90}
-                                    />
-                                ))}
+                            <div className="homeShowcase__scroller" aria-label="Loading recent closings">
+                                <div className="homeShowcase__grid homeShowcase__grid--loading">
+                                    {Array.from({ length: 4 }).map((_, index) => (
+                                        <div
+                                            key={`placeholder-${index}`}
+                                            className="homeShowcase__placeholder homeReveal"
+                                            data-delay={index * 90}
+                                        />
+                                    ))}
+                                </div>
                             </div>
                         ) : null}
 
@@ -675,15 +808,16 @@ export default function HomePage({
                         ) : null}
 
                         {!closedDealsLoading && !closedDealsError && featuredDeals.length > 0 ? (
-                            <div className="homeShowcase__grid">
-                                {featuredDeals.map((property, index) => (
-                                    <DealCard
-                                        key={property?.id ?? `${property?.street1 ?? "deal"}-${index}`}
-                                        property={property}
-                                        featured={index === 0}
-                                        delay={index * 100}
-                                    />
-                                ))}
+                            <div className="homeShowcase__scroller" aria-label="Recent closings carousel">
+                                <div className="homeShowcase__grid">
+                                    {featuredDeals.map((property, index) => (
+                                        <DealCard
+                                            key={property?.id ?? `${property?.street1 ?? "deal"}-${index}`}
+                                            property={property}
+                                            delay={index * 100}
+                                        />
+                                    ))}
+                                </div>
                             </div>
                         ) : null}
                     </div>
@@ -760,10 +894,12 @@ export default function HomePage({
                         )}
                     </div>
                 </section>
+                    </>
+                )}
             </main>
 
             <footer className="homeFooter">
-                <div className="homeShell homeFooter__inner homeReveal" data-delay="30">
+                <div className="homeShell homeFooter__inner" data-delay="30">
                     <p className="homeFooter__brand">Megna Real Estate</p>
                     <p className="homeFooter__copy">© {new Date().getFullYear()} All rights reserved.</p>
                 </div>
