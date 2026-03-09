@@ -26,7 +26,15 @@ public class PostmarkTransactionalEmailService implements TransactionalEmailServ
             return false;
         }
 
-        if (isBlank(request.to()) || isBlank(request.subject()) || isBlank(request.textBody())) {
+        if (isBlank(request.to())) {
+            return false;
+        }
+
+        if (request.isTemplate()) {
+            if (isBlank(request.templateAlias()) || request.templateModel().isEmpty()) {
+                return false;
+            }
+        } else if (isBlank(request.subject()) || isBlank(request.textBody())) {
             return false;
         }
 

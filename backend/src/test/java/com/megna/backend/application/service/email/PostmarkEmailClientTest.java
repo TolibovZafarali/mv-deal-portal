@@ -121,4 +121,42 @@ class PostmarkEmailClientTest {
 
         assertFalse(sent);
     }
+
+    @Test
+    void sendTemplateUsesWithTemplateEndpointAndTemplatePayload() throws Exception {
+        PostmarkEmailClient client = new PostmarkEmailClient(httpClient, objectMapper, emailProperties);
+
+        when(emailProperties.getPostmarkApiBaseUrl()).thenReturn("https://api.postmarkapp.com");
+        when(emailProperties.getPostmarkServerToken()).thenReturn("test-token");
+        when(emailProperties.getFromAddress()).thenReturn("no-reply@megna-realestate.com");
+        when(emailProperties.getReplyToAddress()).thenReturn("contact@megna-realestate.com");
+        when(emailProperties.getPostmarkMessageStream()).thenReturn("outbound-stream");
+        when(objectMapper.writeValueAsString(any())).thenReturn("{\"ok\":true}");
+
+        HttpResponse<String> response = mock(HttpResponse.class);
+        when(response.statusCode()).thenReturn(200);
+        when(httpClient.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class))).thenReturn(response);
+
+        boolean sent = client.send(
+                TransactionalEmailRequest.template(
+                        "buyer@example.com",
+                        "reset-password-cid-v1",
+                        Map.of("subject", "Reset your password")
+                )
+        );
+
+        assertTrue(sent);
+
+        ArgumentCaptor<HttpRequest> requestCaptor = ArgumentCaptor.forClass(HttpRequest.class);
+        verify(httpClient).send(requestCaptor.capture(), any(HttpResponse.BodyHandler.class));
+        HttpRequest request = requestCaptor.getValue();
+        assertEquals("https://api.postmarkapp.com/email/withTemplate", request.uri().toString());
+
+        ArgumentCaptor<Object> payloadCaptor = ArgumentCaptor.forClass(Object.class);
+        verify(objectMapper).writeValueAsString(payloadCaptor.capture());
+        Map<?, ?> payload = (Map<?, ?>) payloadCaptor.getValue();
+        assertEquals("reset-password-cid-v1", payload.get("TemplateAlias"));
+        assertTrue(payload.containsKey("TemplateModel"));
+        assertFalse(payload.containsKey("Attachments"));
+    }
 }

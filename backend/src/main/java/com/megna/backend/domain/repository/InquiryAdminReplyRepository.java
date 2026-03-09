@@ -8,6 +8,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.Optional;
+
 public interface InquiryAdminReplyRepository extends JpaRepository<InquiryAdminReply, Long> {
 
     Page<InquiryAdminReply> findByInvestorId(Long investorId, Pageable pageable);
@@ -22,4 +24,6 @@ public interface InquiryAdminReplyRepository extends JpaRepository<InquiryAdminR
     Page<InquiryAdminReply> findByInvestorIdAndPropertyStatus(@Param("investorId") Long investorId,
                                                               @Param("status") PropertyStatus status,
                                                               Pageable pageable);
+
+    Optional<InquiryAdminReply> findTopByInvestorIdAndPropertyIdOrderByCreatedAtDescIdDesc(Long investorId, Long propertyId);
 }

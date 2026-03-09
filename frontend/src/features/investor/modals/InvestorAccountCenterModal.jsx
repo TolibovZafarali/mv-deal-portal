@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { getInquiryByInvestor } from "@/api/modules/inquiryApi";
+import { createInquiry, getInquiryByInvestor } from "@/api/modules/inquiryApi";
 import { getInquiryRepliesByInvestor } from "@/api/modules/inquiryReplyApi";
 import { getInvestorById, updateInvestor } from "@/api/modules/investorApi";
 import { getPropertyById } from "@/api/modules/propertyApi";
@@ -12,6 +12,7 @@ const PROFILE_VIEW = "profile";
 const SECURITY_VIEW = "security";
 const NOTIFICATIONS_VIEW = "notifications";
 const MESSAGES_VIEW = "messages";
+const MESSAGE_CHAR_LIMIT = 200;
 const EMPTY_PROFILE = {
   firstName: "",
   lastName: "",
@@ -143,6 +144,10 @@ export default function InvestorAccountCenterModal({
   const [threadSearchOpen, setThreadSearchOpen] = useState(false);
   const [threadSearchQuery, setThreadSearchQuery] = useState("");
   const [mobileThreadPanelOpen, setMobileThreadPanelOpen] = useState(false);
+  const [followUpBody, setFollowUpBody] = useState("");
+  const [followUpSending, setFollowUpSending] = useState(false);
+  const [followUpError, setFollowUpError] = useState("");
+  const [followUpOk, setFollowUpOk] = useState("");
   const propertyListRef = useRef(null);
   const threadSearchInputRef = useRef(null);
 
@@ -469,6 +474,11 @@ export default function InvestorAccountCenterModal({
     () => propertyThreads.find((thread) => thread.propertyId === selectedPropertyId) ?? null,
     [propertyThreads, selectedPropertyId],
   );
+  const selectedThreadHasReply = selectedThread
+    ? selectedThread.messages.some((message) => message.kind === "REPLY")
+    : false;
+  const followUpCharsUsed = String(followUpBody ?? "").length;
+  const followUpCharsRemaining = Math.max(MESSAGE_CHAR_LIMIT - followUpCharsUsed, 0);
   const normalizedThreadSearch = cleanString(threadSearchQuery).toLowerCase();
   const filteredPropertyThreads = useMemo(() => {
     if (!normalizedThreadSearch) return propertyThreads;
@@ -540,6 +550,60 @@ export default function InvestorAccountCenterModal({
       setNotificationSaveError(error?.message || "Failed to save notification email.");
     } finally {
       setNotificationSaving(false);
+    }
+  }
+
+  async function handleSendFollowUp() {
+    if (!investorId || !selectedThread) return;
+    if (!selectedThreadHasReply) {
+      setFollowUpError("You can send a follow-up after Megna Team replies in this thread.");
+      setFollowUpOk("");
+      return;
+    }
+
+    const messageBody = cleanString(followUpBody);
+    if (!messageBody) {
+      setFollowUpError("Message is required.");
+      setFollowUpOk("");
+      return;
+    }
+
+    setFollowUpSending(true);
+    setFollowUpError("");
+    setFollowUpOk("");
+
+    try {
+      const investor = await getInvestorById(investorId);
+      const contactName = cleanString([investor?.firstName, investor?.lastName].filter(Boolean).join(" "));
+      const companyName = cleanString(investor?.companyName);
+      const contactEmail = cleanString(investor?.email);
+      const contactPhone = cleanString(investor?.phone);
+      if (!contactName || !companyName || !contactEmail || !contactPhone) {
+        setFollowUpError("Complete your profile in Account Center before sending follow-up messages.");
+        setFollowUpOk("");
+        return;
+      }
+
+      const propertyId = selectedThread.propertyId;
+      const subjectAddress = resolvePropertyAddress(propertyId);
+      const created = await createInquiry({
+        propertyId,
+        investorId,
+        subject: `Megna team message: ${subjectAddress}`,
+        messageBody,
+        contactName,
+        companyName,
+        contactEmail,
+        contactPhone,
+      });
+      setInquiries((prev) => [created, ...prev]);
+      setFollowUpBody("");
+      setFollowUpOk("Follow-up sent.");
+    } catch (error) {
+      setFollowUpError(error?.message || "Failed to send follow-up.");
+      setFollowUpOk("");
+    } finally {
+      setFollowUpSending(false);
     }
   }
 
@@ -653,6 +717,13 @@ export default function InvestorAccountCenterModal({
   function resolvePropertyPhoto(propertyId) {
     return propertyMetaById[propertyId]?.photoUrl || "";
   }
+
+  useEffect(() => {
+    setFollowUpBody("");
+    setFollowUpSending(false);
+    setFollowUpError("");
+    setFollowUpOk("");
+  }, [selectedThread?.propertyId]);
 
   return (
     <div
@@ -1258,14 +1329,14 @@ export default function InvestorAccountCenterModal({
                   {selectedThread ? (
                     <div className="invAccountModal__chatState" role="status" aria-live="polite">
                       <span className="invAccountModal__chatStateBadge">
-                        {selectedThread.messages.some((message) => message.kind === "REPLY")
+                        {selectedThreadHasReply
                           ? "Reply received"
                           : selectedThread.pendingCount > 0
                             ? "Message sent"
                             : "Inbox received"}
                       </span>
                       <p className="invAccountModal__chatStateText">
-                        {selectedThread.messages.some((message) => message.kind === "REPLY")
+                        {selectedThreadHasReply
                           ? "Megna Team replied in this thread. Keep the conversation here for follow-up."
                           : selectedThread.pendingCount > 0
                             ? "Your message was sent successfully. Please wait for a response from Megna Team."
@@ -1277,6 +1348,49 @@ export default function InvestorAccountCenterModal({
                       Select a property to see message status.
                     </div>
                   )}
+
+                  {selectedThread ? (
+                    <div className="invAccountModal__chatComposer">
+                      {selectedThreadHasReply ? (
+                        <>
+                          <div className="invAccountModal__chatComposerHead">
+                            <span className="invAccountModal__chatComposerLabel">Send follow-up</span>
+                            <span className="invAccountModal__chatComposerCount" aria-live="polite">
+                              {followUpCharsRemaining}/{MESSAGE_CHAR_LIMIT}
+                            </span>
+                          </div>
+                          <textarea
+                            className="invAccountModal__chatComposerInput"
+                            value={followUpBody}
+                            onChange={(event) =>
+                              setFollowUpBody(String(event.target.value ?? "").slice(0, MESSAGE_CHAR_LIMIT))
+                            }
+                            placeholder="Write your follow-up message"
+                            rows={4}
+                            maxLength={MESSAGE_CHAR_LIMIT}
+                          />
+                          {followUpError ? (
+                            <div className="invAccountModal__formMsg invAccountModal__formMsg--error">{followUpError}</div>
+                          ) : null}
+                          {followUpOk ? (
+                            <div className="invAccountModal__formMsg invAccountModal__formMsg--ok">{followUpOk}</div>
+                          ) : null}
+                          <button
+                            type="button"
+                            className="invAccountModal__save invAccountModal__chatComposerSend"
+                            onClick={handleSendFollowUp}
+                            disabled={followUpSending}
+                          >
+                            {followUpSending ? "Sending..." : "Send Follow-up"}
+                          </button>
+                        </>
+                      ) : (
+                        <p className="invAccountModal__chatComposerLocked">
+                          Follow-up is enabled after Megna Team replies.
+                        </p>
+                      )}
+                    </div>
+                  ) : null}
                 </>
               ) : null}
             </section>

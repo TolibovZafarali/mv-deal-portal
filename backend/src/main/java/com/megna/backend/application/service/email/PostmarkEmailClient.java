@@ -40,7 +40,7 @@ public class PostmarkEmailClient {
 
     public boolean send(TransactionalEmailRequest request) {
         try {
-            String endpoint = resolveEndpoint();
+            String endpoint = resolveEndpoint(request);
             String payload = objectMapper.writeValueAsString(buildPayload(request));
 
             HttpRequest httpRequest = HttpRequest.newBuilder(URI.create(endpoint))
@@ -79,19 +79,25 @@ public class PostmarkEmailClient {
         payload.put("From", emailProperties.getFromAddress());
         payload.put("To", request.to());
         payload.put("ReplyTo", emailProperties.getReplyToAddress());
-        payload.put("Subject", request.subject());
-        payload.put("TextBody", request.textBody());
+        if (request.isTemplate()) {
+            payload.put("TemplateAlias", request.templateAlias());
+            payload.put("TemplateModel", request.templateModel());
+        } else {
+            payload.put("Subject", request.subject());
+            payload.put("TextBody", request.textBody());
+        }
         payload.put("MessageStream", emailProperties.getPostmarkMessageStream());
         return payload;
     }
 
-    private String resolveEndpoint() {
+    private String resolveEndpoint(TransactionalEmailRequest request) {
         String baseUrl = emailProperties.getPostmarkApiBaseUrl() == null
                 ? ""
                 : emailProperties.getPostmarkApiBaseUrl().trim();
+        String endpointPath = request != null && request.isTemplate() ? "email/withTemplate" : "email";
         if (baseUrl.endsWith("/")) {
-            return baseUrl + "email";
+            return baseUrl + endpointPath;
         }
-        return baseUrl + "/email";
+        return baseUrl + "/" + endpointPath;
     }
 }

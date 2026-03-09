@@ -5,6 +5,7 @@ import com.megna.backend.application.service.email.TransactionalEmailService;
 import com.megna.backend.interfaces.rest.dto.inquiry.InquiryCreateRequestDto;
 import com.megna.backend.interfaces.rest.dto.inquiry.InquiryResponseDto;
 import com.megna.backend.domain.entity.Inquiry;
+import com.megna.backend.domain.entity.InquiryAdminReply;
 import com.megna.backend.domain.entity.Investor;
 import com.megna.backend.domain.entity.Property;
 import com.megna.backend.domain.enums.EmailStatus;
@@ -12,6 +13,7 @@ import com.megna.backend.domain.enums.InvestorStatus;
 import com.megna.backend.domain.enums.PropertyStatus;
 import com.megna.backend.interfaces.rest.mapper.InquiryMapper;
 import com.megna.backend.domain.repository.InquiryRepository;
+import com.megna.backend.domain.repository.InquiryAdminReplyRepository;
 import com.megna.backend.domain.repository.InvestorRepository;
 import com.megna.backend.domain.repository.PropertyRepository;
 import com.megna.backend.infrastructure.security.AuthPrincipal;
@@ -24,8 +26,12 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -33,8 +39,14 @@ import java.util.List;
 public class InquiryService {
 
     private static final String MEGNA_TEAM_INBOX = "contact@megna-realestate.com";
+    private static final String INQUIRY_CREATED_TEMPLATE_ALIAS = "admin-inquiry-created-cid-v1";
+    private static final String INQUIRY_FOLLOW_UP_TEMPLATE_ALIAS = "admin-inquiry-follow-up-cid-v1";
+    private static final String PUBLIC_LOGO_URL = "https://raw.githubusercontent.com/TolibovZafarali/mv-deal-portal/dev/frontend/public/white-logo.png";
+    private static final DateTimeFormatter CREATED_AT_FORMATTER =
+            DateTimeFormatter.ofPattern("yyyy-MM-dd hh:mm a z");
 
     private final InquiryRepository inquiryRepository;
+    private final InquiryAdminReplyRepository inquiryAdminReplyRepository;
     private final PropertyRepository propertyRepository;
     private final InvestorRepository investorRepository;
     private final TransactionalEmailService transactionalEmailService;
@@ -53,11 +65,25 @@ public class InquiryService {
         Investor investor = investorRepository.findById(dto.investorId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Investor not found: " + dto.investorId()));
 
+        Inquiry latestInquiry = inquiryRepository
+                .findTopByInvestorIdAndPropertyIdOrderByCreatedAtDescIdDesc(dto.investorId(), dto.propertyId())
+                .orElse(null);
+        InquiryAdminReply latestReply = inquiryAdminReplyRepository
+                .findTopByInvestorIdAndPropertyIdOrderByCreatedAtDescIdDesc(dto.investorId(), dto.propertyId())
+                .orElse(null);
+
+        if (!canSendInquiryMessage(latestInquiry, latestReply)) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "You can send another message after Megna Team replies to your previous inquiry."
+            );
+        }
+
         Inquiry inquiry = InquiryMapper.toEntity(dto, property, investor);
         inquiry.setEmailStatus(EmailStatus.FAILED);
         Inquiry saved = inquiryRepository.save(inquiry);
 
-        boolean sent = sendInquiryNotification(saved);
+        boolean sent = sendInquiryNotification(saved, latestInquiry, latestReply);
         if (sent) {
             saved.setEmailStatus(EmailStatus.SENT);
             saved = inquiryRepository.save(saved);
@@ -151,6 +177,24 @@ public class InquiryService {
         }
     }
 
+    private boolean canSendInquiryMessage(Inquiry latestInquiry, InquiryAdminReply latestReply) {
+        if (latestInquiry == null) {
+            return true;
+        }
+
+        if (latestReply == null) {
+            return false;
+        }
+
+        LocalDateTime inquiryCreatedAt = latestInquiry.getCreatedAt();
+        LocalDateTime replyCreatedAt = latestReply.getCreatedAt();
+        if (inquiryCreatedAt == null || replyCreatedAt == null) {
+            return false;
+        }
+
+        return !replyCreatedAt.isBefore(inquiryCreatedAt);
+    }
+
     private void requireSellerSelfOrAdmin(Long sellerId) {
         if (sellerId == null || sellerId <= 0) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Forbidden");
@@ -164,13 +208,20 @@ public class InquiryService {
         }
     }
 
-    private boolean sendInquiryNotification(Inquiry inquiry) {
+    private boolean sendInquiryNotification(Inquiry inquiry, Inquiry latestInquiry, InquiryAdminReply latestReply) {
+        boolean isFollowUp = latestInquiry != null;
+        String templateAlias = isFollowUp
+                ? INQUIRY_FOLLOW_UP_TEMPLATE_ALIAS
+                : INQUIRY_CREATED_TEMPLATE_ALIAS;
+        Map<String, Object> templateModel = isFollowUp
+                ? buildFollowUpTemplateModel(inquiry, latestInquiry, latestReply)
+                : buildInquiryCreatedTemplateModel(inquiry);
         try {
             return transactionalEmailService.sendTransactional(
-                    new TransactionalEmailRequest(
+                    TransactionalEmailRequest.template(
                             MEGNA_TEAM_INBOX,
-                            buildInquirySubject(inquiry),
-                            buildInquiryBody(inquiry)
+                            templateAlias,
+                            templateModel
                     )
             );
         } catch (RuntimeException ex) {
@@ -179,30 +230,92 @@ public class InquiryService {
         }
     }
 
-    private String buildInquirySubject(Inquiry inquiry) {
-        String subject = inquiry.getSubject() == null ? "" : inquiry.getSubject().trim();
-        Long inquiryId = inquiry.getId();
-        if (!subject.isBlank()) {
-            return "New inquiry #" + (inquiryId == null ? "N/A" : inquiryId) + ": " + subject;
-        }
-        return "New inquiry #" + (inquiryId == null ? "N/A" : inquiryId);
+    private Map<String, Object> buildInquiryCreatedTemplateModel(Inquiry inquiry) {
+        Map<String, Object> model = new LinkedHashMap<>();
+        model.put("logo_url", PUBLIC_LOGO_URL);
+        model.put("subject", "New investor inquiry");
+        model.put("title", "A new investor inquiry was created");
+        model.put("message", "A new inquiry has been submitted and needs admin attention.");
+        model.put("inquiry_id", safeNumber(inquiry == null ? null : inquiry.getId()));
+        model.put("investor_name", safeValue(inquiry == null ? null : inquiry.getContactName()));
+        model.put("investor_email", safeValue(inquiry == null ? null : inquiry.getContactEmail()));
+        model.put("property_address", resolvePropertyAddress(inquiry));
+        model.put("created_at", formatCreatedAt(inquiry));
+        model.put("inquiry_message", safeValue(inquiry == null ? null : inquiry.getMessageBody()));
+        model.put("action_text", "Open Inquiry");
+        model.put("action_url", "https://megna-realestate.com/admin/inquiries/" + safeNumber(inquiry == null ? null : inquiry.getId()));
+        model.put("footer_text", "This notification was sent to admins because a new inquiry was created.");
+        return model;
     }
 
-    private String buildInquiryBody(Inquiry inquiry) {
-        List<String> lines = new ArrayList<>();
-        lines.add("A new inquiry was submitted.");
-        lines.add("");
-        lines.add("Inquiry ID: " + safeNumber(inquiry.getId()));
-        lines.add("Property ID: " + safeNumber(inquiry.getProperty() == null ? null : inquiry.getProperty().getId()));
-        lines.add("Investor ID: " + safeNumber(inquiry.getInvestor() == null ? null : inquiry.getInvestor().getId()));
-        lines.add("Subject: " + safeValue(inquiry.getSubject()));
-        lines.add("Message: " + safeValue(inquiry.getMessageBody()));
-        lines.add("");
-        lines.add("Contact Name: " + safeValue(inquiry.getContactName()));
-        lines.add("Company: " + safeValue(inquiry.getCompanyName()));
-        lines.add("Contact Email: " + safeValue(inquiry.getContactEmail()));
-        lines.add("Contact Phone: " + safeValue(inquiry.getContactPhone()));
-        return String.join("\n", lines);
+    private Map<String, Object> buildFollowUpTemplateModel(Inquiry inquiry, Inquiry latestInquiry, InquiryAdminReply latestReply) {
+        Map<String, Object> model = new LinkedHashMap<>();
+        model.put("logo_url", PUBLIC_LOGO_URL);
+        model.put("subject", "Investor follow-up on inquiry");
+        model.put("title", "An investor sent a follow-up message");
+        model.put("message", "There is a new follow-up in an existing inquiry thread.");
+        model.put("inquiry_id", safeNumber(inquiry == null ? null : inquiry.getId()));
+        model.put("thread_id", resolveThreadId(inquiry, latestInquiry));
+        model.put("investor_name", safeValue(inquiry == null ? null : inquiry.getContactName()));
+        model.put("investor_email", safeValue(inquiry == null ? null : inquiry.getContactEmail()));
+        model.put("property_address", resolvePropertyAddress(inquiry));
+        model.put("last_message_at", formatCreatedAt(latestReply == null ? null : latestReply.getCreatedAt()));
+        model.put("previous_message_excerpt", excerpt(safeValue(latestReply == null ? null : latestReply.getMessageBody())));
+        model.put("follow_up_message", safeValue(inquiry == null ? null : inquiry.getMessageBody()));
+        model.put("action_text", "Open Inquiry Thread");
+        model.put("action_url", "https://megna-realestate.com/admin/inquiries/" + safeNumber(inquiry == null ? null : inquiry.getId()));
+        model.put("footer_text", "This notification was sent to admins because an investor followed up on an inquiry.");
+        return model;
+    }
+
+    private String resolvePropertyAddress(Inquiry inquiry) {
+        if (inquiry == null || inquiry.getProperty() == null) {
+            return "N/A";
+        }
+        Property property = inquiry.getProperty();
+        String line1 = joinComma(property.getStreet1(), property.getStreet2());
+        String stateZip = joinSpace(property.getState(), property.getZip());
+        String line2 = joinComma(property.getCity(), stateZip);
+        String address = joinComma(line1, line2);
+        return address.isBlank() ? "N/A" : address;
+    }
+
+    private String formatCreatedAt(Inquiry inquiry) {
+        if (inquiry == null) {
+            return formatCreatedAt((LocalDateTime) null);
+        }
+        return formatCreatedAt(inquiry.getCreatedAt());
+    }
+
+    private String formatCreatedAt(LocalDateTime createdAt) {
+        LocalDateTime value = createdAt == null ? utcNow() : createdAt;
+        return value.atZone(ZoneId.of("America/Chicago")).format(CREATED_AT_FORMATTER);
+    }
+
+    private String resolveThreadId(Inquiry inquiry, Inquiry latestInquiry) {
+        Long investorId = inquiry != null && inquiry.getInvestor() != null ? inquiry.getInvestor().getId() : null;
+        Long propertyId = inquiry != null && inquiry.getProperty() != null ? inquiry.getProperty().getId() : null;
+        if (investorId == null || propertyId == null) {
+            Long fallbackInvestorId = latestInquiry != null && latestInquiry.getInvestor() != null ? latestInquiry.getInvestor().getId() : null;
+            Long fallbackPropertyId = latestInquiry != null && latestInquiry.getProperty() != null ? latestInquiry.getProperty().getId() : null;
+            if (fallbackInvestorId == null || fallbackPropertyId == null) {
+                return "N/A";
+            }
+            return fallbackInvestorId + "-" + fallbackPropertyId;
+        }
+        return investorId + "-" + propertyId;
+    }
+
+    private String excerpt(String value) {
+        if (value == null || value.isBlank() || "N/A".equals(value)) {
+            return "N/A";
+        }
+        String normalized = value.replaceAll("\\s+", " ").trim();
+        int maxLen = 220;
+        if (normalized.length() <= maxLen) {
+            return normalized;
+        }
+        return normalized.substring(0, maxLen - 3) + "...";
     }
 
     private String safeValue(String value) {
@@ -214,6 +327,32 @@ public class InquiryService {
 
     private String safeNumber(Long value) {
         return value == null ? "N/A" : value.toString();
+    }
+
+    private static String joinComma(String... values) {
+        StringBuilder result = new StringBuilder();
+        if (values == null) return "";
+        for (String value : values) {
+            String normalized = value == null ? "" : value.trim();
+            if (normalized.isBlank()) continue;
+            if (result.length() > 0) {
+                result.append(", ");
+            }
+            result.append(normalized);
+        }
+        return result.toString();
+    }
+
+    private static String joinSpace(String left, String right) {
+        String normalizedLeft = left == null ? "" : left.trim();
+        String normalizedRight = right == null ? "" : right.trim();
+        if (normalizedLeft.isBlank()) return normalizedRight;
+        if (normalizedRight.isBlank()) return normalizedLeft;
+        return normalizedLeft + " " + normalizedRight;
+    }
+
+    private static LocalDateTime utcNow() {
+        return LocalDateTime.now(ZoneOffset.UTC);
     }
 
     private boolean isInquiryVisibleToInvestor(Inquiry inquiry) {

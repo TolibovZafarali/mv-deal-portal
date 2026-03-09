@@ -765,6 +765,59 @@
   color: rgba(17, 17, 17, 0.62);
 }
 
+.invAccountModal__chatComposer {
+  display: grid;
+  gap: 8px;
+  border: 1px solid rgba(17, 17, 17, 0.2);
+  background: rgba(255, 255, 255, 0.82);
+  padding: 10px 12px;
+}
+
+.invAccountModal__chatComposerHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.invAccountModal__chatComposerLabel {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: rgba(17, 17, 17, 0.72);
+}
+
+.invAccountModal__chatComposerCount {
+  font-size: 12px;
+  color: rgba(17, 17, 17, 0.62);
+}
+
+.invAccountModal__chatComposerInput {
+  border: 1px solid rgba(17, 17, 17, 0.3);
+  background: #ffffff;
+  color: #111111;
+  padding: 9px 10px;
+  resize: vertical;
+  min-height: 88px;
+  outline: none;
+  font: inherit;
+}
+
+.invAccountModal__chatComposerInput:focus {
+  border-color: rgba(17, 17, 17, 0.58);
+}
+
+.invAccountModal__chatComposerSend {
+  margin-top: 0;
+}
+
+.invAccountModal__chatComposerLocked {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.4;
+  color: rgba(17, 17, 17, 0.72);
+}
+
 .invAccountModal__notice {
   border: 1px solid rgba(17, 17, 17, 0.22);
   background: rgba(255, 255, 255, 0.8);

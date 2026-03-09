@@ -89,6 +89,7 @@ export default function InvestorPropertyDetailsModal({
   inquirySuccess,
   profileError,
   alreadyMessaged = false,
+  hasAdminReply = false,
   isFavorite = false,
   onToggleFavorite,
   onOpenMessages,
@@ -162,10 +163,17 @@ export default function InvestorPropertyDetailsModal({
   const profitMetricStyle = { backgroundColor: "#0a7d2c", borderColor: "#0a7d2c" };
   const profitMetricLabelStyle = { color: "#ffffff" };
   const profitMetricValueStyle = { color: "#ffffff", fontSize: "21px" };
-  const sideTitle = alreadyMessaged ? "Already Messaged Megna Team" : "Message Megna Team";
-  const sideHelp = alreadyMessaged
-    ? "You already sent a message for this property. Check Messages in your dashboard for status."
-    : "Ask follow-up questions here. This message goes to the Megna team, not the seller.";
+  const canSendMessage = !alreadyMessaged || hasAdminReply;
+  const sideTitle = !canSendMessage
+    ? "Awaiting Megna Team Reply"
+    : alreadyMessaged && hasAdminReply
+      ? "Continue Conversation with Megna Team"
+      : "Message Megna Team";
+  const sideHelp = !canSendMessage
+    ? "You already sent a message for this property. You can send another one after Megna Team replies."
+    : alreadyMessaged && hasAdminReply
+      ? "Megna Team replied. You can send follow-up questions in this thread."
+      : "Ask questions here. This message goes to the Megna team, not the seller.";
 
   useEffect(() => {
     const rail = photoScrollerRef.current;
@@ -374,7 +382,7 @@ export default function InvestorPropertyDetailsModal({
               </div>
               {!alreadyMessaged || onToggleFavorite ? (
                 <div className="invPropDetail__addressActions">
-                  {!alreadyMessaged ? (
+                  {canSendMessage ? (
                     <button
                       type="button"
                       className="invPropDetail__messageJump"
@@ -539,7 +547,7 @@ export default function InvestorPropertyDetailsModal({
             </div>
             <p className="invPropDetail__sideHelp">{sideHelp}</p>
 
-            {alreadyMessaged ? null : (
+            {canSendMessage ? (
               <>
                 <div className="invPropDetail__messageWrap">
                   <span className="invPropDetail__charCount" aria-live="polite">
@@ -567,10 +575,10 @@ export default function InvestorPropertyDetailsModal({
                   onClick={onSubmitInquiry}
                   disabled={inquirySending}
                 >
-                  {inquirySending ? "Sending..." : "Send to Megna Team"}
+                  {inquirySending ? "Sending..." : alreadyMessaged && hasAdminReply ? "Send Follow-up" : "Send to Megna Team"}
                 </button>
               </>
-            )}
+            ) : null}
           </aside>
         </div>
       </div>
