@@ -5,6 +5,7 @@ import com.megna.backend.application.service.email.TransactionalEmailService;
 import com.megna.backend.interfaces.rest.dto.inquiry.InquiryCreateRequestDto;
 import com.megna.backend.interfaces.rest.dto.inquiry.InquiryResponseDto;
 import com.megna.backend.domain.entity.Inquiry;
+import com.megna.backend.domain.entity.InquiryAdminReply;
 import com.megna.backend.domain.entity.Investor;
 import com.megna.backend.domain.entity.Property;
 import com.megna.backend.domain.enums.EmailStatus;
@@ -12,6 +13,7 @@ import com.megna.backend.domain.enums.InvestorStatus;
 import com.megna.backend.domain.enums.PropertyStatus;
 import com.megna.backend.interfaces.rest.mapper.InquiryMapper;
 import com.megna.backend.domain.repository.InquiryRepository;
+import com.megna.backend.domain.repository.InquiryAdminReplyRepository;
 import com.megna.backend.domain.repository.InvestorRepository;
 import com.megna.backend.domain.repository.PropertyRepository;
 import com.megna.backend.infrastructure.security.AuthPrincipal;
@@ -38,11 +40,12 @@ public class InquiryService {
 
     private static final String MEGNA_TEAM_INBOX = "contact@megna-realestate.com";
     private static final String TEMPLATE_ALIAS = "admin-inquiry-created-cid-v1";
-    private static final String PUBLIC_LOGO_URL = "https://megna-realestate.com/white-logo.svg";
+    private static final String PUBLIC_LOGO_URL = "https://raw.githubusercontent.com/TolibovZafarali/mv-deal-portal/dev/frontend/public/white-logo.png";
     private static final DateTimeFormatter CREATED_AT_FORMATTER =
             DateTimeFormatter.ofPattern("yyyy-MM-dd hh:mm a z");
 
     private final InquiryRepository inquiryRepository;
+    private final InquiryAdminReplyRepository inquiryAdminReplyRepository;
     private final PropertyRepository propertyRepository;
     private final InvestorRepository investorRepository;
     private final TransactionalEmailService transactionalEmailService;
@@ -60,6 +63,13 @@ public class InquiryService {
 
         Investor investor = investorRepository.findById(dto.investorId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Investor not found: " + dto.investorId()));
+
+        if (!canSendInquiryMessage(dto.investorId(), dto.propertyId())) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "You can send another message after Megna Team replies to your previous inquiry."
+            );
+        }
 
         Inquiry inquiry = InquiryMapper.toEntity(dto, property, investor);
         inquiry.setEmailStatus(EmailStatus.FAILED);
@@ -157,6 +167,30 @@ public class InquiryService {
                     "Access denied: investor status is " + investor.getStatus().name()
             );
         }
+    }
+
+    private boolean canSendInquiryMessage(Long investorId, Long propertyId) {
+        Inquiry latestInquiry = inquiryRepository
+                .findTopByInvestorIdAndPropertyIdOrderByCreatedAtDescIdDesc(investorId, propertyId)
+                .orElse(null);
+        if (latestInquiry == null) {
+            return true;
+        }
+
+        InquiryAdminReply latestReply = inquiryAdminReplyRepository
+                .findTopByInvestorIdAndPropertyIdOrderByCreatedAtDescIdDesc(investorId, propertyId)
+                .orElse(null);
+        if (latestReply == null) {
+            return false;
+        }
+
+        LocalDateTime inquiryCreatedAt = latestInquiry.getCreatedAt();
+        LocalDateTime replyCreatedAt = latestReply.getCreatedAt();
+        if (inquiryCreatedAt == null || replyCreatedAt == null) {
+            return false;
+        }
+
+        return !replyCreatedAt.isBefore(inquiryCreatedAt);
     }
 
     private void requireSellerSelfOrAdmin(Long sellerId) {

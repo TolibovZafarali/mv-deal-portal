@@ -106,7 +106,7 @@ Verify model:
 ```json
 {
   "subject": "Confirm your email",
-  "logo_url": "https://megna-realestate.com/white-logo.svg",
+  "logo_url": "https://raw.githubusercontent.com/TolibovZafarali/mv-deal-portal/dev/frontend/public/white-logo.png",
   "title": "Confirm your email address",
   "message": "Click below to verify your email and finish setting up your account.",
   "action_text": "Verify Email",
@@ -120,7 +120,7 @@ Reset model:
 ```json
 {
   "subject": "Reset your password",
-  "logo_url": "https://megna-realestate.com/white-logo.svg",
+  "logo_url": "https://raw.githubusercontent.com/TolibovZafarali/mv-deal-portal/dev/frontend/public/white-logo.png",
   "title": "Reset your password",
   "message": "We received a request to reset your password.",
   "expiry_note": "For your security, this link expires in 30 minutes.",
@@ -135,7 +135,7 @@ Welcome model:
 ```json
 {
   "subject": "Welcome to MV Deal Portal",
-  "logo_url": "https://megna-realestate.com/white-logo.svg",
+  "logo_url": "https://raw.githubusercontent.com/TolibovZafarali/mv-deal-portal/dev/frontend/public/white-logo.png",
   "title": "Welcome to MV Deal Portal",
   "message": "Your account is ready. You can now explore listings and manage your deals.",
   "action_text": "Open Dashboard",
@@ -149,7 +149,7 @@ Investor new-property-published model:
 ```json
 {
   "subject": "New property published",
-  "logo_url": "https://megna-realestate.com/white-logo.svg",
+  "logo_url": "https://raw.githubusercontent.com/TolibovZafarali/mv-deal-portal/dev/frontend/public/white-logo.png",
   "title": "A new property just went live",
   "message": "A listing that matches your interest has been published.",
   "property_photo_url": "https://example.com/property-photo.jpg",
@@ -166,7 +166,7 @@ Admin inquiry-created model:
 ```json
 {
   "subject": "New investor inquiry",
-  "logo_url": "https://megna-realestate.com/white-logo.svg",
+  "logo_url": "https://raw.githubusercontent.com/TolibovZafarali/mv-deal-portal/dev/frontend/public/white-logo.png",
   "title": "A new investor inquiry was created",
   "message": "A new inquiry has been submitted and needs admin attention.",
   "inquiry_id": "inquiry_12345",
@@ -191,7 +191,7 @@ Admin inquiry-created model:
   "TemplateAlias": "verify-email-cid-v1",
   "TemplateModel": {
     "subject": "Confirm your email",
-    "logo_url": "https://megna-realestate.com/white-logo.svg",
+    "logo_url": "https://raw.githubusercontent.com/TolibovZafarali/mv-deal-portal/dev/frontend/public/white-logo.png",
     "title": "Confirm your email address",
     "message": "Click below to verify your email and finish setting up your account.",
     "action_text": "Verify Email",

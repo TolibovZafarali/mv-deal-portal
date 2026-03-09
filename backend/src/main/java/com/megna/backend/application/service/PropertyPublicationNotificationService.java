@@ -32,7 +32,7 @@ public class PropertyPublicationNotificationService {
 
     private static final int MAX_DELIVERY_ATTEMPTS = 5;
     private static final String TEMPLATE_ALIAS = "investor-new-property-published-cid-v1";
-    private static final String PUBLIC_LOGO_URL = "https://megna-realestate.com/white-logo.svg";
+    private static final String PUBLIC_LOGO_URL = "https://raw.githubusercontent.com/TolibovZafarali/mv-deal-portal/dev/frontend/public/white-logo.png";
 
     private final PropertyRepository propertyRepository;
     private final InvestorRepository investorRepository;

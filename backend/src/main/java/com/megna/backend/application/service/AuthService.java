@@ -57,7 +57,7 @@ public class AuthService {
     private static final String INVALID_RESET_TOKEN_MESSAGE = "Invalid or expired reset token";
     private static final String INVALID_REFRESH_TOKEN_MESSAGE = "Invalid or expired refresh token";
     private static final String RESET_PASSWORD_TEMPLATE_ALIAS = "reset-password-cid-v1";
-    private static final String PUBLIC_LOGO_URL = "https://megna-realestate.com/white-logo.svg";
+    private static final String PUBLIC_LOGO_URL = "https://raw.githubusercontent.com/TolibovZafarali/mv-deal-portal/dev/frontend/public/white-logo.png";
     private static final int OPAQUE_TOKEN_BYTE_LENGTH = 32;
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
