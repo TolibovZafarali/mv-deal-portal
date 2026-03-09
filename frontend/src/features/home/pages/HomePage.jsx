@@ -248,10 +248,25 @@ export default function HomePage({
         const nodes = Array.from(root.querySelectorAll(".homeReveal"));
         if (!nodes.length) return undefined;
 
+        nodes.forEach((node) => {
+            const delay = node.getAttribute("data-delay") || "0";
+            node.style.setProperty("--reveal-delay", `${delay}ms`);
+        });
+
+        if (typeof IntersectionObserver === "undefined") {
+            nodes.forEach((node) => {
+                node.classList.add("is-visible");
+            });
+
+            return undefined;
+        }
+
         const observer = new IntersectionObserver(
             (entries) => {
                 entries.forEach((entry) => {
-                    entry.target.classList.toggle("is-visible", entry.isIntersecting);
+                    if (!entry.isIntersecting) return;
+                    entry.target.classList.add("is-visible");
+                    observer.unobserve(entry.target);
                 });
             },
             {
@@ -261,8 +276,6 @@ export default function HomePage({
         );
 
         nodes.forEach((node) => {
-            const delay = node.getAttribute("data-delay") || "0";
-            node.style.setProperty("--reveal-delay", `${delay}ms`);
             observer.observe(node);
         });
 
@@ -376,7 +389,7 @@ export default function HomePage({
             <div className="homeProgress" aria-hidden="true" />
 
             <header className="homeHeader">
-                <div className="homeShell homeHeader__inner">
+                <div className="homeShell homeHeader__inner homeReveal" data-delay="20">
                     <div className="homeHeader__left">
                         <div
                             className={`homeRoleSwitch homeRoleSwitch--header ${selectedRole === ROLE_SELLER ? "homeRoleSwitch--seller" : ""}`}
@@ -456,65 +469,67 @@ export default function HomePage({
                     <div className="homeHero__mesh" aria-hidden="true" />
 
                     <div className="homeShell homeHero__inner">
-                        <div className="homeHero__copy homeHero__copySwap">
-                            <div key={`hero-copy-${selectedRole}`} className="homeRoleMotion">
-                                <p className="homeHero__eyebrow">{roleContent.hero.eyebrow}</p>
-                                <h1 className="homeHero__title">{roleContent.hero.title}</h1>
-                                <p className="homeHero__subtitle">{roleContent.hero.subtitle}</p>
+                        <div className="homeHero__copy homeReveal" data-delay="120">
+                            <div className="homeHero__copySwap">
+                                <div key={`hero-copy-${selectedRole}`} className="homeRoleMotion">
+                                    <p className="homeHero__eyebrow">{roleContent.hero.eyebrow}</p>
+                                    <h1 className="homeHero__title">{roleContent.hero.title}</h1>
+                                    <p className="homeHero__subtitle">{roleContent.hero.subtitle}</p>
 
-                                {sessionRestoreError ? (
-                                    <div className="homeStatusPanel" role="status">
-                                        <p className="homeStatusPanel__title">Session restore unavailable</p>
-                                        <p className="homeStatusPanel__body">{sessionRestoreError}</p>
+                                    {sessionRestoreError ? (
+                                        <div className="homeStatusPanel" role="status">
+                                            <p className="homeStatusPanel__title">Session restore unavailable</p>
+                                            <p className="homeStatusPanel__body">{sessionRestoreError}</p>
+                                            <div className="homeHero__actions">
+                                                <button type="button" className="homeButton" onClick={retrySessionRestore}>
+                                                    Retry session
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    className="homeButton homeButton--ghost"
+                                                    onClick={signOut}
+                                                >
+                                                    Log out
+                                                </button>
+                                                <a href="#proof" className="homeButton homeButton--ghost">
+                                                    {roleContent.hero.secondaryCtaLabel}
+                                                </a>
+                                            </div>
+                                        </div>
+                                    ) : (
                                         <div className="homeHero__actions">
-                                            <button type="button" className="homeButton" onClick={retrySessionRestore}>
-                                                Retry session
-                                            </button>
-                                            <button
-                                                type="button"
-                                                className="homeButton homeButton--ghost"
-                                                onClick={signOut}
-                                            >
-                                                Log out
-                                            </button>
-                                            <a href="#proof" className="homeButton homeButton--ghost">
+                                            {isAuthed ? (
+                                                <Link to="/app" className="homeButton">
+                                                    Open dashboard
+                                                </Link>
+                                            ) : (
+                                                <Link
+                                                    to={roleContent.hero.primaryCtaTo}
+                                                    className="homeButton"
+                                                    state={buildModalState(location, selectedRole)}
+                                                >
+                                                    {roleContent.hero.primaryCtaLabel}
+                                                </Link>
+                                            )}
+
+                                            <a href={roleContent.hero.secondaryCtaHref} className="homeButton homeButton--ghost">
                                                 {roleContent.hero.secondaryCtaLabel}
                                             </a>
                                         </div>
-                                    </div>
-                                ) : (
-                                    <div className="homeHero__actions">
-                                        {isAuthed ? (
-                                            <Link to="/app" className="homeButton">
-                                                Open dashboard
-                                            </Link>
-                                        ) : (
-                                            <Link
-                                                to={roleContent.hero.primaryCtaTo}
-                                                className="homeButton"
-                                                state={buildModalState(location, selectedRole)}
-                                            >
-                                                {roleContent.hero.primaryCtaLabel}
-                                            </Link>
-                                        )}
+                                    )}
 
-                                        <a href={roleContent.hero.secondaryCtaHref} className="homeButton homeButton--ghost">
-                                            {roleContent.hero.secondaryCtaLabel}
-                                        </a>
+                                    <div className="homeHero__signalRow" aria-label="Experience highlights">
+                                        {roleContent.hero.signals.map((signal) => (
+                                            <span key={signal} className="homeHero__signal homeRoleMotion">
+                                                {signal}
+                                            </span>
+                                        ))}
                                     </div>
-                                )}
-
-                                <div className="homeHero__signalRow" aria-label="Experience highlights">
-                                    {roleContent.hero.signals.map((signal) => (
-                                        <span key={signal} className="homeHero__signal homeRoleMotion">
-                                            {signal}
-                                        </span>
-                                    ))}
                                 </div>
                             </div>
                         </div>
 
-                        <div className="homeHero__scene" aria-hidden="true">
+                        <div className="homeHero__scene homeReveal homeReveal--right" aria-hidden="true" data-delay="240">
                             <div
                                 className="homeHero__sceneFrame"
                                 onPointerEnter={() => setSceneHovered(true)}
@@ -551,17 +566,19 @@ export default function HomePage({
 
                 <section id="perspective" className="homeStory" aria-label="Perspective">
                     <div className="homeShell">
-                        <div key={`story-top-${selectedRole}`} className="homeStory__top homeRoleMotion">
-                            <SectionHeading
-                                eyebrow={roleContent.statement.eyebrow}
-                                title={roleContent.statement.title}
-                                lead={roleContent.statement.lead}
-                                className=""
-                            />
+                        <div className="homeReveal" data-delay="40">
+                            <div key={`story-top-${selectedRole}`} className="homeStory__top homeRoleMotion">
+                                <SectionHeading
+                                    eyebrow={roleContent.statement.eyebrow}
+                                    title={roleContent.statement.title}
+                                    lead={roleContent.statement.lead}
+                                    className=""
+                                />
 
-                            <p className="homeStory__quote">
-                                {roleContent.statement.quote}
-                            </p>
+                                <p className="homeStory__quote">
+                                    {roleContent.statement.quote}
+                                </p>
+                            </div>
                         </div>
 
                         <div ref={metricsRef} className="homeStory__metrics">
@@ -746,7 +763,7 @@ export default function HomePage({
             </main>
 
             <footer className="homeFooter">
-                <div className="homeShell homeFooter__inner">
+                <div className="homeShell homeFooter__inner homeReveal" data-delay="30">
                     <p className="homeFooter__brand">Megna Real Estate</p>
                     <p className="homeFooter__copy">© {new Date().getFullYear()} All rights reserved.</p>
                 </div>
