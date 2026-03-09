@@ -20,8 +20,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -29,6 +31,7 @@ import java.util.Locale;
 public class PropertyPublicationNotificationService {
 
     private static final int MAX_DELIVERY_ATTEMPTS = 5;
+    private static final String TEMPLATE_ALIAS = "investor-new-property-published-cid-v1";
 
     private final PropertyRepository propertyRepository;
     private final InvestorRepository investorRepository;
@@ -134,10 +137,10 @@ public class PropertyPublicationNotificationService {
     private boolean sendNotification(PropertyPublicationNotification notification) {
         try {
             return transactionalEmailService.sendTransactional(
-                    new TransactionalEmailRequest(
+                    TransactionalEmailRequest.template(
                             notification.getRecipientEmail(),
-                            buildSubject(notification),
-                            buildBody(notification)
+                            TEMPLATE_ALIAS,
+                            buildTemplateModel(notification)
                     )
             );
         } catch (RuntimeException ex) {
@@ -146,29 +149,27 @@ public class PropertyPublicationNotificationService {
         }
     }
 
-    private String buildSubject(PropertyPublicationNotification notification) {
+    private Map<String, Object> buildTemplateModel(PropertyPublicationNotification notification) {
         Property property = notification.getProperty();
         String address = formatAddress(property);
-        String label = address.isBlank()
-                ? "Property #" + safeNumber(property == null ? null : property.getId())
-                : address;
-        return "New property available: " + label;
-    }
+        String propertyId = safeNumber(property == null ? null : property.getId());
+        String propertyAddress = address.isBlank() ? "N/A" : address;
+        String actionUrl = property == null || property.getId() == null
+                ? "https://megna-realestate.com/properties"
+                : "https://megna-realestate.com/properties/" + property.getId();
 
-    private String buildBody(PropertyPublicationNotification notification) {
-        Property property = notification.getProperty();
-
-        List<String> lines = new ArrayList<>();
-        lines.add("A new property was published on Megna.");
-        lines.add("");
-        lines.add("Property ID: " + safeNumber(property == null ? null : property.getId()));
-        lines.add("Address: " + (formatAddress(property).isBlank() ? "N/A" : formatAddress(property)));
-        lines.add("Asking Price: " + safeMoney(property == null ? null : property.getAskingPrice()));
-        lines.add("ARV: " + safeMoney(property == null ? null : property.getArv()));
-        lines.add("Estimated Repairs: " + safeMoney(property == null ? null : property.getEstRepairs()));
-        lines.add("");
-        lines.add("Sign in to your investor dashboard to view full details.");
-        return String.join("\n", lines);
+        Map<String, Object> model = new LinkedHashMap<>();
+        model.put("subject", "New property published");
+        model.put("title", "A new property just went live");
+        model.put("message", "A listing that matches your interest has been published.");
+        model.put("property_photo_url", "");
+        model.put("property_address", propertyAddress);
+        model.put("property_price", safeMoney(property == null ? null : property.getAskingPrice()));
+        model.put("action_text", "View Property");
+        model.put("action_url", actionUrl);
+        model.put("footer_text", "You're receiving this because property notifications are enabled on your account.");
+        model.put("property_id", propertyId);
+        return model;
     }
 
     private static String resolveRecipientEmail(Investor investor) {

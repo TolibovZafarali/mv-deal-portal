@@ -27,6 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -97,6 +98,10 @@ class PropertyPublicationNotificationServiceTest {
         service.processPendingNotifications();
 
         verify(notificationRepository).save(notification);
+        ArgumentCaptor<com.megna.backend.application.service.email.TransactionalEmailRequest> emailCaptor =
+                ArgumentCaptor.forClass(com.megna.backend.application.service.email.TransactionalEmailRequest.class);
+        verify(transactionalEmailService, atLeastOnce()).sendTransactional(emailCaptor.capture());
+        assertEquals("investor-new-property-published-cid-v1", emailCaptor.getValue().templateAlias());
         assertEquals(PropertyPublicationNotificationStatus.SENT, notification.getStatus());
         assertEquals(1, notification.getAttemptCount());
         assertNull(notification.getNextAttemptAt());

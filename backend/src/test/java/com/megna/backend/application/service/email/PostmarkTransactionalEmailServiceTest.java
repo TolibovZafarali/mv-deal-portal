@@ -27,12 +27,16 @@ class PostmarkTransactionalEmailServiceTest {
     @Mock
     private EmailSuppressionService emailSuppressionService;
 
+    @Mock
+    private EmailTemplateAssetService emailTemplateAssetService;
+
     @Test
     void sendTransactionalSuppressesNonProdRecipientNotOnAllowlist() {
         PostmarkTransactionalEmailService service = new PostmarkTransactionalEmailService(
                 emailProperties,
                 postmarkEmailClient,
-                emailSuppressionService
+                emailSuppressionService,
+                emailTemplateAssetService
         );
 
         when(emailProperties.isEnabled()).thenReturn(true);
@@ -58,7 +62,8 @@ class PostmarkTransactionalEmailServiceTest {
         PostmarkTransactionalEmailService service = new PostmarkTransactionalEmailService(
                 emailProperties,
                 postmarkEmailClient,
-                emailSuppressionService
+                emailSuppressionService,
+                emailTemplateAssetService
         );
 
         when(emailProperties.isEnabled()).thenReturn(true);
@@ -85,7 +90,8 @@ class PostmarkTransactionalEmailServiceTest {
         PostmarkTransactionalEmailService service = new PostmarkTransactionalEmailService(
                 emailProperties,
                 postmarkEmailClient,
-                emailSuppressionService
+                emailSuppressionService,
+                emailTemplateAssetService
         );
 
         when(emailProperties.isEnabled()).thenReturn(true);
@@ -112,7 +118,8 @@ class PostmarkTransactionalEmailServiceTest {
         PostmarkTransactionalEmailService service = new PostmarkTransactionalEmailService(
                 emailProperties,
                 postmarkEmailClient,
-                emailSuppressionService
+                emailSuppressionService,
+                emailTemplateAssetService
         );
 
         when(emailProperties.isEnabled()).thenReturn(false);
@@ -132,7 +139,8 @@ class PostmarkTransactionalEmailServiceTest {
         PostmarkTransactionalEmailService service = new PostmarkTransactionalEmailService(
                 emailProperties,
                 postmarkEmailClient,
-                emailSuppressionService
+                emailSuppressionService,
+                emailTemplateAssetService
         );
 
         when(emailProperties.isEnabled()).thenReturn(true);
@@ -155,7 +163,8 @@ class PostmarkTransactionalEmailServiceTest {
         PostmarkTransactionalEmailService service = new PostmarkTransactionalEmailService(
                 emailProperties,
                 postmarkEmailClient,
-                emailSuppressionService
+                emailSuppressionService,
+                emailTemplateAssetService
         );
 
         when(emailProperties.isEnabled()).thenReturn(true);

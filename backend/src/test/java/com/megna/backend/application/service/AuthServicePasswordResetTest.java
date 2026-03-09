@@ -25,6 +25,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
 import java.util.HexFormat;
+import java.util.Map;
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -103,10 +104,15 @@ class AuthServicePasswordResetTest {
         TransactionalEmailRequest request = emailCaptor.getValue();
 
         assertEquals(email, request.to());
-        assertEquals("Reset your Megna password", request.subject());
-        assertTrue(request.textBody().contains("https://megna-realestate.com/reset-password?token="));
+        assertEquals("reset-password-cid-v1", request.templateAlias());
+        assertTrue(request.subject() == null || request.subject().isBlank());
 
-        Matcher matcher = Pattern.compile("token=([^\\s]+)").matcher(request.textBody());
+        @SuppressWarnings("unchecked")
+        Map<String, Object> templateModel = (Map<String, Object>) request.templateModel();
+        String actionUrl = templateModel.get("action_url").toString();
+        assertTrue(actionUrl.contains("https://megna-realestate.com/reset-password?token="));
+
+        Matcher matcher = Pattern.compile("token=([^\\s]+)").matcher(actionUrl);
         assertTrue(matcher.find());
         String rawToken = URLDecoder.decode(matcher.group(1), StandardCharsets.UTF_8);
 

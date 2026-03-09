@@ -17,6 +17,7 @@ public class PostmarkTransactionalEmailService implements TransactionalEmailServ
     private final EmailProperties emailProperties;
     private final PostmarkEmailClient postmarkEmailClient;
     private final EmailSuppressionService emailSuppressionService;
+    private final EmailTemplateAssetService emailTemplateAssetService;
 
     @Override
     public boolean sendTransactional(TransactionalEmailRequest request) {
@@ -26,7 +27,15 @@ public class PostmarkTransactionalEmailService implements TransactionalEmailServ
             return false;
         }
 
-        if (isBlank(request.to()) || isBlank(request.subject()) || isBlank(request.textBody())) {
+        if (isBlank(request.to())) {
+            return false;
+        }
+
+        if (request.isTemplate()) {
+            if (isBlank(request.templateAlias()) || request.templateModel().isEmpty()) {
+                return false;
+            }
+        } else if (isBlank(request.subject()) || isBlank(request.textBody())) {
             return false;
         }
 
@@ -48,7 +57,17 @@ public class PostmarkTransactionalEmailService implements TransactionalEmailServ
             return false;
         }
 
-        return postmarkEmailClient.send(request);
+        return postmarkEmailClient.send(withDefaultTemplateAttachments(request));
+    }
+
+    private TransactionalEmailRequest withDefaultTemplateAttachments(TransactionalEmailRequest request) {
+        if (!request.isTemplate()) {
+            return request;
+        }
+        if (request.attachments() != null && !request.attachments().isEmpty()) {
+            return request;
+        }
+        return request.withAttachments(emailTemplateAssetService.defaultTemplateAttachments());
     }
 
     private boolean isAllowedInNonProduction(String recipient) {

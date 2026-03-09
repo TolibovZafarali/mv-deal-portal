@@ -41,7 +41,9 @@ import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.Base64;
 import java.util.HexFormat;
+import java.util.LinkedHashMap;
 import java.util.Locale;
+import java.util.Map;
 import java.util.function.Consumer;
 
 @Service
@@ -54,7 +56,7 @@ public class AuthService {
     private static final String PRINCIPAL_SELLER = "SELLER";
     private static final String INVALID_RESET_TOKEN_MESSAGE = "Invalid or expired reset token";
     private static final String INVALID_REFRESH_TOKEN_MESSAGE = "Invalid or expired refresh token";
-    private static final String RESET_PASSWORD_EMAIL_SUBJECT = "Reset your Megna password";
+    private static final String RESET_PASSWORD_TEMPLATE_ALIAS = "reset-password-cid-v1";
     private static final int OPAQUE_TOKEN_BYTE_LENGTH = 32;
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
@@ -225,11 +227,13 @@ public class AuthService {
         passwordResetTokenRepository.save(resetToken);
 
         try {
-            boolean sent = transactionalEmailService.sendTransactional(new TransactionalEmailRequest(
-                    principal.email(),
-                    RESET_PASSWORD_EMAIL_SUBJECT,
-                    buildPasswordResetBody(principal.email(), rawToken)
-            ));
+            boolean sent = transactionalEmailService.sendTransactional(
+                    TransactionalEmailRequest.template(
+                            principal.email(),
+                            RESET_PASSWORD_TEMPLATE_ALIAS,
+                            buildPasswordResetModel(rawToken)
+                    )
+            );
             if (!sent) {
                 log.warn("Password reset email was not delivered for principalType={} principalId={}",
                         principal.type(), principal.id());
@@ -472,20 +476,18 @@ public class AuthService {
         return ttlMinutes > 0 ? ttlMinutes : 20160;
     }
 
-    private String buildPasswordResetBody(String recipientEmail, String rawToken) {
+    private Map<String, Object> buildPasswordResetModel(String rawToken) {
         String resetLink = buildPasswordResetLink(rawToken);
         long ttlMinutes = resolvePasswordResetTtlMinutes();
-        return String.join("\n",
-                "We received a request to reset the password for your Megna account.",
-                "",
-                "Email: " + recipientEmail,
-                "",
-                "Use this link to reset your password:",
-                resetLink,
-                "",
-                "This link expires in " + ttlMinutes + " minutes.",
-                "If you did not request this, you can ignore this email."
-        );
+        Map<String, Object> model = new LinkedHashMap<>();
+        model.put("subject", "Reset your password");
+        model.put("title", "Reset your password");
+        model.put("message", "We received a request to reset your password.");
+        model.put("expiry_note", "For your security, this link expires in " + ttlMinutes + " minutes.");
+        model.put("action_text", "Reset Password");
+        model.put("action_url", resetLink);
+        model.put("footer_text", "If you didn't request this, you can ignore this email.");
+        return model;
     }
 
     private String buildPasswordResetLink(String rawToken) {

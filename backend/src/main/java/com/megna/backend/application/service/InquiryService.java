@@ -24,8 +24,12 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -33,6 +37,9 @@ import java.util.List;
 public class InquiryService {
 
     private static final String MEGNA_TEAM_INBOX = "contact@megna-realestate.com";
+    private static final String TEMPLATE_ALIAS = "admin-inquiry-created-cid-v1";
+    private static final DateTimeFormatter CREATED_AT_FORMATTER =
+            DateTimeFormatter.ofPattern("yyyy-MM-dd hh:mm a z");
 
     private final InquiryRepository inquiryRepository;
     private final PropertyRepository propertyRepository;
@@ -167,10 +174,10 @@ public class InquiryService {
     private boolean sendInquiryNotification(Inquiry inquiry) {
         try {
             return transactionalEmailService.sendTransactional(
-                    new TransactionalEmailRequest(
+                    TransactionalEmailRequest.template(
                             MEGNA_TEAM_INBOX,
-                            buildInquirySubject(inquiry),
-                            buildInquiryBody(inquiry)
+                            TEMPLATE_ALIAS,
+                            buildInquiryTemplateModel(inquiry)
                     )
             );
         } catch (RuntimeException ex) {
@@ -179,30 +186,43 @@ public class InquiryService {
         }
     }
 
-    private String buildInquirySubject(Inquiry inquiry) {
-        String subject = inquiry.getSubject() == null ? "" : inquiry.getSubject().trim();
-        Long inquiryId = inquiry.getId();
-        if (!subject.isBlank()) {
-            return "New inquiry #" + (inquiryId == null ? "N/A" : inquiryId) + ": " + subject;
-        }
-        return "New inquiry #" + (inquiryId == null ? "N/A" : inquiryId);
+    private Map<String, Object> buildInquiryTemplateModel(Inquiry inquiry) {
+        Map<String, Object> model = new LinkedHashMap<>();
+        model.put("subject", "New investor inquiry");
+        model.put("title", "A new investor inquiry was created");
+        model.put("message", "A new inquiry has been submitted and needs admin attention.");
+        model.put("inquiry_id", safeNumber(inquiry == null ? null : inquiry.getId()));
+        model.put("investor_name", safeValue(inquiry == null ? null : inquiry.getContactName()));
+        model.put("investor_email", safeValue(inquiry == null ? null : inquiry.getContactEmail()));
+        model.put("property_address", resolvePropertyAddress(inquiry));
+        model.put("created_at", formatCreatedAt(inquiry));
+        model.put("inquiry_message", safeValue(inquiry == null ? null : inquiry.getMessageBody()));
+        model.put("action_text", "Open Inquiry");
+        model.put("action_url", "https://megna-realestate.com/admin/inquiries/" + safeNumber(inquiry == null ? null : inquiry.getId()));
+        model.put("footer_text", "This notification was sent to admins because a new inquiry was created.");
+        return model;
     }
 
-    private String buildInquiryBody(Inquiry inquiry) {
-        List<String> lines = new ArrayList<>();
-        lines.add("A new inquiry was submitted.");
-        lines.add("");
-        lines.add("Inquiry ID: " + safeNumber(inquiry.getId()));
-        lines.add("Property ID: " + safeNumber(inquiry.getProperty() == null ? null : inquiry.getProperty().getId()));
-        lines.add("Investor ID: " + safeNumber(inquiry.getInvestor() == null ? null : inquiry.getInvestor().getId()));
-        lines.add("Subject: " + safeValue(inquiry.getSubject()));
-        lines.add("Message: " + safeValue(inquiry.getMessageBody()));
-        lines.add("");
-        lines.add("Contact Name: " + safeValue(inquiry.getContactName()));
-        lines.add("Company: " + safeValue(inquiry.getCompanyName()));
-        lines.add("Contact Email: " + safeValue(inquiry.getContactEmail()));
-        lines.add("Contact Phone: " + safeValue(inquiry.getContactPhone()));
-        return String.join("\n", lines);
+    private String resolvePropertyAddress(Inquiry inquiry) {
+        if (inquiry == null || inquiry.getProperty() == null) {
+            return "N/A";
+        }
+        Property property = inquiry.getProperty();
+        String line1 = joinComma(property.getStreet1(), property.getStreet2());
+        String stateZip = joinSpace(property.getState(), property.getZip());
+        String line2 = joinComma(property.getCity(), stateZip);
+        String address = joinComma(line1, line2);
+        return address.isBlank() ? "N/A" : address;
+    }
+
+    private String formatCreatedAt(Inquiry inquiry) {
+        if (inquiry == null) {
+            return utcNow().atZone(ZoneId.of("America/Chicago")).format(CREATED_AT_FORMATTER);
+        }
+        LocalDateTime createdAt = inquiry.getCreatedAt() == null ? utcNow() : inquiry.getCreatedAt();
+        return createdAt
+                .atZone(ZoneId.of("America/Chicago"))
+                .format(CREATED_AT_FORMATTER);
     }
 
     private String safeValue(String value) {
@@ -214,6 +234,32 @@ public class InquiryService {
 
     private String safeNumber(Long value) {
         return value == null ? "N/A" : value.toString();
+    }
+
+    private static String joinComma(String... values) {
+        StringBuilder result = new StringBuilder();
+        if (values == null) return "";
+        for (String value : values) {
+            String normalized = value == null ? "" : value.trim();
+            if (normalized.isBlank()) continue;
+            if (result.length() > 0) {
+                result.append(", ");
+            }
+            result.append(normalized);
+        }
+        return result.toString();
+    }
+
+    private static String joinSpace(String left, String right) {
+        String normalizedLeft = left == null ? "" : left.trim();
+        String normalizedRight = right == null ? "" : right.trim();
+        if (normalizedLeft.isBlank()) return normalizedRight;
+        if (normalizedRight.isBlank()) return normalizedLeft;
+        return normalizedLeft + " " + normalizedRight;
+    }
+
+    private static LocalDateTime utcNow() {
+        return LocalDateTime.now(ZoneOffset.UTC);
     }
 
     private boolean isInquiryVisibleToInvestor(Inquiry inquiry) {

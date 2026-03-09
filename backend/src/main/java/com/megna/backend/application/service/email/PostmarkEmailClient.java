@@ -14,7 +14,9 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 @Component
@@ -40,7 +42,7 @@ public class PostmarkEmailClient {
 
     public boolean send(TransactionalEmailRequest request) {
         try {
-            String endpoint = resolveEndpoint();
+            String endpoint = resolveEndpoint(request);
             String payload = objectMapper.writeValueAsString(buildPayload(request));
 
             HttpRequest httpRequest = HttpRequest.newBuilder(URI.create(endpoint))
@@ -79,19 +81,48 @@ public class PostmarkEmailClient {
         payload.put("From", emailProperties.getFromAddress());
         payload.put("To", request.to());
         payload.put("ReplyTo", emailProperties.getReplyToAddress());
-        payload.put("Subject", request.subject());
-        payload.put("TextBody", request.textBody());
+        if (request.isTemplate()) {
+            payload.put("TemplateAlias", request.templateAlias());
+            payload.put("TemplateModel", request.templateModel());
+            List<Map<String, Object>> attachments = buildAttachments(request.attachments());
+            if (!attachments.isEmpty()) {
+                payload.put("Attachments", attachments);
+            }
+        } else {
+            payload.put("Subject", request.subject());
+            payload.put("TextBody", request.textBody());
+        }
         payload.put("MessageStream", emailProperties.getPostmarkMessageStream());
         return payload;
     }
 
-    private String resolveEndpoint() {
+    private List<Map<String, Object>> buildAttachments(List<TransactionalEmailRequest.EmailAttachment> attachments) {
+        if (attachments == null || attachments.isEmpty()) {
+            return List.of();
+        }
+        List<Map<String, Object>> mapped = new ArrayList<>();
+        for (TransactionalEmailRequest.EmailAttachment attachment : attachments) {
+            if (attachment == null) continue;
+            Map<String, Object> value = new LinkedHashMap<>();
+            value.put("Name", attachment.name());
+            value.put("ContentType", attachment.contentType());
+            value.put("Content", attachment.content());
+            if (attachment.contentId() != null && !attachment.contentId().trim().isBlank()) {
+                value.put("ContentID", attachment.contentId());
+            }
+            mapped.add(value);
+        }
+        return mapped;
+    }
+
+    private String resolveEndpoint(TransactionalEmailRequest request) {
         String baseUrl = emailProperties.getPostmarkApiBaseUrl() == null
                 ? ""
                 : emailProperties.getPostmarkApiBaseUrl().trim();
+        String endpointPath = request != null && request.isTemplate() ? "email/withTemplate" : "email";
         if (baseUrl.endsWith("/")) {
-            return baseUrl + "email";
+            return baseUrl + endpointPath;
         }
-        return baseUrl + "/email";
+        return baseUrl + "/" + endpointPath;
     }
 }

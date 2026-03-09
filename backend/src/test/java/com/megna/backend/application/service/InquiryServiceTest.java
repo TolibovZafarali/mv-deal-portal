@@ -29,6 +29,7 @@ import org.springframework.data.domain.Pageable;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -105,8 +106,11 @@ class InquiryServiceTest {
         ArgumentCaptor<TransactionalEmailRequest> emailCaptor = ArgumentCaptor.forClass(TransactionalEmailRequest.class);
         verify(transactionalEmailService).sendTransactional(emailCaptor.capture());
         assertEquals("contact@megna-realestate.com", emailCaptor.getValue().to());
-        assertTrue(emailCaptor.getValue().subject().contains("New inquiry #501"));
-        assertTrue(emailCaptor.getValue().textBody().contains("Property ID: 101"));
+        assertEquals("admin-inquiry-created-cid-v1", emailCaptor.getValue().templateAlias());
+        @SuppressWarnings("unchecked")
+        Map<String, Object> templateModel = (Map<String, Object>) emailCaptor.getValue().templateModel();
+        assertEquals("501", templateModel.get("inquiry_id"));
+        assertTrue(templateModel.get("action_url").toString().contains("/admin/inquiries/501"));
     }
 
     @Test
