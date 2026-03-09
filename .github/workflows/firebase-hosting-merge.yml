@@ -3,7 +3,7 @@ on:
   push:
     branches:
       - main
-    # Optional but smart: only run if frontend changed
+    # Keep the trigger scoped to frontend and workflow changes.
     paths:
       - "frontend/**"
       - ".github/workflows/firebase-hosting-merge.yml"
