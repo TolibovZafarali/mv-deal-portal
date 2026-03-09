@@ -12,7 +12,6 @@ import java.io.IOException;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -140,16 +139,10 @@ class PostmarkEmailClientTest {
 
         boolean sent = client.send(
                 TransactionalEmailRequest.template(
-                                "buyer@example.com",
-                                "reset-password-cid-v1",
-                                Map.of("subject", "Reset your password")
-                        )
-                        .withAttachments(List.of(new TransactionalEmailRequest.EmailAttachment(
-                                "white-logo.svg",
-                                "image/svg+xml",
-                                "base64content",
-                                "cid:mv-logo-white"
-                        )))
+                        "buyer@example.com",
+                        "reset-password-cid-v1",
+                        Map.of("subject", "Reset your password")
+                )
         );
 
         assertTrue(sent);
@@ -164,6 +157,6 @@ class PostmarkEmailClientTest {
         Map<?, ?> payload = (Map<?, ?>) payloadCaptor.getValue();
         assertEquals("reset-password-cid-v1", payload.get("TemplateAlias"));
         assertTrue(payload.containsKey("TemplateModel"));
-        assertTrue(payload.containsKey("Attachments"));
+        assertFalse(payload.containsKey("Attachments"));
     }
 }

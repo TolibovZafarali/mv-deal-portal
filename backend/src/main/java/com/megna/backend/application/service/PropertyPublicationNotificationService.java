@@ -32,6 +32,7 @@ public class PropertyPublicationNotificationService {
 
     private static final int MAX_DELIVERY_ATTEMPTS = 5;
     private static final String TEMPLATE_ALIAS = "investor-new-property-published-cid-v1";
+    private static final String PUBLIC_LOGO_URL = "https://megna-realestate.com/white-logo.svg";
 
     private final PropertyRepository propertyRepository;
     private final InvestorRepository investorRepository;
@@ -159,6 +160,7 @@ public class PropertyPublicationNotificationService {
                 : "https://megna-realestate.com/properties/" + property.getId();
 
         Map<String, Object> model = new LinkedHashMap<>();
+        model.put("logo_url", PUBLIC_LOGO_URL);
         model.put("subject", "New property published");
         model.put("title", "A new property just went live");
         model.put("message", "A listing that matches your interest has been published.");

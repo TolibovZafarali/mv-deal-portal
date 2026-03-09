@@ -38,6 +38,7 @@ public class InquiryService {
 
     private static final String MEGNA_TEAM_INBOX = "contact@megna-realestate.com";
     private static final String TEMPLATE_ALIAS = "admin-inquiry-created-cid-v1";
+    private static final String PUBLIC_LOGO_URL = "https://megna-realestate.com/white-logo.svg";
     private static final DateTimeFormatter CREATED_AT_FORMATTER =
             DateTimeFormatter.ofPattern("yyyy-MM-dd hh:mm a z");
 
@@ -188,6 +189,7 @@ public class InquiryService {
 
     private Map<String, Object> buildInquiryTemplateModel(Inquiry inquiry) {
         Map<String, Object> model = new LinkedHashMap<>();
+        model.put("logo_url", PUBLIC_LOGO_URL);
         model.put("subject", "New investor inquiry");
         model.put("title", "A new investor inquiry was created");
         model.put("message", "A new inquiry has been submitted and needs admin attention.");

@@ -57,6 +57,7 @@ public class AuthService {
     private static final String INVALID_RESET_TOKEN_MESSAGE = "Invalid or expired reset token";
     private static final String INVALID_REFRESH_TOKEN_MESSAGE = "Invalid or expired refresh token";
     private static final String RESET_PASSWORD_TEMPLATE_ALIAS = "reset-password-cid-v1";
+    private static final String PUBLIC_LOGO_URL = "https://megna-realestate.com/white-logo.svg";
     private static final int OPAQUE_TOKEN_BYTE_LENGTH = 32;
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
@@ -480,6 +481,7 @@ public class AuthService {
         String resetLink = buildPasswordResetLink(rawToken);
         long ttlMinutes = resolvePasswordResetTtlMinutes();
         Map<String, Object> model = new LinkedHashMap<>();
+        model.put("logo_url", PUBLIC_LOGO_URL);
         model.put("subject", "Reset your password");
         model.put("title", "Reset your password");
         model.put("message", "We received a request to reset your password.");
