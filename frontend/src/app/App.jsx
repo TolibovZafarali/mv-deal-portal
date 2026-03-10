@@ -13,6 +13,7 @@ const ApiSmokeTest = lazy(() => import("@/features/dev/pages/ApiSmokeTest"))
 const AppRedirect = lazy(() => import("@/app/routing/AppRedirect"))
 const HomePage = lazy(() => import("@/features/home/pages/HomePage"))
 const PrivacyPolicyPage = lazy(() => import("@/features/home/pages/PrivacyPolicyPage"))
+const TermsOfUsePage = lazy(() => import("@/features/home/pages/TermsOfUsePage"))
 const AdminInquiriesPage = lazy(() => import("@/features/admin/pages/AdminInquiriesPage"))
 const AdminInvestorsPage = lazy(() => import("@/features/admin/pages/AdminInvestorsPage"))
 const AdminSellersPage = lazy(() => import("@/features/admin/pages/AdminSellersPage"))
@@ -53,6 +54,7 @@ export default function App() {
         <Routes location={backgroundLocation || location}>
           <Route path="/" element={<Home />} />
           <Route path="/privacy" element={<PrivacyPolicyPage />} />
+          <Route path="/terms" element={<TermsOfUsePage />} />
           <Route path="/login" element={<LoginModal />} />
           <Route path="/forgot-password" element={<ForgotPasswordModal />} />
           <Route path="/reset-password" element={<ResetPasswordModal />} />

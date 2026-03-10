@@ -2,13 +2,9 @@ import { Link } from "react-router-dom";
 
 const FOOTER_LINKS = [
     { label: "Privacy Policy", to: "/privacy", enabled: true },
-    { label: "Terms of Use", href: "/terms", enabled: false },
+    { label: "Terms of Use", to: "/terms", enabled: true },
     { label: "Contact / Support", href: "mailto:contact@megna-realestate.com", enabled: true },
 ];
-
-function preventPlaceholderNavigation(event) {
-    event.preventDefault();
-}
 
 function FooterLink({ link }) {
     if (link.to && link.enabled) {
@@ -25,7 +21,7 @@ function FooterLink({ link }) {
         <a
             href={link.href ?? link.to ?? "#"}
             className="homeFooter__link"
-            onClick={isDisabled ? preventPlaceholderNavigation : undefined}
+            onClick={isDisabled ? (event) => event.preventDefault() : undefined}
         >
             {link.label}
         </a>

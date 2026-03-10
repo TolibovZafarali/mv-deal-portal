@@ -1,53 +1,52 @@
-.privacyPolicyPageShell {
-  --privacy-shell-width: min(1224px, calc(100vw - 36px));
-  --privacy-sticky-top: 108px;
-  --privacy-toc-max-height: calc(100dvh - var(--privacy-sticky-top) - 20px);
-  --privacy-paper: #f2ede4;
-  --privacy-paper-alt: #faf7f1;
-  --privacy-ink: #171b21;
-  --privacy-muted: #4d5966;
-  --privacy-muted-strong: #33404d;
-  --privacy-line: rgba(23, 27, 33, 0.1);
-  --privacy-line-soft: rgba(23, 27, 33, 0.06);
-  --privacy-accent: #a97d4f;
-  --privacy-shadow: 0 34px 110px rgba(0, 0, 0, 0.24);
+.legalPageShell {
+  --legal-shell-width: min(1224px, calc(100vw - 36px));
+  --legal-sticky-top: 108px;
+  --legal-toc-max-height: calc(100dvh - var(--legal-sticky-top) - 20px);
+  --legal-paper: #f2ede4;
+  --legal-paper-alt: #faf7f1;
+  --legal-ink: #171b21;
+  --legal-muted: #4d5966;
+  --legal-muted-strong: #33404d;
+  --legal-line: rgba(23, 27, 33, 0.1);
+  --legal-accent: #a97d4f;
+  --legal-shadow: 0 34px 110px rgba(0, 0, 0, 0.24);
   min-height: 100dvh;
   isolation: isolate;
   overflow: visible;
 }
 
-.privacyPolicyPageShell .homeShell {
-  width: var(--privacy-shell-width);
+.legalPageShell .homeShell {
+  width: var(--legal-shell-width);
 }
 
-.privacyPolicyHeader__left {
+.legalPageHeader__left {
   width: auto;
   min-width: 0;
   flex: 1 1 320px;
 }
 
-.privacyPolicyHeader__titleBlock {
+.legalPageHeader__titleBlock {
   display: grid;
   gap: 8px;
 }
 
-.privacyPolicyHeader .homeHeader__pageTitle {
+.legalPageHeader .homeHeader__pageTitle {
   width: auto;
   min-width: 0;
 }
 
-.privacyPolicyHeader__actions {
+.legalPageHeader__actions {
   flex: 1 1 320px;
 }
 
-.privacyPolicyPageShell .homeHeader__logoImage {
+.legalPageShell .homeHeader__logoImage {
   transition:
     filter 320ms var(--home-ease),
     opacity 320ms var(--home-ease),
     background-image 320ms var(--home-ease);
 }
 
-.privacyPolicyPageShell--lightLogo .homeHeader__logoImage {
+.legalPageShell--lightLogo .homeHeader__logoImage {
   background: linear-gradient(135deg, #121820 0%, #2d3945 58%, #7c5b39 100%);
   filter:
     brightness(0.98)
@@ -55,24 +54,24 @@
     drop-shadow(0 4px 16px rgba(255, 255, 255, 0.12));
 }
 
-.privacyPolicyPageShell--lightLogo .homeHeader__logo:hover .homeHeader__logoImage,
-.privacyPolicyPageShell--lightLogo .homeHeader__logo:focus-visible .homeHeader__logoImage {
+.legalPageShell--lightLogo .homeHeader__logo:hover .homeHeader__logoImage,
+.legalPageShell--lightLogo .homeHeader__logo:focus-visible .homeHeader__logoImage {
   filter:
     brightness(1.06)
     drop-shadow(0 0 2px rgba(255, 255, 255, 0.5))
     drop-shadow(0 8px 22px rgba(255, 255, 255, 0.16));
 }
 
-.privacyPolicyPageMain {
+.legalPageMain {
   position: relative;
 }
 
-.privacyPolicyHero {
+.legalPageHero {
   position: relative;
   padding: 150px 0 46px;
 }
 
-.privacyPolicyHero::before {
+.legalPageHero::before {
   content: "";
   position: absolute;
   inset: 0;
@@ -83,56 +82,56 @@
     linear-gradient(180deg, rgba(246, 241, 232, 0.03) 0%, rgba(246, 241, 232, 0) 100%);
 }
 
-.privacyPolicyHero__inner {
+.legalPageHero__inner {
   position: relative;
   z-index: 1;
   display: grid;
   gap: 30px;
 }
 
-.privacyPolicyHero__content,
-.privacyPolicyHero__meta,
-.privacyPolicyTocPanel,
-.privacyPolicyArticle {
-  animation: privacyPolicyFadeUp 560ms var(--home-ease) both;
+.legalPageHero__content,
+.legalPageHero__meta,
+.legalPageTocPanel,
+.legalPageArticle {
+  animation: legalPageFadeUp 560ms var(--home-ease) both;
 }
 
-.privacyPolicyHero__meta {
+.legalPageHero__meta {
   animation-delay: 70ms;
 }
 
-.privacyPolicyTocPanel {
+.legalPageTocPanel {
   animation-delay: 120ms;
 }
 
-.privacyPolicyArticle {
+.legalPageArticle {
   animation-delay: 150ms;
 }
 
-.privacyPolicyHero__content {
+.legalPageHero__content {
   max-width: 780px;
 }
 
-.privacyPolicyHero__eyebrow,
-.privacyPolicyArticle__eyebrow,
-.privacyPolicyToc__eyebrow,
-.privacyPolicyContactCard__label,
-.privacyPolicySubsection__title,
-.privacyPolicySection__index {
+.legalPageHero__eyebrow,
+.legalPageArticle__eyebrow,
+.legalPageToc__eyebrow,
+.legalPageContactCard__label,
+.legalPageSubsection__title,
+.legalPageSection__index {
   letter-spacing: 0.16em;
   text-transform: uppercase;
 }
 
-.privacyPolicyHero__eyebrow,
-.privacyPolicyArticle__eyebrow,
-.privacyPolicyToc__eyebrow {
+.legalPageHero__eyebrow,
+.legalPageArticle__eyebrow,
+.legalPageToc__eyebrow {
   margin: 0;
   color: var(--home-accent);
   font-size: 0.78rem;
   font-weight: 800;
 }
 
-.privacyPolicyHero__title {
+.legalPageHero__title {
   margin: 14px 0 0;
   color: var(--home-text);
   font-family: var(--font-display, "Cormorant Garamond", serif);
@@ -143,7 +142,7 @@
   text-wrap: balance;
 }
 
-.privacyPolicyHero__lead {
+.legalPageHero__lead {
   margin: 18px 0 0;
   max-width: 56ch;
   color: rgba(246, 241, 232, 0.84);
@@ -151,14 +150,14 @@
   line-height: 1.74;
 }
 
-.privacyPolicyHero__meta {
+.legalPageHero__meta {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr));
   gap: 14px;
 }
 
-.privacyPolicyHero__metaCard,
-.privacyPolicyToc {
+.legalPageHero__metaCard,
+.legalPageToc {
   border: 1px solid rgba(246, 241, 232, 0.12);
   background: linear-gradient(180deg, rgba(246, 241, 232, 0.07) 0%, rgba(246, 241, 232, 0.03) 100%);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
@@ -166,20 +165,20 @@
   -webkit-backdrop-filter: blur(18px);
 }
 
-.privacyPolicyHero__metaCard {
+.legalPageHero__metaCard {
   display: grid;
   gap: 8px;
   min-height: 116px;
   padding: 20px 20px 22px;
 }
 
-.privacyPolicyHero__metaCard--primary {
+.legalPageHero__metaCard--primary {
   background:
     linear-gradient(135deg, rgba(214, 187, 146, 0.18) 0%, rgba(246, 241, 232, 0.08) 100%),
     linear-gradient(180deg, rgba(246, 241, 232, 0.07) 0%, rgba(246, 241, 232, 0.03) 100%);
 }
 
-.privacyPolicyHero__metaLabel {
+.legalPageHero__metaLabel {
   color: rgba(246, 241, 232, 0.62);
   font-size: 0.76rem;
   font-weight: 800;
@@ -188,55 +187,55 @@
   text-transform: uppercase;
 }
 
-.privacyPolicyHero__metaValue {
+.legalPageHero__metaValue {
   color: var(--home-text);
   font-size: 0.98rem;
   line-height: 1.62;
   text-wrap: pretty;
 }
 
-.privacyPolicyPage {
+.legalPageContent {
   position: relative;
   padding: 8px 0 66px;
 }
 
-.privacyPolicyLayout {
+.legalPageLayout {
   display: grid;
   grid-template-columns: minmax(250px, 280px) minmax(0, 1fr);
   gap: 28px;
   align-items: start;
 }
 
-.privacyPolicyTocPanel {
+.legalPageTocPanel {
   position: sticky;
-  top: var(--privacy-sticky-top);
+  top: var(--legal-sticky-top);
   align-self: start;
   min-width: 0;
   height: fit-content;
   z-index: 2;
 }
 
-.privacyPolicyToc {
+.legalPageToc {
   padding: 24px 34px 24px 24px;
-  max-height: var(--privacy-toc-max-height);
+  max-height: var(--legal-toc-max-height);
   overflow: auto;
   overscroll-behavior: contain;
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
 
-.privacyPolicyToc::-webkit-scrollbar {
+.legalPageToc::-webkit-scrollbar {
   display: none;
 }
 
-.privacyPolicyToc__intro {
+.legalPageToc__intro {
   margin: 10px 0 0;
   color: var(--home-muted);
   font-size: 0.94rem;
   line-height: 1.68;
 }
 
-.privacyPolicyToc__list {
+.legalPageToc__list {
   display: grid;
   gap: 8px;
   margin: 20px 0 0;
@@ -244,11 +243,11 @@
   list-style: none;
 }
 
-.privacyPolicyToc__item {
+.legalPageToc__item {
   margin: 0;
 }
 
-.privacyPolicyToc__link {
+.legalPageToc__link {
   display: grid;
   grid-template-columns: 34px minmax(0, 1fr);
   gap: 12px;
@@ -265,46 +264,44 @@
     transform 260ms var(--home-ease);
 }
 
-.privacyPolicyToc__link:hover,
-.privacyPolicyToc__link:focus-visible {
+.legalPageToc__link:hover,
+.legalPageToc__link:focus-visible {
   color: var(--home-text);
   transform: translateX(4px);
 }
 
-.privacyPolicyToc__link.is-active {
+.legalPageToc__link.is-active {
   border-color: rgba(246, 241, 232, 0.16);
   background: rgba(246, 241, 232, 0.08);
   color: var(--home-text);
 }
 
-.privacyPolicyToc__index {
+.legalPageToc__index {
   color: var(--home-accent);
   font-size: 0.74rem;
   font-weight: 800;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
 }
 
-.privacyPolicyToc__label {
+.legalPageToc__label {
   font-size: 0.96rem;
   line-height: 1.4;
 }
 
-.privacyPolicyArticle {
+.legalPageArticle {
   position: relative;
   padding: clamp(30px, 4.2vw, 54px);
-  border: 1px solid var(--privacy-line);
-  background: linear-gradient(180deg, var(--privacy-paper-alt) 0%, var(--privacy-paper) 100%);
-  color: var(--privacy-ink);
-  box-shadow: var(--privacy-shadow);
+  border: 1px solid var(--legal-line);
+  background: linear-gradient(180deg, var(--legal-paper-alt) 0%, var(--legal-paper) 100%);
+  color: var(--legal-ink);
+  box-shadow: var(--legal-shadow);
 }
 
-.privacyPolicyArticle ::selection {
+.legalPageArticle ::selection {
   background: rgba(169, 125, 79, 0.18);
-  color: var(--privacy-ink);
+  color: var(--legal-ink);
 }
 
-.privacyPolicyArticle::before {
+.legalPageArticle::before {
   content: "";
   position: absolute;
   top: 0;
@@ -314,46 +311,46 @@
   background: linear-gradient(90deg, rgba(169, 125, 79, 0.6) 0%, rgba(169, 125, 79, 0) 100%);
 }
 
-.privacyPolicyArticle__intro {
+.legalPageArticle__intro {
   padding-bottom: 28px;
-  border-bottom: 1px solid var(--privacy-line);
+  border-bottom: 1px solid var(--legal-line);
 }
 
-.privacyPolicyArticle__lead {
+.legalPageArticle__lead {
   margin: 14px 0 0;
   max-width: 58ch;
-  color: var(--privacy-muted-strong);
+  color: var(--legal-muted-strong);
   font-size: clamp(1.06rem, 1.8vw, 1.2rem);
   line-height: 1.74;
 }
 
-.privacyPolicySection {
+.legalPageSection {
   scroll-margin-top: 128px;
   padding-top: 34px;
 }
 
-.privacyPolicySection + .privacyPolicySection {
+.legalPageSection + .legalPageSection {
   margin-top: 34px;
-  border-top: 1px solid var(--privacy-line);
+  border-top: 1px solid var(--legal-line);
 }
 
-.privacyPolicySection__header {
+.legalPageSection__header {
   display: grid;
   grid-template-columns: 64px minmax(0, 1fr);
   gap: 16px;
   align-items: start;
 }
 
-.privacyPolicySection__index {
+.legalPageSection__index {
   margin: 8px 0 0;
   color: rgba(169, 125, 79, 0.9);
   font-size: 0.76rem;
   font-weight: 800;
 }
 
-.privacyPolicySection__title {
+.legalPageSection__title {
   margin: 0;
-  color: var(--privacy-ink);
+  color: var(--legal-ink);
   font-family: var(--font-display, "Cormorant Garamond", serif);
   font-size: clamp(2rem, 3.5vw, 3rem);
   line-height: 0.96;
@@ -362,73 +359,73 @@
   text-wrap: balance;
 }
 
-.privacyPolicySection__summary {
+.legalPageSection__summary {
   margin: 12px 0 0;
   max-width: 52ch;
-  color: var(--privacy-muted-strong);
+  color: var(--legal-muted-strong);
   font-size: 1rem;
   line-height: 1.68;
 }
 
-.privacyPolicySection__body {
+.legalPageSection__body {
   margin-top: 20px;
 }
 
-.privacyPolicySection__paragraph,
-.privacyPolicySection__listItem {
-  color: var(--privacy-muted);
+.legalPageSection__paragraph,
+.legalPageSection__listItem {
+  color: var(--legal-muted);
   font-size: 1rem;
   line-height: 1.86;
 }
 
-.privacyPolicySection__paragraph {
+.legalPageSection__paragraph {
   margin: 0;
 }
 
-.privacyPolicySection__paragraph + .privacyPolicySection__paragraph {
+.legalPageSection__paragraph + .legalPageSection__paragraph {
   margin-top: 14px;
 }
 
-.privacyPolicySection__list {
+.legalPageSection__list {
   display: grid;
   gap: 10px;
   margin: 18px 0 0;
   padding-left: 1.3rem;
 }
 
-.privacyPolicySection__listItem {
+.legalPageSection__listItem {
   padding-left: 4px;
 }
 
-.privacyPolicySection__listItem::marker {
-  color: var(--privacy-accent);
+.legalPageSection__listItem::marker {
+  color: var(--legal-accent);
 }
 
-.privacyPolicySubsection {
+.legalPageSubsection {
   margin-top: 26px;
   padding-top: 24px;
   border-top: 1px dashed rgba(23, 27, 33, 0.14);
 }
 
-.privacyPolicySubsection__title {
+.legalPageSubsection__title {
   margin: 0 0 14px;
-  color: var(--privacy-ink);
+  color: var(--legal-ink);
   font-size: 0.82rem;
   font-weight: 800;
   line-height: 1.5;
 }
 
-.privacyPolicySection__note {
+.legalPageSection__note {
   margin: 22px 0 0;
   padding: 16px 18px;
   border-left: 3px solid rgba(169, 125, 79, 0.72);
   background: rgba(169, 125, 79, 0.08);
-  color: var(--privacy-muted-strong);
+  color: var(--legal-muted-strong);
   font-size: 0.95rem;
   line-height: 1.72;
 }
 
-.privacyPolicyContactCard {
+.legalPageContactCard {
   display: grid;
   gap: 18px;
   margin-top: 24px;
@@ -437,45 +434,45 @@
   background: rgba(255, 255, 255, 0.56);
 }
 
-.privacyPolicyContactCard__row {
+.legalPageContactCard__row {
   display: grid;
   grid-template-columns: 140px minmax(0, 1fr);
   gap: 18px;
   align-items: start;
 }
 
-.privacyPolicyContactCard__label {
+.legalPageContactCard__label {
   margin: 0;
-  color: var(--privacy-accent);
+  color: var(--legal-accent);
   font-size: 0.76rem;
   font-weight: 800;
   line-height: 1.45;
 }
 
-.privacyPolicyContactCard__value {
+.legalPageContactCard__value {
   margin: 0;
-  color: var(--privacy-ink);
+  color: var(--legal-ink);
   font-size: 1rem;
   line-height: 1.72;
   text-decoration: none;
   white-space: pre-line;
 }
 
-.privacyPolicyContactCard__value--link:hover,
-.privacyPolicyContactCard__value--link:focus-visible {
+.legalPageContactCard__value--link:hover,
+.legalPageContactCard__value--link:focus-visible {
   text-decoration: underline;
   text-underline-offset: 0.16em;
 }
 
-.privacyPolicyContactCard__value--address {
+.legalPageContactCard__value--address {
   font-style: normal;
 }
 
-.privacyPolicyPageShell .homeFooter {
+.legalPageShell .homeFooter {
   padding-bottom: 42px;
 }
 
-@keyframes privacyPolicyFadeUp {
+@keyframes legalPageFadeUp {
   from {
     opacity: 0;
     transform: translateY(18px);
@@ -488,24 +485,20 @@
 }
 
 @media (max-width: 1024px) {
-  .privacyPolicyPageShell {
-    --privacy-sticky-top: 100px;
+  .legalPageShell {
+    --legal-sticky-top: 100px;
   }
 
-  .privacyPolicyHero__meta {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .privacyPolicyLayout {
+  .legalPageLayout {
     grid-template-columns: 1fr;
     gap: 20px;
   }
 
-  .privacyPolicyTocPanel {
+  .legalPageTocPanel {
     position: static;
   }
 
-  .privacyPolicyToc {
+  .legalPageToc {
     padding: 24px;
     max-height: none;
     overflow: visible;
@@ -513,105 +506,101 @@
     scrollbar-width: auto;
   }
 
-  .privacyPolicyToc__list {
+  .legalPageToc__list {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 @media (max-width: 900px) {
-  .privacyPolicyPageShell {
-    --privacy-sticky-top: 96px;
+  .legalPageShell {
+    --legal-sticky-top: 96px;
   }
 
-  .privacyPolicyHero {
+  .legalPageHero {
     padding-top: 132px;
   }
 
-  .privacyPolicySection__header {
+  .legalPageSection__header {
     grid-template-columns: 1fr;
     gap: 12px;
   }
 
-  .privacyPolicySection__index {
+  .legalPageSection__index {
     margin-top: 0;
   }
 
-  .privacyPolicyContactCard__row {
+  .legalPageContactCard__row {
     grid-template-columns: 1fr;
     gap: 6px;
   }
 }
 
 @media (max-width: 640px) {
-  .privacyPolicyPageShell {
-    --privacy-shell-width: min(100vw - 24px, 1224px);
-    --privacy-sticky-top: 88px;
+  .legalPageShell {
+    --legal-shell-width: min(100vw - 24px, 1224px);
+    --legal-sticky-top: 88px;
   }
 
-  .privacyPolicyHero {
+  .legalPageHero {
     padding: 106px 0 34px;
   }
 
-  .privacyPolicyHero__title {
+  .legalPageHero__title {
     font-size: clamp(2.6rem, 15vw, 4rem);
   }
 
-  .privacyPolicyHero__lead,
-  .privacyPolicyArticle__lead,
-  .privacyPolicySection__paragraph,
-  .privacyPolicySection__listItem,
-  .privacyPolicySection__summary,
-  .privacyPolicyToc__intro,
-  .privacyPolicyHero__metaValue {
+  .legalPageHero__lead,
+  .legalPageArticle__lead,
+  .legalPageSection__paragraph,
+  .legalPageSection__listItem,
+  .legalPageSection__summary,
+  .legalPageToc__intro,
+  .legalPageHero__metaValue {
     font-size: 0.98rem;
   }
 
-  .privacyPolicyHero__meta {
-    grid-template-columns: 1fr;
-  }
-
-  .privacyPolicyToc {
+  .legalPageToc {
     padding: 20px;
   }
 
-  .privacyPolicyToc__list {
+  .legalPageToc__list {
     grid-template-columns: 1fr;
   }
 
-  .privacyPolicyToc__link {
+  .legalPageToc__link {
     min-height: 48px;
     padding: 10px 12px;
   }
 
-  .privacyPolicyArticle {
+  .legalPageArticle {
     padding: 24px 20px;
   }
 
-  .privacyPolicyArticle__intro {
+  .legalPageArticle__intro {
     padding-bottom: 24px;
   }
 
-  .privacyPolicySection {
+  .legalPageSection {
     padding-top: 28px;
     scroll-margin-top: 108px;
   }
 
-  .privacyPolicySection + .privacyPolicySection {
+  .legalPageSection + .legalPageSection {
     margin-top: 28px;
   }
 
-  .privacyPolicySubsection {
+  .legalPageSubsection {
     margin-top: 22px;
     padding-top: 20px;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .privacyPolicyHero__content,
-  .privacyPolicyHero__meta,
-  .privacyPolicyTocPanel,
-  .privacyPolicyArticle,
-  .privacyPolicyToc__link {
+  .legalPageHero__content,
+  .legalPageHero__meta,
+  .legalPageTocPanel,
+  .legalPageArticle,
+  .legalPageToc__link {
     animation: none;
     transition: none;
     transform: none;
