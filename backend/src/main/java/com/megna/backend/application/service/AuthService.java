@@ -21,6 +21,7 @@ import com.megna.backend.interfaces.rest.dto.auth.ChangePasswordRequestDto;
 import com.megna.backend.interfaces.rest.dto.auth.ForgotPasswordRequestDto;
 import com.megna.backend.interfaces.rest.dto.auth.LoginRequestDto;
 import com.megna.backend.interfaces.rest.dto.auth.LoginResponseDto;
+import com.megna.backend.interfaces.rest.dto.auth.MeResponseDto;
 import com.megna.backend.interfaces.rest.dto.auth.RegisterRequestDto;
 import com.megna.backend.interfaces.rest.dto.auth.RegisterResponseDto;
 import com.megna.backend.interfaces.rest.dto.auth.ResetPasswordRequestDto;
@@ -82,7 +83,10 @@ public class AuthService {
             ensurePasswordMatches(dto.password(), admin.getPasswordHash());
 
             RefreshTokenIssue session = issueRefreshToken(PRINCIPAL_ADMIN, admin.getId());
-            LoginResponseDto loginResponse = buildLoginResponse(jwtService.generateAccessToken(admin, session.sessionId()));
+            LoginResponseDto loginResponse = buildLoginResponse(
+                    jwtService.generateAccessToken(admin, session.sessionId()),
+                    buildAdminMeResponse(admin)
+            );
             return new LoginSessionResult(loginResponse, session.rawToken());
         }
 
@@ -90,9 +94,16 @@ public class AuthService {
         if (investorOpt.isPresent()) {
             Investor investor = investorOpt.get();
             ensurePasswordMatches(dto.password(), investor.getPasswordHash());
+            MeResponseDto user = buildInvestorMeResponse(investor);
+            if (user == null) {
+                throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Not authenticated");
+            }
 
             RefreshTokenIssue session = issueRefreshToken(PRINCIPAL_INVESTOR, investor.getId());
-            LoginResponseDto loginResponse = buildLoginResponse(jwtService.generateAccessToken(investor, session.sessionId()));
+            LoginResponseDto loginResponse = buildLoginResponse(
+                    jwtService.generateAccessToken(investor, session.sessionId()),
+                    user
+            );
             return new LoginSessionResult(loginResponse, session.rawToken());
         }
 
@@ -100,9 +111,16 @@ public class AuthService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials"));
 
         ensurePasswordMatches(dto.password(), seller.getPasswordHash());
+        MeResponseDto user = buildSellerMeResponse(seller);
+        if (user == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Not authenticated");
+        }
 
         RefreshTokenIssue session = issueRefreshToken(PRINCIPAL_SELLER, seller.getId());
-        LoginResponseDto loginResponse = buildLoginResponse(jwtService.generateAccessToken(seller, session.sessionId()));
+        LoginResponseDto loginResponse = buildLoginResponse(
+                jwtService.generateAccessToken(seller, session.sessionId()),
+                user
+        );
         return new LoginSessionResult(loginResponse, session.rawToken());
     }
 
@@ -127,9 +145,9 @@ public class AuthService {
 
         Long principalId = refreshToken.getPrincipalId();
         String principalType = normalizePrincipalType(refreshToken.getPrincipalType());
-        LoginResponseDto loginResponse = resolveAccessTokenForPrincipal(principalType, principalId, refreshToken.getId());
+        SessionPrincipalData principalData = resolveSessionPrincipal(principalType, principalId, refreshToken.getId());
 
-        if (loginResponse == null) {
+        if (principalData == null) {
             refreshToken.setRevokedAt(now);
             refreshToken.setLastUsedAt(now);
             refreshTokenRepository.save(refreshToken);
@@ -142,6 +160,7 @@ public class AuthService {
         refreshToken.setLastUsedAt(now);
         refreshTokenRepository.save(refreshToken);
 
+        LoginResponseDto loginResponse = buildLoginResponse(principalData.accessToken(), principalData.user());
         return new LoginSessionResult(loginResponse, nextRawToken);
     }
 
@@ -383,37 +402,102 @@ public class AuthService {
         return companyName == null ? "" : companyName.trim();
     }
 
-    private LoginResponseDto buildLoginResponse(String token) {
-        return new LoginResponseDto(token, "Bearer", jwtService.getAccessTokenTtlSeconds());
+    private LoginResponseDto buildLoginResponse(String token, MeResponseDto user) {
+        return new LoginResponseDto(token, "Bearer", jwtService.getAccessTokenTtlSeconds(), user);
     }
 
-    private LoginResponseDto resolveAccessTokenForPrincipal(String principalType, Long principalId, Long sessionId) {
+    private SessionPrincipalData resolveSessionPrincipal(String principalType, Long principalId, Long sessionId) {
         if (principalId == null || principalId <= 0 || principalType.isBlank()) {
             return null;
         }
 
         if (PRINCIPAL_ADMIN.equals(principalType)) {
             return adminRepository.findById(principalId)
-                    .map(admin -> jwtService.generateAccessToken(admin, sessionId))
-                    .map(this::buildLoginResponse)
+                    .map(admin -> new SessionPrincipalData(
+                            jwtService.generateAccessToken(admin, sessionId),
+                            buildAdminMeResponse(admin)
+                    ))
                     .orElse(null);
         }
 
         if (PRINCIPAL_INVESTOR.equals(principalType)) {
             return investorRepository.findById(principalId)
-                    .map(investor -> jwtService.generateAccessToken(investor, sessionId))
-                    .map(this::buildLoginResponse)
+                    .map(investor -> {
+                        MeResponseDto user = buildInvestorMeResponse(investor);
+                        if (user == null) {
+                            return null;
+                        }
+
+                        return new SessionPrincipalData(
+                                jwtService.generateAccessToken(investor, sessionId),
+                                user
+                        );
+                    })
                     .orElse(null);
         }
 
         if (PRINCIPAL_SELLER.equals(principalType)) {
             return sellerRepository.findById(principalId)
-                    .map(seller -> jwtService.generateAccessToken(seller, sessionId))
-                    .map(this::buildLoginResponse)
+                    .map(seller -> {
+                        MeResponseDto user = buildSellerMeResponse(seller);
+                        if (user == null) {
+                            return null;
+                        }
+
+                        return new SessionPrincipalData(
+                                jwtService.generateAccessToken(seller, sessionId),
+                                user
+                        );
+                    })
                     .orElse(null);
         }
 
         return null;
+    }
+
+    private MeResponseDto buildAdminMeResponse(Admin admin) {
+        if (admin == null || admin.getId() == null || admin.getId() <= 0) {
+            return null;
+        }
+
+        return new MeResponseDto(
+                admin.getEmail(),
+                admin.getId(),
+                null,
+                null,
+                PRINCIPAL_ADMIN,
+                null
+        );
+    }
+
+    private MeResponseDto buildInvestorMeResponse(Investor investor) {
+        if (investor == null || investor.getId() == null || investor.getId() <= 0 || investor.getStatus() == null) {
+            return null;
+        }
+
+        return new MeResponseDto(
+                investor.getEmail(),
+                investor.getId(),
+                investor.getId(),
+                null,
+                PRINCIPAL_INVESTOR,
+                investor.getStatus().name()
+        );
+    }
+
+    private MeResponseDto buildSellerMeResponse(Seller seller) {
+        if (seller == null || seller.getId() == null || seller.getId() <= 0 || seller.getStatus() == null) {
+            return null;
+        }
+
+        return new MeResponseDto(
+                seller.getEmail(),
+                seller.getId(),
+                null,
+                seller.getId(),
+                PRINCIPAL_SELLER,
+                seller.getStatus().name()
+        );
     }
 
     private RefreshTokenIssue issueRefreshToken(String principalType, Long principalId) {
@@ -601,6 +685,7 @@ public class AuthService {
 
     private record PrincipalRef(String type, Long id, String email, String greetingName) {}
     private record RefreshTokenIssue(String rawToken, Long sessionId) {}
+    private record SessionPrincipalData(String accessToken, MeResponseDto user) {}
 
     public record LoginSessionResult(LoginResponseDto loginResponse, String refreshToken) {}
 }

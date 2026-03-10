@@ -12,7 +12,6 @@ import {
 const AuthContext = createContext(null)
 const PROFILE_LOAD_ATTEMPTS = 2
 const PROFILE_RETRY_DELAY_MS = 250
-const SESSION_RESTORE_ERROR_MESSAGE = "We couldn't restore your session right now. Retry in a moment."
 
 function wait(ms) {
   return new Promise((resolve) => {
@@ -23,7 +22,6 @@ function wait(ms) {
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [bootstrapping, setBootstrapping] = useState(true)
-  const [sessionRestoreError, setSessionRestoreError] = useState("")
   const suppressExpiredRedirectRef = useRef(false)
 
   const navigate = useNavigate()
@@ -85,8 +83,8 @@ export function AuthProvider({ children }) {
     throw lastError ?? new Error("Failed to load profile")
   }, [isUnauthorizedError])
 
-  const resolveAuthenticatedProfile = useCallback(async (token) => {
-    const profile = await loadProfile(token)
+  const resolveAuthenticatedProfile = useCallback(async (session) => {
+    const profile = session?.user ?? await loadProfile(session?.accessToken)
     const investorStatus = String(profile?.status ?? "").trim().toUpperCase()
 
     if (profile?.role === "INVESTOR" && investorStatus.startsWith("PENDING")) {
@@ -101,38 +99,29 @@ export function AuthProvider({ children }) {
     }
 
     suppressExpiredRedirectRef.current = false
-    setSessionRestoreError("")
     setUser(profile)
     return profile
   }, [clearLocalSession, loadProfile, revokeServerSession])
 
   const handleSessionExpired = useCallback(() => {
     suppressExpiredRedirectRef.current = false
-    setSessionRestoreError("")
     clearLocalSession()
     openLoginOnHome()
   }, [clearLocalSession, openLoginOnHome])
 
   const bootstrap = useCallback(async () => {
     setBootstrapping(true)
-    setSessionRestoreError("")
 
     try {
       const session = await refreshSession()
-      return await resolveAuthenticatedProfile(session?.accessToken)
-    } catch (error) {
-      if (isUnauthorizedError(error)) {
-        clearLocalSession()
-        setSessionRestoreError("")
-        return null
-      }
-
-      setSessionRestoreError(SESSION_RESTORE_ERROR_MESSAGE)
+      return await resolveAuthenticatedProfile(session)
+    } catch {
+      clearLocalSession()
       return null
     } finally {
       setBootstrapping(false)
     }
-  }, [clearLocalSession, isUnauthorizedError, resolveAuthenticatedProfile])
+  }, [clearLocalSession, resolveAuthenticatedProfile])
 
   useEffect(() => {
     bootstrap()
@@ -154,7 +143,6 @@ export function AuthProvider({ children }) {
 
       if (type === AUTH_SYNC_LOGOUT) {
         suppressExpiredRedirectRef.current = true
-        setSessionRestoreError("")
         clearLocalSession()
         navigate("/", { replace: true })
         return
@@ -169,11 +157,10 @@ export function AuthProvider({ children }) {
 
   const signIn = useCallback(async (email, password) => {
     suppressExpiredRedirectRef.current = false
-    setSessionRestoreError("")
     const session = await login({ email, password })
 
     try {
-      return await resolveAuthenticatedProfile(session?.accessToken)
+      return await resolveAuthenticatedProfile(session)
     } catch (error) {
       if (error?.code === "ACCOUNT_PENDING") {
         throw error
@@ -202,7 +189,6 @@ export function AuthProvider({ children }) {
     } catch {
       // Clear local auth even if cookie revocation fails.
     } finally {
-      setSessionRestoreError("")
       clearLocalSession()
       publishAuthSync(AUTH_SYNC_LOGOUT)
       navigate("/", { replace: true })
@@ -213,14 +199,13 @@ export function AuthProvider({ children }) {
     () => ({
       user,
       bootstrapping,
-      sessionRestoreError,
       bootstrap,
       isAuthed: !!user,
       signIn,
       signOut,
       refresh: bootstrap,
     }),
-    [bootstrapping, bootstrap, sessionRestoreError, signIn, signOut, user],
+    [bootstrapping, bootstrap, signIn, signOut, user],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
