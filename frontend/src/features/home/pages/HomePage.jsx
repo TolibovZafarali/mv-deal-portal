@@ -12,6 +12,8 @@ import {
     ROLE_SELLER,
 } from "@/features/home/content/homeContent";
 import "@/features/home/pages/HomePage.css";
+import "@/features/home/components/HomeAboutPage.css";
+import HomeAboutPage from "@/features/home/components/HomeAboutPage";
 
 const ABOUT_PAGE_ID = "home-about-page";
 const ABOUT_TRANSITION_DURATION_MS = 820;
@@ -947,20 +949,16 @@ export default function HomePage({
                 </section>
 
                 {aboutPageOpen ? (
-                    <section
+                    <HomeAboutPage
                         id={ABOUT_PAGE_ID}
-                        className={`homeAboutPage ${aboutPageReady ? "is-visible" : ""} ${aboutPageClosing ? "is-closing" : ""}`}
-                        aria-label="About us page"
-                    >
-                        <button
-                            type="button"
-                            className="homeAboutPage__close"
-                            onClick={closeScene}
-                            aria-label="Close about us page"
-                        >
-                            Close
-                        </button>
-                    </section>
+                        isVisible={aboutPageReady}
+                        isClosing={aboutPageClosing}
+                        isAuthed={isAuthed}
+                        primaryCtaLabel={isAuthed ? "Open dashboard" : roleContent.hero.primaryCtaLabel}
+                        primaryCtaTo={isAuthed ? "/app" : roleContent.hero.primaryCtaTo}
+                        primaryCtaState={isAuthed ? null : buildModalState(location, selectedRole)}
+                        onClose={closeScene}
+                    />
                 ) : null}
 
                 {aboutPageOpen ? (
