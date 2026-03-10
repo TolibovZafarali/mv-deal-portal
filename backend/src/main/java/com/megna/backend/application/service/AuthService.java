@@ -57,6 +57,7 @@ public class AuthService {
     private static final String INVALID_RESET_TOKEN_MESSAGE = "Invalid or expired reset token";
     private static final String INVALID_REFRESH_TOKEN_MESSAGE = "Invalid or expired refresh token";
     private static final String RESET_PASSWORD_TEMPLATE_ALIAS = "reset-password-cid-v1";
+    private static final String INVESTOR_SIGNUP_UNDER_REVIEW_TEMPLATE_ALIAS = "investor-signup-under-review-cid-v1";
     private static final String PUBLIC_LOGO_URL = "https://raw.githubusercontent.com/TolibovZafarali/mv-deal-portal/dev/frontend/public/white-logo.png";
     private static final int OPAQUE_TOKEN_BYTE_LENGTH = 32;
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
@@ -309,6 +310,7 @@ public class AuthService {
         investor.setStatus(InvestorStatus.PENDING);
 
         Investor saved = investorRepository.save(investor);
+        sendInvestorSignupUnderReviewEmail(saved);
 
         return new RegisterResponseDto(
                 saved.getId(),
@@ -489,6 +491,43 @@ public class AuthService {
         model.put("action_text", "Reset Password");
         model.put("action_url", resetLink);
         model.put("footer_text", "If you didn't request this, you can ignore this email.");
+        return model;
+    }
+
+    private void sendInvestorSignupUnderReviewEmail(Investor investor) {
+        if (investor == null || investor.getEmail() == null || investor.getEmail().isBlank()) {
+            return;
+        }
+
+        try {
+            boolean sent = transactionalEmailService.sendTransactional(
+                    TransactionalEmailRequest.template(
+                            investor.getEmail(),
+                            INVESTOR_SIGNUP_UNDER_REVIEW_TEMPLATE_ALIAS,
+                            buildInvestorSignupUnderReviewModel(investor)
+                    )
+            );
+            if (!sent) {
+                log.warn("Investor signup under review email was not delivered for investorId={}", investor.getId());
+            }
+        } catch (RuntimeException ex) {
+            log.warn("Investor signup under review email send threw runtime exception for investorId={} type={}",
+                    investor.getId(), ex.getClass().getSimpleName());
+        }
+    }
+
+    private Map<String, Object> buildInvestorSignupUnderReviewModel(Investor investor) {
+        String firstName = investor == null || investor.getFirstName() == null
+                ? ""
+                : investor.getFirstName().trim();
+        String greetingName = firstName.isBlank() ? "there" : firstName;
+
+        Map<String, Object> model = new LinkedHashMap<>();
+        model.put("logo_url", PUBLIC_LOGO_URL);
+        model.put("subject", "Welcome to Megna - your account is under review");
+        model.put("title", "Welcome to Megna, " + greetingName);
+        model.put("message", "Thanks for signing up. Your account is now under review by the Megna Team, and one of our team members will reach out to you shortly.");
+        model.put("footer_text", "If you have questions, reply to this email and our team will assist you.");
         return model;
     }
 

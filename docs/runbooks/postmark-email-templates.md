@@ -9,6 +9,7 @@ Use one reusable Postmark layout plus content-only templates:
 - `verify-email-cid-v1`
 - `reset-password-cid-v1`
 - `welcome-cid-v1`
+- `investor-signup-under-review-cid-v1`
 - `investor-new-property-published-cid-v1`
 - `admin-inquiry-created-cid-v1`
 - `admin-inquiry-follow-up-cid-v1`
@@ -25,6 +26,7 @@ All templates use the same HTTPS logo URL:
 - Verify content HTML: `/Users/zafaralitolibov/Documents/mv-deal-portal/docs/email/postmark-verify-email-content-v1.html`
 - Reset content HTML: `/Users/zafaralitolibov/Documents/mv-deal-portal/docs/email/postmark-reset-password-content-v1.html`
 - Welcome content HTML: `/Users/zafaralitolibov/Documents/mv-deal-portal/docs/email/postmark-welcome-content-v1.html`
+- Investor signup under-review content HTML: `/Users/zafaralitolibov/Documents/mv-deal-portal/docs/email/postmark-investor-signup-under-review-content-v1.html`
 - Investor property-published content HTML: `/Users/zafaralitolibov/Documents/mv-deal-portal/docs/email/postmark-investor-new-property-published-content-v1.html`
 - Admin inquiry-created content HTML: `/Users/zafaralitolibov/Documents/mv-deal-portal/docs/email/postmark-admin-inquiry-created-content-v1.html`
 - Admin inquiry-follow-up content HTML: `/Users/zafaralitolibov/Documents/mv-deal-portal/docs/email/postmark-admin-inquiry-follow-up-content-v1.html`
@@ -35,10 +37,11 @@ All templates use the same HTTPS logo URL:
 2. Create template `verify-email-cid-v1`, select that layout, paste verify content HTML.
 3. Create template `reset-password-cid-v1`, select that layout, paste reset content HTML.
 4. Create template `welcome-cid-v1`, select that layout, paste welcome content HTML.
-5. Create template `investor-new-property-published-cid-v1`, select that layout, paste investor property-published content HTML.
-6. Create template `admin-inquiry-created-cid-v1`, select that layout, paste admin inquiry-created content HTML.
-7. Create template `admin-inquiry-follow-up-cid-v1`, select that layout, paste admin inquiry-follow-up content HTML.
-8. Add template subject as `{{subject}}` for each template.
+5. Create template `investor-signup-under-review-cid-v1`, select that layout, paste investor signup under-review content HTML.
+6. Create template `investor-new-property-published-cid-v1`, select that layout, paste investor property-published content HTML.
+7. Create template `admin-inquiry-created-cid-v1`, select that layout, paste admin inquiry-created content HTML.
+8. Create template `admin-inquiry-follow-up-cid-v1`, select that layout, paste admin inquiry-follow-up content HTML.
+9. Add template subject as `{{subject}}` for each template.
 
 ## Text bodies
 
@@ -50,6 +53,16 @@ Verify + Welcome:
 {{message}}
 
 {{action_text}}: {{action_url}}
+
+{{footer_text}}
+```
+
+Investor signup under review:
+
+```txt
+{{title}}
+
+{{message}}
 
 {{footer_text}}
 ```
@@ -172,6 +185,18 @@ Welcome model:
 }
 ```
 
+Investor signup under-review model:
+
+```json
+{
+  "subject": "Your Megna account is under review",
+  "logo_url": "https://raw.githubusercontent.com/TolibovZafarali/mv-deal-portal/dev/frontend/public/white-logo.png",
+  "title": "Thanks for signing up, John",
+  "message": "Your account is now under review by the Megna Team. One of our team members will reach out to you shortly.",
+  "footer_text": "If you have questions, reply to this email and our team will assist you."
+}
+```
+
 Investor new-property-published model:
 
 ```json
@@ -267,6 +292,20 @@ For investor new-property-published emails, switch `TemplateAlias` and model val
     "action_text": "View Property",
     "action_url": "https://example.com/properties/abc123",
     "footer_text": "You're receiving this because property notifications are enabled on your account."
+  }
+}
+```
+
+For investor signup under-review emails, switch `TemplateAlias` and model values:
+
+```json
+{
+  "TemplateAlias": "investor-signup-under-review-cid-v1",
+  "TemplateModel": {
+    "subject": "Your Megna account is under review",
+    "title": "Thanks for signing up, John",
+    "message": "Your account is now under review by the Megna Team. One of our team members will reach out to you shortly.",
+    "footer_text": "If you have questions, reply to this email and our team will assist you."
   }
 }
 ```
