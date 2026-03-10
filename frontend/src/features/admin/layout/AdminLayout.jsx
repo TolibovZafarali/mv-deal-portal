@@ -182,9 +182,20 @@ export default function AdminLayout() {
         }`}
       >
         <div className="adminBrand">
-          <Link className="adminBrand__home" to="/" aria-label="Go to homepage">
-            <img className="adminBrand__logo" src="/white-logo.svg" alt="Admin Portal" />
-          </Link>
+          {isMobileView ? (
+            <button
+              type="button"
+              className="adminBrand__mobileChevron"
+              onClick={() => setMobileMenuOpen(false)}
+              aria-label="Close navigation menu"
+            >
+              <span className="material-symbols-outlined" aria-hidden="true">chevron_right</span>
+            </button>
+          ) : (
+            <Link className="adminBrand__home" to="/" aria-label="Go to homepage">
+              <img className="adminBrand__logo" src="/white-logo.svg" alt="Admin Portal" />
+            </Link>
+          )}
           <button
             className="adminBrand__collapse"
             type="button"

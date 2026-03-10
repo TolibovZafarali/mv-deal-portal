@@ -496,7 +496,7 @@
   }
 
   .adminMobileHeader__menuBtn {
-    border: 1px solid var(--border-muted);
+    border: 0;
     background: transparent;
     color: var(--text);
     height: 38px;
@@ -515,9 +515,8 @@
 
   .adminMobileHeader__menuBtn:hover,
   .adminMobileHeader__menuBtn:focus-visible {
-    border-color: var(--text);
-    background: var(--text);
-    color: var(--bg);
+    background: transparent;
+    color: var(--text);
     outline: none;
   }
 
@@ -560,6 +559,23 @@
   .adminBrand {
     justify-content: space-between;
     padding-inline: 2px;
+  }
+
+  .adminBrand__mobileChevron {
+    border: 0;
+    background: transparent;
+    color: var(--text);
+    height: 28px;
+    width: 28px;
+    display: grid;
+    place-items: center;
+    padding: 0;
+    cursor: pointer;
+  }
+
+  .adminBrand__mobileChevron .material-symbols-outlined {
+    font-size: 24px;
+    line-height: 1;
   }
 
   .adminBrand__home {
