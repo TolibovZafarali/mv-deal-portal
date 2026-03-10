@@ -3,8 +3,12 @@ import { useAuth } from "@/features/auth/context/AuthContext"
 import "@/features/auth/routing/ProtectedRoute.css"
 
 export default function ProtectedRoute({ roles }) {
-  const { user, isAuthed } = useAuth()
+  const { user, isAuthed, bootstrapping } = useAuth()
   const location = useLocation()
+
+  if (bootstrapping) {
+    return null
+  }
 
   if (!isAuthed) {
     if (
