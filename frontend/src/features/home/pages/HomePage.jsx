@@ -162,7 +162,7 @@ function SectionHeading({ eyebrow, title, lead, className = "" }) {
     );
 }
 
-function DealCard({ property, delay = 0, statusLabel = "Closed" }) {
+function DealCard({ property, delay = 0, statusLabel = "Closed", linkTo = null, linkState = null }) {
     const leadPhoto = property?.photos?.[0]?.thumbnailUrl || property?.photos?.[0]?.url || "";
     const address = fullAddress(property) || "Address unavailable";
     const market = [property?.city, property?.state].filter(Boolean).join(", ");
@@ -173,7 +173,7 @@ function DealCard({ property, delay = 0, statusLabel = "Closed" }) {
         Number.isFinite(livingArea) ? `${livingArea.toLocaleString("en-US")} sqft` : null,
     ].filter(Boolean);
 
-    return (
+    const card = (
         <article
             className="homeShowcase__card homeReveal"
             data-delay={delay}
@@ -224,6 +224,16 @@ function DealCard({ property, delay = 0, statusLabel = "Closed" }) {
             </div>
         </article>
     );
+
+    if (linkTo) {
+        return (
+            <Link to={linkTo} state={linkState} className="homeShowcase__cardLink">
+                {card}
+            </Link>
+        );
+    }
+
+    return card;
 }
 
 export default function HomePage({
@@ -256,10 +266,10 @@ export default function HomePage({
         ? (authenticatedRole === "SELLER" ? ROLE_SELLER : ROLE_INVESTOR)
         : selectedRole;
     const roleContent = ROLE_CONTENT[displayRole] || ROLE_CONTENT[ROLE_INVESTOR];
-    const showGuestCtas = !isAuthed && !sessionRestoreError;
-    const featuredDeals = closedDeals.slice(0, 4);
-    const heroMetric = roleContent.metrics[0];
     const isSellerAuthed = isAuthed && authenticatedRole === "SELLER";
+    const showGuestCtas = !isAuthed && !sessionRestoreError;
+    const featuredDeals = isAuthed && !isSellerAuthed ? closedDeals : closedDeals.slice(0, 4);
+    const heroMetric = roleContent.metrics[0];
     const showcaseHeading = isAuthed
         ? (isSellerAuthed
             ? {
@@ -1078,6 +1088,8 @@ export default function HomePage({
                                                     key={property?.id ?? `${property?.street1 ?? "deal"}-${index}`}
                                                     property={property}
                                                     delay={index * 100}
+                                                    linkTo={isAuthed && !isSellerAuthed ? "/investor" : null}
+                                                    linkState={isAuthed && !isSellerAuthed ? { homeSelectedPropertyId: property?.id } : null}
                                                     statusLabel={isAuthed
                                                         ? (isSellerAuthed
                                                             ? sellerWorkflowLabel(property?.sellerWorkflowStatus)

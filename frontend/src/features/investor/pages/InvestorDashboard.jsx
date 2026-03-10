@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useOutletContext } from "react-router-dom";
+import { useLocation, useNavigate, useOutletContext } from "react-router-dom";
 import { getPropertyById, searchProperties } from "@/api/modules/propertyApi";
 import { createInquiry, getInquiryByInvestor } from "@/api/modules/inquiryApi";
 import { getInquiryRepliesByInvestor } from "@/api/modules/inquiryReplyApi";
@@ -163,6 +163,8 @@ function FilterDropdown({
 
 export default function InvestorDashboard() {
   const { user } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
   const { setPropertyDetailsOpener, openMessagesModal } = useOutletContext() || {};
   const [filters, setFilters] = useState({
     q: "",
@@ -203,6 +205,7 @@ export default function InvestorDashboard() {
   const closingTermsMobileMenuRef = useRef(null);
   const listPaneRef = useRef(null);
   const selectedPropertyOriginRef = useRef(null);
+  const pendingHomepagePropertyIdRef = useRef(null);
 
   const favoritePropertyIdSet = useMemo(() => {
     return new Set(favoritePropertyIds);
@@ -313,6 +316,26 @@ export default function InvestorDashboard() {
       setSelectedPropertyId(null);
     }
   }, [visibleRows, selectedPropertyId]);
+
+  useEffect(() => {
+    const raw = location.state?.homeSelectedPropertyId;
+    const numeric = Number(raw);
+    if (!Number.isFinite(numeric) || numeric <= 0) return;
+
+    pendingHomepagePropertyIdRef.current = numeric;
+    navigate(`${location.pathname}${location.search}${location.hash}`, { replace: true });
+  }, [location.hash, location.pathname, location.search, location.state, navigate]);
+
+  useEffect(() => {
+    const pendingId = pendingHomepagePropertyIdRef.current;
+    if (!pendingId || !visibleRows.length) return;
+
+    const match = visibleRows.find((row) => Number(row?.id) === pendingId);
+    if (!match) return;
+
+    setSelectedPropertyId(match.id);
+    pendingHomepagePropertyIdRef.current = null;
+  }, [visibleRows]);
 
   useEffect(() => {
     if (!detailProperty && detailPropertyId !== null) {
