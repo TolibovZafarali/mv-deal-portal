@@ -79,10 +79,12 @@ export default function HomeAboutPage({
     primaryCtaState,
     onClose,
 }) {
+    const isActive = isVisible || isClosing;
+
     return (
         <section
             id={id}
-            className={`homeAboutPage ${isVisible ? "is-visible" : ""} ${isClosing ? "is-closing" : ""}`}
+            className={`homeAboutPage ${isActive ? "is-visible" : ""} ${isClosing ? "is-closing" : ""}`}
             aria-label="About us page"
         >
             <button

@@ -16,7 +16,7 @@ import "@/features/home/components/HomeAboutPage.css";
 import HomeAboutPage from "@/features/home/components/HomeAboutPage";
 
 const ABOUT_PAGE_ID = "home-about-page";
-const ABOUT_TRANSITION_DURATION_MS = 820;
+const ABOUT_TRANSITION_DURATION_MS = 980;
 
 function userPrefersReducedMotion() {
     if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
@@ -312,6 +312,7 @@ export default function HomePage({
             loadingLabel: "Loading recent closings",
             carouselLabel: "Recent closings carousel",
         };
+    const hideHomeSections = aboutPageOpen && !aboutPageClosing;
 
     const handleSelectRole = (role) => {
         startTransition(() => {
@@ -922,7 +923,7 @@ export default function HomePage({
                                 <div className="homeHero__sceneImage" />
                                 <div className="homeHero__sceneGradient" />
 
-                                <div className={`homeHero__sceneText ${aboutPageOpen ? "" : "homeRoleMotion"}`}>
+                                <div className="homeHero__sceneText homeRoleMotion">
                                     <p className="homeHero__sceneLabel">{ABOUT_SCENE_CONTENT.label}</p>
                                     <h2 className="homeHero__sceneTitle">{ABOUT_SCENE_CONTENT.title}</h2>
                                     <p className="homeHero__sceneCopy">{ABOUT_SCENE_CONTENT.text}</p>
@@ -974,7 +975,7 @@ export default function HomePage({
                         </div>
                     </div>
                 ) : null}
-                {aboutPageOpen ? null : (
+                {hideHomeSections ? null : (
                     <>
                         {!isAuthed ? (
                             <section id="perspective" className="homeStory" aria-label="Perspective">
