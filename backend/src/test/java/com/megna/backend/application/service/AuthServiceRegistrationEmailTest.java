@@ -23,6 +23,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -133,6 +134,42 @@ class AuthServiceRegistrationEmailTest {
         assertEquals("john.doe@example.com", response.email());
         assertEquals("PENDING", response.status());
         verify(transactionalEmailService).sendTransactional(any(TransactionalEmailRequest.class));
+    }
+
+    @Test
+    void registerInvestorShouldAllowMissingCompanyName() {
+        AuthService authService = newAuthService();
+        RegisterRequestDto request = new RegisterRequestDto(
+                "John",
+                "Doe",
+                null,
+                "john.doe@example.com",
+                "+1 555 000 1111",
+                "Password123!"
+        );
+
+        when(adminRepository.existsByEmail("john.doe@example.com")).thenReturn(false);
+        when(investorRepository.findByEmail("john.doe@example.com")).thenReturn(Optional.empty());
+        when(sellerRepository.existsByEmail("john.doe@example.com")).thenReturn(false);
+        when(passwordEncoder.encode("Password123!")).thenReturn("encoded-password");
+        when(investorRepository.save(any(Investor.class))).thenAnswer(invocation -> {
+            Investor investor = invocation.getArgument(0);
+            investor.setId(42L);
+            return investor;
+        });
+        when(transactionalEmailService.sendTransactional(any(TransactionalEmailRequest.class))).thenReturn(true);
+
+        RegisterResponseDto response = authService.registerInvestor(request);
+
+        assertEquals(42L, response.investorId());
+        assertEquals("john.doe@example.com", response.email());
+        assertEquals("PENDING", response.status());
+
+        ArgumentCaptor<Investor> investorCaptor = ArgumentCaptor.forClass(Investor.class);
+        verify(investorRepository).save(investorCaptor.capture());
+        Investor savedInvestor = investorCaptor.getValue();
+        assertNotNull(savedInvestor);
+        assertEquals("", savedInvestor.getCompanyName());
     }
 
     private AuthService newAuthService() {

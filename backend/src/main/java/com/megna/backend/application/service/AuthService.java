@@ -300,7 +300,7 @@ public class AuthService {
         Investor investor = new Investor();
         investor.setFirstName(dto.firstName().trim());
         investor.setLastName(dto.lastName().trim());
-        investor.setCompanyName(dto.companyName().trim());
+        investor.setCompanyName(normalizeOptionalCompanyName(dto.companyName()));
         investor.setEmail(email);
         investor.setNotificationEmail(email);
         investor.setPhone(dto.phone().trim());
@@ -326,7 +326,7 @@ public class AuthService {
         Seller seller = new Seller();
         seller.setFirstName(dto.firstName().trim());
         seller.setLastName(dto.lastName().trim());
-        seller.setCompanyName(dto.companyName().trim());
+        seller.setCompanyName(normalizeOptionalCompanyName(dto.companyName()));
         seller.setEmail(email);
         seller.setNotificationEmail(email);
         seller.setPhone(dto.phone().trim());
@@ -377,6 +377,10 @@ public class AuthService {
         if (passwordEncoder.matches(newPassword, existingPasswordHash)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "New password must be different");
         }
+    }
+
+    private String normalizeOptionalCompanyName(String companyName) {
+        return companyName == null ? "" : companyName.trim();
     }
 
     private LoginResponseDto buildLoginResponse(String token) {

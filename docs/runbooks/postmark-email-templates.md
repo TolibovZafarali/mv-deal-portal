@@ -14,6 +14,8 @@ Use one reusable Postmark layout plus content-only templates:
 - `admin-inquiry-created-cid-v1`
 - `admin-inquiry-follow-up-cid-v1`
 - `admin-contact-request-created-cid-v1`
+- `investor-inquiry-admin-reply-cid-v1`
+- `contact-request-reply-cid-v1`
 
 All templates use the same HTTPS logo URL:
 
@@ -32,6 +34,8 @@ All templates use the same HTTPS logo URL:
 - Admin inquiry-created content HTML: `/Users/zafaralitolibov/Documents/mv-deal-portal/docs/email/postmark-admin-inquiry-created-content-v1.html`
 - Admin inquiry-follow-up content HTML: `/Users/zafaralitolibov/Documents/mv-deal-portal/docs/email/postmark-admin-inquiry-follow-up-content-v1.html`
 - Admin contact-request-created content HTML: `/Users/zafaralitolibov/Documents/mv-deal-portal/docs/email/postmark-admin-contact-request-created-content-v1.html`
+- Investor inquiry admin-reply content HTML: `/Users/zafaralitolibov/Documents/mv-deal-portal/docs/email/postmark-investor-inquiry-admin-reply-content-v1.html`
+- Contact request reply content HTML: `/Users/zafaralitolibov/Documents/mv-deal-portal/docs/email/postmark-contact-request-reply-content-v1.html`
 
 ## Postmark UI setup
 
@@ -44,7 +48,9 @@ All templates use the same HTTPS logo URL:
 7. Create template `admin-inquiry-created-cid-v1`, select that layout, paste admin inquiry-created content HTML.
 8. Create template `admin-inquiry-follow-up-cid-v1`, select that layout, paste admin inquiry-follow-up content HTML.
 9. Create template `admin-contact-request-created-cid-v1`, select that layout, paste admin contact-request-created content HTML.
-10. Add template subject as `{{subject}}` for each template.
+10. Create template `investor-inquiry-admin-reply-cid-v1`, select that layout, paste investor inquiry admin-reply content HTML.
+11. Create template `contact-request-reply-cid-v1`, select that layout, paste contact request reply content HTML.
+12. Add template subject as `{{subject}}` for each template.
 
 ## Text bodies
 
@@ -158,6 +164,46 @@ Submitted: {{created_at}}
 
 Message:
 {{contact_message}}
+
+{{action_text}}: {{action_url}}
+
+{{footer_text}}
+```
+
+Investor inquiry admin reply:
+
+```txt
+{{title}}
+
+{{message}}
+
+Reply ID: {{reply_id}}
+Property ID: {{property_id}}
+Investor ID: {{investor_id}}
+
+Reply:
+{{reply_message}}
+
+Original Inquiry:
+{{original_inquiry_message}}
+
+{{action_text}}: {{action_url}}
+
+{{footer_text}}
+```
+
+Contact request reply:
+
+```txt
+{{title}}
+
+{{message}}
+
+Request ID: {{request_id}}
+Contact: {{contact_name}}
+
+Reply from Megna Team:
+{{reply_message}}
 
 {{action_text}}: {{action_url}}
 
@@ -297,6 +343,42 @@ Admin contact-request-created model:
   "action_text": "Open Contact Requests",
   "action_url": "https://megna-realestate.com/admin/contact-requests",
   "footer_text": "This notification was sent to admins because a new contact request was submitted."
+}
+```
+
+Investor inquiry admin-reply model:
+
+```json
+{
+  "subject": "Megna Team replied to your inquiry",
+  "logo_url": "https://raw.githubusercontent.com/TolibovZafarali/mv-deal-portal/dev/frontend/public/white-logo.png",
+  "title": "You have a new inquiry reply",
+  "message": "Megna Team has posted a reply to your inquiry.",
+  "reply_id": "700",
+  "property_id": "101",
+  "investor_id": "10",
+  "reply_message": "Thanks for reaching out. We reviewed your request and can share additional details.",
+  "original_inquiry_message": "Original investor message",
+  "action_text": "View Properties",
+  "action_url": "https://megna-realestate.com/properties/101",
+  "footer_text": "Reply to this email if you need additional support from the Megna Team."
+}
+```
+
+Contact request reply model:
+
+```json
+{
+  "subject": "Reply from Megna Real Estate - Request #998",
+  "logo_url": "https://raw.githubusercontent.com/TolibovZafarali/mv-deal-portal/dev/frontend/public/white-logo.png",
+  "title": "Megna Team replied to your contact request",
+  "message": "Thanks for reaching out to Megna Real Estate. We sent a response to your request.",
+  "contact_name": "Alex Johnson",
+  "request_id": "998",
+  "reply_message": "Thanks, we will follow up today.",
+  "action_text": "Contact Us",
+  "action_url": "https://megna-realestate.com/contact",
+  "footer_text": "If you need anything else, reply to this email and our team will help."
 }
 ```
 

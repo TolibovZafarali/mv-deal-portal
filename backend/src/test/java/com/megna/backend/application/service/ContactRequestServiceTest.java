@@ -161,7 +161,19 @@ class ContactRequestServiceTest {
         assertEquals(ContactRequestStatus.REPLIED, response.status());
         assertEquals(EmailStatus.SENT, response.confirmationEmailStatus());
         verify(contactRequestRepository).save(contactRequest);
-        verify(transactionalEmailService).sendTransactional(any(TransactionalEmailRequest.class));
+        ArgumentCaptor<TransactionalEmailRequest> emailCaptor = ArgumentCaptor.forClass(TransactionalEmailRequest.class);
+        verify(transactionalEmailService).sendTransactional(emailCaptor.capture());
+        TransactionalEmailRequest emailRequest = emailCaptor.getValue();
+
+        assertEquals("alex@example.com", emailRequest.to());
+        assertEquals("contact-request-reply-cid-v1", emailRequest.templateAlias());
+        assertEquals("Reply from Megna Real Estate - Request #998", emailRequest.templateModel().get("subject"));
+        assertEquals("Alex Johnson", emailRequest.templateModel().get("contact_name"));
+        assertEquals("998", emailRequest.templateModel().get("request_id"));
+        assertEquals("Thanks, we will follow up today.", emailRequest.templateModel().get("reply_message"));
+        assertEquals("Contact Us", emailRequest.templateModel().get("action_text"));
+        assertEquals("https://megna-realestate.com/contact", emailRequest.templateModel().get("action_url"));
+        assertTrue(emailRequest.isTemplate());
     }
 
     private ContactRequestCreateRequestDto sampleCreateRequest() {

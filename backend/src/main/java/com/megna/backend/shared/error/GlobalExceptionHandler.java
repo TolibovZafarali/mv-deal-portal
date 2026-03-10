@@ -46,7 +46,9 @@ public class GlobalExceptionHandler {
                 HttpStatus.TOO_MANY_REQUESTS.getReasonPhrase(),
                 ex.getMessage(),
                 req.getRequestURI(),
-                null
+                null,
+                ex.getErrorCode(),
+                ex.getRetryAfterSeconds()
         );
 
         return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
