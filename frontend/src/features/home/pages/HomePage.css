@@ -236,9 +236,12 @@ html.homeSmoothScroll body::-webkit-scrollbar {
   justify-content: center;
   min-height: 52px;
   padding: 0 24px;
+  -webkit-appearance: none;
+  appearance: none;
   border: 1px solid transparent;
   border-radius: 999px;
   background: linear-gradient(135deg, #f1dfbf 0%, var(--home-accent) 46%, #ba8d57 100%);
+  background-clip: padding-box;
   color: #11161c;
   box-shadow: 0 16px 42px rgba(214, 187, 146, 0.22);
   font-size: 0.82rem;
