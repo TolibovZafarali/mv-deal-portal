@@ -45,13 +45,37 @@
 }
 
 .sellerDashSplit__heading {
-  border-bottom: 1px solid rgba(16, 16, 16, 0.14);
   background: transparent;
-  padding: 0 0 10px;
+  padding: 0 0 13px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
+  position: relative;
+  overflow: hidden;
+}
+
+.sellerDashSplit__heading::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 2px;
+  background: #101010;
+  opacity: 0.2;
+}
+
+.sellerDashSplit__heading::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: 2px;
+  background: #101010;
+  transform-origin: left center;
+  transform: scaleX(var(--seller-scroll-progress, 0));
+  box-shadow: none;
+  transition: transform 220ms ease, opacity 220ms ease;
 }
 
 .sellerDashSplit__heading h2 {
@@ -83,8 +107,13 @@
   min-height: 0;
   overflow-x: hidden;
   overflow-y: auto;
-  scrollbar-gutter: stable;
+  scrollbar-width: none;
   padding-right: 6px;
+}
+
+.sellerDashSplit__cards::-webkit-scrollbar {
+  width: 0;
+  height: 0;
 }
 
 .sellerDashSplit__empty {
@@ -438,6 +467,11 @@
     scroll-snap-type: x proximity;
     overscroll-behavior-x: contain;
     padding-bottom: 8px;
-    scrollbar-gutter: auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sellerDashSplit__heading::before {
+    transition: none;
   }
 }

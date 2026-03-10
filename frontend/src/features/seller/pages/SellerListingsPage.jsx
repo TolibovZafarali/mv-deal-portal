@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useOutletContext, useSearchParams } from "react-router-dom";
 import {
   createSellerProperty,
@@ -153,6 +153,12 @@ export default function SellerListingsPage() {
   const [publishingIds, setPublishingIds] = useState({});
   const [publishHints, setPublishHints] = useState({});
   const [publishErrors, setPublishErrors] = useState({});
+  const notPublishedRailRef = useRef(null);
+  const publishedRailRef = useRef(null);
+  const [sectionScrollProgress, setSectionScrollProgress] = useState({
+    notPublished: 0,
+    published: 0,
+  });
 
   useEffect(() => {
     let alive = true;
@@ -204,6 +210,48 @@ export default function SellerListingsPage() {
     });
     return keys;
   }, [rows]);
+
+  useEffect(() => {
+    const sections = [
+      { key: "notPublished", rail: notPublishedRailRef.current },
+      { key: "published", rail: publishedRailRef.current },
+    ];
+    const cleanup = [];
+
+    sections.forEach(({ key, rail }) => {
+      if (!rail) return;
+
+      const syncProgress = () => {
+        const maxVertical = Math.max(rail.scrollHeight - rail.clientHeight, 0);
+        const maxHorizontal = Math.max(rail.scrollWidth - rail.clientWidth, 0);
+        let next = 0;
+
+        if (maxVertical > 1) {
+          next = Math.min(Math.max(rail.scrollTop / maxVertical, 0), 1);
+        } else if (maxHorizontal > 1) {
+          next = Math.min(Math.max(rail.scrollLeft / maxHorizontal, 0), 1);
+        }
+
+        setSectionScrollProgress((prev) => {
+          if (Math.abs((prev[key] ?? 0) - next) < 0.002) return prev;
+          return { ...prev, [key]: next };
+        });
+      };
+
+      syncProgress();
+      rail.addEventListener("scroll", syncProgress, { passive: true });
+      window.addEventListener("resize", syncProgress);
+
+      cleanup.push(() => {
+        rail.removeEventListener("scroll", syncProgress);
+        window.removeEventListener("resize", syncProgress);
+      });
+    });
+
+    return () => {
+      cleanup.forEach((fn) => fn());
+    };
+  }, [notPublished.length, published.length, page, loading]);
 
   async function openEditModal(id) {
     setEditLoadError("");
@@ -437,24 +485,34 @@ export default function SellerListingsPage() {
       {!loading && !error ? (
         <div className="sellerDashSplit__columns">
           <section className="sellerDashSplit__column">
-            <header className="sellerDashSplit__heading">
+            <header
+              className="sellerDashSplit__heading"
+              style={{ "--seller-scroll-progress": sectionScrollProgress.notPublished.toFixed(4) }}
+            >
               <h2>Unpublished</h2>
               <span>{notPublished.length}</span>
             </header>
             {notPublished.length ? (
-              <div className="sellerDashSplit__cards">{notPublished.map((property) => renderCard(property))}</div>
+              <div ref={notPublishedRailRef} className="sellerDashSplit__cards">
+                {notPublished.map((property) => renderCard(property))}
+              </div>
             ) : (
               <div className="sellerDashSplit__empty">No unpublished properties.</div>
             )}
           </section>
 
           <section className="sellerDashSplit__column">
-            <header className="sellerDashSplit__heading">
+            <header
+              className="sellerDashSplit__heading"
+              style={{ "--seller-scroll-progress": sectionScrollProgress.published.toFixed(4) }}
+            >
               <h2>Under Review / Published</h2>
               <span>{published.length}</span>
             </header>
             {published.length ? (
-              <div className="sellerDashSplit__cards">{published.map((property) => renderCard(property))}</div>
+              <div ref={publishedRailRef} className="sellerDashSplit__cards">
+                {published.map((property) => renderCard(property))}
+              </div>
             ) : (
               <div className="sellerDashSplit__empty">No under review or published properties.</div>
             )}
