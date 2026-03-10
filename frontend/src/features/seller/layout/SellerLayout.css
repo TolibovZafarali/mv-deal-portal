@@ -204,8 +204,7 @@
   }
 
   .sellerBrand__label {
-    font-size: 11px;
-    letter-spacing: 0.08em;
+    display: none;
   }
 
   .sellerTop__accountBtn {

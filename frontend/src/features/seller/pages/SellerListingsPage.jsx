@@ -349,7 +349,7 @@ export default function SellerListingsPage() {
     const isUnderReview = workflow === SELLER_WORKFLOW_STATUS.SUBMITTED || publishHint.length > 0;
 
     return (
-      <article key={property.id} className="sellerDashCard">
+      <article key={property.id} className={`sellerDashCard sellerDashCard--${statusTone}`}>
         <div
           role="button"
           tabIndex={0}
