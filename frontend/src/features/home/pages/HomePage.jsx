@@ -18,7 +18,6 @@ import HomeAboutPage from "@/features/home/components/HomeAboutPage";
 
 const ABOUT_PAGE_ID = "home-about-page";
 const ABOUT_TRANSITION_DURATION_MS = 980;
-const MOBILE_HOME_MEDIA_QUERY = "(max-width: 640px)";
 
 function userPrefersReducedMotion() {
     if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
@@ -26,14 +25,6 @@ function userPrefersReducedMotion() {
     }
 
     return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-}
-
-function isMobileHomeViewport() {
-    if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
-        return false;
-    }
-
-    return window.matchMedia(MOBILE_HOME_MEDIA_QUERY).matches;
 }
 
 function money(value) {
@@ -477,12 +468,11 @@ export default function HomePage({
 
         const nodes = Array.from(root.querySelectorAll(".homeReveal"));
         if (!nodes.length) return undefined;
-        const shouldGroupShowcaseReveals = isMobileHomeViewport() || isAuthed;
         const mobileShowcaseNodes = [];
         const standardNodes = [];
 
         nodes.forEach((node) => {
-            const isGroupedShowcaseNode = shouldGroupShowcaseReveals && Boolean(node.closest(".homeShowcase__grid"));
+            const isGroupedShowcaseNode = Boolean(node.closest(".homeShowcase__grid"));
             const delay = isGroupedShowcaseNode ? "0" : (node.getAttribute("data-delay") || "0");
             node.style.setProperty("--reveal-delay", `${delay}ms`);
 

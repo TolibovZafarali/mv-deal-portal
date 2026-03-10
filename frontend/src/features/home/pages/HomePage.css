@@ -1702,6 +1702,13 @@ button.homeButton {
     box-shadow 320ms var(--home-ease);
 }
 
+.homeShowcase__card.homeReveal,
+.homeShowcase__placeholder.homeReveal {
+  filter: blur(10px);
+  transform: translate3d(0, 24px, 0) scale(0.992);
+  transition-duration: 420ms, 420ms, 420ms;
+}
+
 .homeShowcase__imageWrap {
   position: relative;
   min-height: 220px;
