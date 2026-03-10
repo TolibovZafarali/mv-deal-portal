@@ -25,10 +25,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         webEnvironment = SpringBootTest.WebEnvironment.MOCK,
         properties = {
                 "app.abuse-protection.enabled=true",
-                "app.abuse-protection.auth-login.max-requests=2",
+                "app.abuse-protection.auth-login.max-requests=3",
                 "app.abuse-protection.auth-login.window-seconds=300",
+                "app.abuse-protection.auth-login.cooldown-seconds=0",
                 "app.abuse-protection.contact-requests.max-requests=2",
-                "app.abuse-protection.contact-requests.window-seconds=300"
+                "app.abuse-protection.contact-requests.window-seconds=300",
+                "app.abuse-protection.contact-requests.cooldown-seconds=0"
         }
 )
 @AutoConfigureMockMvc
@@ -82,9 +84,17 @@ class PublicEndpointRateLimitIntegrationTest {
                         .header("X-Forwarded-For", "203.0.113.10")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body))
+                .andExpect(status().isUnauthorized());
+
+        mockMvc.perform(post("/api/auth/login")
+                        .header("X-Forwarded-For", "203.0.113.10")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
                 .andExpect(status().isTooManyRequests())
                 .andExpect(header().exists(HttpHeaders.RETRY_AFTER))
-                .andExpect(jsonPath("$.message").value("Too many requests. Please try again later."));
+                .andExpect(jsonPath("$.message").value("Too many requests. Please try again later."))
+                .andExpect(jsonPath("$.code").value("RATE_LIMIT_EXCEEDED"))
+                .andExpect(jsonPath("$.retryAfterSeconds").isNumber());
 
         mockMvc.perform(post("/api/auth/login")
                         .header("X-Forwarded-For", "203.0.113.11")
@@ -122,7 +132,9 @@ class PublicEndpointRateLimitIntegrationTest {
                         .content(body))
                 .andExpect(status().isTooManyRequests())
                 .andExpect(header().exists(HttpHeaders.RETRY_AFTER))
-                .andExpect(jsonPath("$.message").value("Too many requests. Please try again later."));
+                .andExpect(jsonPath("$.message").value("Too many requests. Please try again later."))
+                .andExpect(jsonPath("$.code").value("RATE_LIMIT_EXCEEDED"))
+                .andExpect(jsonPath("$.retryAfterSeconds").isNumber());
 
         Integer savedCount = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM contact_requests", Integer.class);
         assertEquals(2, savedCount == null ? 0 : savedCount);

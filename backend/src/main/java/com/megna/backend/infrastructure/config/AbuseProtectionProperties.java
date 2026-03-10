@@ -15,14 +15,16 @@ public class AbuseProtectionProperties {
     private long pruneIntervalSeconds = 60;
     private long staleEntryTtlSeconds = 7200;
 
-    private EndpointLimit authLogin = new EndpointLimit(10, 300);
-    private EndpointLimit authRegister = new EndpointLimit(5, 3600);
-    private EndpointLimit authRegisterSeller = new EndpointLimit(5, 3600);
-    private EndpointLimit authPasswordForgot = new EndpointLimit(5, 3600);
-    private EndpointLimit authPasswordReset = new EndpointLimit(10, 600);
-    private EndpointLimit authRefresh = new EndpointLimit(30, 300);
-    private EndpointLimit authLogout = new EndpointLimit(30, 300);
-    private EndpointLimit contactRequests = new EndpointLimit(5, 600);
+    private EndpointLimit authLogin = new EndpointLimit(20, 60, 20);
+    private EndpointLimit authRegister = new EndpointLimit(6, 600, 60);
+    private EndpointLimit authRegisterSeller = new EndpointLimit(6, 600, 60);
+    private EndpointLimit authPasswordForgot = new EndpointLimit(6, 600, 60);
+    private EndpointLimit authPasswordReset = new EndpointLimit(12, 600, 45);
+    private EndpointLimit authPasswordChange = new EndpointLimit(20, 300, 30);
+    private EndpointLimit authRefresh = new EndpointLimit(120, 60, 0);
+    private EndpointLimit authLogout = new EndpointLimit(120, 60, 0);
+    private EndpointLimit inquiries = new EndpointLimit(24, 300, 30);
+    private EndpointLimit contactRequests = new EndpointLimit(10, 600, 45);
 
     @Getter
     @Setter
@@ -30,6 +32,8 @@ public class AbuseProtectionProperties {
         private boolean enabled = true;
         private int maxRequests;
         private long windowSeconds;
+        private int cooldownSeconds;
+        private int cooldownTriggerDenials = 3;
 
         public EndpointLimit() {
         }
@@ -37,6 +41,12 @@ public class AbuseProtectionProperties {
         public EndpointLimit(int maxRequests, long windowSeconds) {
             this.maxRequests = maxRequests;
             this.windowSeconds = windowSeconds;
+        }
+
+        public EndpointLimit(int maxRequests, long windowSeconds, int cooldownSeconds) {
+            this.maxRequests = maxRequests;
+            this.windowSeconds = windowSeconds;
+            this.cooldownSeconds = cooldownSeconds;
         }
     }
 }
