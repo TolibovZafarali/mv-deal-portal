@@ -17,6 +17,7 @@ import HomeAboutPage from "@/features/home/components/HomeAboutPage";
 
 const ABOUT_PAGE_ID = "home-about-page";
 const ABOUT_TRANSITION_DURATION_MS = 980;
+const MOBILE_HOME_MEDIA_QUERY = "(max-width: 640px)";
 
 function userPrefersReducedMotion() {
     if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
@@ -24,6 +25,14 @@ function userPrefersReducedMotion() {
     }
 
     return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
+function isMobileHomeViewport() {
+    if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
+        return false;
+    }
+
+    return window.matchMedia(MOBILE_HOME_MEDIA_QUERY).matches;
 }
 
 function money(value) {
@@ -465,10 +474,21 @@ export default function HomePage({
 
         const nodes = Array.from(root.querySelectorAll(".homeReveal"));
         if (!nodes.length) return undefined;
+        const shouldGroupShowcaseReveals = isMobileHomeViewport() || isAuthed;
+        const mobileShowcaseNodes = [];
+        const standardNodes = [];
 
         nodes.forEach((node) => {
-            const delay = node.getAttribute("data-delay") || "0";
+            const isGroupedShowcaseNode = shouldGroupShowcaseReveals && Boolean(node.closest(".homeShowcase__grid"));
+            const delay = isGroupedShowcaseNode ? "0" : (node.getAttribute("data-delay") || "0");
             node.style.setProperty("--reveal-delay", `${delay}ms`);
+
+            if (isGroupedShowcaseNode) {
+                mobileShowcaseNodes.push(node);
+                return;
+            }
+
+            standardNodes.push(node);
         });
 
         if (typeof IntersectionObserver === "undefined") {
@@ -479,26 +499,59 @@ export default function HomePage({
             return undefined;
         }
 
-        const observer = new IntersectionObserver(
-            (entries) => {
-                entries.forEach((entry) => {
-                    if (!entry.isIntersecting) return;
-                    entry.target.classList.add("is-visible");
-                    observer.unobserve(entry.target);
-                });
-            },
-            {
-                threshold: 0.18,
-                rootMargin: "0px 0px -8% 0px",
-            },
-        );
+        const revealNode = (node) => {
+            node.classList.add("is-visible");
+        };
+        const cleanup = [];
 
-        nodes.forEach((node) => {
-            observer.observe(node);
-        });
+        if (standardNodes.length) {
+            const observer = new IntersectionObserver(
+                (entries) => {
+                    entries.forEach((entry) => {
+                        if (!entry.isIntersecting) return;
+                        revealNode(entry.target);
+                        observer.unobserve(entry.target);
+                    });
+                },
+                {
+                    threshold: 0.18,
+                    rootMargin: "0px 0px -8% 0px",
+                },
+            );
 
-        return () => observer.disconnect();
-    }, [selectedRole, closedDeals.length, closedDealsLoading, closedDealsError, aboutPageOpen]);
+            standardNodes.forEach((node) => {
+                observer.observe(node);
+            });
+
+            cleanup.push(() => observer.disconnect());
+        }
+
+        if (mobileShowcaseNodes.length) {
+            const showcaseSection = root.querySelector(".homeShowcase");
+            if (!showcaseSection) {
+                mobileShowcaseNodes.forEach(revealNode);
+            } else {
+                const showcaseObserver = new IntersectionObserver(
+                    ([entry]) => {
+                        if (!entry?.isIntersecting) return;
+                        mobileShowcaseNodes.forEach(revealNode);
+                        showcaseObserver.unobserve(showcaseSection);
+                    },
+                    {
+                        threshold: 0.18,
+                        rootMargin: "0px 0px -8% 0px",
+                    },
+                );
+
+                showcaseObserver.observe(showcaseSection);
+                cleanup.push(() => showcaseObserver.disconnect());
+            }
+        }
+
+        return () => {
+            cleanup.forEach((disconnect) => disconnect());
+        };
+    }, [selectedRole, closedDeals.length, closedDealsLoading, closedDealsError, aboutPageOpen, isAuthed]);
 
     useEffect(() => {
         const section = metricsRef.current;
@@ -763,12 +816,17 @@ export default function HomePage({
                                 </button>
                             </div>
                         ) : (
-                            <span
-                                className="homeHeader__roleBadge"
-                                aria-label={`Signed in as ${signedInRoleLabel}`}
-                            >
-                                {signedInRoleLabel}
-                            </span>
+                            <>
+                                <span
+                                    className="homeHeader__roleBadge"
+                                    aria-label={`Signed in as ${signedInRoleLabel}`}
+                                >
+                                    {signedInRoleLabel}
+                                </span>
+                                <Link to="/app" className="homeButton homeButton--compact homeHeader__dashboardShortcut">
+                                    Dashboard
+                                </Link>
+                            </>
                         )}
                     </div>
 
@@ -787,7 +845,7 @@ export default function HomePage({
                                     Log out
                                 </button>
                                 <Link to="/app" className="homeButton homeButton--compact">
-                                    Open dashboard
+                                    Dashboard
                                 </Link>
                             </>
                         ) : showGuestCtas ? (

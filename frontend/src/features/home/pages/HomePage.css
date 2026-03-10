@@ -133,6 +133,10 @@ html.homeSmoothScroll body::-webkit-scrollbar {
   white-space: nowrap;
 }
 
+.homeButton.homeHeader__dashboardShortcut {
+  display: none;
+}
+
 .homeHeader__logo {
   position: absolute;
   left: 50%;
@@ -2238,27 +2242,69 @@ button.homeButton {
 
   .homeHeader__inner {
     min-height: 76px;
-    gap: 10px;
+    gap: 12px;
+    justify-content: space-between;
+  }
+
+  .homeHeader__left,
+  .homeHeader__logo,
+  .homeHeader__actions {
+    transition:
+      transform 320ms var(--home-ease),
+      opacity 220ms var(--home-ease);
+  }
+
+  .homeHero__copy {
+    transition:
+      transform 340ms var(--home-ease),
+      opacity 240ms var(--home-ease),
+      filter 240ms var(--home-ease);
+  }
+
+  .homeHeader__logo {
+    position: relative;
+    left: auto;
+    transform: none;
+    order: 0;
+  }
+
+  .homeHeader__logoImage {
+    width: min(148px, 38vw);
+    height: 34px;
   }
 
   .homeHeader__left {
-    width: min(360px, calc(100vw - 180px));
-    overflow: hidden;
+    order: 1;
+    flex: 1 1 auto;
+    width: auto;
+    min-width: 0;
+    margin-left: auto;
+    justify-content: flex-end;
+    overflow: visible;
   }
 
   .homeHeader__actions {
-    gap: 10px;
+    display: none;
+  }
+
+  .homeHeader__roleBadge {
+    display: none;
+  }
+
+  .homeButton.homeHeader__dashboardShortcut {
+    display: inline-flex;
   }
 
   .homeRoleSwitch--header {
-    width: min(360px, 100%);
+    width: min(172px, 100%);
+    margin-left: auto;
   }
 
   .homeRoleSwitch--header .homeRoleSwitch__button {
     min-height: 40px;
-    padding: 0 10px;
+    padding: 0 8px;
     font-size: 0.68rem;
-    letter-spacing: 0.14em;
+    letter-spacing: 0.12em;
   }
 
   .homeHeader__utilityLink {
@@ -2275,6 +2321,10 @@ button.homeButton {
     grid-template-columns: 1fr;
   }
 
+  .homeHero__signalRow {
+    display: none;
+  }
+
   .homeHero__sceneFrame {
     min-height: 420px;
   }
@@ -2289,7 +2339,31 @@ button.homeButton {
   }
 
   .home--aboutOpen .homeHero__copy {
-    transform: translateX(-80px);
+    transform: translateY(24px);
+  }
+
+  .home--aboutOpen .homeHeader__left {
+    transform: translateY(-44px);
+  }
+
+  .home--aboutOpen .homeHeader__logo,
+  .home--aboutOpen .homeHeader__actions {
+    transform: translateY(-32px);
+  }
+
+  .home--aboutClosing .homeHeader,
+  .home--aboutClosing .homeHeader__left,
+  .home--aboutClosing .homeHeader__logo,
+  .home--aboutClosing .homeHeader__actions,
+  .home--aboutClosing .homeHero__copy {
+    transition-delay: 0ms;
+  }
+
+  .home--aboutClosing .homeHeader__left,
+  .home--aboutClosing .homeHeader__logo,
+  .home--aboutClosing .homeHeader__actions,
+  .home--aboutClosing .homeHero__copy {
+    transform: none;
   }
 
   .homeAboutPage__close {
@@ -2311,7 +2385,9 @@ button.homeButton {
 
   .homeAboutPage__title {
     font-size: clamp(2.7rem, 12vw, 4.2rem);
-    max-width: 9ch;
+    width: 100%;
+    max-width: none;
+    text-wrap: pretty;
   }
 
   .homeAboutPage__lead {
@@ -2359,9 +2435,9 @@ button.homeButton {
   }
 
   .homeHero__floatCard--metric {
-    width: max-content;
-    max-width: 100%;
-    margin: 16px 0 0 auto;
+    width: 100%;
+    max-width: none;
+    margin: 16px 0 0;
   }
 
   .homeHero__floatCard--detail {

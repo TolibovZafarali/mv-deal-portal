@@ -802,7 +802,9 @@
 
   .homeAboutPage__title {
     font-size: clamp(2.8rem, 12vw, 4.4rem);
-    max-width: 11.8ch;
+    width: 100%;
+    max-width: none;
+    text-wrap: pretty;
   }
 
   .homeAboutPage__lead,
