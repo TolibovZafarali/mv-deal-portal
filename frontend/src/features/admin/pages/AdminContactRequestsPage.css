@@ -12,46 +12,6 @@
   color: var(--admin-ink);
 }
 
-.adminContact__header {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 14px;
-}
-
-.adminContact__title {
-  margin: 0;
-  font-size: 34px;
-  line-height: 0.96;
-}
-
-.adminContact__lead {
-  margin: 6px 0 0;
-  color: var(--admin-muted);
-}
-
-.adminContact__summary {
-  min-width: 140px;
-  border: 1px solid var(--admin-border);
-  background: var(--admin-panel);
-  padding: 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  text-align: right;
-}
-
-.adminContact__summaryLabel {
-  font-size: 12px;
-  color: var(--admin-muted);
-}
-
-.adminContact__summaryValue {
-  font-size: 26px;
-  line-height: 1;
-}
-
 .adminContact__filters,
 .adminContact__tableSection {
   border: 1px solid var(--admin-border);
@@ -75,7 +35,7 @@
 
 .adminContact__filterRow {
   display: grid;
-  grid-template-columns: minmax(0, 2fr) repeat(2, minmax(0, 1fr)) auto;
+  grid-template-columns: minmax(0, 2.8fr) minmax(0, 1.8fr) minmax(0, 1.8fr);
   gap: 10px;
   align-items: end;
 }
@@ -93,6 +53,7 @@
 }
 
 .adminContact__input {
+  width: 100%;
   border: 1px solid var(--admin-filter-border);
   padding: 10px 34px 10px 10px;
   background: var(--admin-filter-input-bg);
@@ -131,11 +92,6 @@
   padding: 7px 10px;
   cursor: pointer;
   transition: background 180ms ease, color 180ms ease, border-color 180ms ease;
-}
-
-.adminContact__actionBtn {
-  align-self: end;
-  min-width: 92px;
 }
 
 .adminContact__actionBtn:hover,
@@ -192,16 +148,11 @@
   background: #ffb300;
 }
 
-.adminContact__row--progress td:first-child::before {
+.adminContact__row--replied td:first-child::before {
   background: #2563eb;
 }
 
-.adminContact__row--closed td:first-child::before {
-  background: #00c853;
-}
-
-.adminContact__statusBadge,
-.adminContact__emailBadge {
+.adminContact__statusBadge {
   display: inline-block;
   min-width: 84px;
   padding: 4px 10px;
@@ -216,39 +167,13 @@
   color: #4a2a00;
 }
 
-.adminContact__statusBadge--progress {
+.adminContact__statusBadge--replied {
   background: #2563eb;
   color: #ffffff;
 }
 
-.adminContact__statusBadge--closed {
-  background: #00e676;
-  color: #003d1b;
-}
-
 .adminContact__statusBadge--unknown {
   background: #f1f3f5;
-  color: #495057;
-}
-
-.adminContact__emailStack {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.adminContact__emailBadge--sent {
-  background: rgba(0, 200, 83, 0.12);
-  color: #0f7a3c;
-}
-
-.adminContact__emailBadge--failed {
-  background: rgba(220, 38, 38, 0.12);
-  color: #991b1b;
-}
-
-.adminContact__emailBadge--unknown {
-  background: rgba(16, 16, 16, 0.08);
   color: #495057;
 }
 
@@ -264,6 +189,10 @@
   flex-direction: column;
   gap: 8px;
   min-width: 92px;
+}
+
+.adminContact__actionDone {
+  color: var(--admin-muted);
 }
 
 .adminContact__rowActionBtn:disabled,
@@ -319,23 +248,169 @@
   color: rgba(170, 38, 38, 0.95);
 }
 
+.adminContact__replyOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(10px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+
+.adminContact__replyModal {
+  width: min(620px, 94vw);
+  background: rgba(16, 16, 16, 0.96);
+  color: #f2f2f2;
+  border: 1px solid rgba(242, 242, 242, 0.28);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.adminContact__replyHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.adminContact__replyTitle {
+  margin: 0;
+  font-size: 20px;
+}
+
+.adminContact__replyClose {
+  border: none;
+  background: transparent;
+  color: #f2f2f2;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.adminContact__replyMeta {
+  margin: 0;
+  color: rgba(242, 242, 242, 0.72);
+  font-size: 13px;
+}
+
+.adminContact__replyDetails {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 12px;
+}
+
+.adminContact__replyDetail {
+  min-width: 0;
+}
+
+.adminContact__replyDetail dt {
+  font-size: 11px;
+  color: rgba(242, 242, 242, 0.64);
+  margin: 0 0 2px;
+}
+
+.adminContact__replyDetail dd {
+  margin: 0;
+  font-size: 13px;
+  color: #f2f2f2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.adminContact__replySource {
+  border: 1px solid rgba(242, 242, 242, 0.22);
+  background: rgba(242, 242, 242, 0.03);
+  padding: 10px;
+}
+
+.adminContact__replySourceLabel {
+  display: block;
+  font-size: 11px;
+  color: rgba(242, 242, 242, 0.64);
+  margin-bottom: 6px;
+}
+
+.adminContact__replySourceBody {
+  margin: 0;
+  color: rgba(242, 242, 242, 0.9);
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.adminContact__replyField {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.adminContact__replyLabel {
+  font-size: 12px;
+  color: rgba(242, 242, 242, 0.75);
+}
+
+.adminContact__replyInput {
+  border: 1px solid #5a5a5a;
+  background: rgba(242, 242, 242, 0.06);
+  color: #f2f2f2;
+  padding: 10px;
+  resize: vertical;
+  outline: none;
+  font-family: inherit;
+}
+
+.adminContact__replyInput:focus {
+  border-color: #f2f2f2;
+}
+
+.adminContact__replyActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.adminContact__replyBtn {
+  border: 1px solid #f2f2f2;
+  background: transparent;
+  color: #f2f2f2;
+  padding: 10px 14px;
+  cursor: pointer;
+}
+
+.adminContact__replyBtn--primary {
+  background: #f2f2f2;
+  color: #101010;
+}
+
+.adminContact__replyBtn:disabled,
+.adminContact__replyClose:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 @media (max-width: 1120px) {
   .adminContact__filterRow {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: minmax(0, 2.2fr) minmax(0, 1.4fr) minmax(0, 1.4fr);
+  }
+}
+
+@media (max-width: 900px) {
+  .adminContact__filterRow {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 @media (max-width: 720px) {
-  .adminContact__header {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .adminContact__summary {
-    text-align: left;
-  }
-
   .adminContact__filterRow {
+    grid-template-columns: 1fr;
+  }
+
+  .adminContact__replyDetails {
     grid-template-columns: 1fr;
   }
 }

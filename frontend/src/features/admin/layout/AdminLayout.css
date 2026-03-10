@@ -90,9 +90,16 @@
 }
 
 .adminNav {
-  display: grid;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
   gap: 12px;
   padding-top: 10px;
+}
+
+.adminNav__link--contact {
+  margin-top: auto;
 }
 
 .adminNav__link {

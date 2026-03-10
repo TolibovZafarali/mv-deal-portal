@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, NavLink, Outlet } from "react-router-dom";
 import { useAuth } from "@/features/auth";
 import useAdminQueue from "@/features/admin/hooks/useAdminQueue";
+import { getAdminContactRequests } from "@/api/modules/contactRequestApi";
 import "@/features/admin/layout/AdminLayout.css";
 
 const ADMIN_SIDEBAR_COLLAPSED_KEY = "adminSidebarCollapsed";
@@ -21,6 +22,7 @@ export default function AdminLayout() {
     return window.localStorage.getItem(ADMIN_SIDEBAR_COLLAPSED_KEY) === "1";
   });
   const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
+  const [contactRequestsTotal, setContactRequestsTotal] = useState(0);
   const effectiveSidebarCollapsed = !isMobileView && sidebarCollapsed;
 
   useEffect(() => {
@@ -101,6 +103,29 @@ export default function AdminLayout() {
     };
   }, [logoutConfirmOpen]);
 
+  useEffect(() => {
+    let alive = true;
+
+    async function loadContactRequestCount() {
+      try {
+        const response = await getAdminContactRequests(
+          {},
+          { page: 0, size: 1, sort: "createdAt,desc" },
+        );
+        if (!alive) return;
+        setContactRequestsTotal(Math.max(0, Number(response?.totalElements ?? 0)));
+      } catch {
+        if (!alive) return;
+        setContactRequestsTotal(0);
+      }
+    }
+
+    loadContactRequestCount();
+    return () => {
+      alive = false;
+    };
+  }, []);
+
   return (
     <div className={`adminShell ${effectiveSidebarCollapsed ? "adminShell--collapsed" : ""}`}>
       <aside className={`adminSidebar ${effectiveSidebarCollapsed ? "adminSidebar--collapsed" : ""}`}>
@@ -177,18 +202,17 @@ export default function AdminLayout() {
           <NavLink
             to="contact-requests"
             className={({ isActive }) =>
-              `adminNav__link ${isActive ? "adminNav__link--active" : ""}`
+              `adminNav__link adminNav__link--contact ${isActive ? "adminNav__link--active" : ""}`
             }
             aria-label="Contact requests"
           >
             <span className="adminNav__content">
               <span className="adminNav__label">Contact Requests</span>
+              <span className="adminNav__badge">{contactRequestsTotal}</span>
               <span className="adminNav__icon material-symbols-outlined" aria-hidden="true">contact_support</span>
             </span>
           </NavLink>
         </nav>
-
-        <div className="adminSidebar__spacer" />
 
         <button className="adminLogout" type="button" onClick={handleLogoutIntent} aria-label="Log out">
           <span className="adminLogout__content">

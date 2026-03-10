@@ -9,6 +9,7 @@ import com.megna.backend.domain.enums.EmailStatus;
 import com.megna.backend.domain.repository.ContactRequestRepository;
 import com.megna.backend.infrastructure.config.ContactProperties;
 import com.megna.backend.interfaces.rest.dto.contact.ContactRequestCreateRequestDto;
+import com.megna.backend.interfaces.rest.dto.contact.ContactRequestReplyRequestDto;
 import com.megna.backend.interfaces.rest.dto.contact.ContactRequestResponseDto;
 import com.megna.backend.interfaces.rest.dto.contact.ContactRequestStatusUpdateRequestDto;
 import com.megna.backend.interfaces.rest.mapper.ContactRequestMapper;
@@ -33,6 +34,7 @@ import java.util.Map;
 @Slf4j
 public class ContactRequestService {
     private static final String TEMPLATE_ALIAS = "admin-contact-request-created-cid-v1";
+    private static final String REPLY_SUBJECT_PREFIX = "Reply from Megna Real Estate";
     private static final String PUBLIC_LOGO_URL = "https://raw.githubusercontent.com/TolibovZafarali/mv-deal-portal/dev/frontend/public/white-logo.png";
     private static final String ACTION_URL = "https://megna-realestate.com/admin/contact-requests";
     private static final DateTimeFormatter CREATED_AT_FORMATTER =
@@ -85,6 +87,21 @@ public class ContactRequestService {
         return ContactRequestMapper.toDto(saved);
     }
 
+    @Transactional
+    public ContactRequestResponseDto reply(Long id, ContactRequestReplyRequestDto dto) {
+        ContactRequest contactRequest = contactRequestRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Contact request not found: " + id));
+
+        String message = normalizeRequired(dto == null ? null : dto.message());
+        boolean delivered = sendContactReply(contactRequest, message);
+
+        contactRequest.setConfirmationEmailStatus(delivered ? EmailStatus.SENT : EmailStatus.FAILED);
+        contactRequest.setStatus(ContactRequestStatus.REPLIED);
+
+        ContactRequest saved = contactRequestRepository.save(contactRequest);
+        return ContactRequestMapper.toDto(saved);
+    }
+
     private boolean sendAdminNotification(ContactRequest contactRequest) {
         String recipient = resolveAdminInbox(contactRequest.getCategory());
         if (recipient.isBlank()) {
@@ -101,6 +118,30 @@ public class ContactRequestService {
             );
         } catch (RuntimeException ex) {
             log.warn("Contact request admin email failed unexpectedly: {}", ex.getClass().getSimpleName());
+            return false;
+        }
+    }
+
+    private boolean sendContactReply(ContactRequest contactRequest, String replyMessage) {
+        String recipient = normalizeOptional(contactRequest == null ? null : contactRequest.getEmail());
+        if (recipient.isBlank()) {
+            return false;
+        }
+
+        String subject = REPLY_SUBJECT_PREFIX + " - Request #" + safeValue(contactRequest.getId());
+
+        StringBuilder body = new StringBuilder();
+        body.append("Hello ").append(safeValue(contactRequest.getName())).append(",\n\n");
+        body.append("Thanks for reaching out to Megna Real Estate.\n\n");
+        body.append(replyMessage.trim()).append("\n\n");
+        body.append("Best,\nMegna Real Estate Team");
+
+        try {
+            return transactionalEmailService.sendTransactional(
+                    new TransactionalEmailRequest(recipient, subject, body.toString())
+            );
+        } catch (RuntimeException ex) {
+            log.warn("Contact request reply email failed unexpectedly: {}", ex.getClass().getSimpleName());
             return false;
         }
     }

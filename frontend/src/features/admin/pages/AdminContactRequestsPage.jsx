@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import AdminPagination from "@/features/admin/components/AdminPagination";
 import {
   getAdminContactRequests,
-  updateContactRequestStatus,
+  replyToContactRequest,
 } from "@/api/modules/contactRequestApi";
 import "@/features/admin/pages/AdminContactRequestsPage.css";
 
@@ -10,8 +10,7 @@ const PAGE_SIZE = 20;
 const STATUS_OPTIONS = [
   { label: "All statuses", value: "" },
   { label: "New", value: "NEW" },
-  { label: "In progress", value: "IN_PROGRESS" },
-  { label: "Closed", value: "CLOSED" },
+  { label: "Replied", value: "REPLIED" },
 ];
 const CATEGORY_OPTIONS = [
   { label: "All inboxes", value: "" },
@@ -38,19 +37,14 @@ function categoryLabel(value) {
   return CATEGORY_OPTIONS.find((option) => option.value === value)?.label || "General support";
 }
 
-function statusTone(value) {
+function normalizeStatus(value) {
   const normalized = String(value ?? "").trim().toUpperCase();
-  if (normalized === "NEW") return "new";
-  if (normalized === "IN_PROGRESS") return "progress";
-  if (normalized === "CLOSED") return "closed";
-  return "unknown";
+  if (normalized === "NEW") return "NEW";
+  return "REPLIED";
 }
 
-function emailTone(value) {
-  const normalized = String(value ?? "").trim().toUpperCase();
-  if (normalized === "SENT") return "sent";
-  if (normalized === "FAILED") return "failed";
-  return "unknown";
+function statusTone(value) {
+  return normalizeStatus(value) === "NEW" ? "new" : "replied";
 }
 
 function excerpt(value, max = 180) {
@@ -60,31 +54,24 @@ function excerpt(value, max = 180) {
   return `${text.slice(0, max - 1)}…`;
 }
 
-function actionsForStatus(status) {
-  const normalized = String(status ?? "").trim().toUpperCase();
-  if (normalized === "NEW") {
-    return [
-      { label: "Start", value: "IN_PROGRESS" },
-      { label: "Close", value: "CLOSED" },
-    ];
-  }
-  if (normalized === "IN_PROGRESS") {
-    return [
-      { label: "Reopen", value: "NEW" },
-      { label: "Close", value: "CLOSED" },
-    ];
-  }
-  return [
-    { label: "Reopen", value: "NEW" },
-    { label: "Start", value: "IN_PROGRESS" },
-  ];
+function toDateMs(value) {
+  const parsed = new Date(value ?? "").getTime();
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function sortRowsByWorkflow(rows) {
+  return [...rows].sort((left, right) => {
+    const leftRank = normalizeStatus(left?.status) === "NEW" ? 0 : 1;
+    const rightRank = normalizeStatus(right?.status) === "NEW" ? 0 : 1;
+    if (leftRank !== rightRank) return leftRank - rightRank;
+    return toDateMs(right?.createdAt) - toDateMs(left?.createdAt);
+  });
 }
 
 export default function AdminContactRequestsPage() {
   const [rows, setRows] = useState([]);
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
-  const [totalElements, setTotalElements] = useState(0);
   const [filters, setFilters] = useState({
     q: "",
     status: "",
@@ -93,8 +80,15 @@ export default function AdminContactRequestsPage() {
   const [searchInput, setSearchInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [updatingId, setUpdatingId] = useState(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [replyModal, setReplyModal] = useState({
+    open: false,
+    row: null,
+    message: "",
+    sending: false,
+  });
+
+  const orderedRows = useMemo(() => sortRowsByWorkflow(rows), [rows]);
 
   useEffect(() => {
     let alive = true;
@@ -112,12 +106,10 @@ export default function AdminContactRequestsPage() {
         if (!alive) return;
         setRows(Array.isArray(data?.content) ? data.content : []);
         setTotalPages(Number(data?.totalPages ?? 0));
-        setTotalElements(Number(data?.totalElements ?? 0));
       } catch (nextError) {
         if (!alive) return;
         setRows([]);
         setTotalPages(0);
-        setTotalElements(0);
         setError(nextError?.message || "Failed to load contact requests.");
       } finally {
         if (alive) setLoading(false);
@@ -129,29 +121,6 @@ export default function AdminContactRequestsPage() {
       alive = false;
     };
   }, [filters, page, refreshKey]);
-
-  async function handleStatusUpdate(id, status) {
-    setUpdatingId(id);
-    setError("");
-
-    try {
-      await updateContactRequestStatus(id, status);
-      setRefreshKey((current) => current + 1);
-    } catch (nextError) {
-      setError(nextError?.message || "Failed to update contact request.");
-    } finally {
-      setUpdatingId(null);
-    }
-  }
-
-  function handleSearchSubmit(event) {
-    event.preventDefault();
-    setPage(0);
-    setFilters((current) => ({
-      ...current,
-      q: searchInput.trim(),
-    }));
-  }
 
   function handleStatusFilterChange(event) {
     const value = event.target.value;
@@ -165,23 +134,60 @@ export default function AdminContactRequestsPage() {
     setFilters((current) => ({ ...current, category: value }));
   }
 
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      const q = searchInput.trim();
+      setFilters((current) => {
+        if (current.q === q) return current;
+        return { ...current, q };
+      });
+      setPage(0);
+    }, 250);
+
+    return () => window.clearTimeout(timer);
+  }, [searchInput]);
+
+  function openReplyModal(row) {
+    setReplyModal({
+      open: true,
+      row,
+      message: "",
+      sending: false,
+    });
+  }
+
+  function closeReplyModal() {
+    setReplyModal((current) => ({
+      ...current,
+      open: false,
+      row: null,
+      message: "",
+      sending: false,
+    }));
+  }
+
+  async function submitReply() {
+    const id = replyModal.row?.id;
+    const message = String(replyModal.message ?? "").trim();
+    if (!id || !message) return;
+
+    setReplyModal((current) => ({ ...current, sending: true }));
+    setError("");
+
+    try {
+      await replyToContactRequest(id, message);
+      closeReplyModal();
+      setRefreshKey((current) => current + 1);
+    } catch (nextError) {
+      setReplyModal((current) => ({ ...current, sending: false }));
+      setError(nextError?.message || "Failed to send reply.");
+    }
+  }
+
   return (
     <section className="adminContact">
-      <header className="adminContact__header">
-        <div>
-          <h1 className="adminContact__title">Contact Requests</h1>
-          <p className="adminContact__lead">
-            Review public contact submissions, update their status, and keep the inbox moving.
-          </p>
-        </div>
-        <div className="adminContact__summary">
-          <span className="adminContact__summaryLabel">Total requests</span>
-          <span className="adminContact__summaryValue">{totalElements}</span>
-        </div>
-      </header>
-
       <section className="adminContact__filters">
-        <form className="adminContact__filterRow" onSubmit={handleSearchSubmit}>
+        <div className="adminContact__filterRow">
           <label className="adminContact__filter">
             <span className="adminContact__label">Search</span>
             <input
@@ -221,23 +227,19 @@ export default function AdminContactRequestsPage() {
               ))}
             </select>
           </label>
-
-          <button className="adminContact__actionBtn" type="submit">
-            Apply
-          </button>
-        </form>
+        </div>
       </section>
 
       <section className="adminContact__tableSection">
         <h2 className="adminContact__sectionTitle">Requests</h2>
 
         {error ? <div className="adminContact__notice adminContact__notice--error">{error}</div> : null}
-        {loading ? <div className="adminContact__notice">Loading contact requests…</div> : null}
-        {!loading && !error && rows.length === 0 ? (
+        {loading ? <div className="adminContact__notice">Loading contact requests...</div> : null}
+        {!loading && !error && orderedRows.length === 0 ? (
           <div className="adminContact__notice">No contact requests match the current filters.</div>
         ) : null}
 
-        {rows.length ? (
+        {orderedRows.length ? (
           <>
             <div className="adminContact__tableWrap">
               <table className="adminContact__table">
@@ -248,16 +250,15 @@ export default function AdminContactRequestsPage() {
                     <th>Name</th>
                     <th>Email</th>
                     <th>Status</th>
-                    <th>Emails</th>
                     <th>Message</th>
                     <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {rows.map((row) => {
+                  {orderedRows.map((row) => {
+                    const normalized = normalizeStatus(row.status);
                     const rowTone = statusTone(row.status);
-                    const rowActions = actionsForStatus(row.status);
-                    const updating = updatingId === row.id;
+                    const canReply = normalized === "NEW";
                     return (
                       <tr key={row.id} className={`adminContact__row adminContact__row--${rowTone}`}>
                         <td>{prettyDateTime(row.createdAt)}</td>
@@ -266,33 +267,23 @@ export default function AdminContactRequestsPage() {
                         <td>{row.email || "—"}</td>
                         <td>
                           <span className={`adminContact__statusBadge adminContact__statusBadge--${rowTone}`}>
-                            {String(row.status ?? "UNKNOWN").replaceAll("_", " ")}
+                            {normalized}
                           </span>
-                        </td>
-                        <td>
-                          <div className="adminContact__emailStack">
-                            <span className={`adminContact__emailBadge adminContact__emailBadge--${emailTone(row.adminEmailStatus)}`}>
-                              Admin: {row.adminEmailStatus || "N/A"}
-                            </span>
-                            <span className={`adminContact__emailBadge adminContact__emailBadge--${emailTone(row.confirmationEmailStatus)}`}>
-                              User: {row.confirmationEmailStatus || "N/A"}
-                            </span>
-                          </div>
                         </td>
                         <td className="adminContact__messageCell">{excerpt(row.messageBody)}</td>
                         <td>
                           <div className="adminContact__actionGroup">
-                            {rowActions.map((action) => (
+                            {canReply ? (
                               <button
-                                key={`${row.id}-${action.value}`}
                                 type="button"
                                 className="adminContact__rowActionBtn"
-                                disabled={updating}
-                                onClick={() => handleStatusUpdate(row.id, action.value)}
+                                onClick={() => openReplyModal(row)}
                               >
-                                {updating ? "Saving..." : action.label}
+                                Reply
                               </button>
-                            ))}
+                            ) : (
+                              <span className="adminContact__actionDone">—</span>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -318,6 +309,92 @@ export default function AdminContactRequestsPage() {
           </>
         ) : null}
       </section>
+
+      {replyModal.open ? (
+        <div className="adminContact__replyOverlay" onMouseDown={closeReplyModal}>
+          <div
+            className="adminContact__replyModal"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Reply to contact request"
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <div className="adminContact__replyHeader">
+              <h3 className="adminContact__replyTitle">Reply to {replyModal.row?.name || "request"}</h3>
+              <button
+                type="button"
+                className="adminContact__replyClose"
+                onClick={closeReplyModal}
+                aria-label="Close reply dialog"
+                disabled={replyModal.sending}
+              >
+                ✕
+              </button>
+            </div>
+
+            <p className="adminContact__replyMeta">
+              To: {replyModal.row?.email || "N/A"}
+            </p>
+
+            <dl className="adminContact__replyDetails">
+              <div className="adminContact__replyDetail">
+                <dt>Submitted</dt>
+                <dd>{prettyDateTime(replyModal.row?.createdAt)}</dd>
+              </div>
+              <div className="adminContact__replyDetail">
+                <dt>Inbox</dt>
+                <dd>{categoryLabel(replyModal.row?.category)}</dd>
+              </div>
+              <div className="adminContact__replyDetail">
+                <dt>Name</dt>
+                <dd>{replyModal.row?.name || "N/A"}</dd>
+              </div>
+              <div className="adminContact__replyDetail">
+                <dt>Email</dt>
+                <dd>{replyModal.row?.email || "N/A"}</dd>
+              </div>
+            </dl>
+
+            <div className="adminContact__replySource">
+              <span className="adminContact__replySourceLabel">Original message</span>
+              <p className="adminContact__replySourceBody">{replyModal.row?.messageBody || "N/A"}</p>
+            </div>
+
+            <label className="adminContact__replyField">
+              <span className="adminContact__replyLabel">Message</span>
+              <textarea
+                className="adminContact__replyInput"
+                rows={8}
+                value={replyModal.message}
+                onChange={(event) =>
+                  setReplyModal((current) => ({ ...current, message: event.target.value }))
+                }
+                placeholder="Write your reply to the user..."
+                disabled={replyModal.sending}
+              />
+            </label>
+
+            <div className="adminContact__replyActions">
+              <button
+                type="button"
+                className="adminContact__replyBtn adminContact__replyBtn--ghost"
+                onClick={closeReplyModal}
+                disabled={replyModal.sending}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="adminContact__replyBtn adminContact__replyBtn--primary"
+                onClick={submitReply}
+                disabled={replyModal.sending || !String(replyModal.message ?? "").trim()}
+              >
+                {replyModal.sending ? "Sending..." : "Send reply"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </section>
   );
 }

@@ -19,7 +19,6 @@ import java.sql.Timestamp;
 import java.time.LocalDateTime;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -73,7 +72,7 @@ class ContactRequestIntegrationTest {
     }
 
     @Test
-    void adminCanListAndUpdateContactRequests() throws Exception {
+    void adminCanListAndReplyToContactRequests() throws Exception {
         long requestId = seedContactRequest();
         String token = seedAdminAndLogin("contact.admin@example.com", "AdminPass123!");
 
@@ -84,17 +83,17 @@ class ContactRequestIntegrationTest {
                 .andExpect(jsonPath("$.content[0].id").value(requestId))
                 .andExpect(jsonPath("$.content[0].status").value("NEW"));
 
-        mockMvc.perform(patch("/api/admin/contact-requests/{id}/status", requestId)
+        mockMvc.perform(post("/api/admin/contact-requests/{id}/reply", requestId)
                         .header("Authorization", "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "status":"IN_PROGRESS"
+                                  "message":"Thanks for your message. We will follow up shortly."
                                 }
                                 """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(requestId))
-                .andExpect(jsonPath("$.status").value("IN_PROGRESS"));
+                .andExpect(jsonPath("$.status").value("REPLIED"));
     }
 
     private long seedContactRequest() {

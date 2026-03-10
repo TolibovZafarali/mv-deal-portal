@@ -9,6 +9,7 @@ import com.megna.backend.domain.enums.EmailStatus;
 import com.megna.backend.domain.repository.ContactRequestRepository;
 import com.megna.backend.infrastructure.config.ContactProperties;
 import com.megna.backend.interfaces.rest.dto.contact.ContactRequestCreateRequestDto;
+import com.megna.backend.interfaces.rest.dto.contact.ContactRequestReplyRequestDto;
 import com.megna.backend.interfaces.rest.dto.contact.ContactRequestResponseDto;
 import com.megna.backend.interfaces.rest.dto.contact.ContactRequestStatusUpdateRequestDto;
 import org.junit.jupiter.api.Test;
@@ -29,7 +30,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -139,6 +139,29 @@ class ContactRequestServiceTest {
 
         assertEquals(ContactRequestStatus.CLOSED, response.status());
         verify(contactRequestRepository).save(contactRequest);
+    }
+
+    @Test
+    void replySendsEmailAndMarksRequestAsReplied() {
+        ContactRequest contactRequest = new ContactRequest();
+        contactRequest.setId(998L);
+        contactRequest.setName("Alex Johnson");
+        contactRequest.setEmail("alex@example.com");
+        contactRequest.setStatus(ContactRequestStatus.NEW);
+
+        when(contactRequestRepository.findById(998L)).thenReturn(Optional.of(contactRequest));
+        when(contactRequestRepository.save(any(ContactRequest.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(transactionalEmailService.sendTransactional(any(TransactionalEmailRequest.class))).thenReturn(true);
+
+        ContactRequestResponseDto response = contactRequestService.reply(
+                998L,
+                new ContactRequestReplyRequestDto("Thanks, we will follow up today.")
+        );
+
+        assertEquals(ContactRequestStatus.REPLIED, response.status());
+        assertEquals(EmailStatus.SENT, response.confirmationEmailStatus());
+        verify(contactRequestRepository).save(contactRequest);
+        verify(transactionalEmailService).sendTransactional(any(TransactionalEmailRequest.class));
     }
 
     private ContactRequestCreateRequestDto sampleCreateRequest() {

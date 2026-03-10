@@ -21,6 +21,8 @@ public interface ContactRequestRepository extends JpaRepository<ContactRequest, 
                     or lower(cr.name) like lower(concat('%', :q, '%'))
                     or lower(cr.email) like lower(concat('%', :q, '%'))
                 )
+            order by case when cr.status = com.megna.backend.domain.enums.ContactRequestStatus.NEW then 0 else 1 end,
+                     cr.createdAt desc
             """)
     Page<ContactRequest> search(@Param("category") ContactRequestCategory category,
                                 @Param("status") ContactRequestStatus status,

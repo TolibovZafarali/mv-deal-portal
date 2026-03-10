@@ -3,6 +3,7 @@ package com.megna.backend.interfaces.rest.controller.admin;
 import com.megna.backend.application.service.ContactRequestService;
 import com.megna.backend.domain.enums.ContactRequestCategory;
 import com.megna.backend.domain.enums.ContactRequestStatus;
+import com.megna.backend.interfaces.rest.dto.contact.ContactRequestReplyRequestDto;
 import com.megna.backend.interfaces.rest.dto.contact.ContactRequestResponseDto;
 import com.megna.backend.interfaces.rest.dto.contact.ContactRequestStatusUpdateRequestDto;
 import jakarta.validation.Valid;
@@ -15,6 +16,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -44,5 +46,13 @@ public class AdminContactRequestController {
             @Valid @RequestBody ContactRequestStatusUpdateRequestDto dto
     ) {
         return contactRequestService.updateStatus(id, dto);
+    }
+
+    @PostMapping("/{id}/reply")
+    public ContactRequestResponseDto reply(
+            @PathVariable Long id,
+            @Valid @RequestBody ContactRequestReplyRequestDto dto
+    ) {
+        return contactRequestService.reply(id, dto);
     }
 }

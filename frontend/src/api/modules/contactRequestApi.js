@@ -27,3 +27,10 @@ export async function updateContactRequestStatus(id, status) {
   const { data } = await apiClient.patch(`${ADMIN_BASE}/${id}/status`, { status });
   return data;
 }
+
+export async function replyToContactRequest(id, message) {
+  const { data } = await apiClient.post(`${ADMIN_BASE}/${id}/reply`, {
+    message: String(message ?? "").trim(),
+  });
+  return data;
+}
