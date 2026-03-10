@@ -29,11 +29,17 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class InquiryAdminReplyService {
+    private static final String TEMPLATE_ALIAS = "investor-inquiry-admin-reply-cid-v1";
+    private static final String PUBLIC_LOGO_URL = "https://raw.githubusercontent.com/TolibovZafarali/mv-deal-portal/dev/frontend/public/white-logo.png";
+    private static final String INVESTOR_PROPERTIES_URL = "https://megna-realestate.com/properties";
+
 
     private final InquiryAdminReplyRepository inquiryAdminReplyRepository;
     private final InquiryRepository inquiryRepository;
@@ -104,10 +110,10 @@ public class InquiryAdminReplyService {
     private boolean sendReplyEmail(String recipient, InquiryAdminReply reply, Inquiry inquiry) {
         try {
             return transactionalEmailService.sendTransactional(
-                    new TransactionalEmailRequest(
+                    TransactionalEmailRequest.template(
                             recipient,
-                            buildReplySubject(reply),
-                            buildReplyBody(reply, inquiry)
+                            TEMPLATE_ALIAS,
+                            buildReplyTemplateModel(reply, inquiry)
                     )
             );
         } catch (RuntimeException ex) {
@@ -116,20 +122,40 @@ public class InquiryAdminReplyService {
         }
     }
 
-    private String buildReplySubject(InquiryAdminReply reply) {
-        return "Megna Team reply to your inquiry #" + (reply.getId() == null ? "N/A" : reply.getId());
+    private Map<String, Object> buildReplyTemplateModel(InquiryAdminReply reply, Inquiry inquiry) {
+        Map<String, Object> model = new LinkedHashMap<>();
+        model.put("logo_url", PUBLIC_LOGO_URL);
+        model.put("subject", "Megna Team replied to your inquiry");
+        model.put("title", "You have a new inquiry reply");
+        model.put("message", "Megna Team has posted a reply to your inquiry.");
+        model.put("reply_id", safeNumber(reply == null ? null : reply.getId()));
+        model.put("property_id", safeNumber(reply == null || reply.getProperty() == null ? null : reply.getProperty().getId()));
+        model.put("investor_id", safeNumber(reply == null || reply.getInvestor() == null ? null : reply.getInvestor().getId()));
+        model.put("reply_message", safeValue(reply == null ? null : reply.getMessageBody()));
+        model.put("original_inquiry_message", safeValue(inquiry == null ? null : inquiry.getMessageBody()));
+        model.put("action_text", "View Properties");
+        model.put("action_url", resolveActionUrl(reply));
+        model.put("footer_text", "Reply to this email if you need additional support from the Megna Team.");
+        return model;
     }
 
-    private String buildReplyBody(InquiryAdminReply reply, Inquiry inquiry) {
-        StringBuilder body = new StringBuilder();
-        body.append("Megna Team has replied to your inquiry.\n\n");
-        body.append("Property ID: ").append(reply.getProperty() == null ? "N/A" : reply.getProperty().getId()).append("\n");
-        body.append("Investor ID: ").append(reply.getInvestor() == null ? "N/A" : reply.getInvestor().getId()).append("\n\n");
-        body.append("Reply:\n");
-        body.append(reply.getMessageBody()).append("\n\n");
-        body.append("Original inquiry message:\n");
-        body.append(inquiry.getMessageBody() == null ? "N/A" : inquiry.getMessageBody());
-        return body.toString();
+    private String resolveActionUrl(InquiryAdminReply reply) {
+        if (reply == null || reply.getProperty() == null || reply.getProperty().getId() == null) {
+            return INVESTOR_PROPERTIES_URL;
+        }
+        return INVESTOR_PROPERTIES_URL + "/" + reply.getProperty().getId();
+    }
+
+    private String safeNumber(Number value) {
+        return value == null ? "N/A" : String.valueOf(value);
+    }
+
+    private String safeValue(String value) {
+        if (value == null) {
+            return "N/A";
+        }
+        String normalized = value.trim();
+        return normalized.isBlank() ? "N/A" : normalized;
     }
 
     private String normalizeBody(String body) {

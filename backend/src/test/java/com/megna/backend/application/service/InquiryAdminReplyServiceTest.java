@@ -124,7 +124,10 @@ class InquiryAdminReplyServiceTest {
         ArgumentCaptor<TransactionalEmailRequest> emailCaptor = ArgumentCaptor.forClass(TransactionalEmailRequest.class);
         verify(transactionalEmailService).sendTransactional(emailCaptor.capture());
         assertEquals("thread.contact@example.com", emailCaptor.getValue().to());
-        assertTrue(emailCaptor.getValue().textBody().contains("Thanks for reaching out."));
+        assertEquals("investor-inquiry-admin-reply-cid-v1", emailCaptor.getValue().templateAlias());
+        assertEquals("Thanks for reaching out.", emailCaptor.getValue().templateModel().get("reply_message"));
+        assertEquals("Original investor message", emailCaptor.getValue().templateModel().get("original_inquiry_message"));
+        assertTrue(emailCaptor.getValue().isTemplate());
     }
 
     @Test

@@ -33,10 +33,12 @@ import java.util.Map;
 @RequiredArgsConstructor
 @Slf4j
 public class ContactRequestService {
-    private static final String TEMPLATE_ALIAS = "admin-contact-request-created-cid-v1";
+    private static final String ADMIN_TEMPLATE_ALIAS = "admin-contact-request-created-cid-v1";
+    private static final String CONTACT_REPLY_TEMPLATE_ALIAS = "contact-request-reply-cid-v1";
     private static final String REPLY_SUBJECT_PREFIX = "Reply from Megna Real Estate";
     private static final String PUBLIC_LOGO_URL = "https://raw.githubusercontent.com/TolibovZafarali/mv-deal-portal/dev/frontend/public/white-logo.png";
     private static final String ACTION_URL = "https://megna-realestate.com/admin/contact-requests";
+    private static final String CONTACT_PAGE_URL = "https://megna-realestate.com/contact";
     private static final DateTimeFormatter CREATED_AT_FORMATTER =
             DateTimeFormatter.ofPattern("yyyy-MM-dd h:mm a 'CT'");
 
@@ -112,7 +114,7 @@ public class ContactRequestService {
             return transactionalEmailService.sendTransactional(
                     TransactionalEmailRequest.template(
                             recipient,
-                            TEMPLATE_ALIAS,
+                            ADMIN_TEMPLATE_ALIAS,
                             buildAdminTemplateModel(contactRequest)
                     )
             );
@@ -128,17 +130,13 @@ public class ContactRequestService {
             return false;
         }
 
-        String subject = REPLY_SUBJECT_PREFIX + " - Request #" + safeValue(contactRequest.getId());
-
-        StringBuilder body = new StringBuilder();
-        body.append("Hello ").append(safeValue(contactRequest.getName())).append(",\n\n");
-        body.append("Thanks for reaching out to Megna Real Estate.\n\n");
-        body.append(replyMessage.trim()).append("\n\n");
-        body.append("Best,\nMegna Real Estate Team");
-
         try {
             return transactionalEmailService.sendTransactional(
-                    new TransactionalEmailRequest(recipient, subject, body.toString())
+                    TransactionalEmailRequest.template(
+                            recipient,
+                            CONTACT_REPLY_TEMPLATE_ALIAS,
+                            buildReplyTemplateModel(contactRequest, replyMessage)
+                    )
             );
         } catch (RuntimeException ex) {
             log.warn("Contact request reply email failed unexpectedly: {}", ex.getClass().getSimpleName());
@@ -174,6 +172,21 @@ public class ContactRequestService {
         model.put("action_text", "Open Contact Requests");
         model.put("action_url", ACTION_URL);
         model.put("footer_text", "This notification was sent to admins because a new contact request was submitted.");
+        return model;
+    }
+
+    private Map<String, Object> buildReplyTemplateModel(ContactRequest contactRequest, String replyMessage) {
+        Map<String, Object> model = new LinkedHashMap<>();
+        model.put("logo_url", PUBLIC_LOGO_URL);
+        model.put("subject", REPLY_SUBJECT_PREFIX + " - Request #" + safeValue(contactRequest == null ? null : contactRequest.getId()));
+        model.put("title", "Megna Team replied to your contact request");
+        model.put("message", "Thanks for reaching out to Megna Real Estate. We sent a response to your request.");
+        model.put("contact_name", safeValue(contactRequest == null ? null : contactRequest.getName()));
+        model.put("request_id", safeValue(contactRequest == null ? null : contactRequest.getId()));
+        model.put("reply_message", safeValue(replyMessage));
+        model.put("action_text", "Contact Us");
+        model.put("action_url", CONTACT_PAGE_URL);
+        model.put("footer_text", "If you need anything else, reply to this email and our team will help.");
         return model;
     }
 
