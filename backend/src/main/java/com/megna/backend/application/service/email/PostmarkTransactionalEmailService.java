@@ -20,22 +20,29 @@ public class PostmarkTransactionalEmailService implements TransactionalEmailServ
 
     @Override
     public boolean sendTransactional(TransactionalEmailRequest request) {
-        if (request == null) return false;
+        return sendTransactionalDetailed(request).isDelivered();
+    }
+
+    @Override
+    public TransactionalEmailDeliveryResult sendTransactionalDetailed(TransactionalEmailRequest request) {
+        if (request == null) {
+            return TransactionalEmailDeliveryResult.nonRetryableFailure("request_null");
+        }
 
         if (!emailProperties.isEnabled()) {
-            return false;
+            return TransactionalEmailDeliveryResult.nonRetryableFailure("email_disabled");
         }
 
         if (isBlank(request.to())) {
-            return false;
+            return TransactionalEmailDeliveryResult.nonRetryableFailure("recipient_blank");
         }
 
         if (request.isTemplate()) {
             if (isBlank(request.templateAlias()) || request.templateModel().isEmpty()) {
-                return false;
+                return TransactionalEmailDeliveryResult.nonRetryableFailure("template_invalid");
             }
         } else if (isBlank(request.subject()) || isBlank(request.textBody())) {
-            return false;
+            return TransactionalEmailDeliveryResult.nonRetryableFailure("content_invalid");
         }
 
         if (isBlank(emailProperties.getFromAddress())
@@ -43,20 +50,20 @@ public class PostmarkTransactionalEmailService implements TransactionalEmailServ
                 || isBlank(emailProperties.getPostmarkServerToken())
                 || isBlank(emailProperties.getPostmarkMessageStream())) {
             log.warn("Email service is enabled but not fully configured");
-            return false;
+            return TransactionalEmailDeliveryResult.nonRetryableFailure("email_misconfigured");
         }
 
         if (!emailProperties.isProduction() && !isAllowedInNonProduction(request.to())) {
             log.info("Suppressed transactional email in non-production for non-allowlisted recipient");
-            return false;
+            return TransactionalEmailDeliveryResult.nonRetryableFailure("non_prod_recipient_blocked");
         }
 
         if (emailProperties.isProduction() && emailSuppressionService.isSuppressed(request.to())) {
             log.info("Suppressed transactional email in production for suppressed recipient");
-            return false;
+            return TransactionalEmailDeliveryResult.nonRetryableFailure("recipient_suppressed");
         }
 
-        return postmarkEmailClient.send(request);
+        return postmarkEmailClient.sendDetailed(request);
     }
 
     private boolean isAllowedInNonProduction(String recipient) {

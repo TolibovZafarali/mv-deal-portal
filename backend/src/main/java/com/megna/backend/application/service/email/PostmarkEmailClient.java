@@ -1,6 +1,7 @@
 package com.megna.backend.application.service.email;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.megna.backend.infrastructure.config.EmailProperties;
 import lombok.extern.slf4j.Slf4j;
@@ -39,6 +40,10 @@ public class PostmarkEmailClient {
     }
 
     public boolean send(TransactionalEmailRequest request) {
+        return sendDetailed(request).isDelivered();
+    }
+
+    public TransactionalEmailDeliveryResult sendDetailed(TransactionalEmailRequest request) {
         try {
             String endpoint = resolveEndpoint(request);
             String payload = objectMapper.writeValueAsString(buildPayload(request));
@@ -57,20 +62,25 @@ public class PostmarkEmailClient {
             );
             int status = response.statusCode();
             if (status >= 200 && status < 300) {
-                return true;
+                String messageId = readBodyField(response.body(), "MessageID");
+                return TransactionalEmailDeliveryResult.delivered("postmark_2xx", messageId);
             }
+            String detail = nonSuccessDetail(status, response.body());
             log.warn("Postmark API returned non-success status: {}", status);
-            return false;
+            if (isRetryableStatus(status)) {
+                return TransactionalEmailDeliveryResult.retryableFailure(detail);
+            }
+            return TransactionalEmailDeliveryResult.nonRetryableFailure(detail);
         } catch (JsonProcessingException e) {
             log.warn("Failed to serialize Postmark email request");
-            return false;
+            return TransactionalEmailDeliveryResult.nonRetryableFailure("serialize_failed");
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             log.warn("Postmark API call interrupted");
-            return false;
+            return TransactionalEmailDeliveryResult.unknown("interrupted");
         } catch (IOException | RuntimeException e) {
             log.warn("Postmark API call failed: {}", e.getClass().getSimpleName());
-            return false;
+            return TransactionalEmailDeliveryResult.unknown("transport_" + e.getClass().getSimpleName());
         }
     }
 
@@ -99,5 +109,58 @@ public class PostmarkEmailClient {
             return baseUrl + endpointPath;
         }
         return baseUrl + "/" + endpointPath;
+    }
+
+    private static boolean isRetryableStatus(int status) {
+        return status == 408 || status == 429 || status >= 500;
+    }
+
+    private String nonSuccessDetail(int status, String body) {
+        String message = normalizeForError(readBodyField(body, "Message"));
+        String errorCode = normalizeForError(readBodyField(body, "ErrorCode"));
+        String messageId = normalizeForError(readBodyField(body, "MessageID"));
+
+        StringBuilder detail = new StringBuilder("postmark_status_").append(status);
+        if (!errorCode.isBlank()) {
+            detail.append("_code_").append(errorCode);
+        }
+        if (!messageId.isBlank()) {
+            detail.append("_msg_").append(messageId);
+        }
+        if (!message.isBlank()) {
+            detail.append(": ").append(message);
+        }
+        return trimToLength(detail.toString(), 500);
+    }
+
+    private String readBodyField(String body, String fieldName) {
+        if (body == null || body.isBlank() || fieldName == null || fieldName.isBlank()) {
+            return "";
+        }
+        try {
+            JsonNode node = objectMapper.readTree(body).get(fieldName);
+            if (node == null || node.isNull()) {
+                return "";
+            }
+            if (node.isTextual() || node.isNumber() || node.isBoolean()) {
+                return node.asText();
+            }
+            return "";
+        } catch (IOException ignored) {
+            return "";
+        }
+    }
+
+    private static String normalizeForError(String value) {
+        if (value == null) return "";
+        return value.trim().replaceAll("\\s+", " ");
+    }
+
+    private static String trimToLength(String value, int maxLength) {
+        if (value == null) return "";
+        if (value.length() <= maxLength) {
+            return value;
+        }
+        return value.substring(0, maxLength);
     }
 }
