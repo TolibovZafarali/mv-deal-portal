@@ -124,7 +124,7 @@ class InquiryServiceTest {
         @SuppressWarnings("unchecked")
         Map<String, Object> templateModel = (Map<String, Object>) emailCaptor.getValue().templateModel();
         assertEquals("501", templateModel.get("inquiry_id"));
-        assertTrue(templateModel.get("action_url").toString().contains("/admin/inquiries/501"));
+        assertTrue(templateModel.get("action_url").toString().contains("/admin/inquiries?inquiryId=501"));
     }
 
     @Test

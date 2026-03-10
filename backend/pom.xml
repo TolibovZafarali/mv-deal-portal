@@ -188,8 +188,8 @@
 				<version>${flyway.version}</version>
 				<configuration>
 					<url>jdbc:mysql://localhost:3306/megnarealestate?createDatabaseIfNotExist=true</url>
-					<user>root</user>
-					<password>SpiderMan1133</password>
+					<user>${env.FLYWAY_DB_USER}</user>
+					<password>${env.FLYWAY_DB_PASSWORD}</password>
 					<cleanDisabled>false</cleanDisabled>
 				</configuration>
 			</plugin>

@@ -38,7 +38,7 @@ import java.util.Map;
 public class InquiryAdminReplyService {
     private static final String TEMPLATE_ALIAS = "investor-inquiry-admin-reply-cid-v1";
     private static final String PUBLIC_LOGO_URL = "https://raw.githubusercontent.com/TolibovZafarali/mv-deal-portal/dev/frontend/public/white-logo.png";
-    private static final String INVESTOR_PROPERTIES_URL = "https://megna-realestate.com/properties";
+    private static final String INVESTOR_PROPERTIES_URL = "https://megna-realestate.com/investor";
 
 
     private final InquiryAdminReplyRepository inquiryAdminReplyRepository;
@@ -123,11 +123,13 @@ public class InquiryAdminReplyService {
     }
 
     private Map<String, Object> buildReplyTemplateModel(InquiryAdminReply reply, Inquiry inquiry) {
+        String investorName = resolveInvestorName(reply, inquiry);
         Map<String, Object> model = new LinkedHashMap<>();
         model.put("logo_url", PUBLIC_LOGO_URL);
         model.put("subject", "Megna Team replied to your inquiry");
-        model.put("title", "You have a new inquiry reply");
-        model.put("message", "Megna Team has posted a reply to your inquiry.");
+        model.put("title", "You have a new inquiry reply, " + investorName);
+        model.put("message", "Megna Team has posted a reply to your inquiry, " + investorName + ".");
+        model.put("investor_name", investorName);
         model.put("reply_id", safeNumber(reply == null ? null : reply.getId()));
         model.put("property_id", safeNumber(reply == null || reply.getProperty() == null ? null : reply.getProperty().getId()));
         model.put("investor_id", safeNumber(reply == null || reply.getInvestor() == null ? null : reply.getInvestor().getId()));
@@ -139,11 +141,27 @@ public class InquiryAdminReplyService {
         return model;
     }
 
-    private String resolveActionUrl(InquiryAdminReply reply) {
-        if (reply == null || reply.getProperty() == null || reply.getProperty().getId() == null) {
-            return INVESTOR_PROPERTIES_URL;
+    private String resolveInvestorName(InquiryAdminReply reply, Inquiry inquiry) {
+        if (inquiry != null && inquiry.getContactName() != null) {
+            String contactName = inquiry.getContactName().trim();
+            if (!contactName.isBlank()) {
+                return contactName;
+            }
         }
-        return INVESTOR_PROPERTIES_URL + "/" + reply.getProperty().getId();
+
+        if (reply != null && reply.getInvestor() != null) {
+            Investor investor = reply.getInvestor();
+            String firstName = investor.getFirstName() == null ? "" : investor.getFirstName().trim();
+            if (!firstName.isBlank()) {
+                return firstName;
+            }
+        }
+
+        return "there";
+    }
+
+    private String resolveActionUrl(InquiryAdminReply reply) {
+        return INVESTOR_PROPERTIES_URL;
     }
 
     private String safeNumber(Number value) {

@@ -77,10 +77,10 @@ class SellerPropertyEmailNotificationServiceTest {
         @SuppressWarnings("unchecked")
         Map<String, Object> model = (Map<String, Object>) request.templateModel();
         assertEquals("601", model.get("property_id"));
-        assertEquals("$120000", model.get("property_price"));
+        assertEquals("$120,000", model.get("property_price"));
         assertEquals("123 Main St, St Louis, MO 63101", model.get("property_address"));
         assertTrue(model.get("published_at").toString().contains("C"));
-        assertTrue(model.get("action_url").toString().endsWith("/seller/properties/601"));
+        assertTrue(model.get("action_url").toString().endsWith("/seller/listings/601/edit"));
     }
 
     @Test

@@ -89,9 +89,10 @@ export async function getAddressSuggestions(query, opts = {}) {
 }
 
 export async function lookupPropertyFmr(zip, beds) {
+    const parsedBeds = Number.parseInt(String(beds ?? "").trim(), 10);
     const params = cleanParams({
         zip: String(zip ?? "").trim(),
-        beds: Number(beds),
+        beds: Number.isFinite(parsedBeds) ? parsedBeds : undefined,
     });
     const { data } = await apiClient.get(`${BASE}/fmr`, { params });
     return data;

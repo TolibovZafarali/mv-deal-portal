@@ -79,6 +79,8 @@ class AuthRefreshTokenIntegrationTest {
                         .cookie(refreshCookie(login.refreshToken())))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.accessToken").isString())
+                .andExpect(jsonPath("$.user").exists())
+                .andExpect(jsonPath("$.user.role").value("ADMIN"))
                 .andExpect(header().string("Set-Cookie", containsString(REFRESH_COOKIE_NAME + "=")))
                 .andReturn();
 
@@ -275,6 +277,8 @@ class AuthRefreshTokenIntegrationTest {
                         .content(objectMapper.writeValueAsString(new LoginBody(email, password))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.accessToken").isString())
+                .andExpect(jsonPath("$.user").exists())
+                .andExpect(jsonPath("$.user.email").value(email))
                 .andExpect(header().string("Set-Cookie", containsString(REFRESH_COOKIE_NAME + "=")))
                 .andReturn();
 

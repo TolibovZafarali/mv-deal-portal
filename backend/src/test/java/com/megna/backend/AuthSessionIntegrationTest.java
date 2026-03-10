@@ -87,6 +87,8 @@ class AuthSessionIntegrationTest {
                         .cookie(new Cookie(REFRESH_COOKIE_NAME, loginSession.refreshCookie().getValue())))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.accessToken").isString())
+                .andExpect(jsonPath("$.user").exists())
+                .andExpect(jsonPath("$.user.role").value("ADMIN"))
                 .andReturn();
 
         Cookie rotatedCookie = refreshResult.getResponse().getCookie(REFRESH_COOKIE_NAME);
@@ -177,6 +179,8 @@ class AuthSessionIntegrationTest {
                         .content(objectMapper.writeValueAsString(new LoginBody(email, password))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.accessToken").isString())
+                .andExpect(jsonPath("$.user").exists())
+                .andExpect(jsonPath("$.user.email").value(email))
                 .andReturn();
 
         JsonNode body = objectMapper.readTree(loginResult.getResponse().getContentAsString());

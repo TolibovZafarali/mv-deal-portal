@@ -261,9 +261,6 @@ export default function HomePage({
     location,
     user,
     isAuthed,
-    bootstrapping,
-    retrySessionRestore,
-    sessionRestoreError,
     signOut,
 }) {
     const homeRef = useRef(null);
@@ -291,7 +288,6 @@ export default function HomePage({
     const signedInRoleLabel = authenticatedRole
         ? `${authenticatedRole.slice(0, 1)}${authenticatedRole.slice(1).toLowerCase()}`
         : "Investor";
-    const showGuestCtas = !isAuthed && !sessionRestoreError;
     const featuredDeals = isAuthed && !isSellerAuthed ? closedDeals : closedDeals.slice(0, 4);
     const heroMetric = roleContent.metrics[0];
     const showcaseHeading = isAuthed
@@ -765,15 +761,6 @@ export default function HomePage({
         };
     }, []);
 
-    if (bootstrapping) {
-        return (
-            <div className="homeBoot">
-                <div className="homeBoot__orb" aria-hidden="true" />
-                <p className="homeBoot__label">Preparing Megna</p>
-            </div>
-        );
-    }
-
     return (
         <div
             ref={homeRef}
@@ -840,7 +827,7 @@ export default function HomePage({
                                     Dashboard
                                 </Link>
                             </>
-                        ) : showGuestCtas ? (
+                        ) : (
                             <>
                                 <Link
                                     to="/login"
@@ -856,23 +843,6 @@ export default function HomePage({
                                 >
                                     {roleContent.hero.primaryCtaLabel}
                                 </Link>
-                            </>
-                        ) : (
-                            <>
-                                <button
-                                    type="button"
-                                    className="homeHeader__utilityLink homeHeader__utilityButton"
-                                    onClick={retrySessionRestore}
-                                >
-                                    Retry session
-                                </button>
-                                <button
-                                    type="button"
-                                    className="homeButton homeButton--compact homeButton--ghost"
-                                    onClick={signOut}
-                                >
-                                    Log out
-                                </button>
                             </>
                         )}
                     </div>
@@ -904,54 +874,32 @@ export default function HomePage({
                                             : roleContent.hero.subtitle}
                                     </p>
 
-                                    {sessionRestoreError ? (
-                                        <div className="homeStatusPanel" role="status">
-                                            <p className="homeStatusPanel__title">Session restore unavailable</p>
-                                            <p className="homeStatusPanel__body">{sessionRestoreError}</p>
-                                            <div className="homeHero__actions">
-                                                <button type="button" className="homeButton" onClick={retrySessionRestore}>
-                                                    Retry session
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    className="homeButton homeButton--ghost"
-                                                    onClick={signOut}
-                                                >
-                                                    Log out
-                                                </button>
-                                                <a href="#proof" className="homeButton homeButton--ghost">
-                                                    {roleContent.hero.secondaryCtaLabel}
-                                                </a>
-                                            </div>
-                                        </div>
-                                    ) : (
-                                        <div className="homeHero__actions">
-                                            {isAuthed ? (
-                                                <>
-                                                    <Link to="/app" className="homeButton">
-                                                        Open dashboard
-                                                    </Link>
-                                                    <a href="#proof" className="homeButton homeButton--ghost">
-                                                        {authenticatedRole === "SELLER" ? "See your listings" : "See active properties"}
-                                                    </a>
-                                                </>
-                                            ) : (
-                                                <Link
-                                                    to={roleContent.hero.primaryCtaTo}
-                                                    className="homeButton"
-                                                    state={buildModalState(location, selectedRole)}
-                                                >
-                                                    {roleContent.hero.primaryCtaLabel}
+                                    <div className="homeHero__actions">
+                                        {isAuthed ? (
+                                            <>
+                                                <Link to="/app" className="homeButton">
+                                                    Open dashboard
                                                 </Link>
-                                            )}
-
-                                            {!isAuthed ? (
-                                                <a href={roleContent.hero.secondaryCtaHref} className="homeButton homeButton--ghost">
-                                                    {roleContent.hero.secondaryCtaLabel}
+                                                <a href="#proof" className="homeButton homeButton--ghost">
+                                                    {authenticatedRole === "SELLER" ? "See your listings" : "See active properties"}
                                                 </a>
-                                            ) : null}
-                                        </div>
-                                    )}
+                                            </>
+                                        ) : (
+                                            <Link
+                                                to={roleContent.hero.primaryCtaTo}
+                                                className="homeButton"
+                                                state={buildModalState(location, selectedRole)}
+                                            >
+                                                {roleContent.hero.primaryCtaLabel}
+                                            </Link>
+                                        )}
+
+                                        {!isAuthed ? (
+                                            <a href={roleContent.hero.secondaryCtaHref} className="homeButton homeButton--ghost">
+                                                {roleContent.hero.secondaryCtaLabel}
+                                            </a>
+                                        ) : null}
+                                    </div>
 
                                     <div className="homeHero__signalRow" aria-label="Experience highlights">
                                         {roleContent.hero.signals.map((signal) => (
@@ -1196,57 +1144,39 @@ export default function HomePage({
                                         />
                                     </div>
 
-                                    {sessionRestoreError ? (
-                                        <div className="homeClosing__panel homeReveal" data-delay="60">
-                                            <p className="homeClosing__panelText">{sessionRestoreError}</p>
-                                            <div className="homeClosing__panelActions">
-                                                <button type="button" className="homeButton" onClick={retrySessionRestore}>
-                                                    Retry session
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    className="homeButton homeButton--ghost"
-                                                    onClick={signOut}
+                                    <>
+                                        <div className="homeClosing__grid">
+                                            {ROLE_OPTION_CARDS.map((option, index) => (
+                                                <article
+                                                    key={option.role}
+                                                    className={`homeClosing__card ${selectedRole === option.role ? "is-selected" : ""} homeReveal`}
+                                                    data-delay={index * 120}
                                                 >
-                                                    Log out
-                                                </button>
-                                            </div>
-                                        </div>
-                                    ) : (
-                                        <>
-                                            <div className="homeClosing__grid">
-                                                {ROLE_OPTION_CARDS.map((option, index) => (
-                                                    <article
-                                                        key={option.role}
-                                                        className={`homeClosing__card ${selectedRole === option.role ? "is-selected" : ""} homeReveal`}
-                                                        data-delay={index * 120}
+                                                    <p className="homeClosing__cardTag">{option.tag}</p>
+                                                    <h3 className="homeClosing__cardTitle">{option.title}</h3>
+                                                    <p className="homeClosing__cardText">{option.text}</p>
+                                                    <Link
+                                                        to={option.ctaTo}
+                                                        className="homeButton homeClosing__cardButton"
+                                                        state={buildModalState(location, option.role)}
                                                     >
-                                                        <p className="homeClosing__cardTag">{option.tag}</p>
-                                                        <h3 className="homeClosing__cardTitle">{option.title}</h3>
-                                                        <p className="homeClosing__cardText">{option.text}</p>
-                                                        <Link
-                                                            to={option.ctaTo}
-                                                            className="homeButton homeClosing__cardButton"
-                                                            state={buildModalState(location, option.role)}
-                                                        >
-                                                            {option.ctaLabel}
-                                                        </Link>
-                                                    </article>
-                                                ))}
-                                            </div>
+                                                        {option.ctaLabel}
+                                                    </Link>
+                                                </article>
+                                            ))}
+                                        </div>
 
-                                            <p className="homeClosing__signin homeReveal" data-delay="90">
-                                                Already a member?{" "}
-                                                <Link
-                                                    to="/login"
-                                                    className="homeClosing__signinLink"
-                                                    state={buildModalState(location)}
-                                                >
-                                                    Sign in
-                                                </Link>
-                                            </p>
-                                        </>
-                                    )}
+                                        <p className="homeClosing__signin homeReveal" data-delay="90">
+                                            Already a member?{" "}
+                                            <Link
+                                                to="/login"
+                                                className="homeClosing__signinLink"
+                                                state={buildModalState(location)}
+                                            >
+                                                Sign in
+                                            </Link>
+                                        </p>
+                                    </>
                                 </div>
                             </section>
                         ) : null}

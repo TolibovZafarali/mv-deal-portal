@@ -11,7 +11,17 @@ import java.util.Optional;
 
 public interface RefreshTokenRepository extends JpaRepository<RefreshToken, Long> {
 
-    Optional<RefreshToken> findByTokenHashAndRevokedAtIsNull(String tokenHash);
+    @Query("""
+            SELECT token
+              FROM RefreshToken token
+             WHERE token.tokenHash = :tokenHash
+               AND token.revokedAt IS NULL
+               AND token.expiresAt > :now
+            """)
+    Optional<RefreshToken> findActiveByTokenHash(
+            @Param("tokenHash") String tokenHash,
+            @Param("now") LocalDateTime now
+    );
 
     Optional<RefreshToken> findTopByPrincipalTypeAndPrincipalIdAndRevokedAtIsNullOrderByCreatedAtDescIdDesc(
             String principalType,
@@ -41,6 +51,20 @@ public interface RefreshTokenRepository extends JpaRepository<RefreshToken, Long
                AND token.revokedAt IS NULL
             """)
     int revokeByTokenHash(
+            @Param("tokenHash") String tokenHash,
+            @Param("revokedAt") LocalDateTime revokedAt
+    );
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("""
+            UPDATE RefreshToken token
+               SET token.revokedAt = :revokedAt,
+                   token.lastUsedAt = :revokedAt
+             WHERE token.tokenHash = :tokenHash
+               AND token.revokedAt IS NULL
+               AND token.expiresAt <= :revokedAt
+            """)
+    int revokeExpiredByTokenHash(
             @Param("tokenHash") String tokenHash,
             @Param("revokedAt") LocalDateTime revokedAt
     );
