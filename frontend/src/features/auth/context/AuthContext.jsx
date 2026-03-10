@@ -229,6 +229,6 @@ export function AuthProvider({ children }) {
 // eslint-disable-next-line react-refresh/only-export-components
 export function useAuth() {
   const ctx = useContext(AuthContext)
-  if (!ctx) throw new Error("useAuth must be used inside <AuthProfile />")
+  if (!ctx) throw new Error("useAuth must be used inside <AuthProvider />")
   return ctx
 }

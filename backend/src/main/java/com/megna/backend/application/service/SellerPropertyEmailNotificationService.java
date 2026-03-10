@@ -84,7 +84,7 @@ public class SellerPropertyEmailNotificationService {
         model.put("property_address", formatAddress(property));
         model.put("submitted_at", formatDateTime(property == null ? null : property.getSubmittedAt()));
         model.put("action_text", "Open Submitted Listings");
-        model.put("action_url", "https://megna-realestate.com/admin/queue?tab=submitted");
+        model.put("action_url", "https://megna-realestate.com/admin/properties?tab=submitted");
         model.put("footer_text", "This notification was sent because a seller submitted a listing for review.");
         return model;
     }
@@ -108,8 +108,8 @@ public class SellerPropertyEmailNotificationService {
         model.put(
                 "action_url",
                 propertyId == null
-                        ? "https://megna-realestate.com/seller/properties"
-                        : "https://megna-realestate.com/seller/properties/" + propertyId
+                        ? "https://megna-realestate.com/seller/listings"
+                        : "https://megna-realestate.com/seller/listings/" + propertyId + "/edit"
         );
         model.put("footer_text", "Need to make a change? Contact Megna support from your seller dashboard.");
         return model;

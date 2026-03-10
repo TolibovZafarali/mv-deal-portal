@@ -38,7 +38,7 @@ import java.util.Map;
 public class InquiryAdminReplyService {
     private static final String TEMPLATE_ALIAS = "investor-inquiry-admin-reply-cid-v1";
     private static final String PUBLIC_LOGO_URL = "https://raw.githubusercontent.com/TolibovZafarali/mv-deal-portal/dev/frontend/public/white-logo.png";
-    private static final String INVESTOR_PROPERTIES_URL = "https://megna-realestate.com/properties";
+    private static final String INVESTOR_PROPERTIES_URL = "https://megna-realestate.com/investor";
 
 
     private final InquiryAdminReplyRepository inquiryAdminReplyRepository;
@@ -161,10 +161,7 @@ public class InquiryAdminReplyService {
     }
 
     private String resolveActionUrl(InquiryAdminReply reply) {
-        if (reply == null || reply.getProperty() == null || reply.getProperty().getId() == null) {
-            return INVESTOR_PROPERTIES_URL;
-        }
-        return INVESTOR_PROPERTIES_URL + "/" + reply.getProperty().getId();
+        return INVESTOR_PROPERTIES_URL;
     }
 
     private String safeNumber(Number value) {
