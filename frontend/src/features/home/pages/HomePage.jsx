@@ -951,12 +951,14 @@ export default function HomePage({
                                 </p>
                             </div>
 
-                            <div key={`scene-detail-${selectedRole}`} className="homeHero__floatCard homeHero__floatCard--detail homeRoleMotion">
-                                {roleContent.hero.detailList.map((item) => (
-                                    <span key={item} className="homeHero__detailItem">
-                                        {item}
-                                    </span>
-                                ))}
+                            <div key={`scene-detail-${selectedRole}`} className="homeHero__floatCard homeHero__floatCard--detail">
+                                <div className="homeHero__detailList homeRoleMotion">
+                                    {roleContent.hero.detailList.map((item) => (
+                                        <span key={item} className="homeHero__detailItem">
+                                            {item}
+                                        </span>
+                                    ))}
+                                </div>
                             </div>
                         </div>
                     </div>

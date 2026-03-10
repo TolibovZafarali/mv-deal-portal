@@ -695,8 +695,6 @@ button.homeButton {
 .homeHero__floatCard--detail {
   left: -28px;
   bottom: 48px;
-  display: grid;
-  gap: 10px;
   min-width: 228px;
   padding: 18px;
   animation-delay: -2.4s;
@@ -1362,6 +1360,11 @@ button.homeButton {
   color: rgba(246, 241, 232, 0.84);
   font-size: 0.9rem;
   line-height: 1.4;
+}
+
+.homeHero__detailList {
+  display: grid;
+  gap: 10px;
 }
 
 .homeHero__detailItem::before {
