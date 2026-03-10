@@ -125,13 +125,13 @@ export default function ApiSmokeTest() {
             className="api-smoke__btn api-smoke__btn--danger"
             disabled={loading}
             onClick={() =>
-              run("Logout", async () => {
+              run("Log out", async () => {
                 await logout()
                 return { session: "cleared" }
               })
             }
           >
-            Logout
+            Log out
           </button>
         </div>
 

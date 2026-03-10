@@ -776,7 +776,7 @@ export default function HomePage({
                                     className="homeHeader__utilityLink homeHeader__utilityButton"
                                     onClick={signOut}
                                 >
-                                    Sign out
+                                    Log out
                                 </button>
                                 <Link to="/app" className="homeButton homeButton--compact">
                                     Open dashboard

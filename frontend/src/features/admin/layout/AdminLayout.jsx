@@ -178,9 +178,9 @@ export default function AdminLayout() {
 
         <div className="adminSidebar__spacer" />
 
-        <button className="adminLogout" type="button" onClick={handleLogoutIntent} aria-label="Log Out">
+        <button className="adminLogout" type="button" onClick={handleLogoutIntent} aria-label="Log out">
           <span className="adminLogout__content">
-            <span className="adminLogout__label">Log Out</span>
+            <span className="adminLogout__label">Log out</span>
             <span className="adminLogout__icon material-symbols-outlined" aria-hidden="true">logout</span>
           </span>
         </button>
@@ -196,7 +196,7 @@ export default function AdminLayout() {
             className="adminLogoutAuthModal"
             role="dialog"
             aria-modal="true"
-            aria-label="Log out confirmation"
+            aria-label="Log out dialog"
             onMouseDown={(event) => event.stopPropagation()}
           >
             <div className="adminLogoutAuthModal__header">
@@ -205,7 +205,7 @@ export default function AdminLayout() {
                 type="button"
                 className="adminLogoutAuthModal__close"
                 onClick={handleLogoutCancel}
-                aria-label="Close logout confirmation"
+                aria-label="Close log out dialog"
               >
                 ✕
               </button>
@@ -229,7 +229,7 @@ export default function AdminLayout() {
                   className="adminLogoutAuthModal__btn adminLogoutAuthModal__btn--danger"
                   onClick={handleLogoutConfirm}
                 >
-                  Log Out
+                  Log out
                 </button>
               </div>
             </div>
