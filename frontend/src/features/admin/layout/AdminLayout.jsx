@@ -22,13 +22,17 @@ export default function AdminLayout() {
     return window.localStorage.getItem(ADMIN_SIDEBAR_COLLAPSED_KEY) === "1";
   });
   const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [contactRequestsTotal, setContactRequestsTotal] = useState(0);
   const effectiveSidebarCollapsed = !isMobileView && sidebarCollapsed;
 
   useEffect(() => {
     if (typeof window === "undefined") return undefined;
     const media = window.matchMedia(ADMIN_MOBILE_BREAKPOINT_QUERY);
-    const handleMediaChange = (event) => setIsMobileView(event.matches);
+    const handleMediaChange = (event) => {
+      setIsMobileView(event.matches);
+      if (!event.matches) setMobileMenuOpen(false);
+    };
     const supportsModernListener = typeof media.addEventListener === "function";
 
     if (supportsModernListener) {
@@ -78,6 +82,7 @@ export default function AdminLayout() {
   };
 
   function handleLogoutIntent() {
+    if (isMobileView) setMobileMenuOpen(false);
     setLogoutConfirmOpen(true);
   }
 
@@ -104,6 +109,19 @@ export default function AdminLayout() {
   }, [logoutConfirmOpen]);
 
   useEffect(() => {
+    if (!mobileMenuOpen) return undefined;
+
+    function handleKeyDown(event) {
+      if (event.key === "Escape") setMobileMenuOpen(false);
+    }
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [mobileMenuOpen]);
+
+  useEffect(() => {
     let alive = true;
 
     async function loadContactRequestCount() {
@@ -128,7 +146,41 @@ export default function AdminLayout() {
 
   return (
     <div className={`adminShell ${effectiveSidebarCollapsed ? "adminShell--collapsed" : ""}`}>
-      <aside className={`adminSidebar ${effectiveSidebarCollapsed ? "adminSidebar--collapsed" : ""}`}>
+      {isMobileView ? (
+        <header className="adminMobileHeader">
+          <Link className="adminMobileHeader__home" to="/" aria-label="Go to homepage">
+            <img className="adminMobileHeader__logo" src="/white-logo.svg" alt="Admin Portal" />
+          </Link>
+          <button
+            type="button"
+            className="adminMobileHeader__menuBtn"
+            onClick={() => setMobileMenuOpen((prev) => !prev)}
+            aria-label={mobileMenuOpen ? "Close navigation menu" : "Open navigation menu"}
+            aria-expanded={mobileMenuOpen}
+            aria-controls="admin-mobile-nav"
+          >
+            <span className="material-symbols-outlined" aria-hidden="true">
+              {mobileMenuOpen ? "close" : "menu"}
+            </span>
+          </button>
+        </header>
+      ) : null}
+
+      {isMobileView && mobileMenuOpen ? (
+        <button
+          type="button"
+          className="adminMobileBackdrop"
+          onClick={() => setMobileMenuOpen(false)}
+          aria-label="Close navigation menu"
+        />
+      ) : null}
+
+      <aside
+        id={isMobileView ? "admin-mobile-nav" : undefined}
+        className={`adminSidebar ${effectiveSidebarCollapsed ? "adminSidebar--collapsed" : ""} ${
+          mobileMenuOpen ? "adminSidebar--mobileOpen" : ""
+        }`}
+      >
         <div className="adminBrand">
           <Link className="adminBrand__home" to="/" aria-label="Go to homepage">
             <img className="adminBrand__logo" src="/white-logo.svg" alt="Admin Portal" />
@@ -153,6 +205,7 @@ export default function AdminLayout() {
             className={({ isActive }) =>
               `adminNav__link ${isActive ? "adminNav__link--active" : ""}`
             }
+            onClick={() => setMobileMenuOpen(false)}
             aria-label="Properties"
           >
             <span className="adminNav__content">
@@ -166,6 +219,7 @@ export default function AdminLayout() {
             className={({ isActive }) =>
               `adminNav__link ${isActive ? "adminNav__link--active" : ""}`
             }
+            onClick={() => setMobileMenuOpen(false)}
             aria-label="Investors"
           >
             <span className="adminNav__content">
@@ -179,6 +233,7 @@ export default function AdminLayout() {
             className={({ isActive }) =>
               `adminNav__link ${isActive ? "adminNav__link--active" : ""}`
             }
+            onClick={() => setMobileMenuOpen(false)}
             aria-label="Sellers"
           >
             <span className="adminNav__content">
@@ -191,6 +246,7 @@ export default function AdminLayout() {
             className={({ isActive }) =>
               `adminNav__link ${isActive ? "adminNav__link--active" : ""}`
             }
+            onClick={() => setMobileMenuOpen(false)}
             aria-label="Inquiries"
           >
             <span className="adminNav__content">
@@ -204,6 +260,7 @@ export default function AdminLayout() {
             className={({ isActive }) =>
               `adminNav__link adminNav__link--contact ${isActive ? "adminNav__link--active" : ""}`
             }
+            onClick={() => setMobileMenuOpen(false)}
             aria-label="Contact requests"
           >
             <span className="adminNav__content">
