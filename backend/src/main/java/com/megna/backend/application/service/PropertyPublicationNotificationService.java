@@ -4,7 +4,6 @@ import com.megna.backend.application.service.email.TransactionalEmailRequest;
 import com.megna.backend.application.service.email.TransactionalEmailService;
 import com.megna.backend.domain.entity.Investor;
 import com.megna.backend.domain.entity.Property;
-import com.megna.backend.domain.entity.PropertyPhoto;
 import com.megna.backend.domain.entity.PropertyPublicationNotification;
 import com.megna.backend.domain.enums.InvestorStatus;
 import com.megna.backend.domain.enums.PropertyPublicationNotificationStatus;
@@ -165,7 +164,6 @@ public class PropertyPublicationNotificationService {
         model.put("subject", "New property published");
         model.put("title", "A new property just went live");
         model.put("message", "A listing that matches your interest has been published.");
-        model.put("property_photo_url", resolvePropertyPhotoUrl(property));
         model.put("property_address", propertyAddress);
         model.put("property_price", safeMoney(property == null ? null : property.getAskingPrice()));
         model.put("action_text", "View Property");
@@ -173,41 +171,6 @@ public class PropertyPublicationNotificationService {
         model.put("footer_text", "You're receiving this because property notifications are enabled on your account.");
         model.put("property_id", propertyId);
         return model;
-    }
-
-    private static String resolvePropertyPhotoUrl(Property property) {
-        if (property == null || property.getPhotos() == null || property.getPhotos().isEmpty()) {
-            return "";
-        }
-        for (PropertyPhoto photo : property.getPhotos()) {
-            if (photo == null) {
-                continue;
-            }
-            String thumbnail = normalizePublicImageUrl(photo.getThumbnailUrl());
-            if (!thumbnail.isBlank()) {
-                return thumbnail;
-            }
-            String full = normalizePublicImageUrl(photo.getUrl());
-            if (!full.isBlank()) {
-                return full;
-            }
-        }
-        return "";
-    }
-
-    private static String normalizePublicImageUrl(String url) {
-        if (url == null) {
-            return "";
-        }
-        String normalized = url.trim();
-        if (normalized.isBlank()) {
-            return "";
-        }
-        String lower = normalized.toLowerCase(Locale.US);
-        if (lower.startsWith("https://") || lower.startsWith("http://")) {
-            return normalized;
-        }
-        return "";
     }
 
     private static String resolveRecipientEmail(Investor investor) {
