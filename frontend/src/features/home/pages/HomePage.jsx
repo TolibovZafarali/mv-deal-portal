@@ -10,6 +10,17 @@ import {
 } from "@/features/home/content/homeContent";
 import "@/features/home/pages/HomePage.css";
 
+const ABOUT_PAGE_ID = "home-about-page";
+const ABOUT_TRANSITION_DURATION_MS = 980;
+
+function userPrefersReducedMotion() {
+    if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
+        return false;
+    }
+
+    return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
 function money(value) {
     const numeric = Number(value);
     if (!Number.isFinite(numeric)) return "—";
@@ -214,23 +225,33 @@ export default function HomePage({
 
         const viewportWidth = window.innerWidth || rect.width;
         const viewportHeight = window.innerHeight || rect.height;
-        const scaleX = rect.width / viewportWidth;
-        const scaleY = rect.height / viewportHeight;
-        const translateX = rect.left + rect.width / 2 - viewportWidth / 2;
-        const translateY = rect.top + rect.height / 2 - viewportHeight / 2;
+        const computedStyle = window.getComputedStyle(frame);
+        const radius = parseFloat(computedStyle.borderTopLeftRadius || "0") || 0;
+        const right = Math.max(viewportWidth - rect.right, 0);
+        const bottom = Math.max(viewportHeight - rect.bottom, 0);
 
-        root.style.setProperty("--scene-origin-scale-x", scaleX.toFixed(4));
-        root.style.setProperty("--scene-origin-scale-y", scaleY.toFixed(4));
-        root.style.setProperty("--scene-origin-x", `${translateX.toFixed(1)}px`);
-        root.style.setProperty("--scene-origin-y", `${translateY.toFixed(1)}px`);
+        root.style.setProperty("--scene-origin-top", `${rect.top.toFixed(1)}px`);
+        root.style.setProperty("--scene-origin-right", `${right.toFixed(1)}px`);
+        root.style.setProperty("--scene-origin-bottom", `${bottom.toFixed(1)}px`);
+        root.style.setProperty("--scene-origin-left", `${rect.left.toFixed(1)}px`);
+        root.style.setProperty("--scene-origin-radius", `${radius.toFixed(1)}px`);
     };
 
     const openScene = () => {
+        if (typeof window === "undefined") return;
+
         window.clearTimeout(aboutCloseTimerRef.current);
+        setSceneHovered(false);
         setAboutPageClosing(false);
         setSceneExpandMetrics();
         window.scrollTo({ top: 0, left: 0, behavior: "auto" });
         setAboutPageOpen(true);
+
+        if (userPrefersReducedMotion()) {
+            setAboutPageReady(true);
+            return;
+        }
+
         window.requestAnimationFrame(() => {
             window.requestAnimationFrame(() => {
                 setAboutPageReady(true);
@@ -239,6 +260,19 @@ export default function HomePage({
     };
 
     const closeScene = () => {
+        if (typeof window === "undefined") return;
+
+        if (userPrefersReducedMotion()) {
+            window.clearTimeout(aboutCloseTimerRef.current);
+            setAboutPageReady(false);
+            setAboutPageClosing(false);
+            setAboutPageOpen(false);
+            window.requestAnimationFrame(() => {
+                sceneFrameRef.current?.focus({ preventScroll: true });
+            });
+            return;
+        }
+
         window.scrollTo({ top: 0, left: 0, behavior: "auto" });
         window.requestAnimationFrame(() => {
             setSceneExpandMetrics();
@@ -249,7 +283,8 @@ export default function HomePage({
         aboutCloseTimerRef.current = window.setTimeout(() => {
             setAboutPageOpen(false);
             setAboutPageClosing(false);
-        }, 760);
+            sceneFrameRef.current?.focus({ preventScroll: true });
+        }, ABOUT_TRANSITION_DURATION_MS);
     };
 
     const handleEscapeClose = useEffectEvent(() => {
@@ -470,6 +505,19 @@ export default function HomePage({
     }, [aboutPageOpen]);
 
     useEffect(() => {
+        if (!aboutPageOpen || typeof document === "undefined") {
+            return undefined;
+        }
+
+        const previousOverflow = document.body.style.overflow;
+        document.body.style.overflow = "hidden";
+
+        return () => {
+            document.body.style.overflow = previousOverflow;
+        };
+    }, [aboutPageOpen]);
+
+    useEffect(() => {
         return () => {
             window.clearTimeout(aboutCloseTimerRef.current);
         };
@@ -643,6 +691,7 @@ export default function HomePage({
                                 tabIndex={0}
                                 aria-label={aboutPageOpen ? "Close about us page" : "Open about us page"}
                                 aria-expanded={aboutPageOpen}
+                                aria-controls={ABOUT_PAGE_ID}
                                 onKeyDown={(event) => {
                                     if (event.key === "Enter" || event.key === " ") {
                                         event.preventDefault();
@@ -680,7 +729,20 @@ export default function HomePage({
                 </section>
 
                 {aboutPageOpen ? (
-                    <section className={`homeAboutPage ${aboutPageReady ? "is-visible" : ""}`} aria-label="About us page" />
+                    <section
+                        id={ABOUT_PAGE_ID}
+                        className={`homeAboutPage ${aboutPageReady ? "is-visible" : ""} ${aboutPageClosing ? "is-closing" : ""}`}
+                        aria-label="About us page"
+                    >
+                        <button
+                            type="button"
+                            className="homeAboutPage__close"
+                            onClick={closeScene}
+                            aria-label="Close about us page"
+                        >
+                            Close
+                        </button>
+                    </section>
                 ) : null}
 
                 {aboutPageOpen ? (
@@ -688,9 +750,12 @@ export default function HomePage({
                         className={`homeAboutTransition ${aboutPageReady ? "is-open" : ""} ${aboutPageClosing ? "is-closing" : ""}`}
                         aria-hidden="true"
                     >
-                        <div className="homeAboutTransition__image" />
-                        <div className="homeAboutTransition__gradient" />
-                        <div className="homeAboutTransition__veil" />
+                        <div className="homeAboutTransition__panel">
+                            <div className="homeAboutTransition__image" />
+                            <div className="homeAboutTransition__gradient" />
+                            <div className="homeAboutTransition__veil" />
+                            <div className="homeAboutTransition__glow" />
+                        </div>
                     </div>
                 ) : null}
                 {aboutPageOpen ? null : (
