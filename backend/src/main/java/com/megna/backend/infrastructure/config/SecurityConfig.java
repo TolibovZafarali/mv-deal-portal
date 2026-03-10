@@ -45,10 +45,6 @@ public class SecurityConfig {
                                 "/api/contact-requests",
                                 "/api/webhooks/postmark",
                                 "/api/properties/preview",
-                                "/swagger-ui.html",
-                                "/swagger-ui/**",
-                                "/v3/api-docs/**",
-                                "/v3/api-docs.yaml",
                                 "/actuator/health",
                                 "/actuator/info"
                         ).permitAll()

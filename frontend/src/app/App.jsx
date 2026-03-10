@@ -2,6 +2,7 @@ import { Suspense, lazy } from "react"
 import { Navigate, Route, Routes, useLocation } from "react-router-dom"
 import { ProtectedRoute, useAuth } from "@/features/auth"
 
+const IS_DEV_BUILD = import.meta.env.DEV
 const AdminLayout = lazy(() => import("@/features/admin/layout/AdminLayout"))
 const InvestorLayout = lazy(() => import("@/features/investor/layout/InvestorLayout"))
 const SellerLayout = lazy(() => import("@/features/seller/layout/SellerLayout"))
@@ -10,7 +11,7 @@ const ForgotPasswordModal = lazy(() => import("@/features/auth/modals/ForgotPass
 const ResetPasswordModal = lazy(() => import("@/features/auth/modals/ResetPasswordModal"))
 const SignUpModal = lazy(() => import("@/features/auth/modals/SignUpModal"))
 const ContactModal = lazy(() => import("@/features/home/modals/ContactModal"))
-const ApiSmokeTest = lazy(() => import("@/features/dev/pages/ApiSmokeTest"))
+const ApiSmokeTest = IS_DEV_BUILD ? lazy(() => import("@/features/dev/pages/ApiSmokeTest")) : null
 const AppRedirect = lazy(() => import("@/app/routing/AppRedirect"))
 const HomePage = lazy(() => import("@/features/home/pages/HomePage"))
 const PrivacyPolicyPage = lazy(() => import("@/features/home/pages/PrivacyPolicyPage"))
@@ -66,7 +67,7 @@ export default function App() {
 
           <Route element={<ProtectedRoute />}>
             <Route path="/app" element={<AppRedirect />} />
-            <Route path="/_dev/api" element={<ApiSmokeTest />} />
+            {ApiSmokeTest ? <Route path="/_dev/api" element={<ApiSmokeTest />} /> : null}
           </Route>
 
           <Route element={<ProtectedRoute roles={["ADMIN"]} />}>
