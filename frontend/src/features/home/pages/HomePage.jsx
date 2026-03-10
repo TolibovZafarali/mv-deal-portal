@@ -546,6 +546,11 @@ export default function HomePage({
     }, [selectedRole, closedDeals.length, closedDealsLoading, closedDealsError, aboutPageOpen, isAuthed]);
 
     useEffect(() => {
+        if (bootstrapping) {
+            setMetricsVisible(false);
+            return undefined;
+        }
+
         const section = metricsRef.current;
         if (!section) {
             setMetricsVisible(false);
@@ -574,7 +579,7 @@ export default function HomePage({
 
         observer.observe(section);
         return () => observer.disconnect();
-    }, [aboutPageOpen, isAuthed, selectedRole]);
+    }, [aboutPageOpen, bootstrapping, isAuthed, selectedRole]);
 
     useEffect(() => {
         let frameId = 0;
