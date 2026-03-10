@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { register, registerSeller } from "@/api";
+import { useAuth } from "@/features/auth";
 import "@/features/auth/modals/SignUpModal.css";
 import { getPasswordStrength } from "@/shared/utils/passwordStrength";
 import { useAuthModalClose } from "@/features/auth/modals/useAuthModalClose";
@@ -14,6 +15,7 @@ const ROLE_SELLER = "SELLER";
 export default function SignUpModal() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { signIn } = useAuth();
 
   const hasBackground = !!location.state?.backgroundLocation;
   const forceHomeOnClose = !!location.state?.forceHomeOnClose;
@@ -202,6 +204,16 @@ export default function SignUpModal() {
           password: form.password,
         };
         const res = isSellerSignup ? await registerSeller(payload) : await register(payload);
+
+        if (isSellerSignup) {
+          try {
+            await signIn(payload.email, payload.password);
+            navigate("/seller", { replace: true });
+            return;
+          } catch {
+            setError("Your seller account was created, but automatic sign in failed. Please sign in.");
+          }
+        }
 
         setResult(res);
         goStep(STEP_DONE);
