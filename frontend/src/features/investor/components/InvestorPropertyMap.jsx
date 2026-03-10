@@ -216,9 +216,12 @@ export default function InvestorPropertyMap({
     const selectedPoint = points.find((point) => point.id === selectedPropertyId);
     if (!selectedPoint) return;
 
-    map.panTo([selectedPoint.lat, selectedPoint.lng], {
+    map.flyTo([selectedPoint.lat, selectedPoint.lng], Math.max(
+      map.getZoom(),
+      Math.min(SINGLE_PROPERTY_ZOOM, MAP_MAX_ZOOM),
+    ), {
       animate: true,
-      duration: 0.35,
+      duration: 0.45,
     });
   }, [points, selectedPropertyId]);
 

@@ -99,6 +99,22 @@ function parseDate(value) {
   return parsed;
 }
 
+function toCoordinate(value) {
+  if (value === null || value === undefined || value === "") return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function hasMapCoordinates(property) {
+  return toCoordinate(property?.latitude) !== null && toCoordinate(property?.longitude) !== null;
+}
+
+function propertyFreshnessMs(property) {
+  const freshestDate =
+    parseDate(property?.publishedAt) ?? parseDate(property?.createdAt) ?? parseDate(property?.updatedAt);
+  return freshestDate?.getTime() ?? 0;
+}
+
 function isNewlyActive(property, nowMs) {
   if (String(property?.status ?? "").toUpperCase() !== "ACTIVE") return false;
   const activeAt = parseDate(property?.publishedAt) ?? parseDate(property?.createdAt);
@@ -195,6 +211,7 @@ export default function InvestorDashboard() {
   const [inquirySuccess, setInquirySuccess] = useState("");
   const [messagedPropertyIds, setMessagedPropertyIds] = useState([]);
   const [repliedPropertyIds, setRepliedPropertyIds] = useState([]);
+  const [mapVisiblePropertyIds, setMapVisiblePropertyIds] = useState([]);
   const [detailsOpenedFromMessages, setDetailsOpenedFromMessages] = useState(false);
   const [openFilterMenu, setOpenFilterMenu] = useState(null);
   const occupancyMenuRef = useRef(null);
@@ -216,11 +233,35 @@ export default function InvestorDashboard() {
   const repliedPropertyIdSet = useMemo(() => {
     return new Set(repliedPropertyIds);
   }, [repliedPropertyIds]);
+  const mapVisiblePropertyIdSet = useMemo(() => {
+    return new Set(mapVisiblePropertyIds.map((id) => String(id)));
+  }, [mapVisiblePropertyIds]);
 
-  const visibleRows = useMemo(() => {
+  const filteredRows = useMemo(() => {
     if (!showFavoritesOnly) return rows;
     return rows.filter((row) => favoritePropertyIdSet.has(String(row.id)));
   }, [favoritePropertyIdSet, rows, showFavoritesOnly]);
+
+  const orderedRows = useMemo(() => {
+    return [...filteredRows].sort((left, right) => {
+      const leftVisibleOnMap = mapVisiblePropertyIdSet.has(String(left?.id));
+      const rightVisibleOnMap = mapVisiblePropertyIdSet.has(String(right?.id));
+      if (leftVisibleOnMap !== rightVisibleOnMap) {
+        return leftVisibleOnMap ? -1 : 1;
+      }
+
+      const leftHasMapCoordinates = hasMapCoordinates(left);
+      const rightHasMapCoordinates = hasMapCoordinates(right);
+      if (leftHasMapCoordinates !== rightHasMapCoordinates) {
+        return leftHasMapCoordinates ? -1 : 1;
+      }
+
+      const freshnessDelta = propertyFreshnessMs(right) - propertyFreshnessMs(left);
+      if (freshnessDelta !== 0) return freshnessDelta;
+
+      return Number(right?.id ?? 0) - Number(left?.id ?? 0);
+    });
+  }, [filteredRows, mapVisiblePropertyIdSet]);
 
   const detailProperty = useMemo(() => {
     if (detailPropertyId === null) return null;
@@ -306,16 +347,16 @@ export default function InvestorDashboard() {
   }, [filters]);
 
   useEffect(() => {
-    if (!visibleRows.length) {
+    if (!filteredRows.length) {
       setSelectedPropertyId(null);
       return;
     }
 
-    const selectedStillVisible = visibleRows.some((row) => row.id === selectedPropertyId);
+    const selectedStillVisible = filteredRows.some((row) => row.id === selectedPropertyId);
     if (!selectedStillVisible && selectedPropertyId !== null) {
       setSelectedPropertyId(null);
     }
-  }, [visibleRows, selectedPropertyId]);
+  }, [filteredRows, selectedPropertyId]);
 
   useEffect(() => {
     const raw = location.state?.homeSelectedPropertyId;
@@ -328,14 +369,14 @@ export default function InvestorDashboard() {
 
   useEffect(() => {
     const pendingId = pendingHomepagePropertyIdRef.current;
-    if (!pendingId || !visibleRows.length) return;
+    if (!pendingId || !filteredRows.length) return;
 
-    const match = visibleRows.find((row) => Number(row?.id) === pendingId);
+    const match = filteredRows.find((row) => Number(row?.id) === pendingId);
     if (!match) return;
 
     setSelectedPropertyId(match.id);
     pendingHomepagePropertyIdRef.current = null;
-  }, [visibleRows]);
+  }, [filteredRows]);
 
   useEffect(() => {
     if (!detailProperty && detailPropertyId !== null) {
@@ -525,7 +566,7 @@ export default function InvestorDashboard() {
     }
 
     selectedPropertyOriginRef.current = null;
-  }, [selectedPropertyId, visibleRows]);
+  }, [orderedRows, selectedPropertyId]);
 
   const hasMoreFiltersSelected = useMemo(() => {
     return [
@@ -632,6 +673,16 @@ export default function InvestorDashboard() {
     selectedPropertyOriginRef.current = "map";
     setSelectedPropertyId(propertyId);
   }
+
+  const handleVisiblePropertyIdsChange = useCallback((propertyIds) => {
+    const nextIds = Array.isArray(propertyIds) ? propertyIds.map((id) => String(id)) : [];
+    setMapVisiblePropertyIds((prev) => {
+      if (prev.length === nextIds.length && prev.every((id, index) => id === nextIds[index])) {
+        return prev;
+      }
+      return nextIds;
+    });
+  }, []);
 
   function moveCardPhoto(propertyId, totalPhotos, step) {
     if (!Number.isFinite(totalPhotos) || totalPhotos <= 1) return;
@@ -926,9 +977,10 @@ export default function InvestorDashboard() {
       <div className="invDash__content">
         <div className="invDash__mapPane">
           <InvestorPropertyMap
-            properties={visibleRows}
+            properties={filteredRows}
             selectedPropertyId={selectedPropertyId}
             onSelectProperty={handleMapSelectProperty}
+            onVisiblePropertyIdsChange={handleVisiblePropertyIdsChange}
             loading={loading}
           />
         </div>
@@ -937,11 +989,11 @@ export default function InvestorDashboard() {
           {favoritesError ? <div className="invDash__notice invDash__notice--error">{favoritesError}</div> : null}
           {loading ? <div className="invDash__notice">Loading properties...</div> : null}
           {!loading && error ? <div className="invDash__notice invDash__notice--error">{error}</div> : null}
-          {!loading && !error && visibleRows.length === 0 ? <div className="invDash__notice">{emptyMessage}</div> : null}
+          {!loading && !error && orderedRows.length === 0 ? <div className="invDash__notice">{emptyMessage}</div> : null}
 
-          {!loading && !error && visibleRows.length > 0 ? (
+          {!loading && !error && orderedRows.length > 0 ? (
             <div className="invDash__cards">
-              {visibleRows.map((property) => {
+              {orderedRows.map((property) => {
                 const cardPhotos = Array.isArray(property.photos)
                   ? property.photos
                     .map((photo) => ({
