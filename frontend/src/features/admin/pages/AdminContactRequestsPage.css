@@ -40,6 +40,14 @@
   align-items: end;
 }
 
+.adminContact__filterRow--searchOnly {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.adminContact__filterRow--searchOnly .adminContact__moreMenu {
+  justify-self: end;
+}
+
 .adminContact__filter {
   display: flex;
   flex-direction: column;
@@ -83,6 +91,59 @@
   background: #ffffff;
 }
 
+.adminContact__moreSummary {
+  list-style: none;
+  box-sizing: border-box;
+  height: 41px;
+  min-width: 88px;
+  border: 1px solid var(--admin-filter-border);
+  background: var(--admin-filter-input-bg);
+  color: var(--admin-filter-ink);
+  padding: 0 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 180ms ease, color 180ms ease, border-color 180ms ease;
+}
+
+.adminContact__moreSummary::-webkit-details-marker {
+  display: none;
+}
+
+.adminContact__moreSummary--active,
+.adminContact__moreMenu[open] .adminContact__moreSummary {
+  background: var(--admin-filter-ink);
+  border-color: var(--admin-filter-ink);
+  color: var(--admin-filter-bg);
+}
+
+.adminContact__moreMenu {
+  position: relative;
+}
+
+.adminContact__moreBody {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  width: min(360px, 82vw);
+  background: var(--admin-filter-bg);
+  border: 1px solid var(--admin-filter-border);
+  padding: 12px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  z-index: 2;
+}
+
+.adminContact__moreBody .adminContact__filter {
+  min-width: 0;
+}
+
+.adminContact__moreBody .adminContact__input {
+  width: 100%;
+}
+
 .adminContact__actionBtn,
 .adminContact__rowActionBtn,
 .adminContact__pageBtn {
@@ -92,6 +153,7 @@
   padding: 7px 10px;
   cursor: pointer;
   transition: background 180ms ease, color 180ms ease, border-color 180ms ease;
+  width: 100px;
 }
 
 .adminContact__actionBtn:hover,
@@ -119,6 +181,10 @@
   vertical-align: top;
 }
 
+.adminContact__table td {
+  vertical-align: middle;
+}
+
 .adminContact__table th {
   font-size: 12px;
   color: var(--admin-muted);
@@ -128,6 +194,15 @@
 
 .adminContact__row:hover {
   background: rgba(16, 16, 16, 0.04);
+}
+
+.adminContact__row--clickable {
+  cursor: pointer;
+}
+
+.adminContact__row--clickable:focus-visible {
+  outline: 2px solid var(--admin-ink);
+  outline-offset: -2px;
 }
 
 .adminContact__row td:first-child {
@@ -182,6 +257,22 @@
   max-width: 360px;
   color: var(--admin-muted);
   line-height: 1.45;
+  vertical-align: top;
+}
+
+.adminContact__table th:nth-child(4),
+.adminContact__table th:nth-child(5),
+.adminContact__table th:nth-child(6),
+.adminContact__table th:nth-child(7),
+.adminContact__table td:nth-child(4),
+.adminContact__table td:nth-child(5),
+.adminContact__table td:nth-child(6),
+.adminContact__table td:nth-child(7) {
+  text-align: center;
+}
+
+.adminContact__table td:nth-child(7) .adminContact__actionGroup {
+  align-items: center;
 }
 
 .adminContact__actionGroup {
@@ -354,6 +445,12 @@
   color: rgba(242, 242, 242, 0.75);
 }
 
+.adminContact__replyReadOnlyHint {
+  margin: 0;
+  font-size: 13px;
+  color: rgba(242, 242, 242, 0.74);
+}
+
 .adminContact__replyInput {
   border: 1px solid #5a5a5a;
   background: rgba(242, 242, 242, 0.06);
@@ -370,8 +467,8 @@
 
 .adminContact__replyActions {
   display: flex;
-  justify-content: flex-end;
   gap: 10px;
+  width: 100%;
 }
 
 .adminContact__replyBtn {
@@ -380,6 +477,8 @@
   color: #f2f2f2;
   padding: 10px 14px;
   cursor: pointer;
+  flex: 1 1 0;
+  width: 100%;
 }
 
 .adminContact__replyBtn--primary {
@@ -403,11 +502,23 @@
   .adminContact__filterRow {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .adminContact__filterRow--searchOnly {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .adminContact__moreBody {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 720px) {
   .adminContact__filterRow {
     grid-template-columns: 1fr;
+  }
+
+  .adminContact__filterRow--searchOnly {
+    grid-template-columns: minmax(0, 1fr) auto;
   }
 
   .adminContact__replyDetails {
