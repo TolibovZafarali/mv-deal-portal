@@ -79,7 +79,6 @@ export default function SignUpModal() {
       selectedRole &&
         form.firstName.trim() &&
         form.lastName.trim() &&
-        form.companyName.trim() &&
         form.email.trim() &&
         form.phone.trim(),
     );
