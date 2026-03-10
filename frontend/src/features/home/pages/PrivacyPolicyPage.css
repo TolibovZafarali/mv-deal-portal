@@ -1,0 +1,619 @@
+.privacyPolicyPageShell {
+  --privacy-shell-width: min(1224px, calc(100vw - 36px));
+  --privacy-sticky-top: 108px;
+  --privacy-toc-max-height: calc(100dvh - var(--privacy-sticky-top) - 20px);
+  --privacy-paper: #f2ede4;
+  --privacy-paper-alt: #faf7f1;
+  --privacy-ink: #171b21;
+  --privacy-muted: #4d5966;
+  --privacy-muted-strong: #33404d;
+  --privacy-line: rgba(23, 27, 33, 0.1);
+  --privacy-line-soft: rgba(23, 27, 33, 0.06);
+  --privacy-accent: #a97d4f;
+  --privacy-shadow: 0 34px 110px rgba(0, 0, 0, 0.24);
+  min-height: 100dvh;
+  isolation: isolate;
+  overflow: visible;
+}
+
+.privacyPolicyPageShell .homeShell {
+  width: var(--privacy-shell-width);
+}
+
+.privacyPolicyHeader__left {
+  width: auto;
+  min-width: 0;
+  flex: 1 1 320px;
+}
+
+.privacyPolicyHeader__titleBlock {
+  display: grid;
+  gap: 8px;
+}
+
+.privacyPolicyHeader .homeHeader__pageTitle {
+  width: auto;
+  min-width: 0;
+}
+
+.privacyPolicyHeader__actions {
+  flex: 1 1 320px;
+}
+
+.privacyPolicyPageShell .homeHeader__logoImage {
+  transition:
+    filter 320ms var(--home-ease),
+    opacity 320ms var(--home-ease),
+    background-image 320ms var(--home-ease);
+}
+
+.privacyPolicyPageShell--lightLogo .homeHeader__logoImage {
+  background: linear-gradient(135deg, #121820 0%, #2d3945 58%, #7c5b39 100%);
+  filter:
+    brightness(0.98)
+    drop-shadow(0 0 1px rgba(255, 255, 255, 0.4))
+    drop-shadow(0 4px 16px rgba(255, 255, 255, 0.12));
+}
+
+.privacyPolicyPageShell--lightLogo .homeHeader__logo:hover .homeHeader__logoImage,
+.privacyPolicyPageShell--lightLogo .homeHeader__logo:focus-visible .homeHeader__logoImage {
+  filter:
+    brightness(1.06)
+    drop-shadow(0 0 2px rgba(255, 255, 255, 0.5))
+    drop-shadow(0 8px 22px rgba(255, 255, 255, 0.16));
+}
+
+.privacyPolicyPageMain {
+  position: relative;
+}
+
+.privacyPolicyHero {
+  position: relative;
+  padding: 150px 0 46px;
+}
+
+.privacyPolicyHero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 12% 14%, rgba(214, 187, 146, 0.1), transparent 28%),
+    radial-gradient(circle at 88% 8%, rgba(78, 108, 136, 0.2), transparent 28%),
+    linear-gradient(180deg, rgba(246, 241, 232, 0.03) 0%, rgba(246, 241, 232, 0) 100%);
+}
+
+.privacyPolicyHero__inner {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 30px;
+}
+
+.privacyPolicyHero__content,
+.privacyPolicyHero__meta,
+.privacyPolicyTocPanel,
+.privacyPolicyArticle {
+  animation: privacyPolicyFadeUp 560ms var(--home-ease) both;
+}
+
+.privacyPolicyHero__meta {
+  animation-delay: 70ms;
+}
+
+.privacyPolicyTocPanel {
+  animation-delay: 120ms;
+}
+
+.privacyPolicyArticle {
+  animation-delay: 150ms;
+}
+
+.privacyPolicyHero__content {
+  max-width: 780px;
+}
+
+.privacyPolicyHero__eyebrow,
+.privacyPolicyArticle__eyebrow,
+.privacyPolicyToc__eyebrow,
+.privacyPolicyContactCard__label,
+.privacyPolicySubsection__title,
+.privacyPolicySection__index {
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.privacyPolicyHero__eyebrow,
+.privacyPolicyArticle__eyebrow,
+.privacyPolicyToc__eyebrow {
+  margin: 0;
+  color: var(--home-accent);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.privacyPolicyHero__title {
+  margin: 14px 0 0;
+  color: var(--home-text);
+  font-family: var(--font-display, "Cormorant Garamond", serif);
+  font-size: clamp(3.4rem, 6vw, 5.4rem);
+  line-height: 0.9;
+  letter-spacing: -0.04em;
+  font-weight: 600;
+  text-wrap: balance;
+}
+
+.privacyPolicyHero__lead {
+  margin: 18px 0 0;
+  max-width: 56ch;
+  color: rgba(246, 241, 232, 0.84);
+  font-size: clamp(1.04rem, 1.8vw, 1.18rem);
+  line-height: 1.74;
+}
+
+.privacyPolicyHero__meta {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.privacyPolicyHero__metaCard,
+.privacyPolicyToc {
+  border: 1px solid rgba(246, 241, 232, 0.12);
+  background: linear-gradient(180deg, rgba(246, 241, 232, 0.07) 0%, rgba(246, 241, 232, 0.03) 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+.privacyPolicyHero__metaCard {
+  display: grid;
+  gap: 8px;
+  min-height: 116px;
+  padding: 20px 20px 22px;
+}
+
+.privacyPolicyHero__metaCard--primary {
+  background:
+    linear-gradient(135deg, rgba(214, 187, 146, 0.18) 0%, rgba(246, 241, 232, 0.08) 100%),
+    linear-gradient(180deg, rgba(246, 241, 232, 0.07) 0%, rgba(246, 241, 232, 0.03) 100%);
+}
+
+.privacyPolicyHero__metaLabel {
+  color: rgba(246, 241, 232, 0.62);
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  line-height: 1.4;
+  text-transform: uppercase;
+}
+
+.privacyPolicyHero__metaValue {
+  color: var(--home-text);
+  font-size: 0.98rem;
+  line-height: 1.62;
+  text-wrap: pretty;
+}
+
+.privacyPolicyPage {
+  position: relative;
+  padding: 8px 0 66px;
+}
+
+.privacyPolicyLayout {
+  display: grid;
+  grid-template-columns: minmax(250px, 280px) minmax(0, 1fr);
+  gap: 28px;
+  align-items: start;
+}
+
+.privacyPolicyTocPanel {
+  position: sticky;
+  top: var(--privacy-sticky-top);
+  align-self: start;
+  min-width: 0;
+  height: fit-content;
+  z-index: 2;
+}
+
+.privacyPolicyToc {
+  padding: 24px 34px 24px 24px;
+  max-height: var(--privacy-toc-max-height);
+  overflow: auto;
+  overscroll-behavior: contain;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.privacyPolicyToc::-webkit-scrollbar {
+  display: none;
+}
+
+.privacyPolicyToc__intro {
+  margin: 10px 0 0;
+  color: var(--home-muted);
+  font-size: 0.94rem;
+  line-height: 1.68;
+}
+
+.privacyPolicyToc__list {
+  display: grid;
+  gap: 8px;
+  margin: 20px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.privacyPolicyToc__item {
+  margin: 0;
+}
+
+.privacyPolicyToc__link {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  min-height: 54px;
+  padding: 12px 14px;
+  border: 1px solid transparent;
+  color: rgba(246, 241, 232, 0.76);
+  text-decoration: none;
+  transition:
+    color 260ms var(--home-ease),
+    background-color 260ms var(--home-ease),
+    border-color 260ms var(--home-ease),
+    transform 260ms var(--home-ease);
+}
+
+.privacyPolicyToc__link:hover,
+.privacyPolicyToc__link:focus-visible {
+  color: var(--home-text);
+  transform: translateX(4px);
+}
+
+.privacyPolicyToc__link.is-active {
+  border-color: rgba(246, 241, 232, 0.16);
+  background: rgba(246, 241, 232, 0.08);
+  color: var(--home-text);
+}
+
+.privacyPolicyToc__index {
+  color: var(--home-accent);
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.privacyPolicyToc__label {
+  font-size: 0.96rem;
+  line-height: 1.4;
+}
+
+.privacyPolicyArticle {
+  position: relative;
+  padding: clamp(30px, 4.2vw, 54px);
+  border: 1px solid var(--privacy-line);
+  background: linear-gradient(180deg, var(--privacy-paper-alt) 0%, var(--privacy-paper) 100%);
+  color: var(--privacy-ink);
+  box-shadow: var(--privacy-shadow);
+}
+
+.privacyPolicyArticle ::selection {
+  background: rgba(169, 125, 79, 0.18);
+  color: var(--privacy-ink);
+}
+
+.privacyPolicyArticle::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(169, 125, 79, 0.6) 0%, rgba(169, 125, 79, 0) 100%);
+}
+
+.privacyPolicyArticle__intro {
+  padding-bottom: 28px;
+  border-bottom: 1px solid var(--privacy-line);
+}
+
+.privacyPolicyArticle__lead {
+  margin: 14px 0 0;
+  max-width: 58ch;
+  color: var(--privacy-muted-strong);
+  font-size: clamp(1.06rem, 1.8vw, 1.2rem);
+  line-height: 1.74;
+}
+
+.privacyPolicySection {
+  scroll-margin-top: 128px;
+  padding-top: 34px;
+}
+
+.privacyPolicySection + .privacyPolicySection {
+  margin-top: 34px;
+  border-top: 1px solid var(--privacy-line);
+}
+
+.privacyPolicySection__header {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.privacyPolicySection__index {
+  margin: 8px 0 0;
+  color: rgba(169, 125, 79, 0.9);
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+
+.privacyPolicySection__title {
+  margin: 0;
+  color: var(--privacy-ink);
+  font-family: var(--font-display, "Cormorant Garamond", serif);
+  font-size: clamp(2rem, 3.5vw, 3rem);
+  line-height: 0.96;
+  letter-spacing: -0.03em;
+  font-weight: 600;
+  text-wrap: balance;
+}
+
+.privacyPolicySection__summary {
+  margin: 12px 0 0;
+  max-width: 52ch;
+  color: var(--privacy-muted-strong);
+  font-size: 1rem;
+  line-height: 1.68;
+}
+
+.privacyPolicySection__body {
+  margin-top: 20px;
+}
+
+.privacyPolicySection__paragraph,
+.privacyPolicySection__listItem {
+  color: var(--privacy-muted);
+  font-size: 1rem;
+  line-height: 1.86;
+}
+
+.privacyPolicySection__paragraph {
+  margin: 0;
+}
+
+.privacyPolicySection__paragraph + .privacyPolicySection__paragraph {
+  margin-top: 14px;
+}
+
+.privacyPolicySection__list {
+  display: grid;
+  gap: 10px;
+  margin: 18px 0 0;
+  padding-left: 1.3rem;
+}
+
+.privacyPolicySection__listItem {
+  padding-left: 4px;
+}
+
+.privacyPolicySection__listItem::marker {
+  color: var(--privacy-accent);
+}
+
+.privacyPolicySubsection {
+  margin-top: 26px;
+  padding-top: 24px;
+  border-top: 1px dashed rgba(23, 27, 33, 0.14);
+}
+
+.privacyPolicySubsection__title {
+  margin: 0 0 14px;
+  color: var(--privacy-ink);
+  font-size: 0.82rem;
+  font-weight: 800;
+  line-height: 1.5;
+}
+
+.privacyPolicySection__note {
+  margin: 22px 0 0;
+  padding: 16px 18px;
+  border-left: 3px solid rgba(169, 125, 79, 0.72);
+  background: rgba(169, 125, 79, 0.08);
+  color: var(--privacy-muted-strong);
+  font-size: 0.95rem;
+  line-height: 1.72;
+}
+
+.privacyPolicyContactCard {
+  display: grid;
+  gap: 18px;
+  margin-top: 24px;
+  padding: 22px;
+  border: 1px solid rgba(23, 27, 33, 0.1);
+  background: rgba(255, 255, 255, 0.56);
+}
+
+.privacyPolicyContactCard__row {
+  display: grid;
+  grid-template-columns: 140px minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.privacyPolicyContactCard__label {
+  margin: 0;
+  color: var(--privacy-accent);
+  font-size: 0.76rem;
+  font-weight: 800;
+  line-height: 1.45;
+}
+
+.privacyPolicyContactCard__value {
+  margin: 0;
+  color: var(--privacy-ink);
+  font-size: 1rem;
+  line-height: 1.72;
+  text-decoration: none;
+  white-space: pre-line;
+}
+
+.privacyPolicyContactCard__value--link:hover,
+.privacyPolicyContactCard__value--link:focus-visible {
+  text-decoration: underline;
+  text-underline-offset: 0.16em;
+}
+
+.privacyPolicyContactCard__value--address {
+  font-style: normal;
+}
+
+.privacyPolicyPageShell .homeFooter {
+  padding-bottom: 42px;
+}
+
+@keyframes privacyPolicyFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 1024px) {
+  .privacyPolicyPageShell {
+    --privacy-sticky-top: 100px;
+  }
+
+  .privacyPolicyHero__meta {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .privacyPolicyLayout {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  .privacyPolicyTocPanel {
+    position: static;
+  }
+
+  .privacyPolicyToc {
+    padding: 24px;
+    max-height: none;
+    overflow: visible;
+    -ms-overflow-style: auto;
+    scrollbar-width: auto;
+  }
+
+  .privacyPolicyToc__list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .privacyPolicyPageShell {
+    --privacy-sticky-top: 96px;
+  }
+
+  .privacyPolicyHero {
+    padding-top: 132px;
+  }
+
+  .privacyPolicySection__header {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .privacyPolicySection__index {
+    margin-top: 0;
+  }
+
+  .privacyPolicyContactCard__row {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+}
+
+@media (max-width: 640px) {
+  .privacyPolicyPageShell {
+    --privacy-shell-width: min(100vw - 24px, 1224px);
+    --privacy-sticky-top: 88px;
+  }
+
+  .privacyPolicyHero {
+    padding: 106px 0 34px;
+  }
+
+  .privacyPolicyHero__title {
+    font-size: clamp(2.6rem, 15vw, 4rem);
+  }
+
+  .privacyPolicyHero__lead,
+  .privacyPolicyArticle__lead,
+  .privacyPolicySection__paragraph,
+  .privacyPolicySection__listItem,
+  .privacyPolicySection__summary,
+  .privacyPolicyToc__intro,
+  .privacyPolicyHero__metaValue {
+    font-size: 0.98rem;
+  }
+
+  .privacyPolicyHero__meta {
+    grid-template-columns: 1fr;
+  }
+
+  .privacyPolicyToc {
+    padding: 20px;
+  }
+
+  .privacyPolicyToc__list {
+    grid-template-columns: 1fr;
+  }
+
+  .privacyPolicyToc__link {
+    min-height: 48px;
+    padding: 10px 12px;
+  }
+
+  .privacyPolicyArticle {
+    padding: 24px 20px;
+  }
+
+  .privacyPolicyArticle__intro {
+    padding-bottom: 24px;
+  }
+
+  .privacyPolicySection {
+    padding-top: 28px;
+    scroll-margin-top: 108px;
+  }
+
+  .privacyPolicySection + .privacyPolicySection {
+    margin-top: 28px;
+  }
+
+  .privacyPolicySubsection {
+    margin-top: 22px;
+    padding-top: 20px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .privacyPolicyHero__content,
+  .privacyPolicyHero__meta,
+  .privacyPolicyTocPanel,
+  .privacyPolicyArticle,
+  .privacyPolicyToc__link {
+    animation: none;
+    transition: none;
+    transform: none;
+  }
+}

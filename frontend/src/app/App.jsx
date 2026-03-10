@@ -12,6 +12,7 @@ const SignUpModal = lazy(() => import("@/features/auth/modals/SignUpModal"))
 const ApiSmokeTest = lazy(() => import("@/features/dev/pages/ApiSmokeTest"))
 const AppRedirect = lazy(() => import("@/app/routing/AppRedirect"))
 const HomePage = lazy(() => import("@/features/home/pages/HomePage"))
+const PrivacyPolicyPage = lazy(() => import("@/features/home/pages/PrivacyPolicyPage"))
 const AdminInquiriesPage = lazy(() => import("@/features/admin/pages/AdminInquiriesPage"))
 const AdminInvestorsPage = lazy(() => import("@/features/admin/pages/AdminInvestorsPage"))
 const AdminSellersPage = lazy(() => import("@/features/admin/pages/AdminSellersPage"))
@@ -51,6 +52,7 @@ export default function App() {
       <Suspense fallback={<div className="appRouteFallback">Loading page...</div>}>
         <Routes location={backgroundLocation || location}>
           <Route path="/" element={<Home />} />
+          <Route path="/privacy" element={<PrivacyPolicyPage />} />
           <Route path="/login" element={<LoginModal />} />
           <Route path="/forgot-password" element={<ForgotPasswordModal />} />
           <Route path="/reset-password" element={<ResetPasswordModal />} />

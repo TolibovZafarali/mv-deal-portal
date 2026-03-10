@@ -11,6 +11,7 @@ import {
     ROLE_OPTION_CARDS,
     ROLE_SELLER,
 } from "@/features/home/content/homeContent";
+import PublicSiteFooter from "@/features/home/components/PublicSiteFooter";
 import "@/features/home/pages/HomePage.css";
 import "@/features/home/components/HomeAboutPage.css";
 import HomeAboutPage from "@/features/home/components/HomeAboutPage";
@@ -1264,12 +1265,7 @@ export default function HomePage({
                 )}
             </main>
 
-            <footer className="homeFooter">
-                <div className="homeShell homeFooter__inner" data-delay="30">
-                    <p className="homeFooter__brand">Megna Real Estate</p>
-                    <p className="homeFooter__copy">© {new Date().getFullYear()} All rights reserved.</p>
-                </div>
-            </footer>
+            <PublicSiteFooter />
         </div>
     );
 }
