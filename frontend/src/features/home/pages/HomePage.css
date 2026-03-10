@@ -762,14 +762,14 @@ button.homeButton {
   opacity: 1;
   transform: translateY(calc(var(--hero-shift) * -0.16)) scale(var(--hero-scale));
   filter: none;
-  transition-delay: 160ms;
+  transition-delay: 80ms;
 }
 
 .home--aboutClosing .homeHero__sceneText {
   opacity: 1;
   transform: translateY(0);
   filter: none;
-  transition-delay: 220ms;
+  transition-delay: 120ms;
 }
 
 .home--aboutOpen .homeHero__floatCard {
@@ -801,13 +801,38 @@ button.homeButton {
     opacity 260ms linear;
 }
 
+.homeAboutTransition::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  backdrop-filter: blur(0);
+  -webkit-backdrop-filter: blur(0);
+  transition:
+    opacity 760ms var(--home-ease),
+    backdrop-filter 980ms var(--home-ease),
+    -webkit-backdrop-filter 980ms var(--home-ease);
+}
+
 .homeAboutTransition.is-open {
   clip-path: inset(0 round 0px);
   filter: saturate(1);
 }
 
+.homeAboutTransition.is-open::before {
+  opacity: 1;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
 .homeAboutTransition.is-closing {
   opacity: 1;
+}
+
+.homeAboutTransition.is-closing::before {
+  opacity: 0.72;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
 
 .homeAboutTransition__panel {
@@ -913,9 +938,12 @@ button.homeButton {
     radial-gradient(circle at 16% 18%, rgba(214, 187, 146, 0.08), transparent 24%),
     linear-gradient(180deg, rgba(9, 12, 16, 0.08) 0%, rgba(9, 12, 16, 0.34) 100%);
   opacity: 0;
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
-  transition: opacity 620ms var(--home-ease);
+  backdrop-filter: blur(0);
+  -webkit-backdrop-filter: blur(0);
+  transition:
+    opacity 760ms var(--home-ease) 260ms,
+    backdrop-filter 980ms var(--home-ease) 260ms,
+    -webkit-backdrop-filter 980ms var(--home-ease) 260ms;
 }
 
 .homeAboutPage.is-visible {
@@ -925,9 +953,15 @@ button.homeButton {
 
 .homeAboutPage.is-visible::before {
   opacity: 1;
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
 }
 
 .homeAboutPage.is-closing {
+  transition-delay: 0ms;
+}
+
+.homeAboutPage.is-closing::before {
   transition-delay: 0ms;
 }
 

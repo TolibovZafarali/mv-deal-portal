@@ -14,7 +14,7 @@ import {
 import "@/features/home/pages/HomePage.css";
 
 const ABOUT_PAGE_ID = "home-about-page";
-const ABOUT_TRANSITION_DURATION_MS = 980;
+const ABOUT_TRANSITION_DURATION_MS = 820;
 
 function userPrefersReducedMotion() {
     if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
@@ -103,7 +103,12 @@ function getDealSummary(property) {
     return "Closed opportunity surfaced through the Megna preview flow.";
 }
 
-function getShowcaseSummary(property, statusLabel) {
+function getShowcaseSummary(property, statusLabel, includePriceDetails = true) {
+    if (!includePriceDetails) {
+        const normalizedStatus = String(statusLabel ?? "").trim();
+        return normalizedStatus ? `${normalizedStatus} property in your Megna workflow.` : "Property in your Megna workflow.";
+    }
+
     if (statusLabel === "Closed") {
         return getDealSummary(property);
     }
@@ -162,7 +167,14 @@ function SectionHeading({ eyebrow, title, lead, className = "" }) {
     );
 }
 
-function DealCard({ property, delay = 0, statusLabel = "Closed", linkTo = null, linkState = null }) {
+function DealCard({
+    property,
+    delay = 0,
+    statusLabel = "Closed",
+    linkTo = null,
+    linkState = null,
+    hidePriceDetails = false,
+}) {
     const leadPhoto = property?.photos?.[0]?.thumbnailUrl || property?.photos?.[0]?.url || "";
     const address = fullAddress(property) || "Address unavailable";
     const market = [property?.city, property?.state].filter(Boolean).join(", ");
@@ -199,18 +211,20 @@ function DealCard({ property, delay = 0, statusLabel = "Closed", linkTo = null, 
                     <span>Megna preview</span>
                 </div>
                 <h3 className="homeShowcase__address">{address}</h3>
-                <p className="homeShowcase__summary">{getShowcaseSummary(property, statusLabel)}</p>
+                <p className="homeShowcase__summary">{getShowcaseSummary(property, statusLabel, !hidePriceDetails)}</p>
 
-                <div className="homeShowcase__stats">
-                    <div className="homeShowcase__stat">
-                        <span className="homeShowcase__label">Asking</span>
-                        <span className="homeShowcase__value">{money(property?.askingPrice)}</span>
+                {!hidePriceDetails ? (
+                    <div className="homeShowcase__stats">
+                        <div className="homeShowcase__stat">
+                            <span className="homeShowcase__label">Asking</span>
+                            <span className="homeShowcase__value">{money(property?.askingPrice)}</span>
+                        </div>
+                        <div className="homeShowcase__stat">
+                            <span className="homeShowcase__label">ARV</span>
+                            <span className="homeShowcase__value">{money(property?.arv)}</span>
+                        </div>
                     </div>
-                    <div className="homeShowcase__stat">
-                        <span className="homeShowcase__label">ARV</span>
-                        <span className="homeShowcase__value">{money(property?.arv)}</span>
-                    </div>
-                </div>
+                ) : null}
 
                 {detailItems.length ? (
                     <div className="homeShowcase__detailRow">
@@ -274,7 +288,7 @@ export default function HomePage({
         ? (isSellerAuthed
             ? {
                 eyebrow: "Your listings",
-                title: "Published first, drafts next.",
+                title: "Your listings by status.",
                 lead: "Listings are prioritized so you can review what is live first, then continue working through drafts.",
                 empty: "No listings are available right now.",
                 loadingLabel: "Loading your listings",
@@ -475,7 +489,7 @@ export default function HomePage({
         });
 
         return () => observer.disconnect();
-    }, [selectedRole, closedDeals.length, closedDealsLoading, closedDealsError]);
+    }, [selectedRole, closedDeals.length, closedDealsLoading, closedDealsError, aboutPageOpen]);
 
     useEffect(() => {
         const section = metricsRef.current;
@@ -1088,6 +1102,7 @@ export default function HomePage({
                                                     key={property?.id ?? `${property?.street1 ?? "deal"}-${index}`}
                                                     property={property}
                                                     delay={index * 100}
+                                                    hidePriceDetails={isSellerAuthed}
                                                     linkTo={isAuthed && !isSellerAuthed ? "/investor" : null}
                                                     linkState={isAuthed && !isSellerAuthed ? { homeSelectedPropertyId: property?.id } : null}
                                                     statusLabel={isAuthed
