@@ -2,9 +2,7 @@ package com.megna.backend.interfaces.rest.controller.admin;
 
 import com.megna.backend.application.service.PropertyService;
 import com.megna.backend.interfaces.rest.dto.property.AdminPropertySellerAssignmentRequestDto;
-import com.megna.backend.interfaces.rest.dto.property.AdminPropertySellerReviewRequestDto;
 import com.megna.backend.interfaces.rest.dto.property.PropertyResponseDto;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -28,13 +26,5 @@ public class AdminPropertyWorkflowController {
     ) {
         Long sellerId = dto == null ? null : dto.sellerId();
         return propertyService.assignSeller(id, sellerId);
-    }
-
-    @PatchMapping("/{id}/seller-review")
-    public PropertyResponseDto reviewSellerProperty(
-            @PathVariable Long id,
-            @Valid @RequestBody AdminPropertySellerReviewRequestDto dto
-    ) {
-        return propertyService.reviewSellerProperty(id, dto.action(), dto.reviewNote());
     }
 }

@@ -71,11 +71,3 @@ export async function assignPropertySeller(propertyId, sellerId) {
   const { data } = await apiClient.patch(`${ADMIN_PROPERTIES_BASE}/${propertyId}/seller-assignment`, { sellerId });
   return data;
 }
-
-export async function reviewSellerProperty(propertyId, action, reviewNote) {
-  const { data } = await apiClient.patch(`${ADMIN_PROPERTIES_BASE}/${propertyId}/seller-review`, {
-    action,
-    reviewNote,
-  });
-  return data;
-}

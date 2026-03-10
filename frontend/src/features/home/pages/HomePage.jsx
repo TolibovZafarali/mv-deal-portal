@@ -149,7 +149,6 @@ function sellerWorkflowLabel(value) {
     if (normalized === "PUBLISHED") return "Published";
     if (normalized === "DRAFT") return "Draft";
     if (normalized === "SUBMITTED") return "Under review";
-    if (normalized === "CHANGES_REQUESTED") return "Needs changes";
     return normalized ? normalized.toLowerCase().replaceAll("_", " ") : "Listing";
 }
 

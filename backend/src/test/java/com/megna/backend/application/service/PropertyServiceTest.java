@@ -12,7 +12,6 @@ import com.megna.backend.domain.repository.InvestorRepository;
 import com.megna.backend.domain.repository.PropertyRepository;
 import com.megna.backend.domain.repository.SellerRepository;
 import com.megna.backend.infrastructure.security.AuthPrincipal;
-import com.megna.backend.interfaces.rest.dto.property.AdminPropertySellerReviewAction;
 import com.megna.backend.interfaces.rest.dto.property.PropertyUpsertRequestDto;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -184,22 +183,6 @@ class PropertyServiceTest {
         assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
         assertEquals("Cannot save property while photo URL is missing for asset: asset-2", ex.getReason());
         verify(propertyRepository, never()).save(existing);
-    }
-
-    @Test
-    void reviewSellerPropertyApproveEnqueuesInvestorNotifications() {
-        authenticateAsAdmin();
-
-        Property property = activeReadyProperty(30L);
-        property.setStatus(PropertyStatus.DRAFT);
-        property.setSellerWorkflowStatus(SellerWorkflowStatus.SUBMITTED);
-        property.setSeller(seller(99L));
-
-        when(propertyRepository.findById(30L)).thenReturn(Optional.of(property));
-
-        propertyService.reviewSellerProperty(30L, AdminPropertySellerReviewAction.PUBLISH, "Looks good");
-
-        verify(propertyPublicationNotificationService).enqueueForFirstPublication(30L);
     }
 
     @Test

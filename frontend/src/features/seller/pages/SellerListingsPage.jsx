@@ -100,9 +100,6 @@ function statusLabel(property) {
   const workflow = workflowValue(property);
   const isReady = isPropertyReadyToPublish(property);
 
-  if (workflow === SELLER_WORKFLOW_STATUS.CHANGES_REQUESTED) {
-    return isReady ? "Ready to Submit" : "Needs Details";
-  }
   if (workflow === SELLER_WORKFLOW_STATUS.DRAFT) {
     return isReady ? "Ready to Submit" : "Draft";
   }
@@ -340,7 +337,7 @@ export default function SellerListingsPage() {
     const workflow = workflowValue(property);
     const readyToPublish = isPropertyReadyToPublish(property);
     const statusTone =
-      readyToPublish && (workflow === SELLER_WORKFLOW_STATUS.DRAFT || workflow === SELLER_WORKFLOW_STATUS.CHANGES_REQUESTED)
+      readyToPublish && workflow === SELLER_WORKFLOW_STATUS.DRAFT
         ? "ready_to_publish"
         : workflow.toLowerCase();
     const publishing = Boolean(publishingIds[property.id]);

@@ -60,7 +60,6 @@ class SellerDashboardSummaryIntegrationTest {
 
         seedProperty(sellerId, "DRAFT");
         seedProperty(sellerId, "SUBMITTED");
-        seedProperty(sellerId, "CHANGES_REQUESTED");
         seedProperty(sellerId, "PUBLISHED");
 
         String token = loginAndExtractToken(sellerEmail, sellerPassword);
@@ -70,7 +69,6 @@ class SellerDashboardSummaryIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.drafts").value(1))
                 .andExpect(jsonPath("$.submitted").value(1))
-                .andExpect(jsonPath("$.changesRequested").value(1))
                 .andExpect(jsonPath("$.published").value(1));
     }
 
