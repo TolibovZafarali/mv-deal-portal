@@ -1,0 +1,341 @@
+.adminContact {
+  --admin-bg: #f2f2f2;
+  --admin-ink: #101010;
+  --admin-muted: rgba(16, 16, 16, 0.65);
+  --admin-border: rgba(16, 16, 16, 0.2);
+  --admin-panel: rgba(255, 255, 255, 0.58);
+  --admin-filter-bg: #101010;
+  --admin-filter-ink: #f2f2f2;
+  --admin-filter-muted: #b8b8b8;
+  --admin-filter-border: #5a5a5a;
+  --admin-filter-input-bg: rgba(242, 242, 242, 0.06);
+  color: var(--admin-ink);
+}
+
+.adminContact__header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.adminContact__title {
+  margin: 0;
+  font-size: 34px;
+  line-height: 0.96;
+}
+
+.adminContact__lead {
+  margin: 6px 0 0;
+  color: var(--admin-muted);
+}
+
+.adminContact__summary {
+  min-width: 140px;
+  border: 1px solid var(--admin-border);
+  background: var(--admin-panel);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: right;
+}
+
+.adminContact__summaryLabel {
+  font-size: 12px;
+  color: var(--admin-muted);
+}
+
+.adminContact__summaryValue {
+  font-size: 26px;
+  line-height: 1;
+}
+
+.adminContact__filters,
+.adminContact__tableSection {
+  border: 1px solid var(--admin-border);
+}
+
+.adminContact__filters {
+  background: var(--admin-filter-bg);
+  padding: 12px;
+}
+
+.adminContact__tableSection {
+  background: var(--admin-panel);
+  padding: 12px;
+  margin-top: 14px;
+}
+
+.adminContact__sectionTitle {
+  margin: 0 0 10px;
+  font-size: 16px;
+}
+
+.adminContact__filterRow {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) repeat(2, minmax(0, 1fr)) auto;
+  gap: 10px;
+  align-items: end;
+}
+
+.adminContact__filter {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.adminContact__label {
+  font-size: 12px;
+  color: var(--admin-filter-muted);
+}
+
+.adminContact__input {
+  border: 1px solid var(--admin-filter-border);
+  padding: 10px 34px 10px 10px;
+  background: var(--admin-filter-input-bg);
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23f2f2f2' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9' /%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-size: 16px;
+  background-position: right 12px center;
+  color: var(--admin-filter-ink);
+  outline: none;
+  font-family: inherit;
+}
+
+.adminContact__input--text {
+  background-image: none;
+  padding-right: 10px;
+}
+
+.adminContact__input:focus {
+  border-color: var(--admin-filter-ink);
+}
+
+.adminContact__input option {
+  color: #101010;
+  background: #ffffff;
+}
+
+.adminContact__actionBtn,
+.adminContact__rowActionBtn,
+.adminContact__pageBtn {
+  border: 1px solid var(--admin-ink);
+  background: transparent;
+  color: var(--admin-ink);
+  padding: 7px 10px;
+  cursor: pointer;
+  transition: background 180ms ease, color 180ms ease, border-color 180ms ease;
+}
+
+.adminContact__actionBtn {
+  align-self: end;
+  min-width: 92px;
+}
+
+.adminContact__actionBtn:hover,
+.adminContact__rowActionBtn:hover,
+.adminContact__pageBtn:hover {
+  background: var(--admin-ink);
+  color: var(--admin-bg);
+}
+
+.adminContact__tableWrap {
+  overflow: auto;
+}
+
+.adminContact__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.adminContact__table th,
+.adminContact__table td {
+  padding: 10px;
+  border-bottom: 1px solid rgba(16, 16, 16, 0.12);
+  text-align: left;
+  vertical-align: top;
+}
+
+.adminContact__table th {
+  font-size: 12px;
+  color: var(--admin-muted);
+  font-weight: 400;
+  white-space: nowrap;
+}
+
+.adminContact__row:hover {
+  background: rgba(16, 16, 16, 0.04);
+}
+
+.adminContact__row td:first-child {
+  position: relative;
+}
+
+.adminContact__row td:first-child::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 3px;
+  height: 35px;
+  transform: translateY(-50%);
+}
+
+.adminContact__row--new td:first-child::before {
+  background: #ffb300;
+}
+
+.adminContact__row--progress td:first-child::before {
+  background: #2563eb;
+}
+
+.adminContact__row--closed td:first-child::before {
+  background: #00c853;
+}
+
+.adminContact__statusBadge,
+.adminContact__emailBadge {
+  display: inline-block;
+  min-width: 84px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-align: center;
+}
+
+.adminContact__statusBadge--new {
+  background: #ffb300;
+  color: #4a2a00;
+}
+
+.adminContact__statusBadge--progress {
+  background: #2563eb;
+  color: #ffffff;
+}
+
+.adminContact__statusBadge--closed {
+  background: #00e676;
+  color: #003d1b;
+}
+
+.adminContact__statusBadge--unknown {
+  background: #f1f3f5;
+  color: #495057;
+}
+
+.adminContact__emailStack {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.adminContact__emailBadge--sent {
+  background: rgba(0, 200, 83, 0.12);
+  color: #0f7a3c;
+}
+
+.adminContact__emailBadge--failed {
+  background: rgba(220, 38, 38, 0.12);
+  color: #991b1b;
+}
+
+.adminContact__emailBadge--unknown {
+  background: rgba(16, 16, 16, 0.08);
+  color: #495057;
+}
+
+.adminContact__messageCell {
+  min-width: 240px;
+  max-width: 360px;
+  color: var(--admin-muted);
+  line-height: 1.45;
+}
+
+.adminContact__actionGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 92px;
+}
+
+.adminContact__rowActionBtn:disabled,
+.adminContact__pageBtn:disabled,
+.adminContact__actionBtn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.adminContact__pagination {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+  padding-top: 12px;
+}
+
+.adminContact__pageMeta {
+  font-size: 12px;
+  color: var(--admin-muted);
+}
+
+.adminContact__pageMetaNum {
+  color: var(--admin-ink);
+}
+
+.adminContact__pageNums {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.adminContact__pageBtn--num {
+  min-width: 38px;
+}
+
+.adminContact__pageBtn--active {
+  background: var(--admin-ink);
+  color: var(--admin-bg);
+}
+
+.adminContact__dots {
+  color: var(--admin-muted);
+}
+
+.adminContact__notice {
+  padding: 12px;
+  color: var(--admin-muted);
+}
+
+.adminContact__notice--error {
+  color: rgba(170, 38, 38, 0.95);
+}
+
+@media (max-width: 1120px) {
+  .adminContact__filterRow {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .adminContact__header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .adminContact__summary {
+    text-align: left;
+  }
+
+  .adminContact__filterRow {
+    grid-template-columns: 1fr;
+  }
+}

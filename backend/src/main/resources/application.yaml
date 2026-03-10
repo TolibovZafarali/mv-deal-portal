@@ -2,7 +2,7 @@ spring:
   application:
     name: backend
   config:
-    import: optional:file:./app.env
+    import: optional:file:./app.env[.properties],optional:file:./backend/app.env[.properties]
   datasource:
     url: jdbc:mysql://localhost:3306/megnarealestate?createDatabaseIfNotExist=true
     username: ${DB_USERNAME:root}
@@ -66,6 +66,11 @@ app:
     postmark-api-base-url: ${POSTMARK_API_BASE_URL:https://api.postmarkapp.com}
     postmark-server-token: ${POSTMARK_SERVER_TOKEN:}
     postmark-message-stream: ${POSTMARK_MESSAGE_STREAM:outbound}
+  contact:
+    general-inbox: ${APP_CONTACT_GENERAL_INBOX:contact@megna-realestate.com}
+    investor-inbox: ${APP_CONTACT_INVESTOR_INBOX:contact@megna-realestate.com}
+    seller-inbox: ${APP_CONTACT_SELLER_INBOX:contact@megna-realestate.com}
+    privacy-inbox: ${APP_CONTACT_PRIVACY_INBOX:privacy@megna-realestate.com}
   features:
     seller-threads-enabled: ${APP_FEATURES_SELLER_THREADS_ENABLED:false}
 

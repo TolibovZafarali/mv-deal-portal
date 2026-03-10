@@ -174,6 +174,18 @@ export default function AdminLayout() {
               <span className="adminNav__icon material-symbols-outlined" aria-hidden="true">mail</span>
             </span>
           </NavLink>
+          <NavLink
+            to="contact-requests"
+            className={({ isActive }) =>
+              `adminNav__link ${isActive ? "adminNav__link--active" : ""}`
+            }
+            aria-label="Contact requests"
+          >
+            <span className="adminNav__content">
+              <span className="adminNav__label">Contact Requests</span>
+              <span className="adminNav__icon material-symbols-outlined" aria-hidden="true">contact_support</span>
+            </span>
+          </NavLink>
         </nav>
 
         <div className="adminSidebar__spacer" />

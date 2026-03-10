@@ -74,6 +74,16 @@
   padding-bottom: 10px;
 }
 
+.contactModal__success {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  gap: 4px;
+  color: var(--text);
+  line-height: 1.5;
+  min-height: 190px;
+}
+
 .contactModal__hint {
   margin: 0 0 2px;
   color: var(--muted);
@@ -217,10 +227,29 @@
   color: #ffb3b3;
 }
 
+.contactModal__successText,
+.contactModal__successMeta {
+  margin: 0;
+}
+
+.contactModal__successText {
+  color: var(--muted);
+}
+
+.contactModal__successMeta {
+  color: var(--text);
+  font-size: 13px;
+}
+
 .contactModal__actions {
   display: flex;
   gap: 12px;
   margin-top: 8px;
+}
+
+.contactModal__actions--bottom {
+  margin-top: auto;
+  padding-top: 18px;
 }
 
 .contactModal__backBtn,

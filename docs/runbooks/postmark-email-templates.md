@@ -13,6 +13,7 @@ Use one reusable Postmark layout plus content-only templates:
 - `investor-new-property-published-cid-v1`
 - `admin-inquiry-created-cid-v1`
 - `admin-inquiry-follow-up-cid-v1`
+- `admin-contact-request-created-cid-v1`
 
 All templates use the same HTTPS logo URL:
 
@@ -30,6 +31,7 @@ All templates use the same HTTPS logo URL:
 - Investor property-published content HTML: `/Users/zafaralitolibov/Documents/mv-deal-portal/docs/email/postmark-investor-new-property-published-content-v1.html`
 - Admin inquiry-created content HTML: `/Users/zafaralitolibov/Documents/mv-deal-portal/docs/email/postmark-admin-inquiry-created-content-v1.html`
 - Admin inquiry-follow-up content HTML: `/Users/zafaralitolibov/Documents/mv-deal-portal/docs/email/postmark-admin-inquiry-follow-up-content-v1.html`
+- Admin contact-request-created content HTML: `/Users/zafaralitolibov/Documents/mv-deal-portal/docs/email/postmark-admin-contact-request-created-content-v1.html`
 
 ## Postmark UI setup
 
@@ -41,7 +43,8 @@ All templates use the same HTTPS logo URL:
 6. Create template `investor-new-property-published-cid-v1`, select that layout, paste investor property-published content HTML.
 7. Create template `admin-inquiry-created-cid-v1`, select that layout, paste admin inquiry-created content HTML.
 8. Create template `admin-inquiry-follow-up-cid-v1`, select that layout, paste admin inquiry-follow-up content HTML.
-9. Add template subject as `{{subject}}` for each template.
+9. Create template `admin-contact-request-created-cid-v1`, select that layout, paste admin contact-request-created content HTML.
+10. Add template subject as `{{subject}}` for each template.
 
 ## Text bodies
 
@@ -134,6 +137,27 @@ Previous Message:
 
 New Follow-Up Message:
 {{follow_up_message}}
+
+{{action_text}}: {{action_url}}
+
+{{footer_text}}
+```
+
+Admin contact request created:
+
+```txt
+{{title}}
+
+{{message}}
+
+Request ID: {{request_id}}
+Category: {{category}}
+Contact Name: {{contact_name}}
+Contact Email: {{contact_email}}
+Submitted: {{created_at}}
+
+Message:
+{{contact_message}}
 
 {{action_text}}: {{action_url}}
 
@@ -253,6 +277,26 @@ Admin inquiry-follow-up model:
   "action_text": "Open Inquiry Thread",
   "action_url": "https://example.com/admin/inquiries/inquiry_12345",
   "footer_text": "This notification was sent to admins because an investor followed up on an inquiry."
+}
+```
+
+Admin contact-request-created model:
+
+```json
+{
+  "subject": "New contact request",
+  "logo_url": "https://raw.githubusercontent.com/TolibovZafarali/mv-deal-portal/dev/frontend/public/white-logo.png",
+  "title": "A new contact request was submitted",
+  "message": "A new contact request has been submitted and needs admin attention.",
+  "request_id": "301",
+  "category": "General support",
+  "contact_name": "Alex Johnson",
+  "contact_email": "alex@example.com",
+  "created_at": "2026-03-10 8:16 AM CT",
+  "contact_message": "Need help with account access.",
+  "action_text": "Open Contact Requests",
+  "action_url": "https://megna-realestate.com/admin/contact-requests",
+  "footer_text": "This notification was sent to admins because a new contact request was submitted."
 }
 ```
 

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { createContactRequest } from "@/api/modules/contactRequestApi";
 import { useRouteModalClose } from "@/shared/ui/modal/useRouteModalClose";
 import "@/features/home/modals/ContactModal.css";
 
@@ -59,7 +60,9 @@ export default function ContactModal() {
     message: "",
   });
   const [menuOpen, setMenuOpen] = useState(false);
-  const [showUiNotice, setShowUiNotice] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [result, setResult] = useState(null);
   const menuRef = useRef(null);
   const { isClosing, close } = useRouteModalClose({
     navigate,
@@ -105,22 +108,35 @@ export default function ContactModal() {
         : event.target.value;
 
       setForm((current) => ({ ...current, [key]: nextValue }));
-      if (showUiNotice) {
-        setShowUiNotice(false);
-      }
+      if (error) setError("");
     };
   }
 
   function handleCategorySelect(nextCategory) {
     setCategory(nextCategory);
     setMenuOpen(false);
-    setShowUiNotice(false);
+    if (error) setError("");
   }
 
-  function handleSubmit(event) {
+  async function handleSubmit(event) {
     event.preventDefault();
     if (!formReady) return;
-    setShowUiNotice(true);
+    setLoading(true);
+    setError("");
+
+    try {
+      const created = await createContactRequest({
+        category,
+        name: form.name,
+        email: form.email,
+        message: form.message,
+      });
+      setResult(created);
+    } catch (nextError) {
+      setError(nextError?.message || "Failed to submit contact request.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -146,87 +162,105 @@ export default function ContactModal() {
         </div>
 
         <form className="contactModal__form" onSubmit={handleSubmit}>
-          <p className="contactModal__hint">Choose the right inbox and leave a message.</p>
+          {!result ? (
+            <>
+              <p className="contactModal__hint">Choose the right inbox and leave a message.</p>
 
-          <div
-            className={`contactSelect ${menuOpen ? "contactSelect--open" : ""}`}
-            ref={menuRef}
-          >
-            <button
-              type="button"
-              className="contactSelect__trigger"
-              aria-haspopup="listbox"
-              aria-expanded={menuOpen}
-              aria-label="Choose inbox"
-              onClick={() => setMenuOpen((current) => !current)}
-            >
-              <span className="contactSelect__value">{selectedCategoryLabel}</span>
-              <span className="material-symbols-outlined" aria-hidden="true">expand_more</span>
-            </button>
+              <div
+                className={`contactSelect ${menuOpen ? "contactSelect--open" : ""}`}
+                ref={menuRef}
+              >
+                <button
+                  type="button"
+                  className="contactSelect__trigger"
+                  aria-haspopup="listbox"
+                  aria-expanded={menuOpen}
+                  aria-label="Choose inbox"
+                  onClick={() => setMenuOpen((current) => !current)}
+                >
+                  <span className="contactSelect__value">{selectedCategoryLabel}</span>
+                  <span className="material-symbols-outlined" aria-hidden="true">expand_more</span>
+                </button>
 
-            {menuOpen ? (
-              <div className="contactSelect__list" role="listbox" aria-label="Choose inbox">
-                {CATEGORY_OPTIONS.map((option) => {
-                  const selected = option.id === category;
+                {menuOpen ? (
+                  <div className="contactSelect__list" role="listbox" aria-label="Choose inbox">
+                    {CATEGORY_OPTIONS.map((option) => {
+                      const selected = option.id === category;
 
-                  return (
-                    <button
-                      key={option.id}
-                      type="button"
-                      role="option"
-                      aria-selected={selected}
-                      className={`contactSelect__option ${selected ? "contactSelect__option--active" : ""}`}
-                      onClick={() => handleCategorySelect(option.id)}
-                    >
-                      {option.label}
-                    </button>
-                  );
-                })}
+                      return (
+                        <button
+                          key={option.id}
+                          type="button"
+                          role="option"
+                          aria-selected={selected}
+                          className={`contactSelect__option ${selected ? "contactSelect__option--active" : ""}`}
+                          onClick={() => handleCategorySelect(option.id)}
+                        >
+                          {option.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : null}
               </div>
-            ) : null}
-          </div>
 
-          <Field
-            label="Name"
-            name="name"
-            value={form.name}
-            onChange={updateField("name")}
-            autoComplete="name"
-          />
-          <Field
-            label="Email"
-            name="email"
-            value={form.email}
-            onChange={updateField("email")}
-            type="email"
-            autoComplete="email"
-          />
-          <div className="field field--textarea">
-            <textarea
-              className="field__input field__input--textarea"
-              name="message"
-              value={form.message}
-              onChange={updateField("message")}
-              placeholder=" "
-              rows={6}
-            />
-            <label className="field__label">Message</label>
-          </div>
+              <Field
+                label="Name"
+                name="name"
+                value={form.name}
+                onChange={updateField("name")}
+                autoComplete="name"
+              />
+              <Field
+                label="Email"
+                name="email"
+                value={form.email}
+                onChange={updateField("email")}
+                type="email"
+                autoComplete="email"
+              />
+              <div className="field field--textarea">
+                <textarea
+                  className="field__input field__input--textarea"
+                  name="message"
+                  value={form.message}
+                  onChange={updateField("message")}
+                  placeholder=" "
+                  rows={6}
+                />
+                <label className="field__label">Message</label>
+              </div>
 
-          {showUiNotice ? (
-            <div className="contactModal__error" aria-live="polite">
-              UI only for now. Submission wiring is the next pass.
+              {error ? (
+                <div className="contactModal__error" aria-live="polite">
+                  {error}
+                </div>
+              ) : null}
+
+              <div className="contactModal__actions">
+                <button type="button" className="contactModal__backBtn" onClick={close}>
+                  Close
+                </button>
+                <button type="submit" className="contactModal__btn" disabled={loading || !formReady}>
+                  {loading ? "Sending..." : "Send request"}
+                </button>
+              </div>
+            </>
+          ) : (
+            <div className="contactModal__success">
+              <p className="contactModal__successText">
+                Your message was received and routed to the right inbox.
+              </p>
+              <p className="contactModal__successMeta">
+                Request ID: {result.id ?? "—"}
+              </p>
+              <div className="contactModal__actions contactModal__actions--bottom">
+                <button type="button" className="contactModal__btn" onClick={close}>
+                  Close
+                </button>
+              </div>
             </div>
-          ) : null}
-
-          <div className="contactModal__actions">
-            <button type="button" className="contactModal__backBtn" onClick={close}>
-              Close
-            </button>
-            <button type="submit" className="contactModal__btn" disabled={!formReady}>
-              Send request
-            </button>
-          </div>
+          )}
         </form>
       </div>
     </div>
