@@ -9,9 +9,11 @@ Use one reusable Postmark layout plus content-only templates:
 - `verify-email-cid-v1`
 - `reset-password-cid-v1`
 - `welcome-cid-v1`
+- `investor-signup-under-review-cid-v1`
 - `investor-new-property-published-cid-v1`
 - `admin-inquiry-created-cid-v1`
 - `admin-inquiry-follow-up-cid-v1`
+- `admin-contact-request-created-cid-v1`
 
 All templates use the same HTTPS logo URL:
 
@@ -25,9 +27,11 @@ All templates use the same HTTPS logo URL:
 - Verify content HTML: `/Users/zafaralitolibov/Documents/mv-deal-portal/docs/email/postmark-verify-email-content-v1.html`
 - Reset content HTML: `/Users/zafaralitolibov/Documents/mv-deal-portal/docs/email/postmark-reset-password-content-v1.html`
 - Welcome content HTML: `/Users/zafaralitolibov/Documents/mv-deal-portal/docs/email/postmark-welcome-content-v1.html`
+- Investor signup under-review content HTML: `/Users/zafaralitolibov/Documents/mv-deal-portal/docs/email/postmark-investor-signup-under-review-content-v1.html`
 - Investor property-published content HTML: `/Users/zafaralitolibov/Documents/mv-deal-portal/docs/email/postmark-investor-new-property-published-content-v1.html`
 - Admin inquiry-created content HTML: `/Users/zafaralitolibov/Documents/mv-deal-portal/docs/email/postmark-admin-inquiry-created-content-v1.html`
 - Admin inquiry-follow-up content HTML: `/Users/zafaralitolibov/Documents/mv-deal-portal/docs/email/postmark-admin-inquiry-follow-up-content-v1.html`
+- Admin contact-request-created content HTML: `/Users/zafaralitolibov/Documents/mv-deal-portal/docs/email/postmark-admin-contact-request-created-content-v1.html`
 
 ## Postmark UI setup
 
@@ -35,10 +39,12 @@ All templates use the same HTTPS logo URL:
 2. Create template `verify-email-cid-v1`, select that layout, paste verify content HTML.
 3. Create template `reset-password-cid-v1`, select that layout, paste reset content HTML.
 4. Create template `welcome-cid-v1`, select that layout, paste welcome content HTML.
-5. Create template `investor-new-property-published-cid-v1`, select that layout, paste investor property-published content HTML.
-6. Create template `admin-inquiry-created-cid-v1`, select that layout, paste admin inquiry-created content HTML.
-7. Create template `admin-inquiry-follow-up-cid-v1`, select that layout, paste admin inquiry-follow-up content HTML.
-8. Add template subject as `{{subject}}` for each template.
+5. Create template `investor-signup-under-review-cid-v1`, select that layout, paste investor signup under-review content HTML.
+6. Create template `investor-new-property-published-cid-v1`, select that layout, paste investor property-published content HTML.
+7. Create template `admin-inquiry-created-cid-v1`, select that layout, paste admin inquiry-created content HTML.
+8. Create template `admin-inquiry-follow-up-cid-v1`, select that layout, paste admin inquiry-follow-up content HTML.
+9. Create template `admin-contact-request-created-cid-v1`, select that layout, paste admin contact-request-created content HTML.
+10. Add template subject as `{{subject}}` for each template.
 
 ## Text bodies
 
@@ -50,6 +56,16 @@ Verify + Welcome:
 {{message}}
 
 {{action_text}}: {{action_url}}
+
+{{footer_text}}
+```
+
+Investor signup under review:
+
+```txt
+{{title}}
+
+{{message}}
 
 {{footer_text}}
 ```
@@ -127,6 +143,27 @@ New Follow-Up Message:
 {{footer_text}}
 ```
 
+Admin contact request created:
+
+```txt
+{{title}}
+
+{{message}}
+
+Request ID: {{request_id}}
+Category: {{category}}
+Contact Name: {{contact_name}}
+Contact Email: {{contact_email}}
+Submitted: {{created_at}}
+
+Message:
+{{contact_message}}
+
+{{action_text}}: {{action_url}}
+
+{{footer_text}}
+```
+
 ## Template models
 
 Verify model:
@@ -169,6 +206,18 @@ Welcome model:
   "action_text": "Open Dashboard",
   "action_url": "https://example.com/dashboard",
   "footer_text": "Need help? Reply to this email and our team will assist you."
+}
+```
+
+Investor signup under-review model:
+
+```json
+{
+  "subject": "Your Megna account is under review",
+  "logo_url": "https://raw.githubusercontent.com/TolibovZafarali/mv-deal-portal/dev/frontend/public/white-logo.png",
+  "title": "Thanks for signing up, John",
+  "message": "Your account is now under review by the Megna Team. One of our team members will reach out to you shortly.",
+  "footer_text": "If you have questions, reply to this email and our team will assist you."
 }
 ```
 
@@ -231,6 +280,26 @@ Admin inquiry-follow-up model:
 }
 ```
 
+Admin contact-request-created model:
+
+```json
+{
+  "subject": "New contact request",
+  "logo_url": "https://raw.githubusercontent.com/TolibovZafarali/mv-deal-portal/dev/frontend/public/white-logo.png",
+  "title": "A new contact request was submitted",
+  "message": "A new contact request has been submitted and needs admin attention.",
+  "request_id": "301",
+  "category": "General support",
+  "contact_name": "Alex Johnson",
+  "contact_email": "alex@example.com",
+  "created_at": "2026-03-10 8:16 AM CT",
+  "contact_message": "Need help with account access.",
+  "action_text": "Open Contact Requests",
+  "action_url": "https://megna-realestate.com/admin/contact-requests",
+  "footer_text": "This notification was sent to admins because a new contact request was submitted."
+}
+```
+
 ## Send payload example (HTTPS logo, no attachments)
 
 ```json
@@ -267,6 +336,20 @@ For investor new-property-published emails, switch `TemplateAlias` and model val
     "action_text": "View Property",
     "action_url": "https://example.com/properties/abc123",
     "footer_text": "You're receiving this because property notifications are enabled on your account."
+  }
+}
+```
+
+For investor signup under-review emails, switch `TemplateAlias` and model values:
+
+```json
+{
+  "TemplateAlias": "investor-signup-under-review-cid-v1",
+  "TemplateModel": {
+    "subject": "Your Megna account is under review",
+    "title": "Thanks for signing up, John",
+    "message": "Your account is now under review by the Megna Team. One of our team members will reach out to you shortly.",
+    "footer_text": "If you have questions, reply to this email and our team will assist you."
   }
 }
 ```

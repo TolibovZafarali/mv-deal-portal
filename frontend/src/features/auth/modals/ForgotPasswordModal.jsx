@@ -95,7 +95,7 @@ export default function ForgotPasswordModal() {
 
               <div className="forgotModal__actions">
                 <button type="button" className="forgotModal__backBtn" onClick={goToLogin}>
-                  Back
+                  Back to sign in
                 </button>
 
                 <button className="forgotModal__btn" disabled={loading || !email.trim()}>
@@ -110,7 +110,7 @@ export default function ForgotPasswordModal() {
               </p>
               <div className="forgotModal__actions forgotModal__actions--bottom">
                 <button type="button" className="forgotModal__btn forgotModal__btn--full" onClick={goToLogin}>
-                  Back to login
+                  Back to sign in
                 </button>
               </div>
             </div>

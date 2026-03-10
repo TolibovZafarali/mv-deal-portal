@@ -44,6 +44,26 @@ function parseDate(value) {
   return date;
 }
 
+function numericId(value) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return null;
+  return parsed;
+}
+
+function compareThreadMessages(left, right) {
+  const leftTime = parseDate(left?.createdAt)?.getTime() ?? 0;
+  const rightTime = parseDate(right?.createdAt)?.getTime() ?? 0;
+  if (leftTime !== rightTime) return leftTime - rightTime;
+
+  const leftId = numericId(left?.id);
+  const rightId = numericId(right?.id);
+  if (leftId !== null && rightId !== null && leftId !== rightId) {
+    return leftId - rightId;
+  }
+
+  return String(left?.key ?? "").localeCompare(String(right?.key ?? ""));
+}
+
 function prettyDateTime(value) {
   const date = parseDate(value);
   if (!date) return "—";
@@ -372,14 +392,7 @@ export default function InvestorAccountCenterModal({
 
     return [...grouped.entries()]
       .map(([propertyId, threadMessages]) => {
-        const messages = [...threadMessages].sort((a, b) => {
-          const dateA = parseDate(a?.createdAt);
-          const dateB = parseDate(b?.createdAt);
-          const timeA = dateA ? dateA.getTime() : 0;
-          const timeB = dateB ? dateB.getTime() : 0;
-          if (timeA !== timeB) return timeA - timeB;
-          return String(a?.key ?? "").localeCompare(String(b?.key ?? ""));
-        });
+        const messages = [...threadMessages].sort(compareThreadMessages);
 
         const latest = messages[messages.length - 1] ?? null;
         const pendingCount = messages.filter(
@@ -474,9 +487,9 @@ export default function InvestorAccountCenterModal({
     () => propertyThreads.find((thread) => thread.propertyId === selectedPropertyId) ?? null,
     [propertyThreads, selectedPropertyId],
   );
-  const selectedThreadHasReply = selectedThread
-    ? selectedThread.messages.some((message) => message.kind === "REPLY")
-    : false;
+  const selectedThreadLatestMessage = selectedThread?.latest ?? null;
+  const selectedThreadLatestIsReply = selectedThreadLatestMessage?.kind === "REPLY";
+  const selectedThreadCanSendFollowUp = selectedThreadLatestIsReply;
   const followUpCharsUsed = String(followUpBody ?? "").length;
   const followUpCharsRemaining = Math.max(MESSAGE_CHAR_LIMIT - followUpCharsUsed, 0);
   const normalizedThreadSearch = cleanString(threadSearchQuery).toLowerCase();
@@ -555,7 +568,7 @@ export default function InvestorAccountCenterModal({
 
   async function handleSendFollowUp() {
     if (!investorId || !selectedThread) return;
-    if (!selectedThreadHasReply) {
+    if (!selectedThreadCanSendFollowUp) {
       setFollowUpError("You can send a follow-up after Megna Team replies in this thread.");
       setFollowUpOk("");
       return;
@@ -596,7 +609,18 @@ export default function InvestorAccountCenterModal({
         contactEmail,
         contactPhone,
       });
-      setInquiries((prev) => [created, ...prev]);
+      const createdAt = parseDate(created?.createdAt) ? created.createdAt : new Date().toISOString();
+      setInquiries((prev) => [
+        {
+          ...created,
+          id: created?.id ?? `local-${Date.now()}`,
+          investorId: created?.investorId ?? investorId,
+          propertyId: created?.propertyId ?? propertyId,
+          messageBody: cleanString(created?.messageBody) || messageBody,
+          createdAt,
+        },
+        ...prev,
+      ]);
       setFollowUpBody("");
       setFollowUpOk("Follow-up sent.");
     } catch (error) {
@@ -1329,18 +1353,18 @@ export default function InvestorAccountCenterModal({
                   {selectedThread ? (
                     <div className="invAccountModal__chatState" role="status" aria-live="polite">
                       <span className="invAccountModal__chatStateBadge">
-                        {selectedThreadHasReply
+                        {selectedThreadLatestIsReply
                           ? "Reply received"
                           : selectedThread.pendingCount > 0
                             ? "Message sent"
-                            : "Inbox received"}
+                            : "Awaiting reply"}
                       </span>
                       <p className="invAccountModal__chatStateText">
-                        {selectedThreadHasReply
+                        {selectedThreadLatestIsReply
                           ? "Megna Team replied in this thread. Keep the conversation here for follow-up."
                           : selectedThread.pendingCount > 0
                             ? "Your message was sent successfully. Please wait for a response from Megna Team."
-                            : "Your inquiry is in the Megna Team inbox. Please wait for their follow-up response."}
+                            : "Your latest message was sent. Please wait for Megna Team to reply before sending another follow-up."}
                       </p>
                     </div>
                   ) : (
@@ -1349,46 +1373,38 @@ export default function InvestorAccountCenterModal({
                     </div>
                   )}
 
-                  {selectedThread ? (
+                  {selectedThread && selectedThreadCanSendFollowUp ? (
                     <div className="invAccountModal__chatComposer">
-                      {selectedThreadHasReply ? (
-                        <>
-                          <div className="invAccountModal__chatComposerHead">
-                            <span className="invAccountModal__chatComposerLabel">Send follow-up</span>
-                            <span className="invAccountModal__chatComposerCount" aria-live="polite">
-                              {followUpCharsRemaining}/{MESSAGE_CHAR_LIMIT}
-                            </span>
-                          </div>
-                          <textarea
-                            className="invAccountModal__chatComposerInput"
-                            value={followUpBody}
-                            onChange={(event) =>
-                              setFollowUpBody(String(event.target.value ?? "").slice(0, MESSAGE_CHAR_LIMIT))
-                            }
-                            placeholder="Write your follow-up message"
-                            rows={4}
-                            maxLength={MESSAGE_CHAR_LIMIT}
-                          />
-                          {followUpError ? (
-                            <div className="invAccountModal__formMsg invAccountModal__formMsg--error">{followUpError}</div>
-                          ) : null}
-                          {followUpOk ? (
-                            <div className="invAccountModal__formMsg invAccountModal__formMsg--ok">{followUpOk}</div>
-                          ) : null}
-                          <button
-                            type="button"
-                            className="invAccountModal__save invAccountModal__chatComposerSend"
-                            onClick={handleSendFollowUp}
-                            disabled={followUpSending}
-                          >
-                            {followUpSending ? "Sending..." : "Send Follow-up"}
-                          </button>
-                        </>
-                      ) : (
-                        <p className="invAccountModal__chatComposerLocked">
-                          Follow-up is enabled after Megna Team replies.
-                        </p>
-                      )}
+                      <div className="invAccountModal__chatComposerHead">
+                        <span className="invAccountModal__chatComposerLabel">Send follow-up</span>
+                        <span className="invAccountModal__chatComposerCount" aria-live="polite">
+                          {followUpCharsRemaining}/{MESSAGE_CHAR_LIMIT}
+                        </span>
+                      </div>
+                      <textarea
+                        className="invAccountModal__chatComposerInput"
+                        value={followUpBody}
+                        onChange={(event) =>
+                          setFollowUpBody(String(event.target.value ?? "").slice(0, MESSAGE_CHAR_LIMIT))
+                        }
+                        placeholder="Write your follow-up message"
+                        rows={4}
+                        maxLength={MESSAGE_CHAR_LIMIT}
+                      />
+                      {followUpError ? (
+                        <div className="invAccountModal__formMsg invAccountModal__formMsg--error">{followUpError}</div>
+                      ) : null}
+                      {followUpOk ? (
+                        <div className="invAccountModal__formMsg invAccountModal__formMsg--ok">{followUpOk}</div>
+                      ) : null}
+                      <button
+                        type="button"
+                        className="invAccountModal__save invAccountModal__chatComposerSend"
+                        onClick={handleSendFollowUp}
+                        disabled={followUpSending}
+                      >
+                        {followUpSending ? "Sending..." : "Send Follow-up"}
+                      </button>
                     </div>
                   ) : null}
                 </>

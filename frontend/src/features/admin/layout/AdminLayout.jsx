@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, NavLink, Outlet } from "react-router-dom";
 import { useAuth } from "@/features/auth";
 import useAdminQueue from "@/features/admin/hooks/useAdminQueue";
+import { getAdminContactRequests } from "@/api/modules/contactRequestApi";
 import "@/features/admin/layout/AdminLayout.css";
 
 const ADMIN_SIDEBAR_COLLAPSED_KEY = "adminSidebarCollapsed";
@@ -21,12 +22,17 @@ export default function AdminLayout() {
     return window.localStorage.getItem(ADMIN_SIDEBAR_COLLAPSED_KEY) === "1";
   });
   const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [contactRequestsTotal, setContactRequestsTotal] = useState(0);
   const effectiveSidebarCollapsed = !isMobileView && sidebarCollapsed;
 
   useEffect(() => {
     if (typeof window === "undefined") return undefined;
     const media = window.matchMedia(ADMIN_MOBILE_BREAKPOINT_QUERY);
-    const handleMediaChange = (event) => setIsMobileView(event.matches);
+    const handleMediaChange = (event) => {
+      setIsMobileView(event.matches);
+      if (!event.matches) setMobileMenuOpen(false);
+    };
     const supportsModernListener = typeof media.addEventListener === "function";
 
     if (supportsModernListener) {
@@ -76,6 +82,7 @@ export default function AdminLayout() {
   };
 
   function handleLogoutIntent() {
+    if (isMobileView) setMobileMenuOpen(false);
     setLogoutConfirmOpen(true);
   }
 
@@ -101,13 +108,94 @@ export default function AdminLayout() {
     };
   }, [logoutConfirmOpen]);
 
+  useEffect(() => {
+    if (!mobileMenuOpen) return undefined;
+
+    function handleKeyDown(event) {
+      if (event.key === "Escape") setMobileMenuOpen(false);
+    }
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [mobileMenuOpen]);
+
+  useEffect(() => {
+    let alive = true;
+
+    async function loadContactRequestCount() {
+      try {
+        const response = await getAdminContactRequests(
+          {},
+          { page: 0, size: 1, sort: "createdAt,desc" },
+        );
+        if (!alive) return;
+        setContactRequestsTotal(Math.max(0, Number(response?.totalElements ?? 0)));
+      } catch {
+        if (!alive) return;
+        setContactRequestsTotal(0);
+      }
+    }
+
+    loadContactRequestCount();
+    return () => {
+      alive = false;
+    };
+  }, []);
+
   return (
     <div className={`adminShell ${effectiveSidebarCollapsed ? "adminShell--collapsed" : ""}`}>
-      <aside className={`adminSidebar ${effectiveSidebarCollapsed ? "adminSidebar--collapsed" : ""}`}>
-        <div className="adminBrand">
-          <Link className="adminBrand__home" to="/" aria-label="Go to homepage">
-            <img className="adminBrand__logo" src="/white-logo.svg" alt="Admin Portal" />
+      {isMobileView ? (
+        <header className="adminMobileHeader">
+          <Link className="adminMobileHeader__home" to="/" aria-label="Go to homepage">
+            <img className="adminMobileHeader__logo" src="/white-logo.svg" alt="Admin Portal" />
           </Link>
+          <button
+            type="button"
+            className="adminMobileHeader__menuBtn"
+            onClick={() => setMobileMenuOpen((prev) => !prev)}
+            aria-label={mobileMenuOpen ? "Close navigation menu" : "Open navigation menu"}
+            aria-expanded={mobileMenuOpen}
+            aria-controls="admin-mobile-nav"
+          >
+            <span className="material-symbols-outlined" aria-hidden="true">
+              {mobileMenuOpen ? "close" : "menu"}
+            </span>
+          </button>
+        </header>
+      ) : null}
+
+      {isMobileView && mobileMenuOpen ? (
+        <button
+          type="button"
+          className="adminMobileBackdrop"
+          onClick={() => setMobileMenuOpen(false)}
+          aria-label="Close navigation menu"
+        />
+      ) : null}
+
+      <aside
+        id={isMobileView ? "admin-mobile-nav" : undefined}
+        className={`adminSidebar ${effectiveSidebarCollapsed ? "adminSidebar--collapsed" : ""} ${
+          mobileMenuOpen ? "adminSidebar--mobileOpen" : ""
+        }`}
+      >
+        <div className="adminBrand">
+          {isMobileView ? (
+            <button
+              type="button"
+              className="adminBrand__mobileChevron"
+              onClick={() => setMobileMenuOpen(false)}
+              aria-label="Close navigation menu"
+            >
+              <span className="material-symbols-outlined" aria-hidden="true">chevron_right</span>
+            </button>
+          ) : (
+            <Link className="adminBrand__home" to="/" aria-label="Go to homepage">
+              <img className="adminBrand__logo" src="/white-logo.svg" alt="Admin Portal" />
+            </Link>
+          )}
           <button
             className="adminBrand__collapse"
             type="button"
@@ -128,6 +216,7 @@ export default function AdminLayout() {
             className={({ isActive }) =>
               `adminNav__link ${isActive ? "adminNav__link--active" : ""}`
             }
+            onClick={() => setMobileMenuOpen(false)}
             aria-label="Properties"
           >
             <span className="adminNav__content">
@@ -141,6 +230,7 @@ export default function AdminLayout() {
             className={({ isActive }) =>
               `adminNav__link ${isActive ? "adminNav__link--active" : ""}`
             }
+            onClick={() => setMobileMenuOpen(false)}
             aria-label="Investors"
           >
             <span className="adminNav__content">
@@ -154,6 +244,7 @@ export default function AdminLayout() {
             className={({ isActive }) =>
               `adminNav__link ${isActive ? "adminNav__link--active" : ""}`
             }
+            onClick={() => setMobileMenuOpen(false)}
             aria-label="Sellers"
           >
             <span className="adminNav__content">
@@ -166,6 +257,7 @@ export default function AdminLayout() {
             className={({ isActive }) =>
               `adminNav__link ${isActive ? "adminNav__link--active" : ""}`
             }
+            onClick={() => setMobileMenuOpen(false)}
             aria-label="Inquiries"
           >
             <span className="adminNav__content">
@@ -174,13 +266,25 @@ export default function AdminLayout() {
               <span className="adminNav__icon material-symbols-outlined" aria-hidden="true">mail</span>
             </span>
           </NavLink>
+          <NavLink
+            to="contact-requests"
+            className={({ isActive }) =>
+              `adminNav__link adminNav__link--contact ${isActive ? "adminNav__link--active" : ""}`
+            }
+            onClick={() => setMobileMenuOpen(false)}
+            aria-label="Contact requests"
+          >
+            <span className="adminNav__content">
+              <span className="adminNav__label">Contact Requests</span>
+              <span className="adminNav__badge">{contactRequestsTotal}</span>
+              <span className="adminNav__icon material-symbols-outlined" aria-hidden="true">contact_support</span>
+            </span>
+          </NavLink>
         </nav>
 
-        <div className="adminSidebar__spacer" />
-
-        <button className="adminLogout" type="button" onClick={handleLogoutIntent} aria-label="Log Out">
+        <button className="adminLogout" type="button" onClick={handleLogoutIntent} aria-label="Log out">
           <span className="adminLogout__content">
-            <span className="adminLogout__label">Log Out</span>
+            <span className="adminLogout__label">Log out</span>
             <span className="adminLogout__icon material-symbols-outlined" aria-hidden="true">logout</span>
           </span>
         </button>
@@ -196,7 +300,7 @@ export default function AdminLayout() {
             className="adminLogoutAuthModal"
             role="dialog"
             aria-modal="true"
-            aria-label="Log out confirmation"
+            aria-label="Log out dialog"
             onMouseDown={(event) => event.stopPropagation()}
           >
             <div className="adminLogoutAuthModal__header">
@@ -205,7 +309,7 @@ export default function AdminLayout() {
                 type="button"
                 className="adminLogoutAuthModal__close"
                 onClick={handleLogoutCancel}
-                aria-label="Close logout confirmation"
+                aria-label="Close log out dialog"
               >
                 ✕
               </button>
@@ -229,7 +333,7 @@ export default function AdminLayout() {
                   className="adminLogoutAuthModal__btn adminLogoutAuthModal__btn--danger"
                   onClick={handleLogoutConfirm}
                 >
-                  Log Out
+                  Log out
                 </button>
               </div>
             </div>

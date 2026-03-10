@@ -21,7 +21,6 @@ import java.time.LocalDateTime;
 import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.not;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -141,56 +140,6 @@ class AdminPropertyVisibilityIntegrationTest {
                 .andExpect(jsonPath("$.sellerWorkflowStatus").value("SUBMITTED"));
     }
 
-    @Test
-    void adminReviewRequestChangesShouldUpdateWorkflowState() throws Exception {
-        String adminToken = createAdminAndLogin();
-        long sellerId = seedSeller("seller.request-changes@example.com", "SellerPass123!");
-        long propertyId = seedProperty("Seller Submitted Needs Changes", sellerId, "SUBMITTED", "DRAFT");
-
-        mockMvc.perform(patch("/api/admin/properties/{id}/seller-review", propertyId)
-                        .header("Authorization", "Bearer " + adminToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {
-                                  "action": "REQUEST_CHANGES",
-                                  "reviewNote": "Please add clearer repair scope."
-                                }
-                                """))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("DRAFT"))
-                .andExpect(jsonPath("$.sellerWorkflowStatus").value("CHANGES_REQUESTED"))
-                .andExpect(jsonPath("$.sellerReviewNote").value("Please add clearer repair scope."))
-                .andExpect(jsonPath("$.reviewedAt").exists());
-    }
-
-    @Test
-    void adminReviewPublishShouldActivateSubmittedListingWhenRequiredFieldsPresent() throws Exception {
-        String adminToken = createAdminAndLogin();
-        long sellerId = seedSeller("seller.publish@example.com", "SellerPass123!");
-        long propertyId = seedPublishReadySubmittedProperty(
-                "Seller Submitted Publish Ready",
-                sellerId,
-                "asset-publish-ready-1"
-        );
-
-        mockMvc.perform(patch("/api/admin/properties/{id}/seller-review", propertyId)
-                        .header("Authorization", "Bearer " + adminToken)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {
-                                  "action": "PUBLISH",
-                                  "reviewNote": "Approved for publishing."
-                                }
-                                """))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("ACTIVE"))
-                .andExpect(jsonPath("$.sellerWorkflowStatus").value("PUBLISHED"))
-                .andExpect(jsonPath("$.sellerReviewNote").value("Approved for publishing."))
-                .andExpect(jsonPath("$.reviewedAt").exists())
-                .andExpect(jsonPath("$.publishedAt").exists())
-                .andExpect(jsonPath("$.photos.length()").value(1));
-    }
-
     private String createAdminAndLogin() throws Exception {
         String email = "admin.visibility@example.com";
         String password = "AdminPass123!";
@@ -254,79 +203,6 @@ class AdminPropertyVisibilityIntegrationTest {
                 street1
         );
         return propertyId == null ? 0L : propertyId;
-    }
-
-    private long seedPublishReadySubmittedProperty(String street1, long sellerId, String photoAssetId) {
-        LocalDateTime now = LocalDateTime.now();
-        jdbcTemplate.update("""
-                        INSERT INTO properties
-                        (status, street_1, city, state, zip, asking_price, arv, est_repairs, beds, baths, living_area_sqft,
-                         year_built, occupancy_status, current_rent, exit_strategy, closing_terms, seller_id,
-                         seller_workflow_status, submitted_at, created_at, updated_at)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                        """,
-                "DRAFT",
-                street1,
-                "St. Louis",
-                "MO",
-                "63102",
-                "120000.00",
-                "180000.00",
-                "25000.00",
-                3,
-                "2.0",
-                1400,
-                1992,
-                "NO",
-                null,
-                "FLIP",
-                "CASH_ONLY",
-                sellerId,
-                "SUBMITTED",
-                Timestamp.valueOf(now.minusMinutes(1)),
-                Timestamp.valueOf(now.minusMinutes(2)),
-                Timestamp.valueOf(now.minusMinutes(2))
-        );
-
-        Long propertyId = jdbcTemplate.queryForObject(
-                "SELECT id FROM properties WHERE street_1 = ? ORDER BY id DESC LIMIT 1",
-                Long.class,
-                street1
-        );
-        if (propertyId == null) {
-            return 0L;
-        }
-
-        jdbcTemplate.update("""
-                        INSERT INTO photo_assets
-                        (id, created_by_seller_id, status, url, thumbnail_url, retry_count, created_at, updated_at)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                        """,
-                photoAssetId,
-                sellerId,
-                "READY",
-                "https://example.com/photos/" + photoAssetId + ".jpg",
-                "https://example.com/photos/" + photoAssetId + "-thumb.jpg",
-                0,
-                Timestamp.valueOf(now.minusMinutes(2)),
-                Timestamp.valueOf(now.minusMinutes(2))
-        );
-
-        jdbcTemplate.update("""
-                        INSERT INTO property_photos
-                        (property_id, url, thumbnail_url, photo_asset_id, sort_order, caption, created_at)
-                        VALUES (?, ?, ?, ?, ?, ?, ?)
-                        """,
-                propertyId,
-                "https://example.com/photos/" + photoAssetId + ".jpg",
-                "https://example.com/photos/" + photoAssetId + "-thumb.jpg",
-                photoAssetId,
-                0,
-                "Front exterior",
-                Timestamp.valueOf(now.minusMinutes(2))
-        );
-
-        return propertyId;
     }
 
     private String loginAndExtractToken(String email, String password) throws Exception {

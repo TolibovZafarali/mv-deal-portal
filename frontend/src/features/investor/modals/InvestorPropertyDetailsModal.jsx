@@ -89,7 +89,7 @@ export default function InvestorPropertyDetailsModal({
   inquirySuccess,
   profileError,
   alreadyMessaged = false,
-  hasAdminReply = false,
+  latestThreadIsReply = false,
   isFavorite = false,
   onToggleFavorite,
   onOpenMessages,
@@ -163,15 +163,15 @@ export default function InvestorPropertyDetailsModal({
   const profitMetricStyle = { backgroundColor: "#0a7d2c", borderColor: "#0a7d2c" };
   const profitMetricLabelStyle = { color: "#ffffff" };
   const profitMetricValueStyle = { color: "#ffffff", fontSize: "21px" };
-  const canSendMessage = !alreadyMessaged || hasAdminReply;
+  const canSendMessage = !alreadyMessaged || latestThreadIsReply;
   const sideTitle = !canSendMessage
     ? "Awaiting Megna Team Reply"
-    : alreadyMessaged && hasAdminReply
+    : alreadyMessaged && latestThreadIsReply
       ? "Continue Conversation with Megna Team"
       : "Message Megna Team";
   const sideHelp = !canSendMessage
     ? "You already sent a message for this property. You can send another one after Megna Team replies."
-    : alreadyMessaged && hasAdminReply
+    : alreadyMessaged && latestThreadIsReply
       ? "Megna Team replied. You can send follow-up questions in this thread."
       : "Ask questions here. This message goes to the Megna team, not the seller.";
 
@@ -575,7 +575,11 @@ export default function InvestorPropertyDetailsModal({
                   onClick={onSubmitInquiry}
                   disabled={inquirySending}
                 >
-                  {inquirySending ? "Sending..." : alreadyMessaged && hasAdminReply ? "Send Follow-up" : "Send to Megna Team"}
+                  {inquirySending
+                    ? "Sending..."
+                    : alreadyMessaged && latestThreadIsReply
+                      ? "Send Follow-up"
+                      : "Send to Megna Team"}
                 </button>
               </>
             ) : null}

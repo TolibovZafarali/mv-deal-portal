@@ -13,13 +13,11 @@ import {
 import { getSellerById } from "@/api/modules/sellerApi";
 import {
   assignPropertySeller,
-  reviewSellerProperty,
 } from "@/api/modules/sellerPropertyApi";
 import "@/features/admin/pages/AdminPropertiesPage.css";
 import AdminFilterBar, { AdminFilterMore } from "@/features/admin/components/AdminFilterBar";
 import AdminPagination from "@/features/admin/components/AdminPagination";
 import useFilterBarMinWidth from "@/features/admin/hooks/useFilterBarMinWidth";
-import SellerReviewModal from "@/features/admin/modals/SellerReviewModal";
 import PropertyUpsertModal from "@/features/admin/modals/PropertyUpsertModal";
 import Modal from "@/shared/ui/modal/Modal";
 import {
@@ -418,9 +416,6 @@ export default function AdminPropertiesPage() {
   const [editDeleteError, setEditDeleteError] = useState("");
   const [reviewNoteModal, setReviewNoteModal] = useState({ open: false, note: "", sellerId: null, sellerLabel: "" });
 
-  const [sellerReviewModal, setSellerReviewModal] = useState({ open: false, property: null });
-  const [sellerReviewSubmitting, setSellerReviewSubmitting] = useState(false);
-  const [sellerReviewError, setSellerReviewError] = useState("");
   const [secondaryColumns, setSecondaryColumns] = useState(DEFAULT_SECONDARY_COLUMNS);
   const [sellerNameById, setSellerNameById] = useState({});
   const [isMobileView, setIsMobileView] = useState(() => {
@@ -833,32 +828,6 @@ export default function AdminPropertiesPage() {
     }
   }
 
-  async function handleSellerReviewSubmit({ action, reviewNote }) {
-    const property = sellerReviewModal.property;
-    if (!property?.id) return;
-
-    const stop = startAdminTimer("admin.properties.review_seller", {
-      propertyId: property.id,
-      action,
-    });
-
-    setSellerReviewSubmitting(true);
-    setSellerReviewError("");
-
-    try {
-      await reviewSellerProperty(property.id, action, reviewNote ?? "");
-      stop("success");
-      signalAdminQueueRefresh();
-      setSellerReviewModal({ open: false, property: null });
-      setRefreshKey((k) => k + 1);
-    } catch (e) {
-      setSellerReviewError(e?.message || "Failed to review seller listing.");
-      stop("error", { error: e?.message || "unknown" });
-    } finally {
-      setSellerReviewSubmitting(false);
-    }
-  }
-
   async function handleEditSubmit(form) {
     if (!editId) return;
 
@@ -1064,19 +1033,6 @@ export default function AdminPropertiesPage() {
         onDelete={handleEditDelete}
         deleting={editDeleting}
         deleteError={editDeleteError}
-      />
-
-      <SellerReviewModal
-        open={sellerReviewModal.open}
-        property={sellerReviewModal.property}
-        submitting={sellerReviewSubmitting}
-        submitError={sellerReviewError}
-        onClose={() => {
-          if (sellerReviewSubmitting) return;
-          setSellerReviewModal({ open: false, property: null });
-          setSellerReviewError("");
-        }}
-        onSubmit={handleSellerReviewSubmit}
       />
 
       <Modal

@@ -2,7 +2,6 @@ package com.megna.backend;
 
 import com.megna.backend.domain.enums.PropertyStatus;
 import com.megna.backend.domain.enums.SellerWorkflowStatus;
-import com.megna.backend.interfaces.rest.dto.property.AdminPropertySellerReviewAction;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
@@ -20,16 +19,8 @@ class WorkflowStatusContractTest {
     @Test
     void sellerWorkflowEnumTokensShouldRemainFrontendCompatible() {
         assertArrayEquals(
-                new String[]{"DRAFT", "SUBMITTED", "CHANGES_REQUESTED", "PUBLISHED", "CLOSED"},
+                new String[]{"DRAFT", "SUBMITTED", "PUBLISHED", "CLOSED"},
                 enumNames(SellerWorkflowStatus.values())
-        );
-    }
-
-    @Test
-    void sellerReviewActionEnumTokensShouldRemainFrontendCompatible() {
-        assertArrayEquals(
-                new String[]{"REQUEST_CHANGES", "PUBLISH"},
-                enumNames(AdminPropertySellerReviewAction.values())
         );
     }
 

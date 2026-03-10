@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { register, registerSeller } from "@/api";
+import { useAuth } from "@/features/auth";
 import "@/features/auth/modals/SignUpModal.css";
 import { getPasswordStrength } from "@/shared/utils/passwordStrength";
 import { useAuthModalClose } from "@/features/auth/modals/useAuthModalClose";
@@ -14,6 +15,7 @@ const ROLE_SELLER = "SELLER";
 export default function SignUpModal() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { signIn } = useAuth();
 
   const hasBackground = !!location.state?.backgroundLocation;
   const forceHomeOnClose = !!location.state?.forceHomeOnClose;
@@ -203,6 +205,16 @@ export default function SignUpModal() {
         };
         const res = isSellerSignup ? await registerSeller(payload) : await register(payload);
 
+        if (isSellerSignup) {
+          try {
+            await signIn(payload.email, payload.password);
+            navigate("/seller", { replace: true });
+            return;
+          } catch {
+            setError("Your seller account was created, but automatic sign in failed. Please sign in.");
+          }
+        }
+
         setResult(res);
         goStep(STEP_DONE);
       } catch (err) {
@@ -383,7 +395,7 @@ export default function SignUpModal() {
                       replace
                       state={{ modal: true, backgroundLocation: bg }}
                     >
-                      <span className="signupModal__altLinkInner">Login</span>
+                      <span className="signupModal__altLinkInner">Sign in</span>
                     </Link>
                   </div>
                 </>
@@ -457,7 +469,7 @@ export default function SignUpModal() {
                 <div className="signupModal__done">
                   <p>
                     {isSellerSignup
-                      ? "Your seller account is ready. Use Login to access the seller portal."
+                      ? "Your seller account is ready. Use Sign in to access the seller portal."
                       : "Your request has been received. Please wait until the Megna team reaches out to you."}
                   </p>
 

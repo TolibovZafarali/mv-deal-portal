@@ -7,14 +7,8 @@ export const PROPERTY_STATUS = Object.freeze({
 export const SELLER_WORKFLOW_STATUS = Object.freeze({
   DRAFT: "DRAFT",
   SUBMITTED: "SUBMITTED",
-  CHANGES_REQUESTED: "CHANGES_REQUESTED",
   PUBLISHED: "PUBLISHED",
   CLOSED: "CLOSED",
-});
-
-export const SELLER_REVIEW_ACTION = Object.freeze({
-  PUBLISH: "PUBLISH",
-  REQUEST_CHANGES: "REQUEST_CHANGES",
 });
 
 export const STATUS_LABEL_ALIASES = Object.freeze({
@@ -38,7 +32,6 @@ export const PROPERTY_STATUS_FILTER_OPTIONS = Object.freeze([
 export const SELLER_WORKFLOW_FILTER_OPTIONS = Object.freeze([
   { label: "All", value: "" },
   { label: "Under Review", value: SELLER_WORKFLOW_STATUS.SUBMITTED },
-  { label: "Changes Requested", value: SELLER_WORKFLOW_STATUS.CHANGES_REQUESTED },
   { label: "Published", value: SELLER_WORKFLOW_STATUS.PUBLISHED },
   { label: "Closed", value: SELLER_WORKFLOW_STATUS.CLOSED },
 ]);

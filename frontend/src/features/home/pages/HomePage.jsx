@@ -1,112 +1,31 @@
+import { startTransition, useEffect, useEffectEvent, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import "@/features/home/pages/HomePage.css"
-import { useEffect, useRef, useState } from "react";
-import { getClosedPropertyPreviews } from "@/api/modules/propertyApi";
+import { getClosedPropertyPreviews, searchProperties } from "@/api/modules/propertyApi";
+import { getInvestorById } from "@/api/modules/investorApi";
+import { getSellerById } from "@/api/modules/sellerApi";
+import { getSellerProperties } from "@/api/modules/sellerPropertyApi";
+import {
+    HOME_ROLE_STORAGE_KEY,
+    ROLE_CONTENT,
+    ROLE_INVESTOR,
+    ROLE_OPTION_CARDS,
+    ROLE_SELLER,
+} from "@/features/home/content/homeContent";
+import PublicSiteFooter from "@/features/home/components/PublicSiteFooter";
+import "@/features/home/pages/HomePage.css";
+import "@/features/home/components/HomeAboutPage.css";
+import HomeAboutPage from "@/features/home/components/HomeAboutPage";
 
-const ROLE_INVESTOR = "INVESTOR";
-const ROLE_SELLER = "SELLER";
-const HOME_ROLE_STORAGE_KEY = "home.selectedRole";
-const WHY_STATS_TARGETS = { hours: 24, multiplier: 3, percent: 100 };
-const HERO_CTA_ROW_STYLE = { display: "flex", gap: "12px", flexWrap: "wrap" };
+const ABOUT_PAGE_ID = "home-about-page";
+const ABOUT_TRANSITION_DURATION_MS = 980;
 
-const ROLE_CONTENT = {
-    [ROLE_SELLER]: {
-        heroTitle: "Sell with more clarity. Close with serious buyers.",
-        heroSubtitle: "Cleaner presentation. Faster buyer matching. Fewer dead-end conversations.",
-        heroCtaLabel: "Join as Seller",
-        heroCtaTo: "/signup/seller",
-        whyTitle: "Built for selling with speed and confidence.",
-        whyLead:
-            "Megna helps sellers present deals clearly, attract qualified buyers, and keep momentum to close.",
-        whyStatLabels: [
-            "avg. buyer response window",
-            "faster buyer matching",
-            "focused on qualified demand",
-        ],
-        whyCards: [
-            {
-                title: "Structured deal presentation",
-                text: "Show properties with consistent data so serious buyers can evaluate quickly.",
-            },
-            {
-                title: "Qualified buyer visibility",
-                text: "Reach active investors instead of wasting time with low-intent inquiries.",
-            },
-            {
-                title: "Clear decision workflow",
-                text: "Track updates, feedback, and next actions in one focused flow.",
-            },
-        ],
-        dealsTitle: "Recently closed outcomes from seller-side flow.",
-        dealsLead: "See how completed opportunities were positioned and closed through a cleaner process.",
-        howTitle: "From listing to close in three clear steps.",
-        howLead: "A no-noise seller workflow built for speed and qualified demand.",
-        howSteps: [
-            {
-                title: "Publish your deal",
-                text: "Share a clear deal profile so qualified buyers can evaluate it fast.",
-            },
-            {
-                title: "Connect with serious buyers",
-                text: "Review interest from active investors with cleaner context and fewer distractions.",
-            },
-            {
-                title: "Move to close confidently",
-                text: "Keep communication and decisions aligned until final execution.",
-            },
-        ],
-        readyTitle: "Start selling. Keep every deal moving.",
-        readyLead: "Present opportunities clearly and connect with qualified buyers faster.",
-    },
-    [ROLE_INVESTOR]: {
-        heroTitle: "Real estate deals that are worth your attention.",
-        heroSubtitle: "Clean pipeline. Serious opportunities. Zero noise.",
-        heroCtaLabel: "Join as Buyer",
-        heroCtaTo: "/signup",
-        whyTitle: "Built for buying with speed and clarity.",
-        whyLead:
-            "Megna gives buyers cleaner deal flow, faster evaluation, and a workflow built for real execution.",
-        whyStatLabels: [
-            "avg. response window",
-            "faster deal triage",
-            "focused on off-market flow",
-        ],
-        whyCards: [
-            {
-                title: "Vetted opportunities",
-                text: "Every listing is reviewed for core deal quality so you can focus on what matters.",
-            },
-            {
-                title: "Fast investor matching",
-                text: "Connect with active buyers quickly instead of wasting weeks chasing cold leads.",
-            },
-            {
-                title: "No-noise workflow",
-                text: "One clean pipeline to track opportunities, decisions, and next actions.",
-            },
-        ],
-        dealsTitle: "A look at recently closed deals.",
-        dealsLead: "Simple snapshots of completed opportunities. Active inventory remains private for approved members.",
-        howTitle: "From buy-box to closed deal in three clear steps.",
-        howLead: "No noise, no guesswork. A direct flow designed for buyers who need speed and clarity.",
-        howSteps: [
-            {
-                title: "Set your criteria",
-                text: "Define market, budget, and strategy so your deal flow matches your exact buy box.",
-            },
-            {
-                title: "Review matched deals",
-                text: "Analyze vetted opportunities quickly with clean property data and concise financial context.",
-            },
-            {
-                title: "Move to close faster",
-                text: "Engage directly and track decisions in one focused pipeline built for serious execution.",
-            },
-        ],
-        readyTitle: "Start buying. Move with confidence.",
-        readyLead: "Access vetted opportunities and evaluate them in a cleaner, faster flow.",
-    },
-};
+function userPrefersReducedMotion() {
+    if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
+        return false;
+    }
+
+    return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
 
 function money(value) {
     const numeric = Number(value);
@@ -140,14 +59,207 @@ function getInitialRole(location) {
             return storedRole;
         }
     } catch {
-        // Ignore storage restrictions and keep default role.
+        return ROLE_INVESTOR;
     }
 
     return ROLE_INVESTOR;
 }
 
+function buildModalState(location, signupRole) {
+    return {
+        backgroundLocation: location,
+        modal: true,
+        ...(signupRole ? { signupRole } : {}),
+    };
+}
+
+function buildEmptyMetrics(metrics) {
+    return metrics.map(() => 0);
+}
+
+function formatMetric(metric, value) {
+    return (
+        <>
+            {metric.prefix ? <span className="homeMetric__affix">{metric.prefix}</span> : null}
+            {value.toLocaleString("en-US")}
+            {metric.suffix ? <span className="homeMetric__affix">{metric.suffix}</span> : null}
+        </>
+    );
+}
+
+function getDealSummary(property) {
+    const asking = money(property?.askingPrice);
+    const arv = money(property?.arv);
+
+    if (asking !== "—" && arv !== "—") {
+        return `Asking ${asking} with an ARV of ${arv}.`;
+    }
+
+    if (asking !== "—") {
+        return `Presented at ${asking} inside the Megna preview flow.`;
+    }
+
+    if (arv !== "—") {
+        return `Closed with a projected ARV of ${arv}.`;
+    }
+
+    return "Closed opportunity surfaced through the Megna preview flow.";
+}
+
+function getShowcaseSummary(property, statusLabel, includePriceDetails = true) {
+    if (!includePriceDetails) {
+        const normalizedStatus = String(statusLabel ?? "").trim();
+        return normalizedStatus ? `${normalizedStatus} property in your Megna workflow.` : "Property in your Megna workflow.";
+    }
+
+    if (statusLabel === "Closed") {
+        return getDealSummary(property);
+    }
+
+    const asking = money(property?.askingPrice);
+    const arv = money(property?.arv);
+    const normalizedStatus = String(statusLabel ?? "").trim();
+
+    if (asking !== "—" && arv !== "—") {
+        return `${normalizedStatus} at ${asking} with an ARV of ${arv}.`;
+    }
+
+    if (asking !== "—") {
+        return `${normalizedStatus} at ${asking}.`;
+    }
+
+    if (arv !== "—") {
+        return `${normalizedStatus} with an ARV of ${arv}.`;
+    }
+
+    return normalizedStatus ? `${normalizedStatus} property in your Megna workflow.` : "Property in your Megna workflow.";
+}
+
+function normalizeRole(value) {
+    return String(value ?? "").trim().toUpperCase();
+}
+
+function userDisplayName(user) {
+    const full = [user?.firstName, user?.lastName].filter(Boolean).join(" ").trim();
+    return full;
+}
+
+function sellerWorkflowLabel(value) {
+    const normalized = normalizeRole(value);
+    if (normalized === "PUBLISHED") return "Published";
+    if (normalized === "DRAFT") return "Draft";
+    if (normalized === "SUBMITTED") return "Under review";
+    return normalized ? normalized.toLowerCase().replaceAll("_", " ") : "Listing";
+}
+
+const ABOUT_SCENE_CONTENT = {
+    label: "About us",
+    title: "Built for calmer deal execution.",
+    text:
+        "Megna is a focused real estate marketplace built to remove noise and keep serious buyers and sellers aligned from first look to final close.",
+};
+
+function SectionHeading({ eyebrow, title, lead, className = "" }) {
+    return (
+        <div className={`homeSectionHeading ${className}`.trim()}>
+            <p className="homeSectionHeading__eyebrow">{eyebrow}</p>
+            <h2
+                className="homeSectionHeading__title"
+                style={typeof title === "string" && title.includes("\n") ? { whiteSpace: "pre-line" } : undefined}
+            >
+                {title}
+            </h2>
+            <p className="homeSectionHeading__lead">{lead}</p>
+        </div>
+    );
+}
+
+function DealCard({
+    property,
+    delay = 0,
+    statusLabel = "Closed",
+    linkTo = null,
+    linkState = null,
+    hidePriceDetails = false,
+}) {
+    const leadPhoto = property?.photos?.[0]?.thumbnailUrl || property?.photos?.[0]?.url || "";
+    const address = fullAddress(property) || "Address unavailable";
+    const market = [property?.city, property?.state].filter(Boolean).join(", ");
+    const livingArea = Number(property?.livingAreaSqft);
+    const detailItems = [
+        property?.beds !== null && property?.beds !== undefined ? `${property.beds} bd` : null,
+        property?.baths !== null && property?.baths !== undefined ? `${property.baths} ba` : null,
+        Number.isFinite(livingArea) ? `${livingArea.toLocaleString("en-US")} sqft` : null,
+    ].filter(Boolean);
+
+    const card = (
+        <article
+            className="homeShowcase__card homeReveal"
+            data-delay={delay}
+        >
+            <div className="homeShowcase__imageWrap">
+                {leadPhoto ? (
+                    <img
+                        src={leadPhoto}
+                        alt={address}
+                        className="homeShowcase__image"
+                    />
+                ) : (
+                    <div className="homeShowcase__imageFallback" aria-hidden="true">
+                        <span className="material-symbols-outlined">home</span>
+                    </div>
+                )}
+                <span className="homeShowcase__status">{statusLabel}</span>
+            </div>
+
+            <div className="homeShowcase__body">
+                <div className="homeShowcase__metaRow">
+                    <span>{market || "Private market"}</span>
+                    <span>Megna preview</span>
+                </div>
+                <h3 className="homeShowcase__address">{address}</h3>
+                <p className="homeShowcase__summary">{getShowcaseSummary(property, statusLabel, !hidePriceDetails)}</p>
+
+                {!hidePriceDetails ? (
+                    <div className="homeShowcase__stats">
+                        <div className="homeShowcase__stat">
+                            <span className="homeShowcase__label">Asking</span>
+                            <span className="homeShowcase__value">{money(property?.askingPrice)}</span>
+                        </div>
+                        <div className="homeShowcase__stat">
+                            <span className="homeShowcase__label">ARV</span>
+                            <span className="homeShowcase__value">{money(property?.arv)}</span>
+                        </div>
+                    </div>
+                ) : null}
+
+                {detailItems.length ? (
+                    <div className="homeShowcase__detailRow">
+                        {detailItems.map((item) => (
+                            <span key={item} className="homeShowcase__detailChip">
+                                {item}
+                            </span>
+                        ))}
+                    </div>
+                ) : null}
+            </div>
+        </article>
+    );
+
+    if (linkTo) {
+        return (
+            <Link to={linkTo} state={linkState} className="homeShowcase__cardLink">
+                {card}
+            </Link>
+        );
+    }
+
+    return card;
+}
+
 export default function HomePage({
     location,
+    user,
     isAuthed,
     bootstrapping,
     retrySessionRestore,
@@ -155,74 +267,341 @@ export default function HomePage({
     signOut,
 }) {
     const homeRef = useRef(null);
-    const homeWhyRef = useRef(null);
-    const homeDealsRef = useRef(null);
-    const dealsRailRef = useRef(null);
-    const homeHowRef = useRef(null);
+    const metricsRef = useRef(null);
+    const sceneFrameRef = useRef(null);
+    const aboutCloseTimerRef = useRef(0);
+    const [selectedRole, setSelectedRole] = useState(() => getInitialRole(location));
+    const [metricValues, setMetricValues] = useState(() => buildEmptyMetrics(ROLE_CONTENT[ROLE_INVESTOR].metrics));
+    const [metricsVisible, setMetricsVisible] = useState(false);
+    const [sceneHovered, setSceneHovered] = useState(false);
+    const [aboutPageOpen, setAboutPageOpen] = useState(false);
+    const [aboutPageReady, setAboutPageReady] = useState(false);
+    const [aboutPageClosing, setAboutPageClosing] = useState(false);
     const [closedDeals, setClosedDeals] = useState([]);
     const [closedDealsLoading, setClosedDealsLoading] = useState(true);
     const [closedDealsError, setClosedDealsError] = useState("");
-    const [homeHowVisible, setHomeHowVisible] = useState(false);
-    const [homeDealsVisible, setHomeDealsVisible] = useState(false);
-    const [activeDealIndex, setActiveDealIndex] = useState(0);
-    const [whyStats, setWhyStats] = useState({ hours: 0, multiplier: 0, percent: 0 });
-    const [selectedRole, setSelectedRole] = useState(() => getInitialRole(location));
-    const roleContent = ROLE_CONTENT[selectedRole] || ROLE_CONTENT[ROLE_INVESTOR];
+    const [signedInName, setSignedInName] = useState("");
+
+    const authenticatedRole = normalizeRole(user?.role);
+    const displayRole = isAuthed
+        ? (authenticatedRole === "SELLER" ? ROLE_SELLER : ROLE_INVESTOR)
+        : selectedRole;
+    const roleContent = ROLE_CONTENT[displayRole] || ROLE_CONTENT[ROLE_INVESTOR];
+    const isSellerAuthed = isAuthed && authenticatedRole === "SELLER";
+    const signedInRoleLabel = authenticatedRole
+        ? `${authenticatedRole.slice(0, 1)}${authenticatedRole.slice(1).toLowerCase()}`
+        : "Investor";
     const showGuestCtas = !isAuthed && !sessionRestoreError;
-    const handleRetrySession = () => retrySessionRestore?.();
-    const handleSignOut = () => signOut?.();
+    const featuredDeals = isAuthed && !isSellerAuthed ? closedDeals : closedDeals.slice(0, 4);
+    const heroMetric = roleContent.metrics[0];
+    const showcaseHeading = isAuthed
+        ? (isSellerAuthed
+            ? {
+                eyebrow: "Your listings",
+                title: "Your listings by status.",
+                lead: "Listings are prioritized so you can review what is live first, then continue working through drafts.",
+                empty: "No listings are available right now.",
+                loadingLabel: "Loading your listings",
+                carouselLabel: "Your listings",
+            }
+            : {
+                eyebrow: "Active properties",
+                title: "Properties currently active.",
+                lead: "These are live opportunities available for review right now.",
+                empty: "No active properties are available right now.",
+                loadingLabel: "Loading active properties",
+                carouselLabel: "Active properties",
+            })
+        : {
+            eyebrow: roleContent.proof.eyebrow,
+            title: roleContent.proof.title,
+            lead: roleContent.proof.lead,
+            empty: "No recent closings are available right now.",
+            loadingLabel: "Loading recent closings",
+            carouselLabel: "Recent closings carousel",
+        };
+    const hideHomeSections = aboutPageOpen && !aboutPageClosing;
+
+    const handleSelectRole = (role) => {
+        startTransition(() => {
+            setSelectedRole(role);
+        });
+    };
+
+    const setSceneExpandMetrics = () => {
+        const root = homeRef.current;
+        const frame = sceneFrameRef.current;
+        if (!root || !frame || typeof window === "undefined") return;
+
+        const rect = frame.getBoundingClientRect();
+        if (!rect.width || !rect.height) return;
+
+        const viewportWidth = window.innerWidth || rect.width;
+        const viewportHeight = window.innerHeight || rect.height;
+        const computedStyle = window.getComputedStyle(frame);
+        const radius = parseFloat(computedStyle.borderTopLeftRadius || "0") || 0;
+        const right = Math.max(viewportWidth - rect.right, 0);
+        const bottom = Math.max(viewportHeight - rect.bottom, 0);
+
+        root.style.setProperty("--scene-origin-top", `${rect.top.toFixed(1)}px`);
+        root.style.setProperty("--scene-origin-right", `${right.toFixed(1)}px`);
+        root.style.setProperty("--scene-origin-bottom", `${bottom.toFixed(1)}px`);
+        root.style.setProperty("--scene-origin-left", `${rect.left.toFixed(1)}px`);
+        root.style.setProperty("--scene-origin-radius", `${radius.toFixed(1)}px`);
+    };
+
+    const openScene = () => {
+        if (typeof window === "undefined") return;
+
+        window.clearTimeout(aboutCloseTimerRef.current);
+        setSceneHovered(false);
+        setAboutPageClosing(false);
+        setSceneExpandMetrics();
+        window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+        setAboutPageOpen(true);
+
+        if (userPrefersReducedMotion()) {
+            setAboutPageReady(true);
+            return;
+        }
+
+        window.requestAnimationFrame(() => {
+            window.requestAnimationFrame(() => {
+                setAboutPageReady(true);
+            });
+        });
+    };
+
+    const closeScene = () => {
+        if (typeof window === "undefined") return;
+
+        if (userPrefersReducedMotion()) {
+            window.clearTimeout(aboutCloseTimerRef.current);
+            setAboutPageReady(false);
+            setAboutPageClosing(false);
+            setAboutPageOpen(false);
+            window.requestAnimationFrame(() => {
+                sceneFrameRef.current?.focus({ preventScroll: true });
+            });
+            return;
+        }
+
+        window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+        window.requestAnimationFrame(() => {
+            setSceneExpandMetrics();
+            setAboutPageClosing(true);
+            setAboutPageReady(false);
+        });
+        window.clearTimeout(aboutCloseTimerRef.current);
+        aboutCloseTimerRef.current = window.setTimeout(() => {
+            setAboutPageOpen(false);
+            setAboutPageClosing(false);
+            sceneFrameRef.current?.focus({ preventScroll: true });
+        }, ABOUT_TRANSITION_DURATION_MS);
+    };
+
+    const handleEscapeClose = useEffectEvent(() => {
+        closeScene();
+    });
+
+    const handleSceneToggle = () => {
+        if (aboutPageOpen) {
+            closeScene();
+            return;
+        }
+        openScene();
+    };
 
     useEffect(() => {
-        document.documentElement.classList.add("homeHideScrollbar");
-        document.body.classList.add("homeHideScrollbar");
         document.documentElement.classList.add("homeSmoothScroll");
-
-        let rafId = 0;
-        let ticking = false;
-
-        const updateScrollProgress = () => {
-            ticking = false;
-            const homeEl = homeRef.current;
-            if (!homeEl) {
-                return;
-            }
-            const heroHeight = window.innerHeight || 1;
-            const scrollY = window.scrollY || 0;
-            const progress = Math.min(scrollY / (heroHeight * 0.9), 1);
-            const heroScroll = Math.min(scrollY, heroHeight);
-            const pageMaxScroll = Math.max((document.documentElement?.scrollHeight || 0) - window.innerHeight, 1);
-            const pageProgress = Math.min(scrollY / pageMaxScroll, 1);
-            const zoomProgress = Math.min(scrollY / 360, 1);
-            const heroZoomScale = 1.04 - (zoomProgress * 0.04);
-
-            homeEl.style.setProperty("--hero-darken-opacity", (progress * 0.6).toFixed(3));
-            homeEl.style.setProperty("--hero-parallax-y", `${Math.round(heroScroll * 0.2)}px`);
-            homeEl.style.setProperty("--hero-overlay-parallax-y", `${Math.round(heroScroll * 0.1)}px`);
-            homeEl.style.setProperty("--home-scroll-progress", pageProgress.toFixed(4));
-            homeEl.style.setProperty("--hero-zoom-scale", heroZoomScale.toFixed(4));
-        };
-
-        const onScroll = () => {
-            if (ticking) {
-                return;
-            }
-            ticking = true;
-            rafId = window.requestAnimationFrame(updateScrollProgress);
-        };
-
-        updateScrollProgress();
-        window.addEventListener("scroll", onScroll, { passive: true });
-        window.addEventListener("resize", onScroll, { passive: true });
-
         return () => {
-            window.removeEventListener("scroll", onScroll);
-            window.removeEventListener("resize", onScroll);
-            window.cancelAnimationFrame(rafId);
-            document.documentElement.classList.remove("homeHideScrollbar");
             document.documentElement.classList.remove("homeSmoothScroll");
-            document.body.classList.remove("homeHideScrollbar");
         };
     }, []);
+
+    useEffect(() => {
+        const root = homeRef.current;
+        if (!root) return undefined;
+
+        let frameId = 0;
+        let ticking = false;
+
+        const syncMotion = () => {
+            ticking = false;
+            const scrollY = window.scrollY || 0;
+            const viewportHeight = window.innerHeight || 1;
+            const heroProgress = Math.min(scrollY / (viewportHeight * 0.92), 1.2);
+            const pageMaxScroll = Math.max((document.documentElement?.scrollHeight || 0) - viewportHeight, 1);
+            const pageProgress = Math.min(scrollY / pageMaxScroll, 1);
+            const heroScale = 1.04 - Math.min(scrollY / 1800, 0.04);
+
+            root.style.setProperty("--home-scroll-progress", pageProgress.toFixed(4));
+            root.style.setProperty("--hero-shift", `${Math.round(scrollY * 0.22)}px`);
+            root.style.setProperty("--hero-orbit-shift", `${Math.round(scrollY * 0.14)}px`);
+            root.style.setProperty("--hero-scale", heroScale.toFixed(3));
+            root.style.setProperty("--hero-fade", Math.min(heroProgress * 0.78, 0.78).toFixed(3));
+            root.style.setProperty("--header-opacity", (0.34 + Math.min(pageProgress * 0.26, 0.18)).toFixed(3));
+            root.style.setProperty("--header-border-opacity", (0.12 + Math.min(pageProgress * 0.24, 0.16)).toFixed(3));
+        };
+
+        const requestSync = () => {
+            if (ticking) return;
+            ticking = true;
+            frameId = window.requestAnimationFrame(syncMotion);
+        };
+
+        syncMotion();
+        window.addEventListener("scroll", requestSync, { passive: true });
+        window.addEventListener("resize", requestSync, { passive: true });
+
+        return () => {
+            window.removeEventListener("scroll", requestSync);
+            window.removeEventListener("resize", requestSync);
+            window.cancelAnimationFrame(frameId);
+        };
+    }, []);
+
+    useEffect(() => {
+        const root = homeRef.current;
+        if (!root) return undefined;
+
+        const nodes = Array.from(root.querySelectorAll(".homeReveal"));
+        if (!nodes.length) return undefined;
+        const mobileShowcaseNodes = [];
+        const standardNodes = [];
+
+        nodes.forEach((node) => {
+            const isGroupedShowcaseNode = Boolean(node.closest(".homeShowcase__grid"));
+            const delay = isGroupedShowcaseNode ? "0" : (node.getAttribute("data-delay") || "0");
+            node.style.setProperty("--reveal-delay", `${delay}ms`);
+
+            if (isGroupedShowcaseNode) {
+                mobileShowcaseNodes.push(node);
+                return;
+            }
+
+            standardNodes.push(node);
+        });
+
+        if (typeof IntersectionObserver === "undefined") {
+            nodes.forEach((node) => {
+                node.classList.add("is-visible");
+            });
+
+            return undefined;
+        }
+
+        const revealNode = (node) => {
+            node.classList.add("is-visible");
+        };
+        const cleanup = [];
+
+        if (standardNodes.length) {
+            const observer = new IntersectionObserver(
+                (entries) => {
+                    entries.forEach((entry) => {
+                        if (!entry.isIntersecting) return;
+                        revealNode(entry.target);
+                        observer.unobserve(entry.target);
+                    });
+                },
+                {
+                    threshold: 0.18,
+                    rootMargin: "0px 0px -8% 0px",
+                },
+            );
+
+            standardNodes.forEach((node) => {
+                observer.observe(node);
+            });
+
+            cleanup.push(() => observer.disconnect());
+        }
+
+        if (mobileShowcaseNodes.length) {
+            const showcaseSection = root.querySelector(".homeShowcase");
+            if (!showcaseSection) {
+                mobileShowcaseNodes.forEach(revealNode);
+            } else {
+                const showcaseObserver = new IntersectionObserver(
+                    ([entry]) => {
+                        if (!entry?.isIntersecting) return;
+                        mobileShowcaseNodes.forEach(revealNode);
+                        showcaseObserver.unobserve(showcaseSection);
+                    },
+                    {
+                        threshold: 0.18,
+                        rootMargin: "0px 0px -8% 0px",
+                    },
+                );
+
+                showcaseObserver.observe(showcaseSection);
+                cleanup.push(() => showcaseObserver.disconnect());
+            }
+        }
+
+        return () => {
+            cleanup.forEach((disconnect) => disconnect());
+        };
+    }, [selectedRole, closedDeals.length, closedDealsLoading, closedDealsError, aboutPageOpen, isAuthed]);
+
+    useEffect(() => {
+        const section = metricsRef.current;
+        if (!section) {
+            setMetricsVisible(false);
+            return undefined;
+        }
+
+        if (typeof IntersectionObserver === "undefined") {
+            setMetricsVisible(true);
+            return undefined;
+        }
+
+        const rect = section.getBoundingClientRect();
+        const viewportHeight = window.innerHeight || 0;
+        const initiallyVisible = rect.bottom > 0 && rect.top < viewportHeight;
+        setMetricsVisible(initiallyVisible);
+
+        const observer = new IntersectionObserver(
+            ([entry]) => {
+                setMetricsVisible(entry?.isIntersecting ?? false);
+            },
+            {
+                threshold: 0.35,
+                rootMargin: "0px 0px -10% 0px",
+            },
+        );
+
+        observer.observe(section);
+        return () => observer.disconnect();
+    }, [aboutPageOpen, isAuthed, selectedRole]);
+
+    useEffect(() => {
+        let frameId = 0;
+        if (!metricsVisible) {
+            return undefined;
+        }
+
+        setMetricValues(buildEmptyMetrics(roleContent.metrics));
+        const durationMs = 1350;
+        const startedAt = performance.now();
+
+        const tick = (now) => {
+            const progress = Math.min((now - startedAt) / durationMs, 1);
+            const eased = 1 - Math.pow(1 - progress, 3);
+
+            setMetricValues(
+                roleContent.metrics.map((metric) => Math.round(metric.value * eased)),
+            );
+
+            if (progress < 1) {
+                frameId = window.requestAnimationFrame(tick);
+            }
+        };
+
+        frameId = window.requestAnimationFrame(tick);
+        return () => window.cancelAnimationFrame(frameId);
+    }, [metricsVisible, roleContent.metrics]);
 
     useEffect(() => {
         let alive = true;
@@ -232,558 +611,650 @@ export default function HomePage({
             setClosedDealsError("");
 
             try {
-                const response = await getClosedPropertyPreviews({ page: 0, size: 6, sort: "createdAt,desc" });
+                let rows = [];
+
+                if (!isAuthed) {
+                    const response = await getClosedPropertyPreviews({ page: 0, size: 6, sort: "createdAt,desc" });
+                    rows = Array.isArray(response?.content) ? response.content : [];
+                } else if (authenticatedRole === "SELLER") {
+                    const response = await getSellerProperties({ page: 0, size: 20, sort: "updatedAt,desc" });
+                    const sellerRows = Array.isArray(response?.content) ? response.content : [];
+                    const workflowRank = (property) => {
+                        const workflow = normalizeRole(property?.sellerWorkflowStatus);
+                        if (workflow === "PUBLISHED") return 0;
+                        if (workflow === "DRAFT") return 1;
+                        return 2;
+                    };
+                    rows = sellerRows
+                        .slice()
+                        .sort((a, b) => workflowRank(a) - workflowRank(b))
+                        .slice(0, 6);
+                } else {
+                    const response = await searchProperties(
+                        { status: "ACTIVE" },
+                        { page: 0, size: 6, sort: "createdAt,desc" },
+                    );
+                    rows = Array.isArray(response?.content) ? response.content : [];
+                }
 
                 if (!alive) return;
-                const rows = Array.isArray(response?.content) ? response.content : [];
                 setClosedDeals(rows);
             } catch (error) {
                 if (!alive) return;
                 setClosedDeals([]);
-                setClosedDealsError(error?.message || "Failed to load featured deals.");
+                const fallbackError = isAuthed
+                    ? (authenticatedRole === "SELLER"
+                        ? "Failed to load your listings."
+                        : "Failed to load active properties.")
+                    : "Failed to load featured closings.";
+                setClosedDealsError(error?.message || fallbackError);
             } finally {
-                if (alive) setClosedDealsLoading(false);
+                if (alive) {
+                    setClosedDealsLoading(false);
+                }
             }
         })();
 
         return () => {
             alive = false;
         };
-    }, []);
-
-    useEffect(() => {
-        const sectionEl = homeWhyRef.current;
-        if (!sectionEl) return undefined;
-
-        const durationMs = 1450;
-        let rafId = 0;
-
-        const observer = new IntersectionObserver(
-            (entries) => {
-                const entry = entries[0];
-                if (!entry?.isIntersecting) return;
-
-                const startedAt = performance.now();
-                const step = (now) => {
-                    const progress = Math.min((now - startedAt) / durationMs, 1);
-                    const eased = 1 - Math.pow(1 - progress, 3);
-                    const nextStats = {
-                        hours: Math.round(WHY_STATS_TARGETS.hours * eased),
-                        multiplier: Math.round(WHY_STATS_TARGETS.multiplier * eased),
-                        percent: Math.round(WHY_STATS_TARGETS.percent * eased),
-                    };
-
-                    setWhyStats((prev) => {
-                        if (
-                            prev.hours === nextStats.hours
-                            && prev.multiplier === nextStats.multiplier
-                            && prev.percent === nextStats.percent
-                        ) {
-                            return prev;
-                        }
-                        return nextStats;
-                    });
-
-                    if (progress < 1) {
-                        rafId = window.requestAnimationFrame(step);
-                    } else {
-                        setWhyStats(WHY_STATS_TARGETS);
-                    }
-                };
-
-                rafId = window.requestAnimationFrame(step);
-                observer.disconnect();
-            },
-            {
-                threshold: 0.42,
-                rootMargin: "0px 0px -8% 0px",
-            },
-        );
-
-        observer.observe(sectionEl);
-        return () => {
-            observer.disconnect();
-            window.cancelAnimationFrame(rafId);
-        };
-    }, []);
-
-    useEffect(() => {
-        const sectionEl = homeDealsRef.current;
-        if (!sectionEl) return undefined;
-
-        const observer = new IntersectionObserver(
-            (entries) => {
-                const entry = entries[0];
-                if (!entry?.isIntersecting) return;
-                setHomeDealsVisible(true);
-                observer.disconnect();
-            },
-            {
-                threshold: 0.22,
-                rootMargin: "0px 0px -10% 0px",
-            },
-        );
-
-        observer.observe(sectionEl);
-        return () => observer.disconnect();
-    }, []);
-
-    useEffect(() => {
-        const railEl = dealsRailRef.current;
-        if (!railEl) return undefined;
-        const cards = Array.from(railEl.querySelectorAll(".homeDeals__card"));
-        if (!cards.length) return undefined;
-
-        const updateActiveCard = () => {
-            const railCenter = railEl.scrollLeft + (railEl.clientWidth / 2);
-            let bestIndex = 0;
-            let bestDistance = Number.POSITIVE_INFINITY;
-
-            cards.forEach((card, index) => {
-                const cardCenter = card.offsetLeft + (card.clientWidth / 2);
-                const distance = Math.abs(cardCenter - railCenter);
-                if (distance < bestDistance) {
-                    bestDistance = distance;
-                    bestIndex = index;
-                }
-            });
-
-            setActiveDealIndex((prev) => (prev === bestIndex ? prev : bestIndex));
-        };
-
-        const onRailScroll = () => {
-            updateActiveCard();
-        };
-
-        updateActiveCard();
-        railEl.addEventListener("scroll", onRailScroll, { passive: true });
-        window.addEventListener("resize", updateActiveCard, { passive: true });
-
-        return () => {
-            railEl.removeEventListener("scroll", onRailScroll);
-            window.removeEventListener("resize", updateActiveCard);
-        };
-    }, [closedDeals.length]);
-
-    useEffect(() => {
-        const sectionEl = homeHowRef.current;
-        if (!sectionEl) return undefined;
-
-        const observer = new IntersectionObserver(
-            (entries) => {
-                const entry = entries[0];
-                if (!entry?.isIntersecting) return;
-                setHomeHowVisible(true);
-                observer.disconnect();
-            },
-            {
-                threshold: 0.48,
-                rootMargin: "0px 0px -6% 0px",
-            },
-        );
-
-        observer.observe(sectionEl);
-        return () => observer.disconnect();
-    }, []);
+    }, [authenticatedRole, isAuthed]);
 
     useEffect(() => {
         const nextRole = location.state?.signupRole;
         if (nextRole === ROLE_INVESTOR || nextRole === ROLE_SELLER) {
-            setSelectedRole(nextRole);
+            startTransition(() => {
+                setSelectedRole(nextRole);
+            });
         }
     }, [location.state?.signupRole]);
 
     useEffect(() => {
-        if (typeof window === "undefined") {
-            return;
-        }
+        if (typeof window === "undefined") return;
+
         try {
             window.localStorage.setItem(HOME_ROLE_STORAGE_KEY, selectedRole);
         } catch {
-            // Ignore storage restrictions and continue without persistence.
+            return;
         }
     }, [selectedRole]);
-    
-    // Don't flash homepage while the app is still checking the token
+
+    useEffect(() => {
+        if (!isAuthed) {
+            setSignedInName("");
+            return;
+        }
+
+        const immediateName = userDisplayName(user);
+        if (immediateName) {
+            setSignedInName(immediateName);
+            return;
+        }
+
+        let alive = true;
+
+        (async () => {
+            try {
+                if (authenticatedRole === "INVESTOR" && user?.investorId) {
+                    const investor = await getInvestorById(user.investorId);
+                    if (!alive) return;
+                    setSignedInName([investor?.firstName, investor?.lastName].filter(Boolean).join(" ").trim());
+                    return;
+                }
+
+                if (authenticatedRole === "SELLER" && user?.sellerId) {
+                    const seller = await getSellerById(user.sellerId);
+                    if (!alive) return;
+                    setSignedInName([seller?.firstName, seller?.lastName].filter(Boolean).join(" ").trim());
+                    return;
+                }
+
+                if (alive) {
+                    setSignedInName("");
+                }
+            } catch {
+                if (alive) {
+                    setSignedInName("");
+                }
+            }
+        })();
+
+        return () => {
+            alive = false;
+        };
+    }, [authenticatedRole, isAuthed, user]);
+
+    useEffect(() => {
+        if (!aboutPageOpen) return undefined;
+
+        const onResize = () => {
+            setSceneExpandMetrics();
+        };
+
+        const onKeyDown = (event) => {
+            if (event.key === "Escape") {
+                handleEscapeClose();
+            }
+        };
+
+        window.addEventListener("resize", onResize);
+        window.addEventListener("keydown", onKeyDown);
+
+        return () => {
+            window.removeEventListener("resize", onResize);
+            window.removeEventListener("keydown", onKeyDown);
+        };
+    }, [aboutPageOpen]);
+
+    useEffect(() => {
+        if (!aboutPageOpen || typeof document === "undefined") {
+            return undefined;
+        }
+
+        const previousOverflow = document.body.style.overflow;
+        document.body.style.overflow = "hidden";
+
+        return () => {
+            document.body.style.overflow = previousOverflow;
+        };
+    }, [aboutPageOpen]);
+
+    useEffect(() => {
+        return () => {
+            window.clearTimeout(aboutCloseTimerRef.current);
+        };
+    }, []);
+
     if (bootstrapping) {
-        return <div style={{ padding: "28px 18px" }}>Loading...</div>;
+        return (
+            <div className="homeBoot">
+                <div className="homeBoot__orb" aria-hidden="true" />
+                <p className="homeBoot__label">Preparing Megna</p>
+            </div>
+        );
     }
 
     return (
-        <div ref={homeRef} className="home">
-            <div className="homeScrollProgress" aria-hidden="true" />
+        <div
+            ref={homeRef}
+            className={`home ${aboutPageOpen ? "home--aboutOpen" : ""} ${aboutPageReady ? "home--aboutReady" : ""} ${aboutPageClosing ? "home--aboutClosing" : ""}`}
+        >
+            <div className="homeProgress" aria-hidden="true" />
+
             <header className="homeHeader">
-                <div className="homeHeader__inner">
-                    <Link
-                        to="/"
-                        className="homeHeader__logo"
-                        aria-label="Megna Real Estate - Home"
-                    >
-                        <img
-                            src="/white-logo.svg"
-                            alt="Megna Real Estate"
-                            className="homeHeader__logoImg"
-                        />
+                <div className="homeShell homeHeader__inner homeReveal" data-delay="20">
+                    <div className={`homeHeader__left ${isAuthed ? "homeHeader__left--signedIn" : ""}`.trim()}>
+                        {!isAuthed ? (
+                            <div
+                                className={`homeRoleSwitch homeRoleSwitch--header ${selectedRole === ROLE_SELLER ? "homeRoleSwitch--seller" : ""}`}
+                                role="tablist"
+                                aria-label="Choose your role"
+                            >
+                                <button
+                                    type="button"
+                                    className={`homeRoleSwitch__button ${selectedRole === ROLE_INVESTOR ? "is-active" : ""}`}
+                                    onClick={() => handleSelectRole(ROLE_INVESTOR)}
+                                    aria-pressed={selectedRole === ROLE_INVESTOR}
+                                >
+                                    Buy
+                                </button>
+                                <button
+                                    type="button"
+                                    className={`homeRoleSwitch__button ${selectedRole === ROLE_SELLER ? "is-active" : ""}`}
+                                    onClick={() => handleSelectRole(ROLE_SELLER)}
+                                    aria-pressed={selectedRole === ROLE_SELLER}
+                                >
+                                    Sell
+                                </button>
+                            </div>
+                        ) : (
+                            <>
+                                <span
+                                    className="homeHeader__roleBadge"
+                                    aria-label={`Signed in as ${signedInRoleLabel}`}
+                                >
+                                    {signedInRoleLabel}
+                                </span>
+                                <Link to="/app" className="homeButton homeButton--compact homeHeader__dashboardShortcut">
+                                    Dashboard
+                                </Link>
+                            </>
+                        )}
+                    </div>
+
+                    <Link to="/" className="homeHeader__logo" aria-label="Megna Real Estate home">
+                        <span className="homeHeader__logoImage" aria-hidden="true" />
                     </Link>
 
-                    <nav className="homeHeader__nav">
+                    <div className="homeHeader__actions">
                         {isAuthed ? (
-                            <Link to="/app" className="homeHeader__link">
-                                Dashboard
-                            </Link>
+                            <>
+                                <button
+                                    type="button"
+                                    className="homeHeader__utilityLink homeHeader__utilityButton"
+                                    onClick={signOut}
+                                >
+                                    Log out
+                                </button>
+                                <Link to="/app" className="homeButton homeButton--compact">
+                                    Dashboard
+                                </Link>
+                            </>
                         ) : showGuestCtas ? (
                             <>
                                 <Link
-                                    to="/signup"
-                                    className="homeHeader__link"
-                                    state={{ backgroundLocation: location, modal: true }}
+                                    to="/login"
+                                    className="homeHeader__utilityLink"
+                                    state={buildModalState(location)}
                                 >
-                                    Sign Up
+                                    Sign in
                                 </Link>
                                 <Link
-                                    to="/login"
-                                    className="homeHeader__link"
-                                    state={{ backgroundLocation: location, modal: true }}
+                                    to={roleContent.hero.primaryCtaTo}
+                                    className="homeButton homeButton--compact"
+                                    state={buildModalState(location, selectedRole)}
                                 >
-                                    Login
+                                    {roleContent.hero.primaryCtaLabel}
                                 </Link>
                             </>
                         ) : (
                             <>
                                 <button
                                     type="button"
-                                    className="homeHeader__link homeHeader__linkButton"
-                                    onClick={handleRetrySession}
+                                    className="homeHeader__utilityLink homeHeader__utilityButton"
+                                    onClick={retrySessionRestore}
                                 >
-                                    Retry Session
+                                    Retry session
                                 </button>
                                 <button
                                     type="button"
-                                    className="homeHeader__link homeHeader__linkButton"
-                                    onClick={handleSignOut}
+                                    className="homeButton homeButton--compact homeButton--ghost"
+                                    onClick={signOut}
                                 >
                                     Log out
                                 </button>
                             </>
                         )}
-                    </nav>
+                    </div>
                 </div>
             </header>
 
             <main className="homeMain">
-                <section className="homeHero" aria-label="Hero">
-                    <div className="homeHero__overlay" />
-                    <div className="homeHero__darken" />
-                    <div className="homeHero__content">
-                        <div
-                            className={`homeRoleToggle ${selectedRole === ROLE_SELLER ? "homeRoleToggle--sell" : "homeRoleToggle--buy"}`}
-                            role="tablist"
-                            aria-label="Choose your role"
-                        >
-                            <button
-                                type="button"
-                                className={`homeRoleToggle__btn ${selectedRole === ROLE_INVESTOR ? "homeRoleToggle__btn--active" : ""}`}
-                                onClick={() => setSelectedRole(ROLE_INVESTOR)}
-                                aria-pressed={selectedRole === ROLE_INVESTOR}
-                            >
-                                Buy
-                            </button>
-                            <button
-                                type="button"
-                                className={`homeRoleToggle__btn ${selectedRole === ROLE_SELLER ? "homeRoleToggle__btn--active" : ""}`}
-                                onClick={() => setSelectedRole(ROLE_SELLER)}
-                                aria-pressed={selectedRole === ROLE_SELLER}
-                            >
-                                Sell
-                            </button>
-                        </div>
+                <section className={`homeHero ${sceneHovered ? "homeHero--immersed" : ""}`} aria-label="Homepage hero">
+                    <div className="homeHero__backdrop" aria-hidden="true" />
+                    <div className="homeHero__mesh" aria-hidden="true" />
 
-                        <div
-                            key={selectedRole}
-                            className="homeHero__copy"
-                        >
-                            <h1 className="homeHero__title">
-                                {roleContent.heroTitle}
-                            </h1>
-                            <p className="homeHero__subtitle">
-                                {roleContent.heroSubtitle}
-                            </p>
+                    <div className="homeShell homeHero__inner">
+                        <div className="homeHero__copy homeReveal" data-delay="120">
+                            <div className="homeHero__copySwap">
+                                <div key={`hero-copy-${selectedRole}`} className="homeRoleMotion">
+                                    <p className="homeHero__eyebrow">
+                                        {isAuthed ? "WELCOME BACK" : roleContent.hero.eyebrow}
+                                    </p>
+                                    <h1 className="homeHero__title">
+                                        {isAuthed
+                                            ? signedInName
+                                            : roleContent.hero.title}
+                                    </h1>
+                                    <p className="homeHero__subtitle">
+                                        {isAuthed
+                                            ? (authenticatedRole === "SELLER"
+                                                ? "Published listings are surfaced first, followed by drafts so you can prioritize quickly."
+                                                : "Review active properties and jump back into live opportunities without extra noise.")
+                                            : roleContent.hero.subtitle}
+                                    </p>
 
-                            {sessionRestoreError ? (
-                                <div className="homeSessionNotice" role="status">
-                                    <p className="homeSessionNotice__title">Session restore unavailable</p>
-                                    <p className="homeSessionNotice__text">{sessionRestoreError}</p>
-                                    <div className="homeSessionActions">
-                                        <button
-                                            type="button"
-                                            className="homeReady__btn"
-                                            onClick={handleRetrySession}
-                                        >
-                                            Retry session
-                                        </button>
-                                        <button
-                                            type="button"
-                                            className="homeReady__btn homeReady__btn--ghost"
-                                            onClick={handleSignOut}
-                                        >
-                                            Log out
-                                        </button>
+                                    {sessionRestoreError ? (
+                                        <div className="homeStatusPanel" role="status">
+                                            <p className="homeStatusPanel__title">Session restore unavailable</p>
+                                            <p className="homeStatusPanel__body">{sessionRestoreError}</p>
+                                            <div className="homeHero__actions">
+                                                <button type="button" className="homeButton" onClick={retrySessionRestore}>
+                                                    Retry session
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    className="homeButton homeButton--ghost"
+                                                    onClick={signOut}
+                                                >
+                                                    Log out
+                                                </button>
+                                                <a href="#proof" className="homeButton homeButton--ghost">
+                                                    {roleContent.hero.secondaryCtaLabel}
+                                                </a>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="homeHero__actions">
+                                            {isAuthed ? (
+                                                <>
+                                                    <Link to="/app" className="homeButton">
+                                                        Open dashboard
+                                                    </Link>
+                                                    <a href="#proof" className="homeButton homeButton--ghost">
+                                                        {authenticatedRole === "SELLER" ? "See your listings" : "See active properties"}
+                                                    </a>
+                                                </>
+                                            ) : (
+                                                <Link
+                                                    to={roleContent.hero.primaryCtaTo}
+                                                    className="homeButton"
+                                                    state={buildModalState(location, selectedRole)}
+                                                >
+                                                    {roleContent.hero.primaryCtaLabel}
+                                                </Link>
+                                            )}
+
+                                            {!isAuthed ? (
+                                                <a href={roleContent.hero.secondaryCtaHref} className="homeButton homeButton--ghost">
+                                                    {roleContent.hero.secondaryCtaLabel}
+                                                </a>
+                                            ) : null}
+                                        </div>
+                                    )}
+
+                                    <div className="homeHero__signalRow" aria-label="Experience highlights">
+                                        {roleContent.hero.signals.map((signal) => (
+                                            <span key={signal} className="homeHero__signal homeRoleMotion">
+                                                {signal}
+                                            </span>
+                                        ))}
                                     </div>
                                 </div>
-                            ) : null}
-
-                            {showGuestCtas && (
-                                <div style={HERO_CTA_ROW_STYLE}>
-                                    <Link
-                                        to={roleContent.heroCtaTo}
-                                        className="homeHero__cta"
-                                        state={{ backgroundLocation: location, modal: true, signupRole: selectedRole }}
-                                    >
-                                        <span className="homeHero__ctaText">{roleContent.heroCtaLabel}</span>
-                                        <span className="homeHero__ctaArrow" aria-hidden="true"></span>
-                                    </Link>
-                                </div>
-                            )}
+                            </div>
                         </div>
-                    </div>
-                </section>
 
-                <section ref={homeWhyRef} className="homeWhyUs" aria-label="Why Us">
-                    <div className="homeWhyUs__ambient" aria-hidden="true" />
-                    <div className="homeWhyUs__inner">
-                        <div className="homeWhyUs__top">
-                            <div className="homeWhyUs__intro">
-                                <p className="homeWhyUs__eyebrow">Why Us</p>
-                                <h2 className="homeWhyUs__title">{roleContent.whyTitle}</h2>
-                                <p className="homeWhyUs__lead">
-                                    {roleContent.whyLead}
+                        <div className="homeHero__scene homeReveal homeReveal--right" data-delay="240">
+                            <div
+                                ref={sceneFrameRef}
+                                className="homeHero__sceneFrame"
+                                onPointerEnter={() => setSceneHovered(true)}
+                                onPointerLeave={() => setSceneHovered(false)}
+                                onClick={handleSceneToggle}
+                                role="button"
+                                tabIndex={0}
+                                aria-label={aboutPageOpen ? "Close about us page" : "Open about us page"}
+                                aria-expanded={aboutPageOpen}
+                                aria-controls={ABOUT_PAGE_ID}
+                                onKeyDown={(event) => {
+                                    if (event.key === "Enter" || event.key === " ") {
+                                        event.preventDefault();
+                                        handleSceneToggle();
+                                    }
+                                }}
+                            >
+                                <div className="homeHero__sceneImage" />
+                                <div className="homeHero__sceneGradient" />
+
+                                <div className="homeHero__sceneText homeRoleMotion">
+                                    <p className="homeHero__sceneLabel">{ABOUT_SCENE_CONTENT.label}</p>
+                                    <h2 className="homeHero__sceneTitle">{ABOUT_SCENE_CONTENT.title}</h2>
+                                    <p className="homeHero__sceneCopy">{ABOUT_SCENE_CONTENT.text}</p>
+                                </div>
+                            </div>
+
+                            <div className="homeHero__floatCard homeHero__floatCard--metric">
+                                <p className="homeHero__floatLabel">{heroMetric.label}</p>
+                                <p className="homeHero__floatValue">
+                                    {heroMetric.value}
+                                    <span>{heroMetric.suffix}</span>
                                 </p>
                             </div>
 
-                            <div className="homeWhyUs__stats" aria-label="Platform metrics">
-                                <div className="homeWhyUs__stat">
-                                    <p className="homeWhyUs__statValue">{whyStats.hours}h</p>
-                                    <p className="homeWhyUs__statLabel">{roleContent.whyStatLabels[0]}</p>
-                                </div>
-                                <div className="homeWhyUs__stat">
-                                    <p className="homeWhyUs__statValue">{whyStats.multiplier}x</p>
-                                    <p className="homeWhyUs__statLabel">{roleContent.whyStatLabels[1]}</p>
-                                </div>
-                                <div className="homeWhyUs__stat">
-                                    <p className="homeWhyUs__statValue">{whyStats.percent}%</p>
-                                    <p className="homeWhyUs__statLabel">{roleContent.whyStatLabels[2]}</p>
+                            <div key={`scene-detail-${selectedRole}`} className="homeHero__floatCard homeHero__floatCard--detail">
+                                <div className="homeHero__detailList homeRoleMotion">
+                                    {roleContent.hero.detailList.map((item) => (
+                                        <span key={item} className="homeHero__detailItem">
+                                            {item}
+                                        </span>
+                                    ))}
                                 </div>
                             </div>
-                        </div>
-
-                        <div className="homeWhyUs__grid">
-                            {roleContent.whyCards.map((card, index) => (
-                                <article className="homeWhyUs__card" key={card.title}>
-                                    <p className="homeWhyUs__cardIndex">{String(index + 1).padStart(2, "0")}</p>
-                                    <h3 className="homeWhyUs__cardTitle">{card.title}</h3>
-                                    <p className="homeWhyUs__cardText">{card.text}</p>
-                                </article>
-                            ))}
                         </div>
                     </div>
                 </section>
 
-                <section
-                    ref={homeDealsRef}
-                    className={`homeDeals ${homeDealsVisible ? "homeDeals--visible" : ""}`}
-                    aria-label="Featured Deals Preview"
-                >
-                    <div className="homeDeals__inner">
-                        <div className="homeDeals__head">
-                            <div>
-                                <p className="homeDeals__eyebrow">Featured Deals Preview</p>
-                                <h2 className="homeDeals__title">{roleContent.dealsTitle}</h2>
-                                <p className="homeDeals__lead">
-                                    {roleContent.dealsLead}
-                                </p>
-                            </div>
+                {aboutPageOpen ? (
+                    <HomeAboutPage
+                        id={ABOUT_PAGE_ID}
+                        isVisible={aboutPageReady}
+                        isClosing={aboutPageClosing}
+                        isAuthed={isAuthed}
+                        primaryCtaLabel={isAuthed ? "Open dashboard" : roleContent.hero.primaryCtaLabel}
+                        primaryCtaTo={isAuthed ? "/app" : roleContent.hero.primaryCtaTo}
+                        primaryCtaState={isAuthed ? null : buildModalState(location, selectedRole)}
+                        onClose={closeScene}
+                    />
+                ) : null}
+
+                {aboutPageOpen ? (
+                    <div
+                        className={`homeAboutTransition ${aboutPageReady ? "is-open" : ""} ${aboutPageClosing ? "is-closing" : ""}`}
+                        aria-hidden="true"
+                    >
+                        <div className="homeAboutTransition__panel">
+                            <div className="homeAboutTransition__image" />
+                            <div className="homeAboutTransition__gradient" />
+                            <div className="homeAboutTransition__veil" />
+                            <div className="homeAboutTransition__glow" />
                         </div>
+                    </div>
+                ) : null}
+                {hideHomeSections ? null : (
+                    <>
+                        {!isAuthed ? (
+                            <section id="perspective" className="homeStory" aria-label="Perspective">
+                                <div className="homeShell">
+                                    <div className="homeReveal" data-delay="40">
+                                        <div key={`story-top-${selectedRole}`} className="homeStory__top homeRoleMotion">
+                                            <SectionHeading
+                                                eyebrow={roleContent.statement.eyebrow}
+                                                title={roleContent.statement.title}
+                                                lead={roleContent.statement.lead}
+                                                className=""
+                                            />
 
-                        {closedDealsLoading ? <div className="homeDeals__notice">Loading closed deals...</div> : null}
-                        {!closedDealsLoading && closedDealsError ? (
-                            <div className="homeDeals__notice homeDeals__notice--error">{closedDealsError}</div>
+                                            {roleContent.statement.quote ? (
+                                                <p className="homeStory__quote">
+                                                    {roleContent.statement.quote}
+                                                </p>
+                                            ) : null}
+                                        </div>
+                                    </div>
+
+                                    <div ref={metricsRef} className="homeStory__metrics">
+                                        {roleContent.metrics.map((metric, index) => (
+                                            <article
+                                                key={metric.label}
+                                                className="homeStory__metric homeReveal homeRoleMotion"
+                                                data-delay={index * 90}
+                                            >
+                                                <p className="homeStory__metricValue">{formatMetric(metric, metricValues[index] ?? 0)}</p>
+                                                <p className="homeStory__metricLabel">{metric.label}</p>
+                                            </article>
+                                        ))}
+                                    </div>
+
+                                    <div key={`principles-intro-${selectedRole}`} className="homeStory__principlesIntro homeReveal homeRoleMotion" data-delay="60">
+                                        <p className="homeStory__principlesEyebrow">Design principles</p>
+                                        <h3 className="homeStory__principlesTitle">{roleContent.principles.title}</h3>
+                                        <p className="homeStory__principlesLead">{roleContent.principles.lead}</p>
+                                    </div>
+
+                                    <div className="homeStory__principlesGrid">
+                                        {roleContent.principles.items.map((item, index) => (
+                                            <article
+                                                key={item.title}
+                                                className="homeStory__principle homeReveal homeRoleMotion"
+                                                data-delay={index * 110}
+                                            >
+                                                <p className="homeStory__principleLabel">{item.label}</p>
+                                                <h3 className="homeStory__principleTitle">{item.title}</h3>
+                                                <p className="homeStory__principleText">{item.text}</p>
+                                            </article>
+                                        ))}
+                                    </div>
+                                </div>
+                            </section>
                         ) : null}
-                        {!closedDealsLoading && !closedDealsError && closedDeals.length === 0 ? (
-                            <div className="homeDeals__notice">No closed deals available right now.</div>
+
+                        {!isAuthed ? (
+                            <section id="flow" className="homeProcess" aria-label="Process">
+                                <div className="homeShell">
+                                    <div key={`process-heading-${selectedRole}`} className="homeRoleMotion">
+                                        <SectionHeading
+                                            eyebrow={roleContent.process.eyebrow}
+                                            title={roleContent.process.title}
+                                            lead={roleContent.process.lead}
+                                            className={`homeReveal ${selectedRole === ROLE_SELLER ? "homeSectionHeading--sellerProcess" : ""}`}
+                                        />
+                                    </div>
+
+                                    <div className="homeProcess__grid">
+                                        {roleContent.process.steps.map((step, index) => (
+                                            <article
+                                                key={step.title}
+                                                className="homeProcess__card homeReveal homeRoleMotion"
+                                                data-delay={index * 110}
+                                            >
+                                                <p className="homeProcess__label">{step.label}</p>
+                                                <h3 className="homeProcess__title">{step.title}</h3>
+                                                <p className="homeProcess__text">{step.text}</p>
+                                            </article>
+                                        ))}
+                                    </div>
+                                </div>
+                            </section>
                         ) : null}
 
-                        {!closedDealsLoading && !closedDealsError && closedDeals.length > 0 ? (
-                            <div ref={dealsRailRef} className="homeDeals__grid">
-                                {closedDeals.map((property, index) => {
-                                    const leadPhoto = property?.photos?.[0]?.thumbnailUrl || property?.photos?.[0]?.url || "";
+                        <section id="proof" className="homeShowcase" aria-label={showcaseHeading.carouselLabel}>
+                            <div className="homeShell">
+                                <div key={`proof-heading-${displayRole}`} className="homeRoleMotion">
+                                    <SectionHeading
+                                        eyebrow={showcaseHeading.eyebrow}
+                                        title={showcaseHeading.title}
+                                        lead={showcaseHeading.lead}
+                                        className="homeReveal"
+                                    />
+                                </div>
 
-                                    return (
-                                        <article
-                                            key={property.id}
-                                            className={`homeDeals__card ${activeDealIndex === index ? "homeDeals__card--active" : ""}`}
-                                            style={{ "--deal-stagger": `${Math.min(index, 8) * 90}ms` }}
-                                        >
-                                            <div className="homeDeals__mediaWrap">
-                                                {leadPhoto ? (
-                                                    <img
-                                                        src={leadPhoto}
-                                                        alt={fullAddress(property) || `Property ${property.id}`}
-                                                        className="homeDeals__media"
-                                                    />
-                                                ) : (
-                                                    <div className="homeDeals__mediaFallback">
-                                                        <span className="material-symbols-outlined">home</span>
-                                                    </div>
-                                                )}
-                                                <span className="homeDeals__status">Closed</span>
+                                {closedDealsLoading ? (
+                                    <div className="homeShowcase__scroller" aria-label={showcaseHeading.loadingLabel}>
+                                        <div className="homeShowcase__grid homeShowcase__grid--loading">
+                                            {Array.from({ length: 4 }).map((_, index) => (
+                                                <div
+                                                    key={`placeholder-${index}`}
+                                                    className="homeShowcase__placeholder homeReveal"
+                                                    data-delay={index * 90}
+                                                />
+                                            ))}
+                                        </div>
+                                    </div>
+                                ) : null}
+
+                                {!closedDealsLoading && closedDealsError ? (
+                                    <div className="homeNotice homeReveal">{closedDealsError}</div>
+                                ) : null}
+
+                                {!closedDealsLoading && !closedDealsError && featuredDeals.length === 0 ? (
+                                    <div className="homeNotice homeReveal">{showcaseHeading.empty}</div>
+                                ) : null}
+
+                                {!closedDealsLoading && !closedDealsError && featuredDeals.length > 0 ? (
+                                    <div className="homeShowcase__scroller" aria-label={showcaseHeading.carouselLabel}>
+                                        <div className="homeShowcase__grid">
+                                            {featuredDeals.map((property, index) => (
+                                                <DealCard
+                                                    key={property?.id ?? `${property?.street1 ?? "deal"}-${index}`}
+                                                    property={property}
+                                                    delay={index * 100}
+                                                    hidePriceDetails={isSellerAuthed}
+                                                    linkTo={isAuthed && !isSellerAuthed ? "/investor" : null}
+                                                    linkState={isAuthed && !isSellerAuthed ? { homeSelectedPropertyId: property?.id } : null}
+                                                    statusLabel={isAuthed
+                                                        ? (isSellerAuthed
+                                                            ? sellerWorkflowLabel(property?.sellerWorkflowStatus)
+                                                            : "Active")
+                                                        : "Closed"}
+                                                />
+                                            ))}
+                                        </div>
+                                    </div>
+                                ) : null}
+                            </div>
+                        </section>
+
+                        {!isAuthed ? (
+                            <section className="homeClosing" aria-label="Get started">
+                                <div className="homeShell">
+                                    <div key={`closing-heading-${selectedRole}`} className="homeRoleMotion">
+                                        <SectionHeading
+                                            eyebrow={roleContent.closing.eyebrow}
+                                            title={roleContent.closing.title}
+                                            lead={roleContent.closing.lead}
+                                            className="homeReveal"
+                                        />
+                                    </div>
+
+                                    {sessionRestoreError ? (
+                                        <div className="homeClosing__panel homeReveal" data-delay="60">
+                                            <p className="homeClosing__panelText">{sessionRestoreError}</p>
+                                            <div className="homeClosing__panelActions">
+                                                <button type="button" className="homeButton" onClick={retrySessionRestore}>
+                                                    Retry session
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    className="homeButton homeButton--ghost"
+                                                    onClick={signOut}
+                                                >
+                                                    Log out
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <div className="homeClosing__grid">
+                                                {ROLE_OPTION_CARDS.map((option, index) => (
+                                                    <article
+                                                        key={option.role}
+                                                        className={`homeClosing__card ${selectedRole === option.role ? "is-selected" : ""} homeReveal`}
+                                                        data-delay={index * 120}
+                                                    >
+                                                        <p className="homeClosing__cardTag">{option.tag}</p>
+                                                        <h3 className="homeClosing__cardTitle">{option.title}</h3>
+                                                        <p className="homeClosing__cardText">{option.text}</p>
+                                                        <Link
+                                                            to={option.ctaTo}
+                                                            className="homeButton homeClosing__cardButton"
+                                                            state={buildModalState(location, option.role)}
+                                                        >
+                                                            {option.ctaLabel}
+                                                        </Link>
+                                                    </article>
+                                                ))}
                                             </div>
 
-                                            <div className="homeDeals__body">
-                                                <p className="homeDeals__address">{fullAddress(property) || "Address unavailable"}</p>
-                                                <div className="homeDeals__stats">
-                                                    <div>
-                                                        <span className="homeDeals__label">Asking</span>
-                                                        <span className="homeDeals__value">{money(property.askingPrice)}</span>
-                                                    </div>
-                                                    <div>
-                                                        <span className="homeDeals__label">ARV</span>
-                                                        <span className="homeDeals__value">{money(property.arv)}</span>
-                                                    </div>
-                                                </div>
-                                                <div className="homeDeals__meta">
-                                                    <span>{property?.beds ?? "—"} bd</span>
-                                                    <span>{property?.baths ?? "—"} ba</span>
-                                                    <span>{property?.livingAreaSqft?.toLocaleString("en-US") ?? "—"} sqft</span>
-                                                </div>
-                                            </div>
-                                        </article>
-                                    );
-                                })}
-                            </div>
-                        ) : null}
-                    </div>
-                </section>
-
-                <section
-                    ref={homeHowRef}
-                    className={`homeHow ${homeHowVisible ? "homeHow--visible" : ""}`}
-                    aria-label="How It Works"
-                >
-                    <div className="homeHow__inner">
-                        <p className="homeHow__eyebrow">How It Works</p>
-                        <h2 className="homeHow__title">{roleContent.howTitle}</h2>
-                        <p className="homeHow__lead">
-                            {roleContent.howLead}
-                        </p>
-
-                        <div className="homeHow__grid">
-                            {roleContent.howSteps.map((step, index) => (
-                                <article className="homeHow__card" key={step.title}>
-                                    <p className="homeHow__index">{String(index + 1).padStart(2, "0")}</p>
-                                    <h3 className="homeHow__cardTitle">{step.title}</h3>
-                                    <p className="homeHow__cardText">{step.text}</p>
-                                </article>
-                            ))}
-                        </div>
-                    </div>
-                </section>
-
-                <section className="homeReady" aria-label="Get Started">
-                    <div className="homeReady__ambient" aria-hidden="true" />
-                    <div className="homeReady__inner">
-                        <div className="homeReady__head">
-                            <p className="homeReady__eyebrow">Get Started</p>
-                            <h2 className="homeReady__title">{roleContent.readyTitle}</h2>
-                            <p className="homeReady__lead">
-                                {roleContent.readyLead}
-                            </p>
-                        </div>
-
-                        {isAuthed ? (
-                            <div className="homeReady__authed">
-                                <p className="homeReady__authedText">Your workspace is ready.</p>
-                                <Link to="/app" className="homeReady__btn homeReady__btn--wide">
-                                    Open Dashboard
-                                </Link>
-                            </div>
-                        ) : sessionRestoreError ? (
-                            <div className="homeReady__authed">
-                                <p className="homeReady__authedText">{sessionRestoreError}</p>
-                                <div className="homeSessionActions">
-                                    <button
-                                        type="button"
-                                        className="homeReady__btn homeReady__btn--wide"
-                                        onClick={handleRetrySession}
-                                    >
-                                        Retry session
-                                    </button>
-                                    <button
-                                        type="button"
-                                        className="homeReady__btn homeReady__btn--ghost homeReady__btn--wide"
-                                        onClick={handleSignOut}
-                                    >
-                                        Log out
-                                    </button>
+                                            <p className="homeClosing__signin homeReveal" data-delay="90">
+                                                Already a member?{" "}
+                                                <Link
+                                                    to="/login"
+                                                    className="homeClosing__signinLink"
+                                                    state={buildModalState(location)}
+                                                >
+                                                    Sign in
+                                                </Link>
+                                            </p>
+                                        </>
+                                    )}
                                 </div>
-                            </div>
-                        ) : (
-                            <div className="homeReady__roles">
-                                <article
-                                    className={`homeReady__roleCard homeReady__roleCard--investor ${selectedRole === ROLE_INVESTOR ? "homeReady__roleCard--selected" : ""}`}
-                                >
-                                    <p className="homeReady__roleTag">Buy</p>
-                                    <h3 className="homeReady__roleTitle">Source and buy vetted opportunities</h3>
-                                    <p className="homeReady__roleText">
-                                        Get matched with active opportunities and evaluate them in a clean pipeline.
-                                    </p>
-                                    <Link
-                                        to="/signup"
-                                        className="homeReady__btn homeReady__btn--wide"
-                                        state={{ backgroundLocation: location, modal: true, signupRole: "INVESTOR" }}
-                                    >
-                                        Join as Buyer
-                                    </Link>
-                                </article>
-
-                                <article
-                                    className={`homeReady__roleCard homeReady__roleCard--seller ${selectedRole === ROLE_SELLER ? "homeReady__roleCard--selected" : ""}`}
-                                >
-                                    <p className="homeReady__roleTag">Sell</p>
-                                    <h3 className="homeReady__roleTitle">Present deals with clarity</h3>
-                                    <p className="homeReady__roleText">
-                                        Share your properties, manage updates, and connect with serious buyers faster.
-                                    </p>
-                                    <Link
-                                        to="/signup/seller"
-                                        className="homeReady__btn homeReady__btn--wide"
-                                        state={{ backgroundLocation: location, modal: true, signupRole: "SELLER" }}
-                                    >
-                                        Join as Seller
-                                    </Link>
-                                </article>
-                            </div>
-                        )}
-
-                        {showGuestCtas ? (
-                            <div className="homeReady__foot">
-                                <Link
-                                    to="/login"
-                                    className="homeReady__btn homeReady__btn--ghost"
-                                    state={{ backgroundLocation: location, modal: true }}
-                                >
-                                    Sign In
-                                </Link>
-                            </div>
+                            </section>
                         ) : null}
-                    </div>
-                </section>
+                    </>
+                )}
             </main>
 
-            <footer className="homeFooter">
-                <div className="homeFooter__inner">
-                    © {new Date().getFullYear()} Megna Real Estate. All rights reserved.
-                </div>
-            </footer>
+            <PublicSiteFooter />
         </div>
     );
 }

@@ -82,7 +82,7 @@ export default function SellerProfilePage() {
         <p>Manage your seller business identity and contact settings.</p>
       </header>
 
-      {!sellerId ? <div className="sellerProfileV2__notice">Missing seller identity. Log in again.</div> : null}
+      {!sellerId ? <div className="sellerProfileV2__notice">Missing seller identity. Sign in again.</div> : null}
       {loading ? <div className="sellerProfileV2__notice">Loading profile...</div> : null}
       {error ? <div className="sellerProfileV2__error">{error}</div> : null}
 

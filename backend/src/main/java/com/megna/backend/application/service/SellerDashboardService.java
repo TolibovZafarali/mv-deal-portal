@@ -21,13 +21,11 @@ public class SellerDashboardService {
 
         long drafts = propertyRepository.countBySellerIdAndSellerWorkflowStatus(sellerId, SellerWorkflowStatus.DRAFT);
         long submitted = propertyRepository.countBySellerIdAndSellerWorkflowStatus(sellerId, SellerWorkflowStatus.SUBMITTED);
-        long changesRequested = propertyRepository.countBySellerIdAndSellerWorkflowStatus(sellerId, SellerWorkflowStatus.CHANGES_REQUESTED);
         long published = propertyRepository.countBySellerIdAndSellerWorkflowStatus(sellerId, SellerWorkflowStatus.PUBLISHED);
 
         return new SellerDashboardSummaryDto(
                 drafts,
                 submitted,
-                changesRequested,
                 published
         );
     }

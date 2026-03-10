@@ -79,7 +79,6 @@ export default function InvestorPropertyMap({
   properties,
   selectedPropertyId,
   onSelectProperty,
-  onVisiblePropertyIdsChange,
   loading,
 }) {
   const mapContainerRef = useRef(null);
@@ -188,26 +187,6 @@ export default function InvestorPropertyMap({
   }, [points]);
 
   useEffect(() => {
-    const map = mapRef.current;
-    if (!map) return;
-
-    function emitVisiblePropertyIds() {
-      const bounds = map.getBounds();
-      const visibleIds = points
-        .filter((point) => bounds.contains([point.lat, point.lng]))
-        .map((point) => point.id);
-      onVisiblePropertyIdsChange?.(visibleIds);
-    }
-
-    emitVisiblePropertyIds();
-    map.on("moveend zoomend", emitVisiblePropertyIds);
-
-    return () => {
-      map.off("moveend zoomend", emitVisiblePropertyIds);
-    };
-  }, [onVisiblePropertyIdsChange, points]);
-
-  useEffect(() => {
     if (selectedPropertyId === null || selectedPropertyId === undefined) return;
 
     const map = mapRef.current;
@@ -216,9 +195,12 @@ export default function InvestorPropertyMap({
     const selectedPoint = points.find((point) => point.id === selectedPropertyId);
     if (!selectedPoint) return;
 
-    map.panTo([selectedPoint.lat, selectedPoint.lng], {
+    map.flyTo([selectedPoint.lat, selectedPoint.lng], Math.max(
+      map.getZoom(),
+      Math.min(SINGLE_PROPERTY_ZOOM, MAP_MAX_ZOOM),
+    ), {
       animate: true,
-      duration: 0.35,
+      duration: 0.45,
     });
   }, [points, selectedPropertyId]);
 

@@ -2,7 +2,7 @@ spring:
   application:
     name: backend
   config:
-    import: optional:file:./app.env
+    import: optional:file:./app.env[.properties],optional:file:./backend/app.env[.properties]
   datasource:
     url: jdbc:mysql://localhost:3306/megnarealestate?createDatabaseIfNotExist=true
     username: ${DB_USERNAME:root}
@@ -33,6 +33,8 @@ app:
     access-token-ttl-minutes: ${JWT_ACCESS_TTL_MINUTES:60}
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://127.0.0.1:5173,https://megna-realestate.com,https://www.megna-realestate.com}
+  abuse-protection:
+    enabled: ${APP_ABUSE_PROTECTION_ENABLED:true}
 
   admin:
     bootstrap:
@@ -66,11 +68,22 @@ app:
     postmark-api-base-url: ${POSTMARK_API_BASE_URL:https://api.postmarkapp.com}
     postmark-server-token: ${POSTMARK_SERVER_TOKEN:}
     postmark-message-stream: ${POSTMARK_MESSAGE_STREAM:outbound}
+  contact:
+    general-inbox: ${APP_CONTACT_GENERAL_INBOX:contact@megna-realestate.com}
+    investor-inbox: ${APP_CONTACT_INVESTOR_INBOX:contact@megna-realestate.com}
+    seller-inbox: ${APP_CONTACT_SELLER_INBOX:contact@megna-realestate.com}
+    privacy-inbox: ${APP_CONTACT_PRIVACY_INBOX:privacy@megna-realestate.com}
   features:
     seller-threads-enabled: ${APP_FEATURES_SELLER_THREADS_ENABLED:false}
 
 server:
   port: ${PORT:8080}
+
+springdoc:
+  api-docs:
+    enabled: ${SPRINGDOC_API_DOCS_ENABLED:true}
+  swagger-ui:
+    enabled: ${SPRINGDOC_SWAGGER_UI_ENABLED:true}
 
 management:
   endpoints:

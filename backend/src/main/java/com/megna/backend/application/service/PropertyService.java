@@ -19,7 +19,6 @@ import com.megna.backend.domain.repository.PropertyRepository;
 import com.megna.backend.domain.repository.SellerRepository;
 import com.megna.backend.infrastructure.security.AuthPrincipal;
 import com.megna.backend.infrastructure.security.SecurityUtils;
-import com.megna.backend.interfaces.rest.dto.property.AdminPropertySellerReviewAction;
 import com.megna.backend.interfaces.rest.dto.property.PropertyResponseDto;
 import com.megna.backend.interfaces.rest.dto.property.PropertyUpsertRequestDto;
 import com.megna.backend.interfaces.rest.dto.property.PropertyPhotoRequestDto;
@@ -168,7 +167,7 @@ public class PropertyService {
         requireSellerOwnsProperty(property, sellerId);
 
         SellerWorkflowStatus workflowStatus = property.getSellerWorkflowStatus();
-        if (workflowStatus != SellerWorkflowStatus.DRAFT && workflowStatus != SellerWorkflowStatus.CHANGES_REQUESTED) {
+        if (workflowStatus != SellerWorkflowStatus.DRAFT) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Property cannot be deleted in the current workflow state");
         }
 
@@ -402,7 +401,7 @@ public class PropertyService {
         requireSellerOwnsProperty(property, sellerId);
 
         SellerWorkflowStatus workflowStatus = property.getSellerWorkflowStatus();
-        if (workflowStatus != SellerWorkflowStatus.DRAFT && workflowStatus != SellerWorkflowStatus.CHANGES_REQUESTED) {
+        if (workflowStatus != SellerWorkflowStatus.DRAFT) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Property is not editable in the current workflow state");
         }
 
@@ -457,7 +456,7 @@ public class PropertyService {
         requireSellerOwnsProperty(property, sellerId);
 
         SellerWorkflowStatus workflowStatus = property.getSellerWorkflowStatus();
-        if (workflowStatus != SellerWorkflowStatus.DRAFT && workflowStatus != SellerWorkflowStatus.CHANGES_REQUESTED) {
+        if (workflowStatus != SellerWorkflowStatus.DRAFT) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Property cannot be submitted in the current workflow state");
         }
 
@@ -514,67 +513,6 @@ public class PropertyService {
         }
 
         Property saved = saveProperty(property);
-        return PropertyMapper.toDto(saved);
-    }
-
-    @Transactional
-    public PropertyResponseDto reviewSellerProperty(Long propertyId, AdminPropertySellerReviewAction action, String reviewNote) {
-        requireAdmin();
-
-        if (action == null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "action is required");
-        }
-
-        Property property = propertyRepository.findById(propertyId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Property not found: " + propertyId));
-        PropertyStatus originalStatus = property.getStatus();
-
-        if (property.getSeller() == null) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Property is not assigned to a seller");
-        }
-
-        if (property.getSellerWorkflowStatus() != SellerWorkflowStatus.SUBMITTED) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Only submitted properties can be reviewed");
-        }
-
-        String normalizedNote = normalizeOptionalText(reviewNote);
-
-        if (action == AdminPropertySellerReviewAction.REQUEST_CHANGES) {
-            if (normalizedNote == null || normalizedNote.isBlank()) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "reviewNote is required when requesting changes");
-            }
-            property.setStatus(PropertyStatus.DRAFT);
-            property.setSellerWorkflowStatus(SellerWorkflowStatus.CHANGES_REQUESTED);
-            property.setSellerReviewNote(normalizedNote);
-            property.setReviewedAt(LocalDateTime.now());
-        } else {
-            property.setStatus(PropertyStatus.ACTIVE);
-            property.setSellerWorkflowStatus(SellerWorkflowStatus.PUBLISHED);
-            property.setSellerReviewNote(normalizedNote);
-            property.setReviewedAt(LocalDateTime.now());
-            property.setPublishedAt(LocalDateTime.now());
-            validateForActiveStatus(property);
-        }
-
-        Property saved = saveProperty(property);
-        enqueueInvestorNotificationsIfFirstActivePublish(saved, originalStatus);
-        if (action == AdminPropertySellerReviewAction.REQUEST_CHANGES) {
-            sellerThreadService.postSystemMessageForProperty(
-                    saved.getId(),
-                    saved.getSeller().getId(),
-                    SellerThreadService.TOPIC_WORKFLOW,
-                    saved.getId(),
-                    "Admin requested changes: " + normalizedNote
-            );
-        } else {
-            sellerThreadService.postSystemMessageForProperty(
-                    saved.getId(),
-                    saved.getSeller().getId(),
-                    SellerThreadService.TOPIC_WORKFLOW,
-                    saved.getId(),
-                    "Listing approved and published."
-            );
-        }
         return PropertyMapper.toDto(saved);
     }
 

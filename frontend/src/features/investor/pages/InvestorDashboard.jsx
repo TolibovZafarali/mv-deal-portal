@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useOutletContext } from "react-router-dom";
+import { useLocation, useNavigate, useOutletContext } from "react-router-dom";
 import { getPropertyById, searchProperties } from "@/api/modules/propertyApi";
 import { createInquiry, getInquiryByInvestor } from "@/api/modules/inquiryApi";
 import { getInquiryRepliesByInvestor } from "@/api/modules/inquiryReplyApi";
@@ -99,6 +99,42 @@ function parseDate(value) {
   return parsed;
 }
 
+function numericId(value) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return null;
+  return parsed;
+}
+
+function compareThreadMessages(left, right) {
+  const leftTime = parseDate(left?.createdAt)?.getTime() ?? 0;
+  const rightTime = parseDate(right?.createdAt)?.getTime() ?? 0;
+  if (leftTime !== rightTime) return leftTime - rightTime;
+
+  const leftId = numericId(left?.id);
+  const rightId = numericId(right?.id);
+  if (leftId !== null && rightId !== null && leftId !== rightId) {
+    return leftId - rightId;
+  }
+
+  return String(left?.key ?? "").localeCompare(String(right?.key ?? ""));
+}
+
+function toCoordinate(value) {
+  if (value === null || value === undefined || value === "") return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function hasMapCoordinates(property) {
+  return toCoordinate(property?.latitude) !== null && toCoordinate(property?.longitude) !== null;
+}
+
+function propertyFreshnessMs(property) {
+  const freshestDate =
+    parseDate(property?.publishedAt) ?? parseDate(property?.createdAt) ?? parseDate(property?.updatedAt);
+  return freshestDate?.getTime() ?? 0;
+}
+
 function isNewlyActive(property, nowMs) {
   if (String(property?.status ?? "").toUpperCase() !== "ACTIVE") return false;
   const activeAt = parseDate(property?.publishedAt) ?? parseDate(property?.createdAt);
@@ -163,6 +199,8 @@ function FilterDropdown({
 
 export default function InvestorDashboard() {
   const { user } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
   const { setPropertyDetailsOpener, openMessagesModal } = useOutletContext() || {};
   const [filters, setFilters] = useState({
     q: "",
@@ -192,7 +230,7 @@ export default function InvestorDashboard() {
   const [inquiryError, setInquiryError] = useState("");
   const [inquirySuccess, setInquirySuccess] = useState("");
   const [messagedPropertyIds, setMessagedPropertyIds] = useState([]);
-  const [repliedPropertyIds, setRepliedPropertyIds] = useState([]);
+  const [latestReplyPropertyIds, setLatestReplyPropertyIds] = useState([]);
   const [detailsOpenedFromMessages, setDetailsOpenedFromMessages] = useState(false);
   const [openFilterMenu, setOpenFilterMenu] = useState(null);
   const occupancyMenuRef = useRef(null);
@@ -203,6 +241,7 @@ export default function InvestorDashboard() {
   const closingTermsMobileMenuRef = useRef(null);
   const listPaneRef = useRef(null);
   const selectedPropertyOriginRef = useRef(null);
+  const pendingHomepagePropertyIdRef = useRef(null);
 
   const favoritePropertyIdSet = useMemo(() => {
     return new Set(favoritePropertyIds);
@@ -210,14 +249,29 @@ export default function InvestorDashboard() {
   const messagedPropertyIdSet = useMemo(() => {
     return new Set(messagedPropertyIds);
   }, [messagedPropertyIds]);
-  const repliedPropertyIdSet = useMemo(() => {
-    return new Set(repliedPropertyIds);
-  }, [repliedPropertyIds]);
+  const latestReplyPropertyIdSet = useMemo(() => {
+    return new Set(latestReplyPropertyIds);
+  }, [latestReplyPropertyIds]);
 
-  const visibleRows = useMemo(() => {
+  const filteredRows = useMemo(() => {
     if (!showFavoritesOnly) return rows;
     return rows.filter((row) => favoritePropertyIdSet.has(String(row.id)));
   }, [favoritePropertyIdSet, rows, showFavoritesOnly]);
+
+  const orderedRows = useMemo(() => {
+    return [...filteredRows].sort((left, right) => {
+      const leftHasMapCoordinates = hasMapCoordinates(left);
+      const rightHasMapCoordinates = hasMapCoordinates(right);
+      if (leftHasMapCoordinates !== rightHasMapCoordinates) {
+        return leftHasMapCoordinates ? -1 : 1;
+      }
+
+      const freshnessDelta = propertyFreshnessMs(right) - propertyFreshnessMs(left);
+      if (freshnessDelta !== 0) return freshnessDelta;
+
+      return Number(right?.id ?? 0) - Number(left?.id ?? 0);
+    });
+  }, [filteredRows]);
 
   const detailProperty = useMemo(() => {
     if (detailPropertyId === null) return null;
@@ -303,16 +357,36 @@ export default function InvestorDashboard() {
   }, [filters]);
 
   useEffect(() => {
-    if (!visibleRows.length) {
+    if (!filteredRows.length) {
       setSelectedPropertyId(null);
       return;
     }
 
-    const selectedStillVisible = visibleRows.some((row) => row.id === selectedPropertyId);
+    const selectedStillVisible = filteredRows.some((row) => row.id === selectedPropertyId);
     if (!selectedStillVisible && selectedPropertyId !== null) {
       setSelectedPropertyId(null);
     }
-  }, [visibleRows, selectedPropertyId]);
+  }, [filteredRows, selectedPropertyId]);
+
+  useEffect(() => {
+    const raw = location.state?.homeSelectedPropertyId;
+    const numeric = Number(raw);
+    if (!Number.isFinite(numeric) || numeric <= 0) return;
+
+    pendingHomepagePropertyIdRef.current = numeric;
+    navigate(`${location.pathname}${location.search}${location.hash}`, { replace: true });
+  }, [location.hash, location.pathname, location.search, location.state, navigate]);
+
+  useEffect(() => {
+    const pendingId = pendingHomepagePropertyIdRef.current;
+    if (!pendingId || !filteredRows.length) return;
+
+    const match = filteredRows.find((row) => Number(row?.id) === pendingId);
+    if (!match) return;
+
+    setSelectedPropertyId(match.id);
+    pendingHomepagePropertyIdRef.current = null;
+  }, [filteredRows]);
 
   useEffect(() => {
     if (!detailProperty && detailPropertyId !== null) {
@@ -383,7 +457,7 @@ export default function InvestorDashboard() {
     const investorId = user?.investorId;
     if (!investorId) {
       setMessagedPropertyIds([]);
-      setRepliedPropertyIds([]);
+      setLatestReplyPropertyIds([]);
       return undefined;
     }
 
@@ -425,15 +499,49 @@ export default function InvestorDashboard() {
         const nextMessaged = Array.from(
           new Set(allInquiries.map((inquiry) => String(inquiry?.propertyId ?? "")).filter(Boolean)),
         );
-        const nextReplied = Array.from(
-          new Set(allReplies.map((reply) => String(reply?.propertyId ?? "")).filter(Boolean)),
-        );
+        const latestThreadMessageByPropertyId = new Map();
+
+        allInquiries.forEach((inquiry) => {
+          const propertyId = String(inquiry?.propertyId ?? "").trim();
+          if (!propertyId) return;
+
+          const nextMessage = {
+            key: `inquiry-${inquiry?.id ?? propertyId}`,
+            kind: "INQUIRY",
+            id: inquiry?.id,
+            createdAt: inquiry?.createdAt,
+          };
+          const current = latestThreadMessageByPropertyId.get(propertyId);
+          if (!current || compareThreadMessages(current, nextMessage) < 0) {
+            latestThreadMessageByPropertyId.set(propertyId, nextMessage);
+          }
+        });
+
+        allReplies.forEach((reply) => {
+          const propertyId = String(reply?.propertyId ?? "").trim();
+          if (!propertyId) return;
+
+          const nextMessage = {
+            key: `reply-${reply?.id ?? propertyId}`,
+            kind: "REPLY",
+            id: reply?.id,
+            createdAt: reply?.createdAt,
+          };
+          const current = latestThreadMessageByPropertyId.get(propertyId);
+          if (!current || compareThreadMessages(current, nextMessage) < 0) {
+            latestThreadMessageByPropertyId.set(propertyId, nextMessage);
+          }
+        });
+
+        const nextLatestReply = Array.from(latestThreadMessageByPropertyId.entries())
+          .filter(([, message]) => message?.kind === "REPLY")
+          .map(([propertyId]) => propertyId);
         setMessagedPropertyIds(nextMessaged);
-        setRepliedPropertyIds(nextReplied);
+        setLatestReplyPropertyIds(nextLatestReply);
       } catch {
         if (!alive) return;
         setMessagedPropertyIds([]);
-        setRepliedPropertyIds([]);
+        setLatestReplyPropertyIds([]);
       }
     })();
 
@@ -480,29 +588,28 @@ export default function InvestorDashboard() {
 
   useEffect(() => {
     if (selectedPropertyOriginRef.current !== "map") return;
+
     if (selectedPropertyId === null || selectedPropertyId === undefined) {
       selectedPropertyOriginRef.current = null;
       return;
     }
 
     const listPane = listPaneRef.current;
-    if (!listPane) {
-      selectedPropertyOriginRef.current = null;
-      return;
-    }
+    if (!listPane) return;
 
-    const selector = `[data-property-id="${String(selectedPropertyId)}"]`;
+    const selectedPropertyKey = String(selectedPropertyId);
+    const selector = `[data-property-id="${selectedPropertyKey}"]`;
     const targetCard = listPane.querySelector(selector);
-    if (targetCard) {
-      targetCard.scrollIntoView({
-        behavior: "smooth",
-        block: "center",
-        inline: "nearest",
-      });
-    }
+    if (!targetCard) return;
+
+    targetCard.scrollIntoView({
+      behavior: "smooth",
+      block: "center",
+      inline: "nearest",
+    });
 
     selectedPropertyOriginRef.current = null;
-  }, [selectedPropertyId, visibleRows]);
+  }, [orderedRows, selectedPropertyId]);
 
   const hasMoreFiltersSelected = useMemo(() => {
     return [
@@ -664,14 +771,14 @@ export default function InvestorDashboard() {
 
     const investorId = user?.investorId;
     const detailPropertyKey = String(detailProperty.id ?? "");
-    const hasAdminReply = repliedPropertyIdSet.has(detailPropertyKey);
+    const latestThreadIsReply = latestReplyPropertyIdSet.has(detailPropertyKey);
     if (!investorId) {
       setInquiryError("Missing investor identity. Please log out and log in again.");
       setInquirySuccess("");
       return;
     }
 
-    if (messagedPropertyIdSet.has(detailPropertyKey) && !hasAdminReply) {
+    if (messagedPropertyIdSet.has(detailPropertyKey) && !latestThreadIsReply) {
       setInquiryError("Wait for a Megna Team reply before sending another message for this property.");
       setInquirySuccess("");
       return;
@@ -720,8 +827,15 @@ export default function InvestorDashboard() {
         contactPhone,
       });
       setMessagedPropertyIds((prev) => (prev.includes(detailPropertyKey) ? prev : [...prev, detailPropertyKey]));
+      setLatestReplyPropertyIds((prev) => prev.filter((id) => id !== detailPropertyKey));
       setInquirySuccess("Message sent to Megna Team.");
     } catch (nextError) {
+      if (nextError?.status === 409) {
+        setMessagedPropertyIds((prev) => (prev.includes(detailPropertyKey) ? prev : [...prev, detailPropertyKey]));
+        setLatestReplyPropertyIds((prev) => prev.filter((id) => id !== detailPropertyKey));
+        setInquiryError("");
+        return;
+      }
       setInquiryError(nextError?.message || "Failed to send inquiry.");
     } finally {
       setInquirySending(false);
@@ -903,7 +1017,7 @@ export default function InvestorDashboard() {
       <div className="invDash__content">
         <div className="invDash__mapPane">
           <InvestorPropertyMap
-            properties={visibleRows}
+            properties={filteredRows}
             selectedPropertyId={selectedPropertyId}
             onSelectProperty={handleMapSelectProperty}
             loading={loading}
@@ -914,11 +1028,11 @@ export default function InvestorDashboard() {
           {favoritesError ? <div className="invDash__notice invDash__notice--error">{favoritesError}</div> : null}
           {loading ? <div className="invDash__notice">Loading properties...</div> : null}
           {!loading && error ? <div className="invDash__notice invDash__notice--error">{error}</div> : null}
-          {!loading && !error && visibleRows.length === 0 ? <div className="invDash__notice">{emptyMessage}</div> : null}
+          {!loading && !error && orderedRows.length === 0 ? <div className="invDash__notice">{emptyMessage}</div> : null}
 
-          {!loading && !error && visibleRows.length > 0 ? (
+          {!loading && !error && orderedRows.length > 0 ? (
             <div className="invDash__cards">
-              {visibleRows.map((property) => {
+              {orderedRows.map((property) => {
                 const cardPhotos = Array.isArray(property.photos)
                   ? property.photos
                     .map((photo) => ({
@@ -1102,7 +1216,7 @@ export default function InvestorDashboard() {
         inquirySuccess={inquirySuccess}
         profileError={investorProfileError}
         alreadyMessaged={detailProperty ? messagedPropertyIdSet.has(String(detailProperty.id)) : false}
-        hasAdminReply={detailProperty ? repliedPropertyIdSet.has(String(detailProperty.id)) : false}
+        latestThreadIsReply={detailProperty ? latestReplyPropertyIdSet.has(String(detailProperty.id)) : false}
         isFavorite={detailProperty ? favoritePropertyIdSet.has(String(detailProperty.id)) : false}
         onToggleFavorite={() => {
           if (!detailProperty) return;

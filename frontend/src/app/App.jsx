@@ -2,6 +2,7 @@ import { Suspense, lazy } from "react"
 import { Navigate, Route, Routes, useLocation } from "react-router-dom"
 import { ProtectedRoute, useAuth } from "@/features/auth"
 
+const IS_DEV_BUILD = import.meta.env.DEV
 const AdminLayout = lazy(() => import("@/features/admin/layout/AdminLayout"))
 const InvestorLayout = lazy(() => import("@/features/investor/layout/InvestorLayout"))
 const SellerLayout = lazy(() => import("@/features/seller/layout/SellerLayout"))
@@ -9,10 +10,14 @@ const LoginModal = lazy(() => import("@/features/auth/modals/LoginModal"))
 const ForgotPasswordModal = lazy(() => import("@/features/auth/modals/ForgotPasswordModal"))
 const ResetPasswordModal = lazy(() => import("@/features/auth/modals/ResetPasswordModal"))
 const SignUpModal = lazy(() => import("@/features/auth/modals/SignUpModal"))
-const ApiSmokeTest = lazy(() => import("@/features/dev/pages/ApiSmokeTest"))
+const ContactModal = lazy(() => import("@/features/home/modals/ContactModal"))
+const ApiSmokeTest = IS_DEV_BUILD ? lazy(() => import("@/features/dev/pages/ApiSmokeTest")) : null
 const AppRedirect = lazy(() => import("@/app/routing/AppRedirect"))
 const HomePage = lazy(() => import("@/features/home/pages/HomePage"))
+const PrivacyPolicyPage = lazy(() => import("@/features/home/pages/PrivacyPolicyPage"))
+const TermsOfUsePage = lazy(() => import("@/features/home/pages/TermsOfUsePage"))
 const AdminInquiriesPage = lazy(() => import("@/features/admin/pages/AdminInquiriesPage"))
+const AdminContactRequestsPage = lazy(() => import("@/features/admin/pages/AdminContactRequestsPage"))
 const AdminInvestorsPage = lazy(() => import("@/features/admin/pages/AdminInvestorsPage"))
 const AdminSellersPage = lazy(() => import("@/features/admin/pages/AdminSellersPage"))
 const AdminPropertiesPage = lazy(() => import("@/features/admin/pages/AdminPropertiesPage"))
@@ -25,11 +30,12 @@ const SellerProfilePage = lazy(() => import("@/features/seller/pages/SellerProfi
 
 function Home() {
   const location = useLocation()
-  const { isAuthed, bootstrapping, refresh, sessionRestoreError, signOut } = useAuth()
+  const { user, isAuthed, bootstrapping, refresh, sessionRestoreError, signOut } = useAuth()
 
   return (
     <HomePage
       location={location}
+      user={user}
       isAuthed={isAuthed}
       bootstrapping={bootstrapping}
       retrySessionRestore={refresh}
@@ -50,15 +56,18 @@ export default function App() {
       <Suspense fallback={<div className="appRouteFallback">Loading page...</div>}>
         <Routes location={backgroundLocation || location}>
           <Route path="/" element={<Home />} />
+          <Route path="/privacy" element={<PrivacyPolicyPage />} />
+          <Route path="/terms" element={<TermsOfUsePage />} />
           <Route path="/login" element={<LoginModal />} />
           <Route path="/forgot-password" element={<ForgotPasswordModal />} />
           <Route path="/reset-password" element={<ResetPasswordModal />} />
           <Route path="/signup" element={<SignUpModal />} />
           <Route path="/signup/seller" element={<SignUpModal />} />
+          <Route path="/contact" element={<ContactModal />} />
 
           <Route element={<ProtectedRoute />}>
             <Route path="/app" element={<AppRedirect />} />
-            <Route path="/_dev/api" element={<ApiSmokeTest />} />
+            {ApiSmokeTest ? <Route path="/_dev/api" element={<ApiSmokeTest />} /> : null}
           </Route>
 
           <Route element={<ProtectedRoute roles={["ADMIN"]} />}>
@@ -69,6 +78,7 @@ export default function App() {
               <Route path="investors" element={<AdminInvestorsPage />} />
               <Route path="sellers" element={<AdminSellersPage />} />
               <Route path="inquiries" element={<AdminInquiriesPage />} />
+              <Route path="contact-requests" element={<AdminContactRequestsPage />} />
             </Route>
           </Route>
 
@@ -103,6 +113,7 @@ export default function App() {
             <Route path="/reset-password" element={<ResetPasswordModal />} />
             <Route path="/signup" element={<SignUpModal />} />
             <Route path="/signup/seller" element={<SignUpModal />} />
+            <Route path="/contact" element={<ContactModal />} />
           </Routes>
         </Suspense>
       )}

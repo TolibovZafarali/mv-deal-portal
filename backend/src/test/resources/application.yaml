@@ -10,6 +10,8 @@ spring:
   flyway:
     enabled: false
 app:
+  abuse-protection:
+    enabled: false
   jwt:
     secret: test-secret-value-with-min-32-chars!!
     issuer: test-issuer
