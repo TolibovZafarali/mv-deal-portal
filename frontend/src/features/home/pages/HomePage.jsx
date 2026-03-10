@@ -1,6 +1,9 @@
 import { startTransition, useEffect, useEffectEvent, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { getClosedPropertyPreviews } from "@/api/modules/propertyApi";
+import { getClosedPropertyPreviews, searchProperties } from "@/api/modules/propertyApi";
+import { getInvestorById } from "@/api/modules/investorApi";
+import { getSellerById } from "@/api/modules/sellerApi";
+import { getSellerProperties } from "@/api/modules/sellerPropertyApi";
 import {
     HOME_ROLE_STORAGE_KEY,
     ROLE_CONTENT,
@@ -100,6 +103,48 @@ function getDealSummary(property) {
     return "Closed opportunity surfaced through the Megna preview flow.";
 }
 
+function getShowcaseSummary(property, statusLabel) {
+    if (statusLabel === "Closed") {
+        return getDealSummary(property);
+    }
+
+    const asking = money(property?.askingPrice);
+    const arv = money(property?.arv);
+    const normalizedStatus = String(statusLabel ?? "").trim();
+
+    if (asking !== "—" && arv !== "—") {
+        return `${normalizedStatus} at ${asking} with an ARV of ${arv}.`;
+    }
+
+    if (asking !== "—") {
+        return `${normalizedStatus} at ${asking}.`;
+    }
+
+    if (arv !== "—") {
+        return `${normalizedStatus} with an ARV of ${arv}.`;
+    }
+
+    return normalizedStatus ? `${normalizedStatus} property in your Megna workflow.` : "Property in your Megna workflow.";
+}
+
+function normalizeRole(value) {
+    return String(value ?? "").trim().toUpperCase();
+}
+
+function userDisplayName(user) {
+    const full = [user?.firstName, user?.lastName].filter(Boolean).join(" ").trim();
+    return full;
+}
+
+function sellerWorkflowLabel(value) {
+    const normalized = normalizeRole(value);
+    if (normalized === "PUBLISHED") return "Published";
+    if (normalized === "DRAFT") return "Draft";
+    if (normalized === "SUBMITTED") return "Under review";
+    if (normalized === "CHANGES_REQUESTED") return "Needs changes";
+    return normalized ? normalized.toLowerCase().replaceAll("_", " ") : "Listing";
+}
+
 const ABOUT_SCENE_CONTENT = {
     label: "About us",
     title: "Built for calmer deal execution.",
@@ -117,7 +162,7 @@ function SectionHeading({ eyebrow, title, lead, className = "" }) {
     );
 }
 
-function DealCard({ property, delay = 0 }) {
+function DealCard({ property, delay = 0, statusLabel = "Closed" }) {
     const leadPhoto = property?.photos?.[0]?.thumbnailUrl || property?.photos?.[0]?.url || "";
     const address = fullAddress(property) || "Address unavailable";
     const market = [property?.city, property?.state].filter(Boolean).join(", ");
@@ -145,7 +190,7 @@ function DealCard({ property, delay = 0 }) {
                         <span className="material-symbols-outlined">home</span>
                     </div>
                 )}
-                <span className="homeShowcase__status">Closed</span>
+                <span className="homeShowcase__status">{statusLabel}</span>
             </div>
 
             <div className="homeShowcase__body">
@@ -154,7 +199,7 @@ function DealCard({ property, delay = 0 }) {
                     <span>Megna preview</span>
                 </div>
                 <h3 className="homeShowcase__address">{address}</h3>
-                <p className="homeShowcase__summary">{getDealSummary(property)}</p>
+                <p className="homeShowcase__summary">{getShowcaseSummary(property, statusLabel)}</p>
 
                 <div className="homeShowcase__stats">
                     <div className="homeShowcase__stat">
@@ -183,6 +228,7 @@ function DealCard({ property, delay = 0 }) {
 
 export default function HomePage({
     location,
+    user,
     isAuthed,
     bootstrapping,
     retrySessionRestore,
@@ -203,11 +249,43 @@ export default function HomePage({
     const [closedDeals, setClosedDeals] = useState([]);
     const [closedDealsLoading, setClosedDealsLoading] = useState(true);
     const [closedDealsError, setClosedDealsError] = useState("");
+    const [signedInName, setSignedInName] = useState("");
 
-    const roleContent = ROLE_CONTENT[selectedRole] || ROLE_CONTENT[ROLE_INVESTOR];
+    const authenticatedRole = normalizeRole(user?.role);
+    const displayRole = isAuthed
+        ? (authenticatedRole === "SELLER" ? ROLE_SELLER : ROLE_INVESTOR)
+        : selectedRole;
+    const roleContent = ROLE_CONTENT[displayRole] || ROLE_CONTENT[ROLE_INVESTOR];
     const showGuestCtas = !isAuthed && !sessionRestoreError;
     const featuredDeals = closedDeals.slice(0, 4);
     const heroMetric = roleContent.metrics[0];
+    const isSellerAuthed = isAuthed && authenticatedRole === "SELLER";
+    const showcaseHeading = isAuthed
+        ? (isSellerAuthed
+            ? {
+                eyebrow: "Your listings",
+                title: "Published first, drafts next.",
+                lead: "Listings are prioritized so you can review what is live first, then continue working through drafts.",
+                empty: "No listings are available right now.",
+                loadingLabel: "Loading your listings",
+                carouselLabel: "Your listings",
+            }
+            : {
+                eyebrow: "Active properties",
+                title: "Properties currently active.",
+                lead: "These are live opportunities available for review right now.",
+                empty: "No active properties are available right now.",
+                loadingLabel: "Loading active properties",
+                carouselLabel: "Active properties",
+            })
+        : {
+            eyebrow: roleContent.proof.eyebrow,
+            title: roleContent.proof.title,
+            lead: roleContent.proof.lead,
+            empty: "No recent closings are available right now.",
+            loadingLabel: "Loading recent closings",
+            carouselLabel: "Recent closings carousel",
+        };
 
     const handleSelectRole = (role) => {
         startTransition(() => {
@@ -391,7 +469,20 @@ export default function HomePage({
 
     useEffect(() => {
         const section = metricsRef.current;
-        if (!section) return undefined;
+        if (!section) {
+            setMetricsVisible(false);
+            return undefined;
+        }
+
+        if (typeof IntersectionObserver === "undefined") {
+            setMetricsVisible(true);
+            return undefined;
+        }
+
+        const rect = section.getBoundingClientRect();
+        const viewportHeight = window.innerHeight || 0;
+        const initiallyVisible = rect.bottom > 0 && rect.top < viewportHeight;
+        setMetricsVisible(initiallyVisible);
 
         const observer = new IntersectionObserver(
             ([entry]) => {
@@ -405,7 +496,7 @@ export default function HomePage({
 
         observer.observe(section);
         return () => observer.disconnect();
-    }, []);
+    }, [aboutPageOpen, isAuthed, selectedRole]);
 
     useEffect(() => {
         let frameId = 0;
@@ -442,15 +533,43 @@ export default function HomePage({
             setClosedDealsError("");
 
             try {
-                const response = await getClosedPropertyPreviews({ page: 0, size: 6, sort: "createdAt,desc" });
-                if (!alive) return;
+                let rows = [];
 
-                const rows = Array.isArray(response?.content) ? response.content : [];
+                if (!isAuthed) {
+                    const response = await getClosedPropertyPreviews({ page: 0, size: 6, sort: "createdAt,desc" });
+                    rows = Array.isArray(response?.content) ? response.content : [];
+                } else if (authenticatedRole === "SELLER") {
+                    const response = await getSellerProperties({ page: 0, size: 20, sort: "updatedAt,desc" });
+                    const sellerRows = Array.isArray(response?.content) ? response.content : [];
+                    const workflowRank = (property) => {
+                        const workflow = normalizeRole(property?.sellerWorkflowStatus);
+                        if (workflow === "PUBLISHED") return 0;
+                        if (workflow === "DRAFT") return 1;
+                        return 2;
+                    };
+                    rows = sellerRows
+                        .slice()
+                        .sort((a, b) => workflowRank(a) - workflowRank(b))
+                        .slice(0, 6);
+                } else {
+                    const response = await searchProperties(
+                        { status: "ACTIVE" },
+                        { page: 0, size: 6, sort: "createdAt,desc" },
+                    );
+                    rows = Array.isArray(response?.content) ? response.content : [];
+                }
+
+                if (!alive) return;
                 setClosedDeals(rows);
             } catch (error) {
                 if (!alive) return;
                 setClosedDeals([]);
-                setClosedDealsError(error?.message || "Failed to load featured closings.");
+                const fallbackError = isAuthed
+                    ? (authenticatedRole === "SELLER"
+                        ? "Failed to load your listings."
+                        : "Failed to load active properties.")
+                    : "Failed to load featured closings.";
+                setClosedDealsError(error?.message || fallbackError);
             } finally {
                 if (alive) {
                     setClosedDealsLoading(false);
@@ -461,7 +580,7 @@ export default function HomePage({
         return () => {
             alive = false;
         };
-    }, []);
+    }, [authenticatedRole, isAuthed]);
 
     useEffect(() => {
         const nextRole = location.state?.signupRole;
@@ -481,6 +600,51 @@ export default function HomePage({
             return;
         }
     }, [selectedRole]);
+
+    useEffect(() => {
+        if (!isAuthed) {
+            setSignedInName("");
+            return;
+        }
+
+        const immediateName = userDisplayName(user);
+        if (immediateName) {
+            setSignedInName(immediateName);
+            return;
+        }
+
+        let alive = true;
+
+        (async () => {
+            try {
+                if (authenticatedRole === "INVESTOR" && user?.investorId) {
+                    const investor = await getInvestorById(user.investorId);
+                    if (!alive) return;
+                    setSignedInName([investor?.firstName, investor?.lastName].filter(Boolean).join(" ").trim());
+                    return;
+                }
+
+                if (authenticatedRole === "SELLER" && user?.sellerId) {
+                    const seller = await getSellerById(user.sellerId);
+                    if (!alive) return;
+                    setSignedInName([seller?.firstName, seller?.lastName].filter(Boolean).join(" ").trim());
+                    return;
+                }
+
+                if (alive) {
+                    setSignedInName("");
+                }
+            } catch {
+                if (alive) {
+                    setSignedInName("");
+                }
+            }
+        })();
+
+        return () => {
+            alive = false;
+        };
+    }, [authenticatedRole, isAuthed, user]);
 
     useEffect(() => {
         if (!aboutPageOpen) return undefined;
@@ -541,30 +705,32 @@ export default function HomePage({
 
             <header className="homeHeader">
                 <div className="homeShell homeHeader__inner homeReveal" data-delay="20">
-                    <div className="homeHeader__left">
-                        <div
-                            className={`homeRoleSwitch homeRoleSwitch--header ${selectedRole === ROLE_SELLER ? "homeRoleSwitch--seller" : ""}`}
-                            role="tablist"
-                            aria-label="Choose your role"
-                        >
-                            <button
-                                type="button"
-                                className={`homeRoleSwitch__button ${selectedRole === ROLE_INVESTOR ? "is-active" : ""}`}
-                                onClick={() => handleSelectRole(ROLE_INVESTOR)}
-                                aria-pressed={selectedRole === ROLE_INVESTOR}
+                    {!isAuthed ? (
+                        <div className="homeHeader__left">
+                            <div
+                                className={`homeRoleSwitch homeRoleSwitch--header ${selectedRole === ROLE_SELLER ? "homeRoleSwitch--seller" : ""}`}
+                                role="tablist"
+                                aria-label="Choose your role"
                             >
-                                Buy
-                            </button>
-                            <button
-                                type="button"
-                                className={`homeRoleSwitch__button ${selectedRole === ROLE_SELLER ? "is-active" : ""}`}
-                                onClick={() => handleSelectRole(ROLE_SELLER)}
-                                aria-pressed={selectedRole === ROLE_SELLER}
-                            >
-                                Sell
-                            </button>
+                                <button
+                                    type="button"
+                                    className={`homeRoleSwitch__button ${selectedRole === ROLE_INVESTOR ? "is-active" : ""}`}
+                                    onClick={() => handleSelectRole(ROLE_INVESTOR)}
+                                    aria-pressed={selectedRole === ROLE_INVESTOR}
+                                >
+                                    Buy
+                                </button>
+                                <button
+                                    type="button"
+                                    className={`homeRoleSwitch__button ${selectedRole === ROLE_SELLER ? "is-active" : ""}`}
+                                    onClick={() => handleSelectRole(ROLE_SELLER)}
+                                    aria-pressed={selectedRole === ROLE_SELLER}
+                                >
+                                    Sell
+                                </button>
+                            </div>
                         </div>
-                    </div>
+                    ) : null}
 
                     <Link to="/" className="homeHeader__logo" aria-label="Megna Real Estate home">
                         <span className="homeHeader__logoImage" aria-hidden="true" />
@@ -572,9 +738,18 @@ export default function HomePage({
 
                     <div className="homeHeader__actions">
                         {isAuthed ? (
-                            <Link to="/app" className="homeButton homeButton--compact">
-                                Open dashboard
-                            </Link>
+                            <>
+                                <button
+                                    type="button"
+                                    className="homeHeader__utilityLink homeHeader__utilityButton"
+                                    onClick={signOut}
+                                >
+                                    Sign out
+                                </button>
+                                <Link to="/app" className="homeButton homeButton--compact">
+                                    Open dashboard
+                                </Link>
+                            </>
                         ) : showGuestCtas ? (
                             <>
                                 <Link
@@ -623,9 +798,21 @@ export default function HomePage({
                         <div className="homeHero__copy homeReveal" data-delay="120">
                             <div className="homeHero__copySwap">
                                 <div key={`hero-copy-${selectedRole}`} className="homeRoleMotion">
-                                    <p className="homeHero__eyebrow">{roleContent.hero.eyebrow}</p>
-                                    <h1 className="homeHero__title">{roleContent.hero.title}</h1>
-                                    <p className="homeHero__subtitle">{roleContent.hero.subtitle}</p>
+                                    <p className="homeHero__eyebrow">
+                                        {isAuthed ? "WELCOME BACK" : roleContent.hero.eyebrow}
+                                    </p>
+                                    <h1 className="homeHero__title">
+                                        {isAuthed
+                                            ? signedInName
+                                            : roleContent.hero.title}
+                                    </h1>
+                                    <p className="homeHero__subtitle">
+                                        {isAuthed
+                                            ? (authenticatedRole === "SELLER"
+                                                ? "Published listings are surfaced first, followed by drafts so you can prioritize quickly."
+                                                : "Review active properties and jump back into live opportunities without extra noise.")
+                                            : roleContent.hero.subtitle}
+                                    </p>
 
                                     {sessionRestoreError ? (
                                         <div className="homeStatusPanel" role="status">
@@ -650,9 +837,14 @@ export default function HomePage({
                                     ) : (
                                         <div className="homeHero__actions">
                                             {isAuthed ? (
-                                                <Link to="/app" className="homeButton">
-                                                    Open dashboard
-                                                </Link>
+                                                <>
+                                                    <Link to="/app" className="homeButton">
+                                                        Open dashboard
+                                                    </Link>
+                                                    <a href="#proof" className="homeButton homeButton--ghost">
+                                                        {authenticatedRole === "SELLER" ? "See your listings" : "See active properties"}
+                                                    </a>
+                                                </>
                                             ) : (
                                                 <Link
                                                     to={roleContent.hero.primaryCtaTo}
@@ -663,9 +855,11 @@ export default function HomePage({
                                                 </Link>
                                             )}
 
-                                            <a href={roleContent.hero.secondaryCtaHref} className="homeButton homeButton--ghost">
-                                                {roleContent.hero.secondaryCtaLabel}
-                                            </a>
+                                            {!isAuthed ? (
+                                                <a href={roleContent.hero.secondaryCtaHref} className="homeButton homeButton--ghost">
+                                                    {roleContent.hero.secondaryCtaLabel}
+                                                </a>
+                                            ) : null}
                                         </div>
                                     )}
 
@@ -760,205 +954,209 @@ export default function HomePage({
                 ) : null}
                 {aboutPageOpen ? null : (
                     <>
-                        <section id="perspective" className="homeStory" aria-label="Perspective">
-                    <div className="homeShell">
-                        <div className="homeReveal" data-delay="40">
-                            <div key={`story-top-${selectedRole}`} className="homeStory__top homeRoleMotion">
-                                <SectionHeading
-                                    eyebrow={roleContent.statement.eyebrow}
-                                    title={roleContent.statement.title}
-                                    lead={roleContent.statement.lead}
-                                    className=""
-                                />
+                        {!isAuthed ? (
+                            <section id="perspective" className="homeStory" aria-label="Perspective">
+                                <div className="homeShell">
+                                    <div className="homeReveal" data-delay="40">
+                                        <div key={`story-top-${selectedRole}`} className="homeStory__top homeRoleMotion">
+                                            <SectionHeading
+                                                eyebrow={roleContent.statement.eyebrow}
+                                                title={roleContent.statement.title}
+                                                lead={roleContent.statement.lead}
+                                                className=""
+                                            />
 
-                                <p className="homeStory__quote">
-                                    {roleContent.statement.quote}
-                                </p>
-                            </div>
-                        </div>
+                                            <p className="homeStory__quote">
+                                                {roleContent.statement.quote}
+                                            </p>
+                                        </div>
+                                    </div>
 
-                        <div ref={metricsRef} className="homeStory__metrics">
-                            {roleContent.metrics.map((metric, index) => (
-                                <article
-                                    key={metric.label}
-                                    className="homeStory__metric homeReveal homeRoleMotion"
-                                    data-delay={index * 90}
-                                >
-                                    <p className="homeStory__metricValue">{formatMetric(metric, metricValues[index] ?? 0)}</p>
-                                    <p className="homeStory__metricLabel">{metric.label}</p>
-                                </article>
-                            ))}
-                        </div>
-
-                        <div key={`principles-intro-${selectedRole}`} className="homeStory__principlesIntro homeReveal homeRoleMotion" data-delay="60">
-                            <p className="homeStory__principlesEyebrow">Design principles</p>
-                            <h3 className="homeStory__principlesTitle">{roleContent.principles.title}</h3>
-                            <p className="homeStory__principlesLead">{roleContent.principles.lead}</p>
-                        </div>
-
-                        <div className="homeStory__principlesGrid">
-                            {roleContent.principles.items.map((item, index) => (
-                                <article
-                                    key={item.title}
-                                    className="homeStory__principle homeReveal homeRoleMotion"
-                                    data-delay={index * 110}
-                                >
-                                    <p className="homeStory__principleLabel">{item.label}</p>
-                                    <h3 className="homeStory__principleTitle">{item.title}</h3>
-                                    <p className="homeStory__principleText">{item.text}</p>
-                                </article>
-                            ))}
-                        </div>
-                    </div>
-                </section>
-
-                <section id="flow" className="homeProcess" aria-label="Process">
-                    <div className="homeShell">
-                        <div key={`process-heading-${selectedRole}`} className="homeRoleMotion">
-                            <SectionHeading
-                                eyebrow={roleContent.process.eyebrow}
-                                title={roleContent.process.title}
-                                lead={roleContent.process.lead}
-                                className="homeReveal"
-                            />
-                        </div>
-
-                        <div className="homeProcess__grid">
-                            {roleContent.process.steps.map((step, index) => (
-                                <article
-                                    key={step.title}
-                                    className="homeProcess__card homeReveal homeRoleMotion"
-                                    data-delay={index * 110}
-                                >
-                                    <p className="homeProcess__label">{step.label}</p>
-                                    <h3 className="homeProcess__title">{step.title}</h3>
-                                    <p className="homeProcess__text">{step.text}</p>
-                                </article>
-                            ))}
-                        </div>
-                    </div>
-                </section>
-
-                <section id="proof" className="homeShowcase" aria-label="Recent closings">
-                    <div className="homeShell">
-                        <div key={`proof-heading-${selectedRole}`} className="homeRoleMotion">
-                            <SectionHeading
-                                eyebrow={roleContent.proof.eyebrow}
-                                title={roleContent.proof.title}
-                                lead={roleContent.proof.lead}
-                                className="homeReveal"
-                            />
-                        </div>
-
-                        {closedDealsLoading ? (
-                            <div className="homeShowcase__scroller" aria-label="Loading recent closings">
-                                <div className="homeShowcase__grid homeShowcase__grid--loading">
-                                    {Array.from({ length: 4 }).map((_, index) => (
-                                        <div
-                                            key={`placeholder-${index}`}
-                                            className="homeShowcase__placeholder homeReveal"
-                                            data-delay={index * 90}
-                                        />
-                                    ))}
-                                </div>
-                            </div>
-                        ) : null}
-
-                        {!closedDealsLoading && closedDealsError ? (
-                            <div className="homeNotice homeReveal">{closedDealsError}</div>
-                        ) : null}
-
-                        {!closedDealsLoading && !closedDealsError && featuredDeals.length === 0 ? (
-                            <div className="homeNotice homeReveal">No recent closings are available right now.</div>
-                        ) : null}
-
-                        {!closedDealsLoading && !closedDealsError && featuredDeals.length > 0 ? (
-                            <div className="homeShowcase__scroller" aria-label="Recent closings carousel">
-                                <div className="homeShowcase__grid">
-                                    {featuredDeals.map((property, index) => (
-                                        <DealCard
-                                            key={property?.id ?? `${property?.street1 ?? "deal"}-${index}`}
-                                            property={property}
-                                            delay={index * 100}
-                                        />
-                                    ))}
-                                </div>
-                            </div>
-                        ) : null}
-                    </div>
-                </section>
-
-                <section className="homeClosing" aria-label="Get started">
-                    <div className="homeShell">
-                        <div key={`closing-heading-${selectedRole}`} className="homeRoleMotion">
-                            <SectionHeading
-                                eyebrow={roleContent.closing.eyebrow}
-                                title={roleContent.closing.title}
-                                lead={roleContent.closing.lead}
-                                className="homeReveal"
-                            />
-                        </div>
-
-                        {isAuthed ? (
-                            <div className="homeClosing__panel homeReveal" data-delay="60">
-                                <p className="homeClosing__panelText">Your workspace is ready.</p>
-                                <Link to="/app" className="homeButton">
-                                    Open dashboard
-                                </Link>
-                            </div>
-                        ) : sessionRestoreError ? (
-                            <div className="homeClosing__panel homeReveal" data-delay="60">
-                                <p className="homeClosing__panelText">{sessionRestoreError}</p>
-                                <div className="homeClosing__panelActions">
-                                    <button type="button" className="homeButton" onClick={retrySessionRestore}>
-                                        Retry session
-                                    </button>
-                                    <button
-                                        type="button"
-                                        className="homeButton homeButton--ghost"
-                                        onClick={signOut}
-                                    >
-                                        Log out
-                                    </button>
-                                </div>
-                            </div>
-                        ) : (
-                            <>
-                                <div className="homeClosing__grid">
-                                    {ROLE_OPTION_CARDS.map((option, index) => (
-                                        <article
-                                            key={option.role}
-                                            className={`homeClosing__card ${selectedRole === option.role ? "is-selected" : ""} homeReveal`}
-                                            data-delay={index * 120}
-                                        >
-                                            <p className="homeClosing__cardTag">{option.tag}</p>
-                                            <h3 className="homeClosing__cardTitle">{option.title}</h3>
-                                            <p className="homeClosing__cardText">{option.text}</p>
-                                            <Link
-                                                to={option.ctaTo}
-                                                className="homeButton homeClosing__cardButton"
-                                                state={buildModalState(location, option.role)}
+                                    <div ref={metricsRef} className="homeStory__metrics">
+                                        {roleContent.metrics.map((metric, index) => (
+                                            <article
+                                                key={metric.label}
+                                                className="homeStory__metric homeReveal homeRoleMotion"
+                                                data-delay={index * 90}
                                             >
-                                                {option.ctaLabel}
-                                            </Link>
-                                        </article>
-                                    ))}
+                                                <p className="homeStory__metricValue">{formatMetric(metric, metricValues[index] ?? 0)}</p>
+                                                <p className="homeStory__metricLabel">{metric.label}</p>
+                                            </article>
+                                        ))}
+                                    </div>
+
+                                    <div key={`principles-intro-${selectedRole}`} className="homeStory__principlesIntro homeReveal homeRoleMotion" data-delay="60">
+                                        <p className="homeStory__principlesEyebrow">Design principles</p>
+                                        <h3 className="homeStory__principlesTitle">{roleContent.principles.title}</h3>
+                                        <p className="homeStory__principlesLead">{roleContent.principles.lead}</p>
+                                    </div>
+
+                                    <div className="homeStory__principlesGrid">
+                                        {roleContent.principles.items.map((item, index) => (
+                                            <article
+                                                key={item.title}
+                                                className="homeStory__principle homeReveal homeRoleMotion"
+                                                data-delay={index * 110}
+                                            >
+                                                <p className="homeStory__principleLabel">{item.label}</p>
+                                                <h3 className="homeStory__principleTitle">{item.title}</h3>
+                                                <p className="homeStory__principleText">{item.text}</p>
+                                            </article>
+                                        ))}
+                                    </div>
+                                </div>
+                            </section>
+                        ) : null}
+
+                        {!isAuthed ? (
+                            <section id="flow" className="homeProcess" aria-label="Process">
+                                <div className="homeShell">
+                                    <div key={`process-heading-${selectedRole}`} className="homeRoleMotion">
+                                        <SectionHeading
+                                            eyebrow={roleContent.process.eyebrow}
+                                            title={roleContent.process.title}
+                                            lead={roleContent.process.lead}
+                                            className="homeReveal"
+                                        />
+                                    </div>
+
+                                    <div className="homeProcess__grid">
+                                        {roleContent.process.steps.map((step, index) => (
+                                            <article
+                                                key={step.title}
+                                                className="homeProcess__card homeReveal homeRoleMotion"
+                                                data-delay={index * 110}
+                                            >
+                                                <p className="homeProcess__label">{step.label}</p>
+                                                <h3 className="homeProcess__title">{step.title}</h3>
+                                                <p className="homeProcess__text">{step.text}</p>
+                                            </article>
+                                        ))}
+                                    </div>
+                                </div>
+                            </section>
+                        ) : null}
+
+                        <section id="proof" className="homeShowcase" aria-label={showcaseHeading.carouselLabel}>
+                            <div className="homeShell">
+                                <div key={`proof-heading-${displayRole}`} className="homeRoleMotion">
+                                    <SectionHeading
+                                        eyebrow={showcaseHeading.eyebrow}
+                                        title={showcaseHeading.title}
+                                        lead={showcaseHeading.lead}
+                                        className="homeReveal"
+                                    />
                                 </div>
 
-                                <p className="homeClosing__signin homeReveal" data-delay="90">
-                                    Already a member?{" "}
-                                    <Link
-                                        to="/login"
-                                        className="homeClosing__signinLink"
-                                        state={buildModalState(location)}
-                                    >
-                                        Sign in
-                                    </Link>
-                                </p>
-                            </>
-                        )}
-                    </div>
-                </section>
+                                {closedDealsLoading ? (
+                                    <div className="homeShowcase__scroller" aria-label={showcaseHeading.loadingLabel}>
+                                        <div className="homeShowcase__grid homeShowcase__grid--loading">
+                                            {Array.from({ length: 4 }).map((_, index) => (
+                                                <div
+                                                    key={`placeholder-${index}`}
+                                                    className="homeShowcase__placeholder homeReveal"
+                                                    data-delay={index * 90}
+                                                />
+                                            ))}
+                                        </div>
+                                    </div>
+                                ) : null}
+
+                                {!closedDealsLoading && closedDealsError ? (
+                                    <div className="homeNotice homeReveal">{closedDealsError}</div>
+                                ) : null}
+
+                                {!closedDealsLoading && !closedDealsError && featuredDeals.length === 0 ? (
+                                    <div className="homeNotice homeReveal">{showcaseHeading.empty}</div>
+                                ) : null}
+
+                                {!closedDealsLoading && !closedDealsError && featuredDeals.length > 0 ? (
+                                    <div className="homeShowcase__scroller" aria-label={showcaseHeading.carouselLabel}>
+                                        <div className="homeShowcase__grid">
+                                            {featuredDeals.map((property, index) => (
+                                                <DealCard
+                                                    key={property?.id ?? `${property?.street1 ?? "deal"}-${index}`}
+                                                    property={property}
+                                                    delay={index * 100}
+                                                    statusLabel={isAuthed
+                                                        ? (isSellerAuthed
+                                                            ? sellerWorkflowLabel(property?.sellerWorkflowStatus)
+                                                            : "Active")
+                                                        : "Closed"}
+                                                />
+                                            ))}
+                                        </div>
+                                    </div>
+                                ) : null}
+                            </div>
+                        </section>
+
+                        {!isAuthed ? (
+                            <section className="homeClosing" aria-label="Get started">
+                                <div className="homeShell">
+                                    <div key={`closing-heading-${selectedRole}`} className="homeRoleMotion">
+                                        <SectionHeading
+                                            eyebrow={roleContent.closing.eyebrow}
+                                            title={roleContent.closing.title}
+                                            lead={roleContent.closing.lead}
+                                            className="homeReveal"
+                                        />
+                                    </div>
+
+                                    {sessionRestoreError ? (
+                                        <div className="homeClosing__panel homeReveal" data-delay="60">
+                                            <p className="homeClosing__panelText">{sessionRestoreError}</p>
+                                            <div className="homeClosing__panelActions">
+                                                <button type="button" className="homeButton" onClick={retrySessionRestore}>
+                                                    Retry session
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    className="homeButton homeButton--ghost"
+                                                    onClick={signOut}
+                                                >
+                                                    Log out
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <div className="homeClosing__grid">
+                                                {ROLE_OPTION_CARDS.map((option, index) => (
+                                                    <article
+                                                        key={option.role}
+                                                        className={`homeClosing__card ${selectedRole === option.role ? "is-selected" : ""} homeReveal`}
+                                                        data-delay={index * 120}
+                                                    >
+                                                        <p className="homeClosing__cardTag">{option.tag}</p>
+                                                        <h3 className="homeClosing__cardTitle">{option.title}</h3>
+                                                        <p className="homeClosing__cardText">{option.text}</p>
+                                                        <Link
+                                                            to={option.ctaTo}
+                                                            className="homeButton homeClosing__cardButton"
+                                                            state={buildModalState(location, option.role)}
+                                                        >
+                                                            {option.ctaLabel}
+                                                        </Link>
+                                                    </article>
+                                                ))}
+                                            </div>
+
+                                            <p className="homeClosing__signin homeReveal" data-delay="90">
+                                                Already a member?{" "}
+                                                <Link
+                                                    to="/login"
+                                                    className="homeClosing__signinLink"
+                                                    state={buildModalState(location)}
+                                                >
+                                                    Sign in
+                                                </Link>
+                                            </p>
+                                        </>
+                                    )}
+                                </div>
+                            </section>
+                        ) : null}
                     </>
                 )}
             </main>
