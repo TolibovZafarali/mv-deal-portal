@@ -118,6 +118,21 @@ html.homeSmoothScroll body::-webkit-scrollbar {
     opacity 620ms var(--home-ease);
 }
 
+.homeHeader__left--signedIn {
+  min-width: 0;
+}
+
+.homeHeader__roleBadge {
+  display: inline-flex;
+  align-items: center;
+  color: var(--home-muted);
+  font-size: 0.73rem;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
 .homeHeader__logo {
   position: absolute;
   left: 50%;

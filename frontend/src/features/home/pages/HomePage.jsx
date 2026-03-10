@@ -288,6 +288,7 @@ export default function HomePage({
         : selectedRole;
     const roleContent = ROLE_CONTENT[displayRole] || ROLE_CONTENT[ROLE_INVESTOR];
     const isSellerAuthed = isAuthed && authenticatedRole === "SELLER";
+    const signedInRoleLabel = isSellerAuthed ? "Seller" : "Investor";
     const showGuestCtas = !isAuthed && !sessionRestoreError;
     const featuredDeals = isAuthed && !isSellerAuthed ? closedDeals : closedDeals.slice(0, 4);
     const heroMetric = roleContent.metrics[0];
@@ -737,8 +738,8 @@ export default function HomePage({
 
             <header className="homeHeader">
                 <div className="homeShell homeHeader__inner homeReveal" data-delay="20">
-                    {!isAuthed ? (
-                        <div className="homeHeader__left">
+                    <div className={`homeHeader__left ${isAuthed ? "homeHeader__left--signedIn" : ""}`.trim()}>
+                        {!isAuthed ? (
                             <div
                                 className={`homeRoleSwitch homeRoleSwitch--header ${selectedRole === ROLE_SELLER ? "homeRoleSwitch--seller" : ""}`}
                                 role="tablist"
@@ -761,8 +762,15 @@ export default function HomePage({
                                     Sell
                                 </button>
                             </div>
-                        </div>
-                    ) : null}
+                        ) : (
+                            <span
+                                className="homeHeader__roleBadge"
+                                aria-label={`Signed in as ${signedInRoleLabel}`}
+                            >
+                                {signedInRoleLabel}
+                            </span>
+                        )}
+                    </div>
 
                     <Link to="/" className="homeHeader__logo" aria-label="Megna Real Estate home">
                         <span className="homeHeader__logoImage" aria-hidden="true" />
