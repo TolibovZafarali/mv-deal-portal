@@ -131,17 +131,10 @@ public class AuthService {
             throw invalidRefreshToken();
         }
 
-        String tokenHash = hashToken(token);
-        RefreshToken refreshToken = refreshTokenRepository.findByTokenHashAndRevokedAtIsNull(tokenHash)
-                .orElseThrow(this::invalidRefreshToken);
-
         LocalDateTime now = LocalDateTime.now();
-        if (refreshToken.getExpiresAt() == null || refreshToken.getExpiresAt().isBefore(now)) {
-            refreshToken.setRevokedAt(now);
-            refreshToken.setLastUsedAt(now);
-            refreshTokenRepository.save(refreshToken);
-            throw invalidRefreshToken();
-        }
+        String tokenHash = hashToken(token);
+        RefreshToken refreshToken = refreshTokenRepository.findActiveByTokenHash(tokenHash, now)
+                .orElseThrow(() -> invalidRefreshTokenForHash(tokenHash));
 
         Long principalId = refreshToken.getPrincipalId();
         String principalType = normalizePrincipalType(refreshToken.getPrincipalType());
@@ -681,6 +674,11 @@ public class AuthService {
 
     private ResponseStatusException invalidRefreshToken() {
         return new ResponseStatusException(HttpStatus.UNAUTHORIZED, INVALID_REFRESH_TOKEN_MESSAGE);
+    }
+
+    private ResponseStatusException invalidRefreshTokenForHash(String tokenHash) {
+        refreshTokenRepository.revokeExpiredByTokenHash(tokenHash, LocalDateTime.now());
+        return invalidRefreshToken();
     }
 
     private record PrincipalRef(String type, Long id, String email, String greetingName) {}
