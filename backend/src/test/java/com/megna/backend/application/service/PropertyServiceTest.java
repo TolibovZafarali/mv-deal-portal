@@ -68,6 +68,9 @@ class PropertyServiceTest {
     @Mock
     private PropertyPublicationNotificationService propertyPublicationNotificationService;
 
+    @Mock
+    private SellerPropertyEmailNotificationService sellerPropertyEmailNotificationService;
+
     @InjectMocks
     private PropertyService propertyService;
 
@@ -223,6 +226,42 @@ class PropertyServiceTest {
     }
 
     @Test
+    void submitBySellerSendsAdminSubmissionEmail() {
+        authenticateAsSeller(20L);
+
+        Seller seller = activeSeller(20L);
+        Property property = sellerDraftProperty(41L, seller);
+        when(propertyRepository.findById(41L)).thenReturn(Optional.of(property));
+
+        propertyService.submitBySeller(20L, 41L);
+
+        verify(sellerPropertyEmailNotificationService).notifyAdminPropertySubmitted(property);
+        verify(sellerThreadService).postSystemMessageForProperty(
+                41L,
+                20L,
+                SellerThreadService.TOPIC_WORKFLOW,
+                41L,
+                "Listing submitted for review."
+        );
+    }
+
+    @Test
+    void updateToActiveWithSellerSendsSellerPublishedEmail() {
+        authenticateAsAdmin();
+
+        Seller seller = activeSeller(21L);
+        Property property = activeReadyProperty(42L);
+        property.setSeller(seller);
+        property.setSellerWorkflowStatus(SellerWorkflowStatus.SUBMITTED);
+        property.setStatus(PropertyStatus.DRAFT);
+        when(propertyRepository.findById(42L)).thenReturn(Optional.of(property));
+
+        propertyService.update(42L, activeDto("62001", 3));
+
+        verify(sellerPropertyEmailNotificationService).notifySellerPropertyPublished(property);
+    }
+
+    @Test
     void searchWithOutOfRangeMinAskingPriceReturnsBadRequest() {
         authenticateAsAdmin();
 
@@ -264,6 +303,15 @@ class PropertyServiceTest {
         );
     }
 
+    private static void authenticateAsSeller(Long sellerId) {
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken(
+                        new AuthPrincipal("seller@test.local", sellerId, "SELLER"),
+                        null
+                )
+        );
+    }
+
     private static Property existingProperty(Long id, String zip, Integer beds, BigDecimal fmr) {
         Property property = new Property();
         property.setId(id);
@@ -279,6 +327,16 @@ class PropertyServiceTest {
     private static Seller seller(Long id) {
         Seller seller = new Seller();
         seller.setId(id);
+        return seller;
+    }
+
+    private static Seller activeSeller(Long id) {
+        Seller seller = seller(id);
+        seller.setStatus(com.megna.backend.domain.enums.SellerStatus.ACTIVE);
+        seller.setFirstName("Alex");
+        seller.setLastName("Seller");
+        seller.setEmail("seller" + id + "@example.com");
+        seller.setNotificationEmail("notify-seller" + id + "@example.com");
         return seller;
     }
 
@@ -354,6 +412,17 @@ class PropertyServiceTest {
         photo.setUrl("https://example.com/photo.jpg");
         photo.setProperty(property);
         property.setPhotos(java.util.List.of(photo));
+        return property;
+    }
+
+    private static Property sellerDraftProperty(Long id, Seller seller) {
+        Property property = activeReadyProperty(id);
+        property.setStatus(PropertyStatus.DRAFT);
+        property.setSeller(seller);
+        property.setSellerWorkflowStatus(SellerWorkflowStatus.DRAFT);
+        property.setSubmittedAt(null);
+        property.setReviewedAt(null);
+        property.setPublishedAt(null);
         return property;
     }
 }
