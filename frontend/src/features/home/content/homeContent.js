@@ -54,7 +54,6 @@ export const ROLE_CONTENT = {
             title: "Less chasing. More decision-making.",
             lead:
                 "Every surface is designed to strip out ambiguity, so serious buyers can stay focused on fit, risk, and the next move.",
-            quote: "When the room is disciplined, conviction shows up earlier.",
         },
         metrics: [
             { value: 24, suffix: "h", label: "typical first-response window" },
@@ -145,7 +144,6 @@ export const ROLE_CONTENT = {
             title: "Presentation shapes momentum.",
             lead:
                 "When the deal is staged with precision, better buyers arrive sooner and the process stays cleaner from first interest to close.",
-            quote: "A sharper stage attracts sharper attention.",
         },
         metrics: [
             { value: 24, suffix: "h", label: "typical investor response window" },
@@ -176,7 +174,7 @@ export const ROLE_CONTENT = {
         },
         process: {
             eyebrow: "Flow",
-            title: "From opportunity intake to confident execution.",
+            title: "From opportunity intake\nto confident execution.",
             lead:
                 "The seller workflow is designed to make the deal feel sharper, calmer, and easier to move forward.",
             steps: [

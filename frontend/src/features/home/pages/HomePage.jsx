@@ -163,7 +163,12 @@ function SectionHeading({ eyebrow, title, lead, className = "" }) {
     return (
         <div className={`homeSectionHeading ${className}`.trim()}>
             <p className="homeSectionHeading__eyebrow">{eyebrow}</p>
-            <h2 className="homeSectionHeading__title">{title}</h2>
+            <h2
+                className="homeSectionHeading__title"
+                style={typeof title === "string" && title.includes("\n") ? { whiteSpace: "pre-line" } : undefined}
+            >
+                {title}
+            </h2>
             <p className="homeSectionHeading__lead">{lead}</p>
         </div>
     );
@@ -989,9 +994,11 @@ export default function HomePage({
                                                 className=""
                                             />
 
-                                            <p className="homeStory__quote">
-                                                {roleContent.statement.quote}
-                                            </p>
+                                            {roleContent.statement.quote ? (
+                                                <p className="homeStory__quote">
+                                                    {roleContent.statement.quote}
+                                                </p>
+                                            ) : null}
                                         </div>
                                     </div>
 
@@ -1039,7 +1046,7 @@ export default function HomePage({
                                             eyebrow={roleContent.process.eyebrow}
                                             title={roleContent.process.title}
                                             lead={roleContent.process.lead}
-                                            className="homeReveal"
+                                            className={`homeReveal ${selectedRole === ROLE_SELLER ? "homeSectionHeading--sellerProcess" : ""}`}
                                         />
                                     </div>
 

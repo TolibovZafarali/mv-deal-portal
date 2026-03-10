@@ -1,4 +1,5 @@
 .homeAboutPage {
+  --home-about-scroll-progress: 0;
   position: fixed;
   inset: 0;
   z-index: 61;
@@ -6,6 +7,24 @@
   pointer-events: none;
   transition:
     opacity 520ms var(--home-ease) 160ms;
+}
+
+.homeAboutPage__progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 4;
+  width: 100%;
+  height: 2px;
+  transform-origin: left center;
+  transform: scaleX(var(--home-about-scroll-progress));
+  background: linear-gradient(90deg, rgba(214, 187, 146, 0.9) 0%, rgba(246, 241, 232, 0.64) 100%);
+  box-shadow: 0 0 18px rgba(214, 187, 146, 0.3);
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    transform 420ms var(--home-ease),
+    opacity 280ms var(--home-ease);
 }
 
 .homeAboutPage::before {
@@ -28,6 +47,11 @@
 .homeAboutPage.is-visible {
   opacity: 1;
   pointer-events: auto;
+}
+
+.homeAboutPage.is-visible .homeAboutPage__progress,
+.homeAboutPage.is-closing .homeAboutPage__progress {
+  opacity: 1;
 }
 
 .homeAboutPage.is-visible::before {
@@ -56,8 +80,8 @@
   overflow-y: auto;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(214, 187, 146, 0.42) rgba(246, 241, 232, 0.04);
+  -ms-overflow-style: none;
+  scrollbar-width: none;
   background:
     radial-gradient(circle at 10% 22%, rgba(214, 187, 146, 0.08), transparent 22%),
     radial-gradient(circle at 88% 12%, rgba(78, 108, 136, 0.16), transparent 26%),
@@ -72,15 +96,7 @@
 }
 
 .homeAboutPage__scroll::-webkit-scrollbar {
-  width: 10px;
-}
-
-.homeAboutPage__scroll::-webkit-scrollbar-track {
-  background: rgba(246, 241, 232, 0.04);
-}
-
-.homeAboutPage__scroll::-webkit-scrollbar-thumb {
-  background: rgba(214, 187, 146, 0.42);
+  display: none;
 }
 
 .homeAboutPage__scroll::before,
@@ -468,6 +484,10 @@
   right: 0;
   height: 1px;
   background: linear-gradient(90deg, transparent, rgba(246, 241, 232, 0.14), transparent);
+}
+
+.homeAboutPage__hero + .homeAboutPage__section .homeShell::before {
+  content: none;
 }
 
 .homeAboutPage__sectionHeading {

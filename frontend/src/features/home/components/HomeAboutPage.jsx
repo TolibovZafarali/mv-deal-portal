@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 
 const ABOUT_SIGNALS = [
@@ -79,14 +80,113 @@ export default function HomeAboutPage({
     primaryCtaState,
     onClose,
 }) {
+    const pageRef = useRef(null);
+    const scrollRef = useRef(null);
     const isActive = isVisible || isClosing;
+
+    useEffect(() => {
+        const page = pageRef.current;
+        const scrollContainer = scrollRef.current;
+
+        if (!page) return undefined;
+
+        if (!isActive || !scrollContainer || typeof window === "undefined") {
+            page.style.setProperty("--home-about-scroll-progress", "0");
+            return undefined;
+        }
+
+        let frameId = 0;
+        let ticking = false;
+
+        const syncScrollProgress = () => {
+            ticking = false;
+            const maxScroll = Math.max(scrollContainer.scrollHeight - scrollContainer.clientHeight, 1);
+            const progress = Math.min(scrollContainer.scrollTop / maxScroll, 1);
+            page.style.setProperty("--home-about-scroll-progress", progress.toFixed(4));
+        };
+
+        const requestSync = () => {
+            if (ticking) return;
+            ticking = true;
+            frameId = window.requestAnimationFrame(syncScrollProgress);
+        };
+
+        syncScrollProgress();
+        scrollContainer.addEventListener("scroll", requestSync, { passive: true });
+        window.addEventListener("resize", requestSync, { passive: true });
+
+        return () => {
+            scrollContainer.removeEventListener("scroll", requestSync);
+            window.removeEventListener("resize", requestSync);
+            window.cancelAnimationFrame(frameId);
+        };
+    }, [isActive]);
+
+    useEffect(() => {
+        const page = pageRef.current;
+        const scrollContainer = scrollRef.current;
+
+        if (!page) return undefined;
+
+        const nodes = Array.from(page.querySelectorAll(".homeReveal"));
+        if (!nodes.length) return undefined;
+
+        nodes.forEach((node) => {
+            const delay = node.getAttribute("data-delay") || "0";
+            node.style.setProperty("--reveal-delay", `${delay}ms`);
+        });
+
+        if (!isActive) {
+            nodes.forEach((node) => {
+                node.classList.remove("is-visible");
+            });
+            return undefined;
+        }
+
+        const heroNodes = Array.from(page.querySelectorAll(".homeAboutPage__hero .homeReveal"));
+        heroNodes.forEach((node) => {
+            node.classList.add("is-visible");
+        });
+
+        if (typeof IntersectionObserver === "undefined" || !scrollContainer) {
+            nodes.forEach((node) => {
+                node.classList.add("is-visible");
+            });
+            return undefined;
+        }
+
+        const observer = new IntersectionObserver(
+            (entries) => {
+                entries.forEach((entry) => {
+                    if (!entry.isIntersecting) return;
+                    entry.target.classList.add("is-visible");
+                    observer.unobserve(entry.target);
+                });
+            },
+            {
+                root: scrollContainer,
+                threshold: 0.18,
+                rootMargin: "0px 0px -8% 0px",
+            },
+        );
+
+        nodes.forEach((node) => {
+            if (node.classList.contains("is-visible")) return;
+            observer.observe(node);
+        });
+
+        return () => observer.disconnect();
+    }, [isActive]);
 
     return (
         <section
+            ref={pageRef}
             id={id}
             className={`homeAboutPage ${isActive ? "is-visible" : ""} ${isClosing ? "is-closing" : ""}`}
             aria-label="About us page"
         >
+            <div className="homeAboutPage__progress" aria-hidden="true" />
+
             <button
                 type="button"
                 className="homeAboutPage__close"
@@ -96,7 +196,7 @@ export default function HomeAboutPage({
                 Close
             </button>
 
-            <div className="homeAboutPage__scroll">
+            <div ref={scrollRef} className="homeAboutPage__scroll">
                 <section className="homeAboutPage__hero">
                     <div className="homeShell homeAboutPage__heroInner">
                         <div className="homeAboutPage__copy">

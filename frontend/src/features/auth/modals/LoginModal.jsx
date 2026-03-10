@@ -88,7 +88,7 @@ export default function LoginModal() {
         return;
       }
 
-      setError(err?.message || "Login failed");
+      setError(err?.message || "Sign in failed");
     } finally {
       setLoading(false);
     }
@@ -98,14 +98,14 @@ export default function LoginModal() {
     <div className={`loginOverlay ${isClosing ? "loginOverlay--closing" : ""}`} onMouseDown={close}>
       <div className={`loginModal ${isClosing ? "loginModal--closing" : ""}`} onMouseDown={(e) => e.stopPropagation()}>
         <div className="loginModal__header">
-          <h2 className="loginModal__title">Login</h2>
+          <h2 className="loginModal__title">Sign in</h2>
 
           <div
             className="loginModal__close"
             onClick={close}
             role="button"
             tabIndex={0}
-            aria-label="Close login"
+            aria-label="Close sign in"
             onKeyDown={(e) => {
               if (e.key === "Enter" || e.key === " ") close();
             }}
@@ -163,7 +163,7 @@ export default function LoginModal() {
           </div>
 
           <button className="loginModal__btn" disabled={loading || !email || !password}>
-            {loading ? "Logging in..." : "Login"}
+            {loading ? "Signing in..." : "Sign in"}
           </button>
 
           <div className="loginModal__alt">

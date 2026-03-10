@@ -383,7 +383,7 @@ export default function SignUpModal() {
                       replace
                       state={{ modal: true, backgroundLocation: bg }}
                     >
-                      <span className="signupModal__altLinkInner">Login</span>
+                      <span className="signupModal__altLinkInner">Sign in</span>
                     </Link>
                   </div>
                 </>
@@ -457,7 +457,7 @@ export default function SignUpModal() {
                 <div className="signupModal__done">
                   <p>
                     {isSellerSignup
-                      ? "Your seller account is ready. Use Login to access the seller portal."
+                      ? "Your seller account is ready. Use Sign in to access the seller portal."
                       : "Your request has been received. Please wait until the Megna team reaches out to you."}
                   </p>
 

@@ -1362,6 +1362,10 @@ button.homeButton {
   max-width: 620px;
 }
 
+.homeSectionHeading--sellerProcess {
+  max-width: 760px;
+}
+
 .homeSectionHeading__title {
   margin: 14px 0 0;
   font-size: clamp(2.6rem, 5vw, 4.55rem);
@@ -1369,6 +1373,10 @@ button.homeButton {
   letter-spacing: -0.035em;
   font-weight: 600;
   text-wrap: balance;
+}
+
+.homeSectionHeading--sellerProcess .homeSectionHeading__title {
+  font-size: clamp(2.2rem, 4vw, 3.95rem);
 }
 
 .homeSectionHeading__lead {

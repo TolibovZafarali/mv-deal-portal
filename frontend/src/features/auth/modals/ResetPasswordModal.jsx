@@ -170,7 +170,7 @@ export default function ResetPasswordModal() {
             <p className="resetModal__successText">Your password has been reset successfully.</p>
             <div className="resetModal__actions resetModal__actions--bottom">
               <button type="button" className="resetModal__btn resetModal__btn--full" onClick={goToLogin}>
-                Continue to login
+                Continue to sign in
               </button>
             </div>
           </div>
