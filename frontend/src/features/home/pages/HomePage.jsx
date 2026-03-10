@@ -297,7 +297,9 @@ export default function HomePage({
         : selectedRole;
     const roleContent = ROLE_CONTENT[displayRole] || ROLE_CONTENT[ROLE_INVESTOR];
     const isSellerAuthed = isAuthed && authenticatedRole === "SELLER";
-    const signedInRoleLabel = isSellerAuthed ? "Seller" : "Investor";
+    const signedInRoleLabel = authenticatedRole
+        ? `${authenticatedRole.slice(0, 1)}${authenticatedRole.slice(1).toLowerCase()}`
+        : "Investor";
     const showGuestCtas = !isAuthed && !sessionRestoreError;
     const featuredDeals = isAuthed && !isSellerAuthed ? closedDeals : closedDeals.slice(0, 4);
     const heroMetric = roleContent.metrics[0];
