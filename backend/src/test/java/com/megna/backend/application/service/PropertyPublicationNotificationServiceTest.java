@@ -1,6 +1,7 @@
 package com.megna.backend.application.service;
 
 import com.megna.backend.application.service.email.TransactionalEmailService;
+import com.megna.backend.application.service.email.TransactionalEmailDeliveryResult;
 import com.megna.backend.domain.entity.Investor;
 import com.megna.backend.domain.entity.Property;
 import com.megna.backend.domain.entity.PropertyPublicationNotification;
@@ -17,6 +18,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
@@ -94,18 +96,20 @@ class PropertyPublicationNotificationServiceTest {
         PropertyPublicationNotification notification = notification(201L, 301L);
         when(notificationRepository.findTop100ByStatusInAndNextAttemptAtLessThanEqualOrderByNextAttemptAtAscCreatedAtAsc(any(), any()))
                 .thenReturn(List.of(notification));
-        when(transactionalEmailService.sendTransactional(any())).thenReturn(true);
+        when(transactionalEmailService.sendTransactionalDetailed(any()))
+                .thenReturn(TransactionalEmailDeliveryResult.delivered("ok", "msg-1"));
 
         service.processPendingNotifications();
 
         verify(notificationRepository).save(notification);
         ArgumentCaptor<com.megna.backend.application.service.email.TransactionalEmailRequest> emailCaptor =
                 ArgumentCaptor.forClass(com.megna.backend.application.service.email.TransactionalEmailRequest.class);
-        verify(transactionalEmailService, atLeastOnce()).sendTransactional(emailCaptor.capture());
+        verify(transactionalEmailService, atLeastOnce()).sendTransactionalDetailed(emailCaptor.capture());
         assertEquals("investor-new-property-published-cid-v1", emailCaptor.getValue().templateAlias());
         @SuppressWarnings("unchecked")
         Map<String, Object> templateModel = (Map<String, Object>) emailCaptor.getValue().templateModel();
         assertTrue(!templateModel.containsKey("property_photo_url"));
+        assertEquals("$120,000", templateModel.get("property_price"));
         assertEquals(PropertyPublicationNotificationStatus.SENT, notification.getStatus());
         assertEquals(1, notification.getAttemptCount());
         assertNull(notification.getNextAttemptAt());
@@ -118,7 +122,8 @@ class PropertyPublicationNotificationServiceTest {
         PropertyPublicationNotification notification = notification(202L, 302L);
         when(notificationRepository.findTop100ByStatusInAndNextAttemptAtLessThanEqualOrderByNextAttemptAtAscCreatedAtAsc(any(), any()))
                 .thenReturn(List.of(notification));
-        when(transactionalEmailService.sendTransactional(any())).thenReturn(false);
+        when(transactionalEmailService.sendTransactionalDetailed(any()))
+                .thenReturn(TransactionalEmailDeliveryResult.retryableFailure("postmark_status_500"));
 
         LocalDateTime before = LocalDateTime.now(ZoneOffset.UTC);
         service.processPendingNotifications();
@@ -128,6 +133,7 @@ class PropertyPublicationNotificationServiceTest {
         assertEquals(1, notification.getAttemptCount());
         assertNotNull(notification.getNextAttemptAt());
         assertTrue(notification.getNextAttemptAt().isAfter(before));
+        assertEquals("postmark_status_500", notification.getLastError());
     }
 
     @Test
@@ -136,7 +142,8 @@ class PropertyPublicationNotificationServiceTest {
         notification.setAttemptCount(4);
         when(notificationRepository.findTop100ByStatusInAndNextAttemptAtLessThanEqualOrderByNextAttemptAtAscCreatedAtAsc(any(), any()))
                 .thenReturn(List.of(notification));
-        when(transactionalEmailService.sendTransactional(any())).thenReturn(false);
+        when(transactionalEmailService.sendTransactionalDetailed(any()))
+                .thenReturn(TransactionalEmailDeliveryResult.retryableFailure("postmark_status_500"));
 
         service.processPendingNotifications();
 
@@ -144,6 +151,23 @@ class PropertyPublicationNotificationServiceTest {
         assertEquals(PropertyPublicationNotificationStatus.FAILED, notification.getStatus());
         assertEquals(5, notification.getAttemptCount());
         assertNull(notification.getNextAttemptAt());
+    }
+
+    @Test
+    void processPendingNotificationsStopsRetryingOnUnknownToPreventDuplicateResends() {
+        PropertyPublicationNotification notification = notification(204L, 304L);
+        when(notificationRepository.findTop100ByStatusInAndNextAttemptAtLessThanEqualOrderByNextAttemptAtAscCreatedAtAsc(any(), any()))
+                .thenReturn(List.of(notification));
+        when(transactionalEmailService.sendTransactionalDetailed(any()))
+                .thenReturn(TransactionalEmailDeliveryResult.unknown("transport_IOException"));
+
+        service.processPendingNotifications();
+
+        verify(notificationRepository).save(notification);
+        assertEquals(PropertyPublicationNotificationStatus.FAILED, notification.getStatus());
+        assertEquals(1, notification.getAttemptCount());
+        assertNull(notification.getNextAttemptAt());
+        assertEquals("transport_IOException", notification.getLastError());
     }
 
     private static Property property(Long id, PropertyStatus status) {
@@ -154,6 +178,7 @@ class PropertyPublicationNotificationServiceTest {
         property.setCity("St Louis");
         property.setState("MO");
         property.setZip("63101");
+        property.setAskingPrice(new BigDecimal("120000"));
         return property;
     }
 

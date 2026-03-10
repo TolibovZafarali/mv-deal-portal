@@ -2,6 +2,7 @@ package com.megna.backend.application.service;
 
 import com.megna.backend.application.service.email.TransactionalEmailRequest;
 import com.megna.backend.application.service.email.TransactionalEmailService;
+import com.megna.backend.application.service.email.TransactionalEmailDeliveryResult;
 import com.megna.backend.domain.entity.Investor;
 import com.megna.backend.domain.entity.Property;
 import com.megna.backend.domain.entity.PropertyPublicationNotification;
@@ -17,6 +18,8 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.text.NumberFormat;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
@@ -112,8 +115,8 @@ public class PropertyPublicationNotificationService {
         LocalDateTime now = utcNow();
         notification.setAttemptCount(notification.getAttemptCount() + 1);
 
-        boolean delivered = sendNotification(notification);
-        if (delivered) {
+        TransactionalEmailDeliveryResult deliveryResult = sendNotification(notification);
+        if (deliveryResult.isDelivered()) {
             notification.setStatus(PropertyPublicationNotificationStatus.SENT);
             notification.setSentAt(now);
             notification.setNextAttemptAt(null);
@@ -123,9 +126,10 @@ public class PropertyPublicationNotificationService {
         }
 
         notification.setStatus(PropertyPublicationNotificationStatus.FAILED);
-        notification.setLastError("delivery_failed");
+        String errorDetail = deliveryResult.detail().isBlank() ? "delivery_failed" : deliveryResult.detail();
+        notification.setLastError(errorDetail);
 
-        if (notification.getAttemptCount() >= MAX_DELIVERY_ATTEMPTS) {
+        if (!deliveryResult.shouldRetry() || notification.getAttemptCount() >= MAX_DELIVERY_ATTEMPTS) {
             notification.setNextAttemptAt(null);
         } else {
             notification.setNextAttemptAt(now.plusMinutes(retryDelayMinutes(notification.getAttemptCount())));
@@ -135,9 +139,9 @@ public class PropertyPublicationNotificationService {
         return false;
     }
 
-    private boolean sendNotification(PropertyPublicationNotification notification) {
+    private TransactionalEmailDeliveryResult sendNotification(PropertyPublicationNotification notification) {
         try {
-            return transactionalEmailService.sendTransactional(
+            return transactionalEmailService.sendTransactionalDetailed(
                     TransactionalEmailRequest.template(
                             notification.getRecipientEmail(),
                             TEMPLATE_ALIAS,
@@ -146,7 +150,7 @@ public class PropertyPublicationNotificationService {
             );
         } catch (RuntimeException ex) {
             log.warn("Property publication notification email failed unexpectedly: {}", ex.getClass().getSimpleName());
-            return false;
+            return TransactionalEmailDeliveryResult.unknown("service_exception_" + ex.getClass().getSimpleName());
         }
     }
 
@@ -216,9 +220,12 @@ public class PropertyPublicationNotificationService {
         return value == null ? "N/A" : value.toString();
     }
 
-    private static String safeMoney(java.math.BigDecimal value) {
+    private static String safeMoney(BigDecimal value) {
         if (value == null) return "N/A";
-        return "$" + value.toPlainString();
+        NumberFormat currencyFormatter = NumberFormat.getCurrencyInstance(Locale.US);
+        currencyFormatter.setMinimumFractionDigits(0);
+        currencyFormatter.setMaximumFractionDigits(2);
+        return currencyFormatter.format(value);
     }
 
     private static String normalizeEmail(String value) {

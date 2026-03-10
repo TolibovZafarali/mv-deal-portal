@@ -50,7 +50,7 @@ class PostmarkTransactionalEmailServiceTest {
         ));
 
         assertFalse(sent);
-        verify(postmarkEmailClient, never()).send(any());
+        verify(postmarkEmailClient, never()).sendDetailed(any());
     }
 
     @Test
@@ -68,7 +68,8 @@ class PostmarkTransactionalEmailServiceTest {
         when(emailProperties.getPostmarkServerToken()).thenReturn("token");
         when(emailProperties.getPostmarkMessageStream()).thenReturn("transactional");
         when(emailProperties.getNonProductionAllowlist()).thenReturn(List.of("allowlisted@example.com"));
-        when(postmarkEmailClient.send(any())).thenReturn(true);
+        when(postmarkEmailClient.sendDetailed(any()))
+                .thenReturn(TransactionalEmailDeliveryResult.delivered("ok", "msg-1"));
 
         boolean sent = service.sendTransactional(new TransactionalEmailRequest(
                 "AllowListed@example.com",
@@ -77,7 +78,7 @@ class PostmarkTransactionalEmailServiceTest {
         ));
 
         assertTrue(sent);
-        verify(postmarkEmailClient).send(any());
+        verify(postmarkEmailClient).sendDetailed(any());
     }
 
     @Test
@@ -95,7 +96,8 @@ class PostmarkTransactionalEmailServiceTest {
         when(emailProperties.getPostmarkServerToken()).thenReturn("token");
         when(emailProperties.getPostmarkMessageStream()).thenReturn("transactional");
         when(emailSuppressionService.isSuppressed("anyone@example.com")).thenReturn(false);
-        when(postmarkEmailClient.send(any())).thenReturn(true);
+        when(postmarkEmailClient.sendDetailed(any()))
+                .thenReturn(TransactionalEmailDeliveryResult.delivered("ok", "msg-1"));
 
         boolean sent = service.sendTransactional(new TransactionalEmailRequest(
                 "anyone@example.com",
@@ -104,7 +106,7 @@ class PostmarkTransactionalEmailServiceTest {
         ));
 
         assertTrue(sent);
-        verify(postmarkEmailClient).send(any());
+        verify(postmarkEmailClient).sendDetailed(any());
     }
 
     @Test
@@ -124,7 +126,7 @@ class PostmarkTransactionalEmailServiceTest {
         ));
 
         assertFalse(sent);
-        verify(postmarkEmailClient, never()).send(any());
+        verify(postmarkEmailClient, never()).sendDetailed(any());
     }
 
     @Test
@@ -147,7 +149,7 @@ class PostmarkTransactionalEmailServiceTest {
         ));
 
         assertFalse(sent);
-        verify(postmarkEmailClient, never()).send(any());
+        verify(postmarkEmailClient, never()).sendDetailed(any());
     }
 
     @Test
@@ -173,6 +175,6 @@ class PostmarkTransactionalEmailServiceTest {
         ));
 
         assertFalse(sent);
-        verify(postmarkEmailClient, never()).send(any());
+        verify(postmarkEmailClient, never()).sendDetailed(any());
     }
 }
