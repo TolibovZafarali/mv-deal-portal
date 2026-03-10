@@ -269,14 +269,14 @@ export default function AdminLayout() {
           <NavLink
             to="contact-requests"
             className={({ isActive }) =>
-              `adminNav__link adminNav__link--contact ${isActive ? "adminNav__link--active" : ""}`
+              `adminNav__link ${isActive ? "adminNav__link--active" : ""}`
             }
             onClick={() => setMobileMenuOpen(false)}
             aria-label="Contact requests"
           >
             <span className="adminNav__content">
               <span className="adminNav__label">Contact Requests</span>
-              <span className="adminNav__badge">{contactRequestsTotal}</span>
+              {contactRequestsTotal > 0 ? <span className="adminNav__badge">{contactRequestsTotal}</span> : null}
               <span className="adminNav__icon material-symbols-outlined" aria-hidden="true">contact_support</span>
             </span>
           </NavLink>

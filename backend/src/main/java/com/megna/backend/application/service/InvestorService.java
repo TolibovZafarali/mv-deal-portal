@@ -1,5 +1,7 @@
 package com.megna.backend.application.service;
 
+import com.megna.backend.application.service.email.TransactionalEmailRequest;
+import com.megna.backend.application.service.email.TransactionalEmailService;
 import com.megna.backend.interfaces.rest.dto.investor.InvestorRejectionRequestDto;
 import com.megna.backend.interfaces.rest.dto.investor.InvestorResponseDto;
 import com.megna.backend.interfaces.rest.dto.investor.InvestorStatusUpdateRequestDto;
@@ -12,19 +14,28 @@ import com.megna.backend.infrastructure.security.AuthPrincipal;
 import com.megna.backend.infrastructure.security.SecurityUtils;
 import com.megna.backend.application.specification.InvestorSpecifications;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.LinkedHashMap;
+import java.util.Locale;
+import java.util.Map;
 import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class InvestorService {
 
+    private static final String INVESTOR_WELCOME_TEMPLATE_ALIAS = "welcome-cid-v1";
+    private static final String PUBLIC_LOGO_URL = "https://raw.githubusercontent.com/TolibovZafarali/mv-deal-portal/dev/frontend/public/white-logo.png";
+
     private final InvestorRepository investorRepository;
+    private final TransactionalEmailService transactionalEmailService;
 
     public InvestorResponseDto getById(Long id) {
         requireSelf(id);
@@ -91,6 +102,9 @@ public class InvestorService {
         InvestorMapper.applyStatusUpdate(dto, investor);
 
         Investor saved = investorRepository.save(investor);
+        if (requested == InvestorStatus.APPROVED) {
+            sendInvestorApprovedWelcomeEmail(saved);
+        }
         return InvestorMapper.toDto(saved);
     }
 
@@ -214,5 +228,67 @@ public class InvestorService {
         if (!isAdmin() && !principal().email().equalsIgnoreCase(email)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Forbidden");
         }
+    }
+
+    private void sendInvestorApprovedWelcomeEmail(Investor investor) {
+        String recipient = resolveRecipientEmail(investor);
+        if (recipient.isBlank()) {
+            return;
+        }
+
+        try {
+            boolean sent = transactionalEmailService.sendTransactional(
+                    TransactionalEmailRequest.template(
+                            recipient,
+                            INVESTOR_WELCOME_TEMPLATE_ALIAS,
+                            buildInvestorApprovedWelcomeModel(investor)
+                    )
+            );
+            if (!sent) {
+                log.warn("Investor approved welcome email was not delivered for investorId={}", investor.getId());
+            }
+        } catch (RuntimeException ex) {
+            log.warn(
+                    "Investor approved welcome email send threw runtime exception for investorId={} type={}",
+                    investor.getId(),
+                    ex.getClass().getSimpleName()
+            );
+        }
+    }
+
+    private static Map<String, Object> buildInvestorApprovedWelcomeModel(Investor investor) {
+        String firstName = investor == null || investor.getFirstName() == null
+                ? ""
+                : investor.getFirstName().trim();
+        String greetingName = firstName.isBlank() ? "there" : firstName;
+
+        Map<String, Object> model = new LinkedHashMap<>();
+        model.put("logo_url", PUBLIC_LOGO_URL);
+        model.put("subject", "Welcome to Megna");
+        model.put("title", "Welcome to Megna, " + greetingName);
+        model.put("message", "Your investor account has been approved. You can now access listings and submit inquiries.");
+        model.put("action_text", "Open Investor Dashboard");
+        model.put("action_url", "https://megna-realestate.com/investor/dashboard");
+        model.put("footer_text", "Need help? Reply to this email and our team will assist you.");
+        return model;
+    }
+
+    private static String resolveRecipientEmail(Investor investor) {
+        if (investor == null) {
+            return "";
+        }
+
+        String notificationEmail = normalizeEmail(investor.getNotificationEmail());
+        if (!notificationEmail.isBlank()) {
+            return notificationEmail;
+        }
+        return normalizeEmail(investor.getEmail());
+    }
+
+    private static String normalizeEmail(String value) {
+        if (value == null) {
+            return "";
+        }
+        return value.trim().toLowerCase(Locale.US);
     }
 }

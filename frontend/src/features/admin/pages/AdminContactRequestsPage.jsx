@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import AdminFilterBar, { AdminFilterMore } from "@/features/admin/components/AdminFilterBar";
 import AdminPagination from "@/features/admin/components/AdminPagination";
 import {
   getAdminContactRequests,
@@ -7,6 +8,7 @@ import {
 import "@/features/admin/pages/AdminContactRequestsPage.css";
 
 const PAGE_SIZE = 20;
+const ADMIN_CONTACT_MOBILE_QUERY = "(max-width: 900px)";
 const STATUS_OPTIONS = [
   { label: "All statuses", value: "" },
   { label: "New", value: "NEW" },
@@ -81,6 +83,10 @@ export default function AdminContactRequestsPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [refreshKey, setRefreshKey] = useState(0);
+  const [isMobileView, setIsMobileView] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return window.matchMedia(ADMIN_CONTACT_MOBILE_QUERY).matches;
+  });
   const [replyModal, setReplyModal] = useState({
     open: false,
     row: null,
@@ -89,6 +95,11 @@ export default function AdminContactRequestsPage() {
   });
 
   const orderedRows = useMemo(() => sortRowsByWorkflow(rows), [rows]);
+  const hasMoreFiltersSelected = useMemo(
+    () => [filters.status, filters.category].some(Boolean),
+    [filters.status, filters.category],
+  );
+  const canReplyFromModal = normalizeStatus(replyModal.row?.status) === "NEW";
 
   useEffect(() => {
     let alive = true;
@@ -121,6 +132,27 @@ export default function AdminContactRequestsPage() {
       alive = false;
     };
   }, [filters, page, refreshKey]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return undefined;
+    const media = window.matchMedia(ADMIN_CONTACT_MOBILE_QUERY);
+    const handleMediaChange = (event) => setIsMobileView(event.matches);
+    const supportsModernListener = typeof media.addEventListener === "function";
+
+    if (supportsModernListener) {
+      media.addEventListener("change", handleMediaChange);
+    } else {
+      media.addListener(handleMediaChange);
+    }
+
+    return () => {
+      if (supportsModernListener) {
+        media.removeEventListener("change", handleMediaChange);
+        return;
+      }
+      media.removeListener(handleMediaChange);
+    };
+  }, []);
 
   function handleStatusFilterChange(event) {
     const value = event.target.value;
@@ -169,7 +201,7 @@ export default function AdminContactRequestsPage() {
   async function submitReply() {
     const id = replyModal.row?.id;
     const message = String(replyModal.message ?? "").trim();
-    if (!id || !message) return;
+    if (!id || !message || !canReplyFromModal) return;
 
     setReplyModal((current) => ({ ...current, sending: true }));
     setError("");
@@ -184,10 +216,46 @@ export default function AdminContactRequestsPage() {
     }
   }
 
+  const statusFilter = (
+    <label className="adminContact__filter">
+      <span className="adminContact__label">Status</span>
+      <select
+        className="adminContact__input"
+        value={filters.status}
+        onChange={handleStatusFilterChange}
+      >
+        {STATUS_OPTIONS.map((option) => (
+          <option key={option.value || "all"} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+
+  const inboxFilter = (
+    <label className="adminContact__filter">
+      <span className="adminContact__label">Inbox</span>
+      <select
+        className="adminContact__input"
+        value={filters.category}
+        onChange={handleCategoryFilterChange}
+      >
+        {CATEGORY_OPTIONS.map((option) => (
+          <option key={option.value || "all"} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+
   return (
     <section className="adminContact">
-      <section className="adminContact__filters">
-        <div className="adminContact__filterRow">
+      <AdminFilterBar
+        className="adminContact__filters"
+        rowClassName={`adminContact__filterRow ${isMobileView ? "adminContact__filterRow--searchOnly" : ""}`.trim()}
+      >
           <label className="adminContact__filter">
             <span className="adminContact__label">Search</span>
             <input
@@ -198,37 +266,25 @@ export default function AdminContactRequestsPage() {
             />
           </label>
 
-          <label className="adminContact__filter">
-            <span className="adminContact__label">Status</span>
-            <select
-              className="adminContact__input"
-              value={filters.status}
-              onChange={handleStatusFilterChange}
+          {isMobileView ? (
+            <AdminFilterMore
+              className="adminContact__moreMenu"
+              summaryClassName="adminContact__moreSummary"
+              summaryActiveClassName="adminContact__moreSummary--active"
+              bodyClassName="adminContact__moreBody"
+              active={hasMoreFiltersSelected}
+              summaryLabel="More"
             >
-              {STATUS_OPTIONS.map((option) => (
-                <option key={option.value || "all"} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label className="adminContact__filter">
-            <span className="adminContact__label">Inbox</span>
-            <select
-              className="adminContact__input"
-              value={filters.category}
-              onChange={handleCategoryFilterChange}
-            >
-              {CATEGORY_OPTIONS.map((option) => (
-                <option key={option.value || "all"} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
-      </section>
+              {statusFilter}
+              {inboxFilter}
+            </AdminFilterMore>
+          ) : (
+            <>
+              {statusFilter}
+              {inboxFilter}
+            </>
+          )}
+      </AdminFilterBar>
 
       <section className="adminContact__tableSection">
         <h2 className="adminContact__sectionTitle">Requests</h2>
@@ -245,13 +301,17 @@ export default function AdminContactRequestsPage() {
               <table className="adminContact__table">
                 <thead>
                   <tr>
-                    <th>Submitted</th>
-                    <th>Inbox</th>
                     <th>Name</th>
-                    <th>Email</th>
-                    <th>Status</th>
                     <th>Message</th>
-                    <th>Actions</th>
+                    {!isMobileView ? (
+                      <>
+                        <th>Submitted</th>
+                        <th>Inbox</th>
+                        <th>Email</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                      </>
+                    ) : null}
                   </tr>
                 </thead>
                 <tbody>
@@ -260,32 +320,48 @@ export default function AdminContactRequestsPage() {
                     const rowTone = statusTone(row.status);
                     const canReply = normalized === "NEW";
                     return (
-                      <tr key={row.id} className={`adminContact__row adminContact__row--${rowTone}`}>
-                        <td>{prettyDateTime(row.createdAt)}</td>
-                        <td>{categoryLabel(row.category)}</td>
+                      <tr
+                        key={row.id}
+                        className={`adminContact__row adminContact__row--${rowTone} ${isMobileView ? "adminContact__row--clickable" : ""}`}
+                        onClick={isMobileView ? () => openReplyModal(row) : undefined}
+                        onKeyDown={isMobileView ? (event) => {
+                          if (event.key === "Enter" || event.key === " ") {
+                            event.preventDefault();
+                            openReplyModal(row);
+                          }
+                        } : undefined}
+                        tabIndex={isMobileView ? 0 : undefined}
+                        role={isMobileView ? "button" : undefined}
+                      >
                         <td>{row.name || "—"}</td>
-                        <td>{row.email || "—"}</td>
-                        <td>
-                          <span className={`adminContact__statusBadge adminContact__statusBadge--${rowTone}`}>
-                            {normalized}
-                          </span>
-                        </td>
                         <td className="adminContact__messageCell">{excerpt(row.messageBody)}</td>
-                        <td>
-                          <div className="adminContact__actionGroup">
-                            {canReply ? (
-                              <button
-                                type="button"
-                                className="adminContact__rowActionBtn"
-                                onClick={() => openReplyModal(row)}
-                              >
-                                Reply
-                              </button>
-                            ) : (
-                              <span className="adminContact__actionDone">—</span>
-                            )}
-                          </div>
-                        </td>
+                        {!isMobileView ? (
+                          <>
+                            <td>{prettyDateTime(row.createdAt)}</td>
+                            <td>{categoryLabel(row.category)}</td>
+                            <td>{row.email || "—"}</td>
+                            <td>
+                              <span className={`adminContact__statusBadge adminContact__statusBadge--${rowTone}`}>
+                                {normalized}
+                              </span>
+                            </td>
+                            <td>
+                              <div className="adminContact__actionGroup">
+                                {canReply ? (
+                                  <button
+                                    type="button"
+                                    className="adminContact__rowActionBtn"
+                                    onClick={() => openReplyModal(row)}
+                                  >
+                                    Reply
+                                  </button>
+                                ) : (
+                                  <span className="adminContact__actionDone">—</span>
+                                )}
+                              </div>
+                            </td>
+                          </>
+                        ) : null}
                       </tr>
                     );
                   })}
@@ -360,37 +436,55 @@ export default function AdminContactRequestsPage() {
               <p className="adminContact__replySourceBody">{replyModal.row?.messageBody || "N/A"}</p>
             </div>
 
-            <label className="adminContact__replyField">
-              <span className="adminContact__replyLabel">Message</span>
-              <textarea
-                className="adminContact__replyInput"
-                rows={8}
-                value={replyModal.message}
-                onChange={(event) =>
-                  setReplyModal((current) => ({ ...current, message: event.target.value }))
-                }
-                placeholder="Write your reply to the user..."
-                disabled={replyModal.sending}
-              />
-            </label>
+            {canReplyFromModal ? (
+              <label className="adminContact__replyField">
+                <span className="adminContact__replyLabel">Message</span>
+                <textarea
+                  className="adminContact__replyInput"
+                  rows={8}
+                  value={replyModal.message}
+                  onChange={(event) =>
+                    setReplyModal((current) => ({ ...current, message: event.target.value }))
+                  }
+                  placeholder="Write your reply to the user..."
+                  disabled={replyModal.sending}
+                />
+              </label>
+            ) : (
+              <p className="adminContact__replyReadOnlyHint">
+                This request is already replied. You can review the details above.
+              </p>
+            )}
 
             <div className="adminContact__replyActions">
-              <button
-                type="button"
-                className="adminContact__replyBtn adminContact__replyBtn--ghost"
-                onClick={closeReplyModal}
-                disabled={replyModal.sending}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                className="adminContact__replyBtn adminContact__replyBtn--primary"
-                onClick={submitReply}
-                disabled={replyModal.sending || !String(replyModal.message ?? "").trim()}
-              >
-                {replyModal.sending ? "Sending..." : "Send reply"}
-              </button>
+              {canReplyFromModal ? (
+                <>
+                  <button
+                    type="button"
+                    className="adminContact__replyBtn adminContact__replyBtn--ghost"
+                    onClick={closeReplyModal}
+                    disabled={replyModal.sending}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    className="adminContact__replyBtn adminContact__replyBtn--primary"
+                    onClick={submitReply}
+                    disabled={replyModal.sending || !String(replyModal.message ?? "").trim()}
+                  >
+                    {replyModal.sending ? "Sending..." : "Send reply"}
+                  </button>
+                </>
+              ) : (
+                <button
+                  type="button"
+                  className="adminContact__replyBtn adminContact__replyBtn--ghost"
+                  onClick={closeReplyModal}
+                >
+                  Close
+                </button>
+              )}
             </div>
           </div>
         </div>

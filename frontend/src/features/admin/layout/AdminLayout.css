@@ -98,10 +98,6 @@
   padding-top: 10px;
 }
 
-.adminNav__link--contact {
-  margin-top: auto;
-}
-
 .adminNav__link {
   border: 1px solid var(--text);
   box-sizing: border-box;
@@ -596,10 +592,6 @@
     padding-top: 14px;
     gap: 10px;
     flex: 1;
-  }
-
-  .adminNav__link--contact {
-    margin-top: 0;
   }
 
   .adminNav__link {

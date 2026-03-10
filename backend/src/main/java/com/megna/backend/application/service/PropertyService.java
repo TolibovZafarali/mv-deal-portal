@@ -60,6 +60,7 @@ public class PropertyService {
     private final PhotoAssetService photoAssetService;
     private final SellerThreadService sellerThreadService;
     private final PropertyPublicationNotificationService propertyPublicationNotificationService;
+    private final SellerPropertyEmailNotificationService sellerPropertyEmailNotificationService;
 
     @Transactional
     public PropertyResponseDto create(PropertyUpsertRequestDto dto) {
@@ -75,6 +76,7 @@ public class PropertyService {
         validateForActiveStatus(property);
         syncSellerWorkflowForAdminManagedProperty(property);
         Property saved = saveProperty(property);
+        notifySellerOnPublishedTransition(saved, null, null);
         enqueueInvestorNotificationsIfFirstActivePublish(saved, null);
         return PropertyMapper.toDto(saved);
     }
@@ -110,6 +112,8 @@ public class PropertyService {
         Property property = propertyRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Property not found: " + id));
         PropertyStatus originalStatus = property.getStatus();
+        SellerWorkflowStatus previousWorkflowStatus = property.getSellerWorkflowStatus();
+        LocalDateTime previousPublishedAt = property.getPublishedAt();
 
         String originalAddressFingerprint = addressFingerprint(property);
         String originalZip = FmrLookupService.normalizeZip(property.getZip());
@@ -148,6 +152,7 @@ public class PropertyService {
         syncSellerWorkflowForAdminManagedProperty(property);
 
         Property saved = saveProperty(property);
+        notifySellerOnPublishedTransition(saved, previousWorkflowStatus, previousPublishedAt);
         enqueueInvestorNotificationsIfFirstActivePublish(saved, originalStatus);
         return PropertyMapper.toDto(saved);
     }
@@ -465,6 +470,7 @@ public class PropertyService {
         property.setSubmittedAt(LocalDateTime.now());
 
         Property saved = saveProperty(property);
+        sellerPropertyEmailNotificationService.notifyAdminPropertySubmitted(saved);
         sellerThreadService.postSystemMessageForProperty(
                 saved.getId(),
                 sellerId,
@@ -480,6 +486,8 @@ public class PropertyService {
 
         Property property = propertyRepository.findById(propertyId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Property not found: " + propertyId));
+        SellerWorkflowStatus previousWorkflowStatus = property.getSellerWorkflowStatus();
+        LocalDateTime previousPublishedAt = property.getPublishedAt();
 
         if (sellerId == null) {
             Long currentSellerId = property.getSeller() == null ? null : property.getSeller().getId();
@@ -513,6 +521,7 @@ public class PropertyService {
         }
 
         Property saved = saveProperty(property);
+        notifySellerOnPublishedTransition(saved, previousWorkflowStatus, previousPublishedAt);
         return PropertyMapper.toDto(saved);
     }
 
@@ -878,6 +887,22 @@ public class PropertyService {
         if (previousStatus == PropertyStatus.ACTIVE) return;
 
         propertyPublicationNotificationService.enqueueForFirstPublication(property.getId());
+    }
+
+    private void notifySellerOnPublishedTransition(
+            Property property,
+            SellerWorkflowStatus previousWorkflowStatus,
+            LocalDateTime previousPublishedAt
+    ) {
+        if (property == null) return;
+        if (property.getSeller() == null) return;
+        if (property.getSellerWorkflowStatus() != SellerWorkflowStatus.PUBLISHED) return;
+
+        boolean newlyPublished = previousWorkflowStatus != SellerWorkflowStatus.PUBLISHED
+                || previousPublishedAt == null;
+        if (!newlyPublished) return;
+
+        sellerPropertyEmailNotificationService.notifySellerPropertyPublished(property);
     }
 
     private Property saveProperty(Property property) {

@@ -352,7 +352,7 @@ export default function SignUpModal() {
                       placeholder=" "
                       autoComplete="organization"
                     />
-                    <label className="field__label">Company name</label>
+                    <label className="field__label">Company name (optional)</label>
                   </div>
 
                   <div className="field">

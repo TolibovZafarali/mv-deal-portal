@@ -3,7 +3,6 @@ package com.megna.backend.application.service;
 import com.megna.backend.application.service.email.TransactionalEmailService;
 import com.megna.backend.domain.entity.Investor;
 import com.megna.backend.domain.entity.Property;
-import com.megna.backend.domain.entity.PropertyPhoto;
 import com.megna.backend.domain.entity.PropertyPublicationNotification;
 import com.megna.backend.domain.enums.InvestorStatus;
 import com.megna.backend.domain.enums.PropertyPublicationNotificationStatus;
@@ -106,10 +105,7 @@ class PropertyPublicationNotificationServiceTest {
         assertEquals("investor-new-property-published-cid-v1", emailCaptor.getValue().templateAlias());
         @SuppressWarnings("unchecked")
         Map<String, Object> templateModel = (Map<String, Object>) emailCaptor.getValue().templateModel();
-        assertEquals(
-                "https://storage.googleapis.com/mv-photos-prod/thumb/2026/02/property-301.jpg",
-                templateModel.get("property_photo_url")
-        );
+        assertTrue(!templateModel.containsKey("property_photo_url"));
         assertEquals(PropertyPublicationNotificationStatus.SENT, notification.getStatus());
         assertEquals(1, notification.getAttemptCount());
         assertNull(notification.getNextAttemptAt());
@@ -158,13 +154,6 @@ class PropertyPublicationNotificationServiceTest {
         property.setCity("St Louis");
         property.setState("MO");
         property.setZip("63101");
-        PropertyPhoto photo = new PropertyPhoto();
-        photo.setProperty(property);
-        photo.setSortOrder(0);
-        photo.setUrl("https://storage.googleapis.com/mv-photos-prod/display/2026/02/property-" + id + ".jpg");
-        photo.setThumbnailUrl("https://storage.googleapis.com/mv-photos-prod/thumb/2026/02/property-" + id + ".jpg");
-        photo.setPhotoAssetId("asset-" + id);
-        property.getPhotos().add(photo);
         return property;
     }
 

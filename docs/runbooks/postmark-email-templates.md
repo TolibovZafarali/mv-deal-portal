@@ -16,6 +16,8 @@ Use one reusable Postmark layout plus content-only templates:
 - `admin-contact-request-created-cid-v1`
 - `investor-inquiry-admin-reply-cid-v1`
 - `contact-request-reply-cid-v1`
+- `admin-seller-property-submitted-cid-v1`
+- `seller-property-published-cid-v1`
 
 All templates use the same HTTPS logo URL:
 
@@ -36,6 +38,8 @@ All templates use the same HTTPS logo URL:
 - Admin contact-request-created content HTML: `/Users/zafaralitolibov/Documents/mv-deal-portal/docs/email/postmark-admin-contact-request-created-content-v1.html`
 - Investor inquiry admin-reply content HTML: `/Users/zafaralitolibov/Documents/mv-deal-portal/docs/email/postmark-investor-inquiry-admin-reply-content-v1.html`
 - Contact request reply content HTML: `/Users/zafaralitolibov/Documents/mv-deal-portal/docs/email/postmark-contact-request-reply-content-v1.html`
+- Admin seller-property-submitted content HTML: `/Users/zafaralitolibov/Documents/mv-deal-portal/docs/email/postmark-admin-seller-property-submitted-content-v1.html`
+- Seller property-published content HTML: `/Users/zafaralitolibov/Documents/mv-deal-portal/docs/email/postmark-seller-property-published-content-v1.html`
 
 ## Postmark UI setup
 
@@ -50,7 +54,9 @@ All templates use the same HTTPS logo URL:
 9. Create template `admin-contact-request-created-cid-v1`, select that layout, paste admin contact-request-created content HTML.
 10. Create template `investor-inquiry-admin-reply-cid-v1`, select that layout, paste investor inquiry admin-reply content HTML.
 11. Create template `contact-request-reply-cid-v1`, select that layout, paste contact request reply content HTML.
-12. Add template subject as `{{subject}}` for each template.
+12. Create template `admin-seller-property-submitted-cid-v1`, select that layout, paste admin seller-property-submitted content HTML.
+13. Create template `seller-property-published-cid-v1`, select that layout, paste seller property-published content HTML.
+14. Add template subject as `{{subject}}` for each template.
 
 ## Text bodies
 
@@ -210,6 +216,41 @@ Reply from Megna Team:
 {{footer_text}}
 ```
 
+Admin seller-property-submitted:
+
+```txt
+{{title}}
+
+{{message}}
+
+Property ID: {{property_id}}
+Seller Name: {{seller_name}}
+Seller Email: {{seller_email}}
+Property: {{property_address}}
+Submitted: {{submitted_at}}
+
+{{action_text}}: {{action_url}}
+
+{{footer_text}}
+```
+
+Seller property-published:
+
+```txt
+{{title}}
+
+{{message}}
+
+Property ID: {{property_id}}
+Property: {{property_address}}
+List Price: {{property_price}}
+Published: {{published_at}}
+
+{{action_text}}: {{action_url}}
+
+{{footer_text}}
+```
+
 ## Template models
 
 Verify model:
@@ -275,7 +316,6 @@ Investor new-property-published model:
   "logo_url": "https://raw.githubusercontent.com/TolibovZafarali/mv-deal-portal/dev/frontend/public/white-logo.png",
   "title": "A new property just went live",
   "message": "A listing that matches your interest has been published.",
-  "property_photo_url": "https://example.com/property-photo.jpg",
   "property_address": "123 Main St, Dallas, TX",
   "property_price": "$975,000",
   "action_text": "View Property",
@@ -382,6 +422,43 @@ Contact request reply model:
 }
 ```
 
+Admin seller-property-submitted model:
+
+```json
+{
+  "subject": "Seller submitted a property for review",
+  "logo_url": "https://raw.githubusercontent.com/TolibovZafarali/mv-deal-portal/dev/frontend/public/white-logo.png",
+  "title": "A seller listing is ready for admin review",
+  "message": "A seller submitted a property and it is now waiting in the review queue.",
+  "property_id": "501",
+  "seller_name": "Alex Seller",
+  "seller_email": "seller@example.com",
+  "property_address": "123 Main St, St Louis, MO 63101",
+  "submitted_at": "2026-03-10 03:45 PM CT",
+  "action_text": "Open Submitted Listings",
+  "action_url": "https://megna-realestate.com/admin/queue?tab=submitted",
+  "footer_text": "This notification was sent because a seller submitted a listing for review."
+}
+```
+
+Seller property-published model:
+
+```json
+{
+  "subject": "Your property is now published",
+  "logo_url": "https://raw.githubusercontent.com/TolibovZafarali/mv-deal-portal/dev/frontend/public/white-logo.png",
+  "title": "Your listing is live",
+  "message": "Your property passed review and is now visible to approved investors.",
+  "property_id": "601",
+  "property_address": "123 Main St, St Louis, MO 63101",
+  "property_price": "$120000",
+  "published_at": "2026-03-10 04:05 PM CT",
+  "action_text": "View Listing",
+  "action_url": "https://megna-realestate.com/seller/properties/601",
+  "footer_text": "Need to make a change? Contact Megna support from your seller dashboard."
+}
+```
+
 ## Send payload example (HTTPS logo, no attachments)
 
 ```json
@@ -412,7 +489,6 @@ For investor new-property-published emails, switch `TemplateAlias` and model val
     "subject": "New property published",
     "title": "A new property just went live",
     "message": "A listing that matches your interest has been published.",
-    "property_photo_url": "https://example.com/property-photo.jpg",
     "property_address": "123 Main St, Dallas, TX",
     "property_price": "$975,000",
     "action_text": "View Property",
