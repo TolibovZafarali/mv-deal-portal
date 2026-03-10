@@ -233,7 +233,7 @@ public class AuthService {
                     TransactionalEmailRequest.template(
                             principal.email(),
                             RESET_PASSWORD_TEMPLATE_ALIAS,
-                            buildPasswordResetModel(rawToken)
+                            buildPasswordResetModel(rawToken, principal.greetingName())
                     )
             );
             if (!sent) {
@@ -461,13 +461,23 @@ public class AuthService {
         var investorOpt = investorRepository.findByEmail(email);
         if (investorOpt.isPresent()) {
             Investor investor = investorOpt.get();
-            return new PrincipalRef(PRINCIPAL_INVESTOR, investor.getId(), investor.getEmail());
+            return new PrincipalRef(
+                    PRINCIPAL_INVESTOR,
+                    investor.getId(),
+                    investor.getEmail(),
+                    resolveGreetingName(investor.getFirstName(), investor.getLastName())
+            );
         }
 
         var sellerOpt = sellerRepository.findByEmail(email);
         if (sellerOpt.isPresent()) {
             Seller seller = sellerOpt.get();
-            return new PrincipalRef(PRINCIPAL_SELLER, seller.getId(), seller.getEmail());
+            return new PrincipalRef(
+                    PRINCIPAL_SELLER,
+                    seller.getId(),
+                    seller.getEmail(),
+                    resolveGreetingName(seller.getFirstName(), seller.getLastName())
+            );
         }
 
         return null;
@@ -483,14 +493,16 @@ public class AuthService {
         return ttlMinutes > 0 ? ttlMinutes : 20160;
     }
 
-    private Map<String, Object> buildPasswordResetModel(String rawToken) {
+    private Map<String, Object> buildPasswordResetModel(String rawToken, String recipientName) {
         String resetLink = buildPasswordResetLink(rawToken);
         long ttlMinutes = resolvePasswordResetTtlMinutes();
+        String greetingName = resolveGreetingName(recipientName, null);
         Map<String, Object> model = new LinkedHashMap<>();
         model.put("logo_url", PUBLIC_LOGO_URL);
         model.put("subject", "Reset your password");
-        model.put("title", "Reset your password");
-        model.put("message", "We received a request to reset your password.");
+        model.put("title", "Reset your password, " + greetingName);
+        model.put("message", "We received a request to reset your password, " + greetingName + ".");
+        model.put("recipient_name", greetingName);
         model.put("expiry_note", "For your security, this link expires in " + ttlMinutes + " minutes.");
         model.put("action_text", "Reset Password");
         model.put("action_url", resetLink);
@@ -567,6 +579,18 @@ public class AuthService {
         return URLEncoder.encode(value, StandardCharsets.UTF_8);
     }
 
+    private String resolveGreetingName(String firstName, String lastName) {
+        String normalizedFirstName = firstName == null ? "" : firstName.trim();
+        if (!normalizedFirstName.isBlank()) {
+            return normalizedFirstName;
+        }
+        String normalizedLastName = lastName == null ? "" : lastName.trim();
+        if (!normalizedLastName.isBlank()) {
+            return normalizedLastName;
+        }
+        return "there";
+    }
+
     private ResponseStatusException invalidResetToken() {
         return new ResponseStatusException(HttpStatus.BAD_REQUEST, INVALID_RESET_TOKEN_MESSAGE);
     }
@@ -575,7 +599,7 @@ public class AuthService {
         return new ResponseStatusException(HttpStatus.UNAUTHORIZED, INVALID_REFRESH_TOKEN_MESSAGE);
     }
 
-    private record PrincipalRef(String type, Long id, String email) {}
+    private record PrincipalRef(String type, Long id, String email, String greetingName) {}
     private record RefreshTokenIssue(String rawToken, Long sessionId) {}
 
     public record LoginSessionResult(LoginResponseDto loginResponse, String refreshToken) {}

@@ -123,11 +123,13 @@ public class InquiryAdminReplyService {
     }
 
     private Map<String, Object> buildReplyTemplateModel(InquiryAdminReply reply, Inquiry inquiry) {
+        String investorName = resolveInvestorName(reply, inquiry);
         Map<String, Object> model = new LinkedHashMap<>();
         model.put("logo_url", PUBLIC_LOGO_URL);
         model.put("subject", "Megna Team replied to your inquiry");
-        model.put("title", "You have a new inquiry reply");
-        model.put("message", "Megna Team has posted a reply to your inquiry.");
+        model.put("title", "You have a new inquiry reply, " + investorName);
+        model.put("message", "Megna Team has posted a reply to your inquiry, " + investorName + ".");
+        model.put("investor_name", investorName);
         model.put("reply_id", safeNumber(reply == null ? null : reply.getId()));
         model.put("property_id", safeNumber(reply == null || reply.getProperty() == null ? null : reply.getProperty().getId()));
         model.put("investor_id", safeNumber(reply == null || reply.getInvestor() == null ? null : reply.getInvestor().getId()));
@@ -137,6 +139,25 @@ public class InquiryAdminReplyService {
         model.put("action_url", resolveActionUrl(reply));
         model.put("footer_text", "Reply to this email if you need additional support from the Megna Team.");
         return model;
+    }
+
+    private String resolveInvestorName(InquiryAdminReply reply, Inquiry inquiry) {
+        if (inquiry != null && inquiry.getContactName() != null) {
+            String contactName = inquiry.getContactName().trim();
+            if (!contactName.isBlank()) {
+                return contactName;
+            }
+        }
+
+        if (reply != null && reply.getInvestor() != null) {
+            Investor investor = reply.getInvestor();
+            String firstName = investor.getFirstName() == null ? "" : investor.getFirstName().trim();
+            if (!firstName.isBlank()) {
+                return firstName;
+            }
+        }
+
+        return "there";
     }
 
     private String resolveActionUrl(InquiryAdminReply reply) {

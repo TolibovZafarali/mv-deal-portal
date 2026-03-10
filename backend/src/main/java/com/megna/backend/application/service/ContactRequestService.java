@@ -176,12 +176,15 @@ public class ContactRequestService {
     }
 
     private Map<String, Object> buildReplyTemplateModel(ContactRequest contactRequest, String replyMessage) {
+        String recipientName = safeValue(contactRequest == null ? null : contactRequest.getName());
+        String greetingName = greetingName(contactRequest == null ? null : contactRequest.getName());
         Map<String, Object> model = new LinkedHashMap<>();
         model.put("logo_url", PUBLIC_LOGO_URL);
         model.put("subject", REPLY_SUBJECT_PREFIX + " - Request #" + safeValue(contactRequest == null ? null : contactRequest.getId()));
-        model.put("title", "Megna Team replied to your contact request");
-        model.put("message", "Thanks for reaching out to Megna Real Estate. We sent a response to your request.");
-        model.put("contact_name", safeValue(contactRequest == null ? null : contactRequest.getName()));
+        model.put("title", "Megna Team replied to your contact request, " + greetingName);
+        model.put("message", "Thanks for reaching out, " + greetingName + ". We sent a response to your request.");
+        model.put("contact_name", recipientName);
+        model.put("recipient_name", recipientName);
         model.put("request_id", safeValue(contactRequest == null ? null : contactRequest.getId()));
         model.put("reply_message", safeValue(replyMessage));
         model.put("action_text", "Contact Us");
@@ -231,5 +234,13 @@ public class ContactRequestService {
         if (value == null) return "N/A";
         String normalized = String.valueOf(value).trim();
         return normalized.isBlank() ? "N/A" : normalized;
+    }
+
+    private String greetingName(String name) {
+        if (name == null) {
+            return "there";
+        }
+        String normalized = name.trim();
+        return normalized.isBlank() ? "there" : normalized;
     }
 }

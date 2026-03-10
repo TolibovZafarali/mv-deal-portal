@@ -10,6 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.text.NumberFormat;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
@@ -91,10 +92,14 @@ public class SellerPropertyEmailNotificationService {
     private static Map<String, Object> buildSellerPublishedModel(Property property) {
         Map<String, Object> model = new LinkedHashMap<>();
         Long propertyId = property == null ? null : property.getId();
+        Seller seller = property == null ? null : property.getSeller();
+        String sellerName = resolveSellerName(seller);
+        String greetingName = resolveGreetingName(seller);
         model.put("logo_url", PUBLIC_LOGO_URL);
         model.put("subject", "Your property is now published");
-        model.put("title", "Your listing is live");
-        model.put("message", "Your property passed review and is now visible to approved investors.");
+        model.put("title", "Your listing is live, " + greetingName);
+        model.put("message", "Great news, " + greetingName + ". Your property passed review and is now visible to approved investors.");
+        model.put("seller_name", sellerName);
         model.put("property_id", safeNumber(propertyId));
         model.put("property_address", formatAddress(property));
         model.put("property_price", safeMoney(property == null ? null : property.getAskingPrice()));
@@ -150,6 +155,20 @@ public class SellerPropertyEmailNotificationService {
         return "N/A";
     }
 
+    private static String resolveGreetingName(Seller seller) {
+        if (seller == null) {
+            return "there";
+        }
+        if (seller.getFirstName() != null) {
+            String firstName = seller.getFirstName().trim();
+            if (!firstName.isBlank()) {
+                return firstName;
+            }
+        }
+        String fullName = resolveSellerName(seller);
+        return "N/A".equals(fullName) ? "there" : fullName;
+    }
+
     private static String formatAddress(Property property) {
         if (property == null) {
             return "N/A";
@@ -194,7 +213,10 @@ public class SellerPropertyEmailNotificationService {
         if (value == null) {
             return "N/A";
         }
-        return "$" + value.toPlainString();
+        NumberFormat currencyFormatter = NumberFormat.getCurrencyInstance(Locale.US);
+        currencyFormatter.setMinimumFractionDigits(0);
+        currencyFormatter.setMaximumFractionDigits(2);
+        return currencyFormatter.format(value);
     }
 
     private static String formatDateTime(LocalDateTime value) {

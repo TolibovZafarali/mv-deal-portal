@@ -156,18 +156,21 @@ public class PropertyPublicationNotificationService {
 
     private Map<String, Object> buildTemplateModel(PropertyPublicationNotification notification) {
         Property property = notification.getProperty();
+        Investor investor = notification.getInvestor();
         String address = formatAddress(property);
         String propertyId = safeNumber(property == null ? null : property.getId());
         String propertyAddress = address.isBlank() ? "N/A" : address;
         String actionUrl = property == null || property.getId() == null
                 ? "https://megna-realestate.com/properties"
                 : "https://megna-realestate.com/properties/" + property.getId();
+        String investorName = resolveInvestorGreetingName(investor);
 
         Map<String, Object> model = new LinkedHashMap<>();
         model.put("logo_url", PUBLIC_LOGO_URL);
         model.put("subject", "New property published");
-        model.put("title", "A new property just went live");
-        model.put("message", "A listing that matches your interest has been published.");
+        model.put("title", "A new property just went live, " + investorName);
+        model.put("message", "A listing that matches your interest has been published, " + investorName + ".");
+        model.put("investor_name", investorName);
         model.put("property_address", propertyAddress);
         model.put("property_price", safeMoney(property == null ? null : property.getAskingPrice()));
         model.put("action_text", "View Property");
@@ -231,6 +234,21 @@ public class PropertyPublicationNotificationService {
     private static String normalizeEmail(String value) {
         if (value == null) return "";
         return value.trim().toLowerCase(Locale.US);
+    }
+
+    private static String resolveInvestorGreetingName(Investor investor) {
+        if (investor == null) {
+            return "there";
+        }
+        String firstName = investor.getFirstName() == null ? "" : investor.getFirstName().trim();
+        if (!firstName.isBlank()) {
+            return firstName;
+        }
+        String lastName = investor.getLastName() == null ? "" : investor.getLastName().trim();
+        if (!lastName.isBlank()) {
+            return lastName;
+        }
+        return "there";
     }
 
     private static long retryDelayMinutes(int attemptCount) {
