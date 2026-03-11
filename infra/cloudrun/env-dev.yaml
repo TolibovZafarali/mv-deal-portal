@@ -10,7 +10,7 @@ APP_PHOTOS_PURGE_CRON: "0 15 2 * * *"
 APP_EMAIL_ENABLED: "true"
 APP_EMAIL_PRODUCTION: "false"
 APP_EMAIL_WEBHOOKS_ENABLED: "false"
-APP_EMAIL_FROM_ADDRESS: contact@megna.us
+APP_EMAIL_FROM_ADDRESS: "Megna <contact@megna.us>"
 APP_EMAIL_REPLY_TO_ADDRESS: contact@megna.us
 APP_EMAIL_INQUIRY_NOTIFICATION_TO: contact@megna.us
 APP_EMAIL_NON_PROD_ALLOWLIST: "fffarhod@mail.ru,zafaralit67@gmail.com"
