@@ -136,7 +136,7 @@ app:
   email:
     enabled: ${APP_EMAIL_ENABLED:false}
     production: ${APP_EMAIL_PRODUCTION:false}
-    from-address: ${APP_EMAIL_FROM_ADDRESS:no-reply@megna.us}
+    from-address: ${APP_EMAIL_FROM_ADDRESS:contact@megna.us}
     reply-to-address: ${APP_EMAIL_REPLY_TO_ADDRESS:contact@megna.us}
     non-production-allowlist: ${APP_EMAIL_NON_PROD_ALLOWLIST:}
     webhooks-enabled: ${APP_EMAIL_WEBHOOKS_ENABLED:false}

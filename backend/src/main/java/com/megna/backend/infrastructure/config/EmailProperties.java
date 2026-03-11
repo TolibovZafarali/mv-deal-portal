@@ -16,7 +16,7 @@ public class EmailProperties {
 
     private boolean enabled = false;
     private boolean production = false;
-    private String fromAddress = "no-reply@megna.us";
+    private String fromAddress = "contact@megna.us";
     private String replyToAddress = "contact@megna.us";
     private List<String> nonProductionAllowlist = new ArrayList<>();
     private boolean webhooksEnabled = false;
