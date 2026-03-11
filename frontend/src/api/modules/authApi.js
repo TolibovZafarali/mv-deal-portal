@@ -1,4 +1,4 @@
-import { apiClient } from "@/api/core/apiClient";
+import { apiClient, getWithDedupe } from "@/api/core/apiClient";
 import { clearAccessToken, setAccessToken } from "@/api/core/tokenStorage";
 
 const AUTH_BASE = "/api/auth";
@@ -45,7 +45,7 @@ export async function me(tokenOverride) {
         ? { headers: { Authorization: `Bearer ${tokenOverride}` } }
         : undefined;
 
-    const { data } = await apiClient.get(`${AUTH_BASE}/me`, config);
+    const { data } = await getWithDedupe(`${AUTH_BASE}/me`, config);
     return data;
 }
 

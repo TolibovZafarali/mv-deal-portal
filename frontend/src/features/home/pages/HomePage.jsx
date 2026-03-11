@@ -601,6 +601,8 @@ export default function HomePage({
 
     useEffect(() => {
         let alive = true;
+        const controller = new AbortController();
+        const requestConfig = { signal: controller.signal };
 
         (async () => {
             setClosedDealsLoading(true);
@@ -610,10 +612,16 @@ export default function HomePage({
                 let rows = [];
 
                 if (!isAuthed) {
-                    const response = await getClosedPropertyPreviews({ page: 0, size: 6, sort: "createdAt,desc" });
+                    const response = await getClosedPropertyPreviews(
+                        { page: 0, size: 6, sort: "createdAt,desc" },
+                        requestConfig,
+                    );
                     rows = Array.isArray(response?.content) ? response.content : [];
                 } else if (authenticatedRole === "SELLER") {
-                    const response = await getSellerProperties({ page: 0, size: 20, sort: "updatedAt,desc" });
+                    const response = await getSellerProperties(
+                        { page: 0, size: 20, sort: "updatedAt,desc" },
+                        requestConfig,
+                    );
                     const sellerRows = Array.isArray(response?.content) ? response.content : [];
                     const workflowRank = (property) => {
                         const workflow = normalizeRole(property?.sellerWorkflowStatus);
@@ -629,6 +637,7 @@ export default function HomePage({
                     const response = await searchProperties(
                         { status: "ACTIVE" },
                         { page: 0, size: 6, sort: "createdAt,desc" },
+                        requestConfig,
                     );
                     rows = Array.isArray(response?.content) ? response.content : [];
                 }
@@ -636,6 +645,7 @@ export default function HomePage({
                 if (!alive) return;
                 setClosedDeals(rows);
             } catch (error) {
+                if (error?.code === "ERR_CANCELED") return;
                 if (!alive) return;
                 setClosedDeals([]);
                 const fallbackError = isAuthed
@@ -653,6 +663,7 @@ export default function HomePage({
 
         return () => {
             alive = false;
+            controller.abort();
         };
     }, [authenticatedRole, isAuthed]);
 
@@ -688,18 +699,20 @@ export default function HomePage({
         }
 
         let alive = true;
+        const controller = new AbortController();
+        const requestConfig = { signal: controller.signal };
 
         (async () => {
             try {
                 if (authenticatedRole === "INVESTOR" && user?.investorId) {
-                    const investor = await getInvestorById(user.investorId);
+                    const investor = await getInvestorById(user.investorId, requestConfig);
                     if (!alive) return;
                     setSignedInName([investor?.firstName, investor?.lastName].filter(Boolean).join(" ").trim());
                     return;
                 }
 
                 if (authenticatedRole === "SELLER" && user?.sellerId) {
-                    const seller = await getSellerById(user.sellerId);
+                    const seller = await getSellerById(user.sellerId, requestConfig);
                     if (!alive) return;
                     setSignedInName([seller?.firstName, seller?.lastName].filter(Boolean).join(" ").trim());
                     return;
@@ -717,6 +730,7 @@ export default function HomePage({
 
         return () => {
             alive = false;
+            controller.abort();
         };
     }, [authenticatedRole, isAuthed, user]);
 

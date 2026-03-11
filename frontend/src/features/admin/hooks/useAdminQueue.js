@@ -139,6 +139,8 @@ export default function useAdminQueue({ includeItems = true, pageSize = DEFAULT_
 
   useEffect(() => {
     let alive = true;
+    const controller = new AbortController();
+    const requestConfig = { signal: controller.signal };
 
     async function loadQueue() {
       setLoading(true);
@@ -149,10 +151,11 @@ export default function useAdminQueue({ includeItems = true, pageSize = DEFAULT_
       if (!includeItems) {
         try {
           const [summary, draftByStatusPage] = await Promise.all([
-            getAdminQueueSummary(),
+            getAdminQueueSummary(requestConfig),
             searchProperties(
               { status: PROPERTY_STATUS.DRAFT },
               { page: 0, size: 1, sort: "updatedAt,desc" },
+              requestConfig,
             ),
           ]);
           if (!alive) return;
@@ -180,7 +183,10 @@ export default function useAdminQueue({ includeItems = true, pageSize = DEFAULT_
             counts: nextCounts,
           });
           return;
-        } catch {
+        } catch (error) {
+          if (error?.code === "ERR_CANCELED") {
+            return;
+          }
           // fallback to the multi-call aggregator for counts if summary endpoint is unavailable
         }
       }
@@ -188,11 +194,12 @@ export default function useAdminQueue({ includeItems = true, pageSize = DEFAULT_
       if (includeItems) {
         try {
           const [summary, items, draftByStatusPage] = await Promise.all([
-            getAdminQueueSummary(),
-            getAdminQueueItems({}, { page: 0, size: pageSize, sort: "createdAt,asc" }),
+            getAdminQueueSummary(requestConfig),
+            getAdminQueueItems({}, { page: 0, size: pageSize, sort: "createdAt,asc" }, requestConfig),
             searchProperties(
               { status: PROPERTY_STATUS.DRAFT },
               { page: 0, size: 1, sort: "updatedAt,desc" },
+              requestConfig,
             ),
           ]);
 
@@ -219,7 +226,10 @@ export default function useAdminQueue({ includeItems = true, pageSize = DEFAULT_
             source: "queue-api",
           });
           return;
-        } catch {
+        } catch (error) {
+          if (error?.code === "ERR_CANCELED") {
+            return;
+          }
           // fallback to multi-call aggregation when queue items endpoint is unavailable
         }
       }
@@ -228,14 +238,17 @@ export default function useAdminQueue({ includeItems = true, pageSize = DEFAULT_
         searchProperties(
           { status: PROPERTY_STATUS.DRAFT },
           { page: 0, size: 1, sort: "updatedAt,desc" },
+          requestConfig,
         ),
         searchProperties(
           { sellerWorkflowStatus: SELLER_WORKFLOW_STATUS.SUBMITTED },
           { page: 0, size: includeItems ? pageSize : 1, sort: "submittedAt,asc" },
+          requestConfig,
         ),
         searchAdminInvestors(
           { status: "PENDING" },
           { page: 0, size: includeItems ? pageSize : 1, sort: "createdAt,asc" },
+          requestConfig,
         ),
       ]);
 
@@ -289,6 +302,7 @@ export default function useAdminQueue({ includeItems = true, pageSize = DEFAULT_
     }
 
     loadQueue().catch(() => {
+      if (controller.signal.aborted) return;
       if (!alive) return;
       setError("Unable to load admin queue right now.");
       setLoading(false);
@@ -297,6 +311,7 @@ export default function useAdminQueue({ includeItems = true, pageSize = DEFAULT_
 
     return () => {
       alive = false;
+      controller.abort();
     };
   }, [includeItems, pageSize, refreshKey]);
 

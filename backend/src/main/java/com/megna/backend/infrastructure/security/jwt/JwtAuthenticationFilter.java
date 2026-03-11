@@ -33,7 +33,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             HttpServletResponse response,
             FilterChain filterChain
     ) throws ServletException, IOException {
-
         // If already authenticated, don't re-process
         if (SecurityContextHolder.getContext().getAuthentication() != null) {
             filterChain.doFilter(request, response);
@@ -97,10 +96,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return false;
         }
 
-        return refreshTokenRepository
-                .findTopByPrincipalTypeAndPrincipalIdAndRevokedAtIsNullOrderByCreatedAtDescIdDesc(role, userId)
-                .map(activeSession -> sessionId.equals(activeSession.getId()))
-                .orElse(false);
+        return refreshTokenRepository.findLatestActiveSessionId(role, userId)
+                .map(activeSessionId -> sessionId.equals(activeSessionId))
+                .orElseGet(() -> refreshTokenRepository
+                        .findTopByPrincipalTypeAndPrincipalIdAndRevokedAtIsNullOrderByCreatedAtDescIdDesc(role, userId)
+                        .map(activeSession -> sessionId.equals(activeSession.getId()))
+                        .orElse(false)
+                );
     }
 
     @Override

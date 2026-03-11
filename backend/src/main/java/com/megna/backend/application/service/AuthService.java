@@ -164,7 +164,9 @@ public class AuthService {
             return;
         }
 
-        refreshTokenRepository.revokeByTokenHash(hashToken(token), LocalDateTime.now());
+        LocalDateTime now = LocalDateTime.now();
+        String tokenHash = hashToken(token);
+        refreshTokenRepository.revokeByTokenHash(tokenHash, now);
     }
 
     @Transactional

@@ -1,4 +1,4 @@
-import { apiClient } from "@/api/core/apiClient";
+import { apiClient, getWithDedupe } from "@/api/core/apiClient";
 import { buildPageParams, cleanParams } from "@/api/core/params";
 import {
     completePhotoUpload,
@@ -11,14 +11,14 @@ import {
 
 const BASE = "/api/properties";
 
-export async function getProperties(pageOpts = {}) {
+export async function getProperties(pageOpts = {}, requestConfig = {}) {
     const params = buildPageParams(pageOpts);
-    const { data } = await apiClient.get(BASE, { params });
+    const { data } = await getWithDedupe(BASE, { ...requestConfig, params });
     return data;
 }
 
-export async function getPropertyById(id) {
-    const { data } = await apiClient.get(`${BASE}/${id}`);
+export async function getPropertyById(id, requestConfig = {}) {
+    const { data } = await getWithDedupe(`${BASE}/${id}`, requestConfig);
     return data;
 }
 
@@ -61,39 +61,39 @@ export async function deleteProperty(id) {
     return true;
 }
 
-export async function searchProperties(filters = {}, pageOpts = {}) {
+export async function searchProperties(filters = {}, pageOpts = {}, requestConfig = {}) {
     const params = cleanParams({
         ...filters,
         ...buildPageParams(pageOpts),
     });
 
-    const { data } = await apiClient.get(`${BASE}/search`, { params });
+    const { data } = await getWithDedupe(`${BASE}/search`, { ...requestConfig, params });
     return data;
 }
 
-export async function getClosedPropertyPreviews(pageOpts = {}) {
+export async function getClosedPropertyPreviews(pageOpts = {}, requestConfig = {}) {
     const params = buildPageParams(pageOpts);
-    const { data } = await apiClient.get(`${BASE}/preview`, { params });
+    const { data } = await getWithDedupe(`${BASE}/preview`, { ...requestConfig, params });
     return data;
 }
 
-export async function getAddressSuggestions(query, opts = {}) {
+export async function getAddressSuggestions(query, opts = {}, requestConfig = {}) {
     const { limit = 6 } = opts;
     const params = cleanParams({
         q: String(query ?? "").trim(),
         limit,
     });
 
-    const { data } = await apiClient.get(`${BASE}/address-suggestions`, { params });
+    const { data } = await getWithDedupe(`${BASE}/address-suggestions`, { ...requestConfig, params });
     return Array.isArray(data) ? data : [];
 }
 
-export async function lookupPropertyFmr(zip, beds) {
+export async function lookupPropertyFmr(zip, beds, requestConfig = {}) {
     const parsedBeds = Number.parseInt(String(beds ?? "").trim(), 10);
     const params = cleanParams({
         zip: String(zip ?? "").trim(),
         beds: Number.isFinite(parsedBeds) ? parsedBeds : undefined,
     });
-    const { data } = await apiClient.get(`${BASE}/fmr`, { params });
+    const { data } = await getWithDedupe(`${BASE}/fmr`, { ...requestConfig, params });
     return data;
 }

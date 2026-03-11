@@ -8,6 +8,19 @@ import {
 } from "@/api/core/tokenStorage";
 
 const baseURL = "";
+const DEFAULT_TIMEOUT_MS = 15000;
+const SLOW_REQUEST_THRESHOLD_MS = 1200;
+const inFlightGetRequests = new Map();
+
+function resolveDefaultTimeoutMs() {
+    if (typeof import.meta !== "undefined" && import.meta?.env?.VITE_API_TIMEOUT_MS) {
+        const parsed = Number.parseInt(String(import.meta.env.VITE_API_TIMEOUT_MS).trim(), 10);
+        if (Number.isFinite(parsed) && parsed >= 1000) {
+            return parsed;
+        }
+    }
+    return DEFAULT_TIMEOUT_MS;
+}
 
 function serializeParams(params) {
     const usp = new URLSearchParams();
@@ -28,18 +41,47 @@ function serializeParams(params) {
     return usp.toString();
 }
 
+function requestPath(config = {}) {
+    const targetUrl = config?.url ?? "";
+    if (!targetUrl) return "";
+    if (targetUrl.startsWith("http://") || targetUrl.startsWith("https://")) {
+        return targetUrl;
+    }
+    const prefix = config?.baseURL ?? baseURL;
+    return `${prefix || ""}${targetUrl}`;
+}
+
+function dedupeParamsKey(params) {
+    if (!params || typeof params !== "object") return "";
+    return serializeParams(params);
+}
+
+function dedupeHeadersKey(headers = {}) {
+    const authorization = headers?.Authorization || headers?.authorization || "";
+    return String(authorization);
+}
+
+function buildGetRequestKey(url, config = {}) {
+    const method = String(config?.method ?? "get").toUpperCase();
+    const paramsKey = dedupeParamsKey(config?.params);
+    const headersKey = dedupeHeadersKey(config?.headers);
+    return [method, requestPath({ ...config, url }), paramsKey, headersKey].join("|");
+}
+
 function normalizeApiError(error) {
     const status = error?.response?.status ?? null;
     const data = error?.response?.data ?? null;
     const message =
-        error?.code === "ECONNABORTED"
-            ? "Request timed out. Please try again."
-            : data?.message ||
-              data?.error ||
-              error?.message ||
-              "Request failed";
+        error?.code === "ERR_CANCELED"
+            ? "Request was canceled."
+            : error?.code === "ECONNABORTED"
+              ? "Request timed out. Please try again."
+              : data?.message ||
+                data?.error ||
+                error?.message ||
+                "Request failed";
 
-    return { status, message, data };
+    return { status, message, data, code: error?.code };
 }
 
 function notifyAuthExpired() {
@@ -51,9 +93,65 @@ function notifyAuthExpired() {
     }
 }
 
+function logSlowRequest(config, statusCode = null, wasError = false) {
+    const startedAt = Number(config?.mvRequestStartedAt ?? 0);
+    if (!Number.isFinite(startedAt) || startedAt <= 0) return;
+
+    const elapsedMs = Date.now() - startedAt;
+    if (elapsedMs < SLOW_REQUEST_THRESHOLD_MS) return;
+
+    if (typeof console === "undefined" || typeof console.warn !== "function") return;
+
+    const method = String(config?.method ?? "get").toUpperCase();
+    const path = requestPath(config);
+    const statusSuffix = statusCode == null ? "" : ` status=${statusCode}`;
+    const errorSuffix = wasError ? " error=true" : "";
+    console.warn(`[api] slow request ${method} ${path}${statusSuffix} durationMs=${elapsedMs}${errorSuffix}`);
+}
+
+export function getWithDedupe(url, config = {}) {
+    if (config?.signal) {
+        return apiClient.get(url, config);
+    }
+    const requestConfig = { ...config, method: "get" };
+    const requestKey = buildGetRequestKey(url, requestConfig);
+    const existingRequest = inFlightGetRequests.get(requestKey);
+    if (existingRequest) {
+        return existingRequest;
+    }
+
+    const requestPromise = apiClient.get(url, config).finally(() => {
+        if (inFlightGetRequests.get(requestKey) === requestPromise) {
+            inFlightGetRequests.delete(requestKey);
+        }
+    });
+
+    inFlightGetRequests.set(requestKey, requestPromise);
+    return requestPromise;
+}
+
+function withTimeoutConfig(config = {}) {
+    const timeout = Number(config?.timeout);
+    if (Number.isFinite(timeout) && timeout > 0) {
+        return config;
+    }
+    return {
+        ...config,
+        timeout: resolveDefaultTimeoutMs(),
+    };
+}
+
+function normalizeRequestConfig(config = {}) {
+    const next = withTimeoutConfig(config);
+    return {
+        ...next,
+        mvRequestStartedAt: Date.now(),
+    };
+}
+
 const clientConfig = {
     baseURL,
-    timeout: 30000,
+    timeout: resolveDefaultTimeoutMs(),
     withCredentials: true,
     paramsSerializer: {
         serialize: serializeParams,
@@ -101,7 +199,9 @@ async function refreshAccessToken() {
     return refreshRequest;
 }
 
-apiClient.interceptors.request.use((config) => {
+apiClient.interceptors.request.use((rawConfig) => {
+    const config = normalizeRequestConfig(rawConfig || {});
+
     if (config?.mvSkipAuthHeader || config?.skipAuthToken) {
         return config;
     }
@@ -122,11 +222,15 @@ apiClient.interceptors.request.use((config) => {
 });
 
 apiClient.interceptors.response.use(
-    (response) => response,
+    (response) => {
+        logSlowRequest(response?.config, response?.status, false);
+        return response;
+    },
     async (error) => {
         const normalizedError = normalizeApiError(error);
         const status = normalizedError.status;
         const originalConfig = error?.config ?? {};
+        logSlowRequest(originalConfig, status, true);
         const hadAuthHeader = Boolean(
             originalConfig?.headers?.Authorization ||
             originalConfig?.headers?.authorization,

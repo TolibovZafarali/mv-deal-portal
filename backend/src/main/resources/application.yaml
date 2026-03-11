@@ -7,10 +7,24 @@ spring:
     url: jdbc:mysql://localhost:3306/megnarealestate?createDatabaseIfNotExist=true
     username: ${DB_USERNAME:root}
     password: ${DB_PASSWORD}
+    hikari:
+      maximum-pool-size: ${DB_POOL_MAX_SIZE:24}
+      minimum-idle: ${DB_POOL_MIN_IDLE:4}
+      connection-timeout: ${DB_POOL_CONNECTION_TIMEOUT_MS:3000}
+      validation-timeout: ${DB_POOL_VALIDATION_TIMEOUT_MS:1000}
+      idle-timeout: ${DB_POOL_IDLE_TIMEOUT_MS:300000}
+      max-lifetime: ${DB_POOL_MAX_LIFETIME_MS:1800000}
+      keepalive-time: ${DB_POOL_KEEPALIVE_TIME_MS:240000}
+      leak-detection-threshold: ${DB_POOL_LEAK_DETECTION_MS:0}
   jpa:
-    show-sql: true
+    show-sql: ${SPRING_JPA_SHOW_SQL:false}
     hibernate:
       ddl-auto: validate
+    properties:
+      hibernate:
+        default_batch_fetch_size: ${SPRING_JPA_DEFAULT_BATCH_FETCH_SIZE:64}
+        query:
+          fail_on_pagination_over_collection_fetch: true
   flyway:
     enabled: true
   servlet:
@@ -137,6 +151,8 @@ app:
     privacy-inbox: ${APP_CONTACT_PRIVACY_INBOX:privacy@megna-realestate.com}
   features:
     seller-threads-enabled: ${APP_FEATURES_SELLER_THREADS_ENABLED:false}
+  http:
+    slow-request-threshold-ms: ${APP_HTTP_SLOW_REQUEST_THRESHOLD_MS:1200}
 
 server:
   port: ${PORT:8080}

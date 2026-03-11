@@ -1,16 +1,16 @@
-import { apiClient } from "@/api/core/apiClient";
+import { apiClient, getWithDedupe } from "@/api/core/apiClient";
 import { buildPageParams, cleanParams } from "@/api/core/params";
 
 const BASE = "/api/investors";
 
-export async function getInvestors(pageOpts = {}) {
+export async function getInvestors(pageOpts = {}, requestConfig = {}) {
     const params = buildPageParams(pageOpts);
-    const { data } = await apiClient.get(BASE, { params });
+    const { data } = await getWithDedupe(BASE, { ...requestConfig, params });
     return data;
 }
 
-export async function getInvestorById(id) {
-    const { data } = await apiClient.get(`${BASE}/${id}`);
+export async function getInvestorById(id, requestConfig = {}) {
+    const { data } = await getWithDedupe(`${BASE}/${id}`, requestConfig);
     return data;
 }
 
@@ -24,24 +24,24 @@ export async function deleteInvestor(id) {
     return true;
 }
 
-export async function getInvestorByEmail(email) {
+export async function getInvestorByEmail(email, requestConfig = {}) {
     const params = cleanParams({ email });
-    const { data } = await apiClient.get(`${BASE}/by-email`, { params });
+    const { data } = await getWithDedupe(`${BASE}/by-email`, { ...requestConfig, params });
     return data;
 }
 
-export async function searchInvestors(filters = {}, pageOpts = {}) {
+export async function searchInvestors(filters = {}, pageOpts = {}, requestConfig = {}) {
     const params = cleanParams({
         ...filters,             // status, email, companyName, name
         ...buildPageParams(pageOpts),
     });
 
-    const { data } = await apiClient.get(`${BASE}/search`, { params });
+    const { data } = await getWithDedupe(`${BASE}/search`, { ...requestConfig, params });
     return data;
 }
 
-export async function getInvestorFavoritePropertyIds(investorId) {
-    const { data } = await apiClient.get(`${BASE}/${investorId}/favorites`);
+export async function getInvestorFavoritePropertyIds(investorId, requestConfig = {}) {
+    const { data } = await getWithDedupe(`${BASE}/${investorId}/favorites`, requestConfig);
     return Array.isArray(data) ? data : [];
 }
 
