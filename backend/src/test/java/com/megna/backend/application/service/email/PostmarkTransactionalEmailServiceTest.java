@@ -37,7 +37,7 @@ class PostmarkTransactionalEmailServiceTest {
 
         when(emailProperties.isEnabled()).thenReturn(true);
         when(emailProperties.isProduction()).thenReturn(false);
-        when(emailProperties.getFromAddress()).thenReturn("no-reply@megna.us");
+        when(emailProperties.getFromAddress()).thenReturn("contact@megna.us");
         when(emailProperties.getReplyToAddress()).thenReturn("contact@megna.us");
         when(emailProperties.getPostmarkServerToken()).thenReturn("token");
         when(emailProperties.getPostmarkMessageStream()).thenReturn("transactional");
@@ -63,7 +63,7 @@ class PostmarkTransactionalEmailServiceTest {
 
         when(emailProperties.isEnabled()).thenReturn(true);
         when(emailProperties.isProduction()).thenReturn(false);
-        when(emailProperties.getFromAddress()).thenReturn("no-reply@megna.us");
+        when(emailProperties.getFromAddress()).thenReturn("contact@megna.us");
         when(emailProperties.getReplyToAddress()).thenReturn("contact@megna.us");
         when(emailProperties.getPostmarkServerToken()).thenReturn("token");
         when(emailProperties.getPostmarkMessageStream()).thenReturn("transactional");
@@ -91,7 +91,7 @@ class PostmarkTransactionalEmailServiceTest {
 
         when(emailProperties.isEnabled()).thenReturn(true);
         when(emailProperties.isProduction()).thenReturn(true);
-        when(emailProperties.getFromAddress()).thenReturn("no-reply@megna.us");
+        when(emailProperties.getFromAddress()).thenReturn("contact@megna.us");
         when(emailProperties.getReplyToAddress()).thenReturn("contact@megna.us");
         when(emailProperties.getPostmarkServerToken()).thenReturn("token");
         when(emailProperties.getPostmarkMessageStream()).thenReturn("transactional");
@@ -138,7 +138,7 @@ class PostmarkTransactionalEmailServiceTest {
         );
 
         when(emailProperties.isEnabled()).thenReturn(true);
-        when(emailProperties.getFromAddress()).thenReturn("no-reply@megna.us");
+        when(emailProperties.getFromAddress()).thenReturn("contact@megna.us");
         when(emailProperties.getReplyToAddress()).thenReturn("contact@megna.us");
         when(emailProperties.getPostmarkServerToken()).thenReturn("");
 
@@ -162,7 +162,7 @@ class PostmarkTransactionalEmailServiceTest {
 
         when(emailProperties.isEnabled()).thenReturn(true);
         when(emailProperties.isProduction()).thenReturn(true);
-        when(emailProperties.getFromAddress()).thenReturn("no-reply@megna.us");
+        when(emailProperties.getFromAddress()).thenReturn("contact@megna.us");
         when(emailProperties.getReplyToAddress()).thenReturn("contact@megna.us");
         when(emailProperties.getPostmarkServerToken()).thenReturn("token");
         when(emailProperties.getPostmarkMessageStream()).thenReturn("transactional");
