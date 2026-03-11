@@ -1,9 +1,9 @@
-import { apiClient } from "@/api/core/apiClient";
+import { apiClient, getWithDedupe } from "@/api/core/apiClient";
 import { buildPageParams } from "@/api/core/params";
 
 const BASE = "/api/admin/investors";
 
-export async function searchAdminInvestors(filters = {}, pageOpts = {}) {
+export async function searchAdminInvestors(filters = {}, pageOpts = {}, requestConfig = {}) {
   const params = {
     ...buildPageParams(pageOpts),
     ...(filters?.q ? { q: filters.q } : {}),
@@ -16,12 +16,12 @@ export async function searchAdminInvestors(filters = {}, pageOpts = {}) {
     ...(filters?.approvedTo ? { approvedTo: filters.approvedTo } : {}),
   };
 
-  const { data } = await apiClient.get(`${BASE}/search`, { params });
+  const { data } = await getWithDedupe(`${BASE}/search`, { ...requestConfig, params });
   return data;
 }
 
-export async function getAdminInvestorById(id) {
-  const { data } = await apiClient.get(`${BASE}/${id}`);
+export async function getAdminInvestorById(id, requestConfig = {}) {
+  const { data } = await getWithDedupe(`${BASE}/${id}`, requestConfig);
   return data;
 }
 

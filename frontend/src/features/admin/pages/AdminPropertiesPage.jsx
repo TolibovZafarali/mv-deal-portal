@@ -470,6 +470,7 @@ export default function AdminPropertiesPage() {
 
   useEffect(() => {
     let alive = true;
+    const controller = new AbortController();
 
     async function load() {
       setLoading(true);
@@ -490,6 +491,7 @@ export default function AdminPropertiesPage() {
             sellerId: filters.sellerId,
           },
           { page, size: PAGE_SIZE },
+          { signal: controller.signal },
         );
 
         if (!alive) return;
@@ -500,6 +502,7 @@ export default function AdminPropertiesPage() {
           totalElements: data?.totalElements ?? 0,
         });
       } catch (e) {
+        if (e?.code === "ERR_CANCELED") return;
         if (!alive) return;
 
         setRows([]);
@@ -513,6 +516,7 @@ export default function AdminPropertiesPage() {
     load();
     return () => {
       alive = false;
+      controller.abort();
     };
   }, [filters, page, refreshKey]);
 
@@ -522,12 +526,13 @@ export default function AdminPropertiesPage() {
     if (!missingSellerIds.length) return undefined;
 
     let alive = true;
+    const controller = new AbortController();
 
     async function loadSellerNames() {
       const entries = await Promise.all(
         missingSellerIds.map(async (sellerId) => {
           try {
-            const seller = await getSellerById(sellerId);
+            const seller = await getSellerById(sellerId, { signal: controller.signal });
             return [sellerId, sellerDisplayName(seller) || `Seller #${sellerId}`];
           } catch {
             return [sellerId, `Seller #${sellerId}`];
@@ -549,6 +554,7 @@ export default function AdminPropertiesPage() {
 
     return () => {
       alive = false;
+      controller.abort();
     };
   }, [rows, sellerNameById]);
 

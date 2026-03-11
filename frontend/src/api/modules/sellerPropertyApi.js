@@ -1,4 +1,4 @@
-import { apiClient } from "@/api/core/apiClient";
+import { apiClient, getWithDedupe } from "@/api/core/apiClient";
 import { buildPageParams } from "@/api/core/params";
 import {
   completePhotoUpload,
@@ -12,14 +12,14 @@ import {
 const BASE = "/api/seller/properties";
 const ADMIN_PROPERTIES_BASE = "/api/admin/properties";
 
-export async function getSellerProperties(pageOpts = {}) {
+export async function getSellerProperties(pageOpts = {}, requestConfig = {}) {
   const params = buildPageParams(pageOpts);
-  const { data } = await apiClient.get(BASE, { params });
+  const { data } = await getWithDedupe(BASE, { ...requestConfig, params });
   return data;
 }
 
-export async function getSellerPropertyById(id) {
-  const { data } = await apiClient.get(`${BASE}/${id}`);
+export async function getSellerPropertyById(id, requestConfig = {}) {
+  const { data } = await getWithDedupe(`${BASE}/${id}`, requestConfig);
   return data;
 }
 

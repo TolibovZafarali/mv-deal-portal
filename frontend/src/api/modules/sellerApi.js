@@ -1,11 +1,11 @@
-import { apiClient } from "@/api/core/apiClient";
+import { apiClient, getWithDedupe } from "@/api/core/apiClient";
 import { buildPageParams, cleanParams } from "@/api/core/params";
 
 const BASE = "/api/sellers";
 const ADMIN_BASE = "/api/admin/sellers";
 
-export async function getSellerById(id) {
-  const { data } = await apiClient.get(`${BASE}/${id}`);
+export async function getSellerById(id, requestConfig = {}) {
+  const { data } = await getWithDedupe(`${BASE}/${id}`, requestConfig);
   return data;
 }
 
@@ -14,12 +14,12 @@ export async function updateSeller(id, sellerUpdateDto) {
   return data;
 }
 
-export async function searchAdminSellers(filters = {}, pageOpts = {}) {
+export async function searchAdminSellers(filters = {}, pageOpts = {}, requestConfig = {}) {
   const params = cleanParams({
     q: filters?.q,
     ...buildPageParams(pageOpts),
   });
 
-  const { data } = await apiClient.get(`${ADMIN_BASE}/search`, { params });
+  const { data } = await getWithDedupe(`${ADMIN_BASE}/search`, { ...requestConfig, params });
   return data;
 }

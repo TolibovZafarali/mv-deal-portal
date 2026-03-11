@@ -81,6 +81,7 @@ public class PropertyService {
         return PropertyMapper.toDto(saved);
     }
 
+    @Transactional(readOnly = true)
     public PropertyResponseDto getById(Long id) {
         boolean admin = requireApprovedInvestorOrAdmin();
 
@@ -91,6 +92,7 @@ public class PropertyService {
         return PropertyMapper.toDto(property);
     }
 
+    @Transactional(readOnly = true)
     public Page<PropertyResponseDto> getAll(Pageable pageable) {
         boolean admin = requireApprovedInvestorOrAdmin();
 
@@ -179,6 +181,7 @@ public class PropertyService {
         deletePropertyWithPhotos(property);
     }
 
+    @Transactional(readOnly = true)
     public Page<PropertyResponseDto> search(
             PropertyStatus status,
             String query,
@@ -218,6 +221,7 @@ public class PropertyService {
         );
     }
 
+    @Transactional(readOnly = true)
     public Page<PropertyResponseDto> search(
             PropertyStatus status,
             String query,
@@ -271,6 +275,7 @@ public class PropertyService {
                 .map(PropertyMapper::toDto);
     }
 
+    @Transactional(readOnly = true)
     public Page<PropertyResponseDto> getClosedPreview(Pageable pageable) {
         return propertyRepository.findAll(
                         PropertySpecifications.withFilters(

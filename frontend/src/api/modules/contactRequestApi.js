@@ -1,4 +1,4 @@
-import { apiClient } from "@/api/core/apiClient";
+import { apiClient, getWithDedupe } from "@/api/core/apiClient";
 import { buildPageParams, cleanParams } from "@/api/core/params";
 
 const BASE = "/api/contact-requests";
@@ -14,12 +14,12 @@ export async function createContactRequest(payload) {
   return data;
 }
 
-export async function getAdminContactRequests(filters = {}, pageOpts = {}) {
+export async function getAdminContactRequests(filters = {}, pageOpts = {}, requestConfig = {}) {
   const params = cleanParams({
     ...filters,
     ...buildPageParams(pageOpts),
   });
-  const { data } = await apiClient.get(ADMIN_BASE, { params });
+  const { data } = await getWithDedupe(ADMIN_BASE, { ...requestConfig, params });
   return data;
 }
 

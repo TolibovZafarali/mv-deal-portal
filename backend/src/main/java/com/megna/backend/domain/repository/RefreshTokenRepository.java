@@ -28,6 +28,23 @@ public interface RefreshTokenRepository extends JpaRepository<RefreshToken, Long
             Long principalId
     );
 
+    @Query(
+            value = """
+                    SELECT token.id
+                    FROM refresh_tokens token
+                    WHERE token.principal_type = :principalType
+                      AND token.principal_id = :principalId
+                      AND token.revoked_at IS NULL
+                    ORDER BY token.created_at DESC, token.id DESC
+                    LIMIT 1
+                    """,
+            nativeQuery = true
+    )
+    Optional<Long> findLatestActiveSessionId(
+            @Param("principalType") String principalType,
+            @Param("principalId") Long principalId
+    );
+
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("""
             UPDATE RefreshToken token
