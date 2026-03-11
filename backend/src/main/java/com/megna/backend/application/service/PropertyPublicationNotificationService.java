@@ -1,6 +1,7 @@
 package com.megna.backend.application.service;
 
 import com.megna.backend.application.service.email.TransactionalEmailRequest;
+import com.megna.backend.application.service.email.TransactionalEmailDeliveryOutcome;
 import com.megna.backend.application.service.email.TransactionalEmailService;
 import com.megna.backend.application.service.email.TransactionalEmailDeliveryResult;
 import com.megna.backend.domain.entity.Investor;
@@ -129,7 +130,8 @@ public class PropertyPublicationNotificationService {
         String errorDetail = deliveryResult.detail().isBlank() ? "delivery_failed" : deliveryResult.detail();
         notification.setLastError(errorDetail);
 
-        if (!deliveryResult.shouldRetry() || notification.getAttemptCount() >= MAX_DELIVERY_ATTEMPTS) {
+        boolean retryable = isRetryableOutcome(deliveryResult);
+        if (!retryable || notification.getAttemptCount() >= MAX_DELIVERY_ATTEMPTS) {
             notification.setNextAttemptAt(null);
         } else {
             notification.setNextAttemptAt(now.plusMinutes(retryDelayMinutes(notification.getAttemptCount())));
@@ -154,13 +156,23 @@ public class PropertyPublicationNotificationService {
         }
     }
 
+    private static boolean isRetryableOutcome(TransactionalEmailDeliveryResult deliveryResult) {
+        if (deliveryResult == null) {
+            return true;
+        }
+        if (deliveryResult.shouldRetry()) {
+            return true;
+        }
+        return deliveryResult.outcome() == TransactionalEmailDeliveryOutcome.UNKNOWN;
+    }
+
     private Map<String, Object> buildTemplateModel(PropertyPublicationNotification notification) {
         Property property = notification.getProperty();
         Investor investor = notification.getInvestor();
         String address = formatAddress(property);
         String propertyId = safeNumber(property == null ? null : property.getId());
         String propertyAddress = address.isBlank() ? "N/A" : address;
-        String actionUrl = "https://megna-realestate.com/investor";
+        String actionUrl = "https://megna.us/investor";
         String investorName = resolveInvestorGreetingName(investor);
 
         Map<String, Object> model = new LinkedHashMap<>();

@@ -38,7 +38,7 @@ import java.util.Map;
 @Slf4j
 public class InquiryService {
 
-    private static final String MEGNA_TEAM_INBOX = "contact@megna-realestate.com";
+    private static final String MEGNA_TEAM_INBOX = "contact@megna.us";
     private static final String INQUIRY_CREATED_TEMPLATE_ALIAS = "admin-inquiry-created-cid-v1";
     private static final String INQUIRY_FOLLOW_UP_TEMPLATE_ALIAS = "admin-inquiry-follow-up-cid-v1";
     private static final String PUBLIC_LOGO_URL = "https://raw.githubusercontent.com/TolibovZafarali/mv-deal-portal/dev/frontend/public/white-logo.png";
@@ -243,7 +243,7 @@ public class InquiryService {
         model.put("created_at", formatCreatedAt(inquiry));
         model.put("inquiry_message", safeValue(inquiry == null ? null : inquiry.getMessageBody()));
         model.put("action_text", "Open Inquiry");
-        model.put("action_url", "https://megna-realestate.com/admin/inquiries?inquiryId=" + safeNumber(inquiry == null ? null : inquiry.getId()));
+        model.put("action_url", "https://megna.us/admin/inquiries?inquiryId=" + safeNumber(inquiry == null ? null : inquiry.getId()));
         model.put("footer_text", "This notification was sent to admins because a new inquiry was created.");
         return model;
     }
@@ -263,7 +263,7 @@ public class InquiryService {
         model.put("previous_message_excerpt", excerpt(safeValue(latestReply == null ? null : latestReply.getMessageBody())));
         model.put("follow_up_message", safeValue(inquiry == null ? null : inquiry.getMessageBody()));
         model.put("action_text", "Open Inquiry Thread");
-        model.put("action_url", "https://megna-realestate.com/admin/inquiries?inquiryId=" + safeNumber(inquiry == null ? null : inquiry.getId()));
+        model.put("action_url", "https://megna.us/admin/inquiries?inquiryId=" + safeNumber(inquiry == null ? null : inquiry.getId()));
         model.put("footer_text", "This notification was sent to admins because an investor followed up on an inquiry.");
         return model;
     }

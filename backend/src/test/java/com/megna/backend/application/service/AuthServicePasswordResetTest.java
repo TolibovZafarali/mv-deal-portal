@@ -82,7 +82,7 @@ class AuthServicePasswordResetTest {
 
         when(investorRepository.findByEmail(email)).thenReturn(Optional.of(investor));
         when(authProperties.getPasswordResetTokenTtlMinutes()).thenReturn(30L);
-        when(authProperties.getPasswordResetUrlBase()).thenReturn("https://megna-realestate.com/reset-password");
+        when(authProperties.getPasswordResetUrlBase()).thenReturn("https://megna.us/reset-password");
         when(passwordResetTokenRepository.save(any(PasswordResetToken.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(transactionalEmailService.sendTransactional(any(TransactionalEmailRequest.class))).thenReturn(true);
 
@@ -110,7 +110,7 @@ class AuthServicePasswordResetTest {
         @SuppressWarnings("unchecked")
         Map<String, Object> templateModel = (Map<String, Object>) request.templateModel();
         String actionUrl = templateModel.get("action_url").toString();
-        assertTrue(actionUrl.contains("https://megna-realestate.com/reset-password?token="));
+        assertTrue(actionUrl.contains("https://megna.us/reset-password?token="));
 
         Matcher matcher = Pattern.compile("token=([^\\s]+)").matcher(actionUrl);
         assertTrue(matcher.find());
@@ -131,7 +131,7 @@ class AuthServicePasswordResetTest {
 
         when(investorRepository.findByEmail(email)).thenReturn(Optional.of(investor));
         when(authProperties.getPasswordResetTokenTtlMinutes()).thenReturn(30L);
-        when(authProperties.getPasswordResetUrlBase()).thenReturn("https://megna-realestate.com/reset-password");
+        when(authProperties.getPasswordResetUrlBase()).thenReturn("https://megna.us/reset-password");
         when(passwordResetTokenRepository.save(any(PasswordResetToken.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         authService.requestPasswordReset(new ForgotPasswordRequestDto(email));

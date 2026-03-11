@@ -30,7 +30,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest(
         webEnvironment = SpringBootTest.WebEnvironment.MOCK,
-        properties = "app.auth.refresh-cookie-domain=megna-realestate.com"
+        properties = "app.auth.refresh-cookie-domain=megna.us"
 )
 @AutoConfigureMockMvc
 class AuthSessionIntegrationTest {
@@ -70,7 +70,7 @@ class AuthSessionIntegrationTest {
         assertNotNull(session.accessToken());
         assertNotNull(session.refreshCookie());
         assertEquals(REFRESH_COOKIE_NAME, session.refreshCookie().getName());
-        assertEquals("megna-realestate.com", session.refreshCookie().getDomain());
+        assertEquals("megna.us", session.refreshCookie().getDomain());
         assertEquals("/api/auth", session.refreshCookie().getPath());
         assertEquals(true, session.refreshCookie().isHttpOnly());
     }
@@ -121,7 +121,7 @@ class AuthSessionIntegrationTest {
 
         Cookie clearedCookie = logoutResult.getResponse().getCookie(REFRESH_COOKIE_NAME);
         assertNotNull(clearedCookie);
-        assertEquals("megna-realestate.com", clearedCookie.getDomain());
+        assertEquals("megna.us", clearedCookie.getDomain());
         assertEquals(0, clearedCookie.getMaxAge());
 
         mockMvc.perform(post("/api/auth/refresh")

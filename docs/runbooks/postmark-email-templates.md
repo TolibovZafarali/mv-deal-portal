@@ -381,7 +381,7 @@ Admin contact-request-created model:
   "created_at": "2026-03-10 8:16 AM CT",
   "contact_message": "Need help with account access.",
   "action_text": "Open Contact Requests",
-  "action_url": "https://megna-realestate.com/admin/contact-requests",
+  "action_url": "https://megna.us/admin/contact-requests",
   "footer_text": "This notification was sent to admins because a new contact request was submitted."
 }
 ```
@@ -400,7 +400,7 @@ Investor inquiry admin-reply model:
   "reply_message": "Thanks for reaching out. We reviewed your request and can share additional details.",
   "original_inquiry_message": "Original investor message",
   "action_text": "View Properties",
-  "action_url": "https://megna-realestate.com/properties/101",
+  "action_url": "https://megna.us/properties/101",
   "footer_text": "Reply to this email if you need additional support from the Megna Team."
 }
 ```
@@ -417,7 +417,7 @@ Contact request reply model:
   "request_id": "998",
   "reply_message": "Thanks, we will follow up today.",
   "action_text": "Contact Us",
-  "action_url": "https://megna-realestate.com/contact",
+  "action_url": "https://megna.us/contact",
   "footer_text": "If you need anything else, reply to this email and our team will help."
 }
 ```
@@ -436,7 +436,7 @@ Admin seller-property-submitted model:
   "property_address": "123 Main St, St Louis, MO 63101",
   "submitted_at": "2026-03-10 03:45 PM CT",
   "action_text": "Open Submitted Listings",
-  "action_url": "https://megna-realestate.com/admin/queue?tab=submitted",
+  "action_url": "https://megna.us/admin/queue?tab=submitted",
   "footer_text": "This notification was sent because a seller submitted a listing for review."
 }
 ```
@@ -454,7 +454,7 @@ Seller property-published model:
   "property_price": "$120000",
   "published_at": "2026-03-10 04:05 PM CT",
   "action_text": "View Listing",
-  "action_url": "https://megna-realestate.com/seller/properties/601",
+  "action_url": "https://megna.us/seller/properties/601",
   "footer_text": "Need to make a change? Contact Megna support from your seller dashboard."
 }
 ```

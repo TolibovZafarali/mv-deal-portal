@@ -46,7 +46,7 @@ app:
     issuer: ${JWT_ISSUER:megna-backend}
     access-token-ttl-minutes: ${JWT_ACCESS_TTL_MINUTES:60}
   cors:
-    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://127.0.0.1:5173,https://megna-realestate.com,https://www.megna-realestate.com}
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://127.0.0.1:5173,https://megna.us,https://www.megna.us}
   abuse-protection:
     enabled: ${APP_ABUSE_PROTECTION_ENABLED:true}
     prune-interval-seconds: ${APP_ABUSE_PROTECTION_PRUNE_INTERVAL_SECONDS:60}
@@ -136,8 +136,8 @@ app:
   email:
     enabled: ${APP_EMAIL_ENABLED:false}
     production: ${APP_EMAIL_PRODUCTION:false}
-    from-address: ${APP_EMAIL_FROM_ADDRESS:no-reply@megna-realestate.com}
-    reply-to-address: ${APP_EMAIL_REPLY_TO_ADDRESS:contact@megna-realestate.com}
+    from-address: ${APP_EMAIL_FROM_ADDRESS:no-reply@megna.us}
+    reply-to-address: ${APP_EMAIL_REPLY_TO_ADDRESS:contact@megna.us}
     non-production-allowlist: ${APP_EMAIL_NON_PROD_ALLOWLIST:}
     webhooks-enabled: ${APP_EMAIL_WEBHOOKS_ENABLED:false}
     webhook-secret: ${POSTMARK_WEBHOOK_SECRET:}
@@ -145,10 +145,10 @@ app:
     postmark-server-token: ${POSTMARK_SERVER_TOKEN:}
     postmark-message-stream: ${POSTMARK_MESSAGE_STREAM:outbound}
   contact:
-    general-inbox: ${APP_CONTACT_GENERAL_INBOX:contact@megna-realestate.com}
-    investor-inbox: ${APP_CONTACT_INVESTOR_INBOX:contact@megna-realestate.com}
-    seller-inbox: ${APP_CONTACT_SELLER_INBOX:contact@megna-realestate.com}
-    privacy-inbox: ${APP_CONTACT_PRIVACY_INBOX:privacy@megna-realestate.com}
+    general-inbox: ${APP_CONTACT_GENERAL_INBOX:contact@megna.us}
+    investor-inbox: ${APP_CONTACT_INVESTOR_INBOX:contact@megna.us}
+    seller-inbox: ${APP_CONTACT_SELLER_INBOX:contact@megna.us}
+    privacy-inbox: ${APP_CONTACT_PRIVACY_INBOX:privacy@megna.us}
   features:
     seller-threads-enabled: ${APP_FEATURES_SELLER_THREADS_ENABLED:false}
   http:

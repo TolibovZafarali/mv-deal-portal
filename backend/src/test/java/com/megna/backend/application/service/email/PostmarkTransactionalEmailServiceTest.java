@@ -37,8 +37,8 @@ class PostmarkTransactionalEmailServiceTest {
 
         when(emailProperties.isEnabled()).thenReturn(true);
         when(emailProperties.isProduction()).thenReturn(false);
-        when(emailProperties.getFromAddress()).thenReturn("no-reply@megna-realestate.com");
-        when(emailProperties.getReplyToAddress()).thenReturn("contact@megna-realestate.com");
+        when(emailProperties.getFromAddress()).thenReturn("no-reply@megna.us");
+        when(emailProperties.getReplyToAddress()).thenReturn("contact@megna.us");
         when(emailProperties.getPostmarkServerToken()).thenReturn("token");
         when(emailProperties.getPostmarkMessageStream()).thenReturn("transactional");
         when(emailProperties.getNonProductionAllowlist()).thenReturn(List.of("allowlisted@example.com"));
@@ -63,8 +63,8 @@ class PostmarkTransactionalEmailServiceTest {
 
         when(emailProperties.isEnabled()).thenReturn(true);
         when(emailProperties.isProduction()).thenReturn(false);
-        when(emailProperties.getFromAddress()).thenReturn("no-reply@megna-realestate.com");
-        when(emailProperties.getReplyToAddress()).thenReturn("contact@megna-realestate.com");
+        when(emailProperties.getFromAddress()).thenReturn("no-reply@megna.us");
+        when(emailProperties.getReplyToAddress()).thenReturn("contact@megna.us");
         when(emailProperties.getPostmarkServerToken()).thenReturn("token");
         when(emailProperties.getPostmarkMessageStream()).thenReturn("transactional");
         when(emailProperties.getNonProductionAllowlist()).thenReturn(List.of("allowlisted@example.com"));
@@ -91,8 +91,8 @@ class PostmarkTransactionalEmailServiceTest {
 
         when(emailProperties.isEnabled()).thenReturn(true);
         when(emailProperties.isProduction()).thenReturn(true);
-        when(emailProperties.getFromAddress()).thenReturn("no-reply@megna-realestate.com");
-        when(emailProperties.getReplyToAddress()).thenReturn("contact@megna-realestate.com");
+        when(emailProperties.getFromAddress()).thenReturn("no-reply@megna.us");
+        when(emailProperties.getReplyToAddress()).thenReturn("contact@megna.us");
         when(emailProperties.getPostmarkServerToken()).thenReturn("token");
         when(emailProperties.getPostmarkMessageStream()).thenReturn("transactional");
         when(emailSuppressionService.isSuppressed("anyone@example.com")).thenReturn(false);
@@ -138,8 +138,8 @@ class PostmarkTransactionalEmailServiceTest {
         );
 
         when(emailProperties.isEnabled()).thenReturn(true);
-        when(emailProperties.getFromAddress()).thenReturn("no-reply@megna-realestate.com");
-        when(emailProperties.getReplyToAddress()).thenReturn("contact@megna-realestate.com");
+        when(emailProperties.getFromAddress()).thenReturn("no-reply@megna.us");
+        when(emailProperties.getReplyToAddress()).thenReturn("contact@megna.us");
         when(emailProperties.getPostmarkServerToken()).thenReturn("");
 
         boolean sent = service.sendTransactional(new TransactionalEmailRequest(
@@ -162,8 +162,8 @@ class PostmarkTransactionalEmailServiceTest {
 
         when(emailProperties.isEnabled()).thenReturn(true);
         when(emailProperties.isProduction()).thenReturn(true);
-        when(emailProperties.getFromAddress()).thenReturn("no-reply@megna-realestate.com");
-        when(emailProperties.getReplyToAddress()).thenReturn("contact@megna-realestate.com");
+        when(emailProperties.getFromAddress()).thenReturn("no-reply@megna.us");
+        when(emailProperties.getReplyToAddress()).thenReturn("contact@megna.us");
         when(emailProperties.getPostmarkServerToken()).thenReturn("token");
         when(emailProperties.getPostmarkMessageStream()).thenReturn("transactional");
         when(emailSuppressionService.isSuppressed("suppressed@example.com")).thenReturn(true);

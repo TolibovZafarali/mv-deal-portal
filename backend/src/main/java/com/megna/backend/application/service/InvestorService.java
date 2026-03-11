@@ -268,7 +268,7 @@ public class InvestorService {
         model.put("title", "Welcome to Megna, " + greetingName);
         model.put("message", "Your investor account has been approved. You can now access listings and submit inquiries.");
         model.put("action_text", "Open Investor Dashboard");
-        model.put("action_url", "https://megna-realestate.com/investor");
+        model.put("action_url", "https://megna.us/investor");
         model.put("footer_text", "Need help? Reply to this email and our team will assist you.");
         return model;
     }

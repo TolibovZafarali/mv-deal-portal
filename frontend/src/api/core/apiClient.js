@@ -7,7 +7,20 @@ import {
     setAccessToken,
 } from "@/api/core/tokenStorage";
 
-const baseURL = "";
+function resolveBaseUrl() {
+    if (typeof import.meta === "undefined" || !import.meta?.env?.VITE_API_BASE_URL) {
+        return "";
+    }
+
+    const configured = String(import.meta.env.VITE_API_BASE_URL).trim();
+    if (!configured) {
+        return "";
+    }
+
+    return configured.replace(/\/+$/, "");
+}
+
+const baseURL = resolveBaseUrl();
 const DEFAULT_TIMEOUT_MS = 15000;
 const SLOW_REQUEST_THRESHOLD_MS = 1200;
 const inFlightGetRequests = new Map();

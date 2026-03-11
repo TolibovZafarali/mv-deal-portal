@@ -119,7 +119,7 @@ class InquiryServiceTest {
 
         ArgumentCaptor<TransactionalEmailRequest> emailCaptor = ArgumentCaptor.forClass(TransactionalEmailRequest.class);
         verify(transactionalEmailService).sendTransactional(emailCaptor.capture());
-        assertEquals("contact@megna-realestate.com", emailCaptor.getValue().to());
+        assertEquals("contact@megna.us", emailCaptor.getValue().to());
         assertEquals("admin-inquiry-created-cid-v1", emailCaptor.getValue().templateAlias());
         @SuppressWarnings("unchecked")
         Map<String, Object> templateModel = (Map<String, Object>) emailCaptor.getValue().templateModel();

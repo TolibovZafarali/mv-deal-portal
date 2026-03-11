@@ -18,8 +18,8 @@ app:
     access-token-ttl-minutes: 5
   cors:
     allowed-origins:
-      - https://megna-realestate.com
-      - https://www.megna-realestate.com
+      - https://megna.us
+      - https://www.megna.us
   email:
     enabled: false
     production: false

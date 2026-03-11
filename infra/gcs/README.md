@@ -14,8 +14,8 @@ gcloud storage cors set infra/gcs/cors.prod.json gs://mv-photos-prod
 The CORS policies allow direct browser upload requests from:
 
 - `http://localhost:5173`
-- `https://megna-realestate.com`
-- `https://www.megna-realestate.com`
+- `https://megna.us`
+- `https://www.megna.us`
 
 ## 2) Apply IAM
 

@@ -11,8 +11,8 @@ import org.springframework.stereotype.Component;
 @ConfigurationProperties(prefix = "app.contact")
 public class ContactProperties {
 
-    private String generalInbox = "contact@megna-realestate.com";
-    private String investorInbox = "contact@megna-realestate.com";
-    private String sellerInbox = "contact@megna-realestate.com";
-    private String privacyInbox = "privacy@megna-realestate.com";
+    private String generalInbox = "contact@megna.us";
+    private String investorInbox = "contact@megna.us";
+    private String sellerInbox = "contact@megna.us";
+    private String privacyInbox = "privacy@megna.us";
 }

@@ -154,19 +154,21 @@ class PropertyPublicationNotificationServiceTest {
     }
 
     @Test
-    void processPendingNotificationsStopsRetryingOnUnknownToPreventDuplicateResends() {
+    void processPendingNotificationsSchedulesRetryOnUnknownTransportFailure() {
         PropertyPublicationNotification notification = notification(204L, 304L);
         when(notificationRepository.findTop100ByStatusInAndNextAttemptAtLessThanEqualOrderByNextAttemptAtAscCreatedAtAsc(any(), any()))
                 .thenReturn(List.of(notification));
         when(transactionalEmailService.sendTransactionalDetailed(any()))
                 .thenReturn(TransactionalEmailDeliveryResult.unknown("transport_IOException"));
 
+        LocalDateTime before = LocalDateTime.now(ZoneOffset.UTC);
         service.processPendingNotifications();
 
         verify(notificationRepository).save(notification);
         assertEquals(PropertyPublicationNotificationStatus.FAILED, notification.getStatus());
         assertEquals(1, notification.getAttemptCount());
-        assertNull(notification.getNextAttemptAt());
+        assertNotNull(notification.getNextAttemptAt());
+        assertTrue(notification.getNextAttemptAt().isAfter(before));
         assertEquals("transport_IOException", notification.getLastError());
     }
 
