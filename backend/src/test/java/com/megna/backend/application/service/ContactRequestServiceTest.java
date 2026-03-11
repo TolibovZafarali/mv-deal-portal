@@ -51,7 +51,7 @@ class ContactRequestServiceTest {
 
     @Test
     void createSendsOnlyAdminNotificationWhenDeliverySucceeds() {
-        when(contactProperties.getGeneralInbox()).thenReturn("contact@megna-realestate.com");
+        when(contactProperties.getGeneralInbox()).thenReturn("contact@megna.us");
         when(transactionalEmailService.sendTransactional(any())).thenReturn(true);
 
         List<String> persistedStatuses = new ArrayList<>();
@@ -76,7 +76,7 @@ class ContactRequestServiceTest {
         List<TransactionalEmailRequest> requests = emailCaptor.getAllValues();
         assertEquals(1, requests.size());
         TransactionalEmailRequest emailRequest = requests.getFirst();
-        assertEquals("contact@megna-realestate.com", emailRequest.to());
+        assertEquals("contact@megna.us", emailRequest.to());
         assertEquals("admin-contact-request-created-cid-v1", emailRequest.templateAlias());
 
         @SuppressWarnings("unchecked")
@@ -88,13 +88,13 @@ class ContactRequestServiceTest {
         assertEquals("alex@example.com", model.get("contact_email"));
         assertEquals("Need help with account access.", model.get("contact_message"));
         assertEquals("Open Contact Requests", model.get("action_text"));
-        assertEquals("https://megna-realestate.com/admin/contact-requests", model.get("action_url"));
+        assertEquals("https://megna.us/admin/contact-requests", model.get("action_url"));
         assertTrue(model.get("created_at").toString().endsWith("CT"));
     }
 
     @Test
     void createKeepsFailedAdminEmailStatusWhenDeliveryFails() {
-        when(contactProperties.getGeneralInbox()).thenReturn("contact@megna-realestate.com");
+        when(contactProperties.getGeneralInbox()).thenReturn("contact@megna.us");
         when(transactionalEmailService.sendTransactional(any())).thenReturn(false);
         when(contactRequestRepository.save(any(ContactRequest.class))).thenAnswer(invocation -> {
             ContactRequest contactRequest = invocation.getArgument(0);
@@ -172,7 +172,7 @@ class ContactRequestServiceTest {
         assertEquals("998", emailRequest.templateModel().get("request_id"));
         assertEquals("Thanks, we will follow up today.", emailRequest.templateModel().get("reply_message"));
         assertEquals("Contact Us", emailRequest.templateModel().get("action_text"));
-        assertEquals("https://megna-realestate.com/contact", emailRequest.templateModel().get("action_url"));
+        assertEquals("https://megna.us/contact", emailRequest.templateModel().get("action_url"));
         assertTrue(emailRequest.isTemplate());
     }
 

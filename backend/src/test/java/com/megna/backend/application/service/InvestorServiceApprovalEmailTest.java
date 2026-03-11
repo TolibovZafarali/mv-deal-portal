@@ -82,7 +82,7 @@ class InvestorServiceApprovalEmailTest {
         assertEquals("Welcome to Megna", templateModel.get("subject"));
         assertEquals("Welcome to Megna, John", templateModel.get("title"));
         assertEquals("Open Investor Dashboard", templateModel.get("action_text"));
-        assertEquals("https://megna-realestate.com/investor", templateModel.get("action_url"));
+        assertEquals("https://megna.us/investor", templateModel.get("action_url"));
     }
 
     @Test

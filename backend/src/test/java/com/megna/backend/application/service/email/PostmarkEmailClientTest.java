@@ -40,8 +40,8 @@ class PostmarkEmailClientTest {
 
         when(emailProperties.getPostmarkApiBaseUrl()).thenReturn("https://api.postmarkapp.com");
         when(emailProperties.getPostmarkServerToken()).thenReturn("test-token");
-        when(emailProperties.getFromAddress()).thenReturn("no-reply@megna-realestate.com");
-        when(emailProperties.getReplyToAddress()).thenReturn("contact@megna-realestate.com");
+        when(emailProperties.getFromAddress()).thenReturn("no-reply@megna.us");
+        when(emailProperties.getReplyToAddress()).thenReturn("contact@megna.us");
         when(emailProperties.getPostmarkMessageStream()).thenReturn("outbound-stream");
         when(objectMapper.writeValueAsString(any())).thenReturn("{\"ok\":true}");
 
@@ -68,9 +68,9 @@ class PostmarkEmailClientTest {
         ArgumentCaptor<Object> payloadCaptor = ArgumentCaptor.forClass(Object.class);
         verify(objectMapper).writeValueAsString(payloadCaptor.capture());
         Map<?, ?> payload = (Map<?, ?>) payloadCaptor.getValue();
-        assertEquals("no-reply@megna-realestate.com", payload.get("From"));
+        assertEquals("no-reply@megna.us", payload.get("From"));
         assertEquals("buyer@example.com", payload.get("To"));
-        assertEquals("contact@megna-realestate.com", payload.get("ReplyTo"));
+        assertEquals("contact@megna.us", payload.get("ReplyTo"));
         assertEquals("Subject line", payload.get("Subject"));
         assertEquals("Email body", payload.get("TextBody"));
         assertEquals("outbound-stream", payload.get("MessageStream"));
@@ -82,8 +82,8 @@ class PostmarkEmailClientTest {
 
         when(emailProperties.getPostmarkApiBaseUrl()).thenReturn("https://api.postmarkapp.com/");
         when(emailProperties.getPostmarkServerToken()).thenReturn("test-token");
-        when(emailProperties.getFromAddress()).thenReturn("no-reply@megna-realestate.com");
-        when(emailProperties.getReplyToAddress()).thenReturn("contact@megna-realestate.com");
+        when(emailProperties.getFromAddress()).thenReturn("no-reply@megna.us");
+        when(emailProperties.getReplyToAddress()).thenReturn("contact@megna.us");
         when(emailProperties.getPostmarkMessageStream()).thenReturn("outbound-stream");
         when(objectMapper.writeValueAsString(any())).thenReturn("{\"ok\":true}");
 
@@ -106,8 +106,8 @@ class PostmarkEmailClientTest {
 
         when(emailProperties.getPostmarkApiBaseUrl()).thenReturn("https://api.postmarkapp.com");
         when(emailProperties.getPostmarkServerToken()).thenReturn("test-token");
-        when(emailProperties.getFromAddress()).thenReturn("no-reply@megna-realestate.com");
-        when(emailProperties.getReplyToAddress()).thenReturn("contact@megna-realestate.com");
+        when(emailProperties.getFromAddress()).thenReturn("no-reply@megna.us");
+        when(emailProperties.getReplyToAddress()).thenReturn("contact@megna.us");
         when(emailProperties.getPostmarkMessageStream()).thenReturn("outbound-stream");
         when(objectMapper.writeValueAsString(any())).thenReturn("{\"ok\":true}");
         when(httpClient.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class)))
@@ -128,8 +128,8 @@ class PostmarkEmailClientTest {
 
         when(emailProperties.getPostmarkApiBaseUrl()).thenReturn("https://api.postmarkapp.com");
         when(emailProperties.getPostmarkServerToken()).thenReturn("test-token");
-        when(emailProperties.getFromAddress()).thenReturn("no-reply@megna-realestate.com");
-        when(emailProperties.getReplyToAddress()).thenReturn("contact@megna-realestate.com");
+        when(emailProperties.getFromAddress()).thenReturn("no-reply@megna.us");
+        when(emailProperties.getReplyToAddress()).thenReturn("contact@megna.us");
         when(emailProperties.getPostmarkMessageStream()).thenReturn("outbound-stream");
         when(objectMapper.writeValueAsString(any())).thenReturn("{\"ok\":true}");
 

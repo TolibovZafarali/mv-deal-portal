@@ -6,7 +6,7 @@ Set these on Cloud Run:
 
 - `APP_PHOTOS_PROVIDER=gcs`
 - `GCS_BUCKET_NAME=<gcs-bucket-name>`
-- `APP_PHOTOS_PUBLIC_BASE_URL=https://img.megna-realestate.com`
+- `APP_PHOTOS_PUBLIC_BASE_URL=https://img.megna.us`
 - `APP_PHOTOS_MAX_FILE_SIZE_BYTES=10485760`
 - `APP_PHOTOS_ALLOWED_CONTENT_TYPES=image/jpeg,image/png,image/webp`
 - `APP_PHOTOS_UPLOAD_URL_TTL_SECONDS=900`
@@ -22,8 +22,8 @@ Apply CORS to allow browser direct uploads:
 [
   {
     "origin": [
-      "https://megna-realestate.com",
-      "https://www.megna-realestate.com",
+      "https://megna.us",
+      "https://www.megna.us",
       "http://localhost:5173"
     ],
     "method": ["PUT", "GET", "HEAD", "OPTIONS"],

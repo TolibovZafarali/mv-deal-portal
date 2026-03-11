@@ -36,7 +36,7 @@ class SellerPropertyEmailNotificationServiceTest {
 
     @Test
     void notifyAdminPropertySubmittedUsesAdminTemplateAliasAndSellerInboxRecipient() {
-        when(contactProperties.getSellerInbox()).thenReturn("seller-inbox@megna-realestate.com");
+        when(contactProperties.getSellerInbox()).thenReturn("seller-inbox@megna.us");
         when(transactionalEmailService.sendTransactional(org.mockito.ArgumentMatchers.any())).thenReturn(true);
 
         Property property = propertyWithSeller(501L);
@@ -47,7 +47,7 @@ class SellerPropertyEmailNotificationServiceTest {
         ArgumentCaptor<TransactionalEmailRequest> emailCaptor = ArgumentCaptor.forClass(TransactionalEmailRequest.class);
         verify(transactionalEmailService).sendTransactional(emailCaptor.capture());
         TransactionalEmailRequest request = emailCaptor.getValue();
-        assertEquals("seller-inbox@megna-realestate.com", request.to());
+        assertEquals("seller-inbox@megna.us", request.to());
         assertEquals("admin-seller-property-submitted-cid-v1", request.templateAlias());
 
         @SuppressWarnings("unchecked")

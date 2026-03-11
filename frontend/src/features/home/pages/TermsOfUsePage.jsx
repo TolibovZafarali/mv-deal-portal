@@ -13,7 +13,7 @@ const TERMS_HIGHLIGHTS = [
     },
     {
         label: "Contact",
-        value: "contact@megna-realestate.com",
+        value: "contact@megna.us",
     },
 ];
 
@@ -202,13 +202,13 @@ const TERMS_SECTIONS = [
         contactDetails: [
             {
                 label: "Email",
-                value: "contact@megna-realestate.com",
-                href: "mailto:contact@megna-realestate.com",
+                value: "contact@megna.us",
+                href: "mailto:contact@megna.us",
             },
             {
                 label: "Privacy requests",
-                value: "privacy@megna-realestate.com",
-                href: "mailto:privacy@megna-realestate.com",
+                value: "privacy@megna.us",
+                href: "mailto:privacy@megna.us",
             },
             {
                 label: "Mail",

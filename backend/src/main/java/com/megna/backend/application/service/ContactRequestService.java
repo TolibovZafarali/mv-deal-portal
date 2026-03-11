@@ -37,8 +37,8 @@ public class ContactRequestService {
     private static final String CONTACT_REPLY_TEMPLATE_ALIAS = "contact-request-reply-cid-v1";
     private static final String REPLY_SUBJECT_PREFIX = "Reply from Megna Real Estate";
     private static final String PUBLIC_LOGO_URL = "https://raw.githubusercontent.com/TolibovZafarali/mv-deal-portal/dev/frontend/public/white-logo.png";
-    private static final String ACTION_URL = "https://megna-realestate.com/admin/contact-requests";
-    private static final String CONTACT_PAGE_URL = "https://megna-realestate.com/contact";
+    private static final String ACTION_URL = "https://megna.us/admin/contact-requests";
+    private static final String CONTACT_PAGE_URL = "https://megna.us/contact";
     private static final DateTimeFormatter CREATED_AT_FORMATTER =
             DateTimeFormatter.ofPattern("yyyy-MM-dd h:mm a 'CT'");
 

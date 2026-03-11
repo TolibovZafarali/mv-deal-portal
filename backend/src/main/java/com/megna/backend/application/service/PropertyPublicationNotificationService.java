@@ -172,7 +172,7 @@ public class PropertyPublicationNotificationService {
         String address = formatAddress(property);
         String propertyId = safeNumber(property == null ? null : property.getId());
         String propertyAddress = address.isBlank() ? "N/A" : address;
-        String actionUrl = "https://megna-realestate.com/investor";
+        String actionUrl = "https://megna.us/investor";
         String investorName = resolveInvestorGreetingName(investor);
 
         Map<String, Object> model = new LinkedHashMap<>();

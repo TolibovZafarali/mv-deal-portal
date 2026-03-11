@@ -12,7 +12,7 @@ const POLICY_HIGHLIGHTS = [
     },
     {
         label: "Privacy contact",
-        value: "privacy@megna-realestate.com",
+        value: "privacy@megna.us",
     },
 ];
 
@@ -181,13 +181,13 @@ const POLICY_SECTIONS = [
         contactDetails: [
             {
                 label: "Email",
-                value: "privacy@megna-realestate.com",
-                href: "mailto:privacy@megna-realestate.com",
+                value: "privacy@megna.us",
+                href: "mailto:privacy@megna.us",
             },
             {
                 label: "General support",
-                value: "contact@megna-realestate.com",
-                href: "mailto:contact@megna-realestate.com",
+                value: "contact@megna.us",
+                href: "mailto:contact@megna.us",
             },
             {
                 label: "Mail",
