@@ -15,10 +15,13 @@ import com.megna.backend.interfaces.rest.dto.property.PropertyPhotoUploadInitReq
 import com.megna.backend.interfaces.rest.dto.property.PropertyPhotoUploadInitResponseDto;
 import lombok.extern.slf4j.Slf4j;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.util.StringUtils;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -48,6 +51,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.Executor;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -65,6 +69,8 @@ public class PhotoAssetService {
     private final PhotoObjectStorage photoObjectStorage;
     private final PhotoStorageProperties photoStorageProperties;
     private final PhotoUploadTokenService photoUploadTokenService;
+    @Qualifier("photoProcessingExecutor")
+    private final Executor photoProcessingExecutor;
 
     @Transactional
     public PropertyPhotoUploadInitResponseDto initUpload(PropertyPhotoUploadInitRequestDto request, long adminId) {
@@ -181,6 +187,12 @@ public class PhotoAssetService {
         if (asset.getStatus() == PhotoAssetStatus.DELETED || asset.getStatus() == PhotoAssetStatus.DELETED_PENDING) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Upload is not available");
         }
+        if (asset.getStatus() == PhotoAssetStatus.READY) {
+            return toUploadResponse(asset, null);
+        }
+        if (asset.getStatus() == PhotoAssetStatus.PROCESSING) {
+            return toUploadResponse(asset, null);
+        }
 
         if (asset.getExpiresAt() != null && asset.getExpiresAt().isBefore(LocalDateTime.now())) {
             asset.setStatus(PhotoAssetStatus.FAILED);
@@ -219,67 +231,24 @@ public class PhotoAssetService {
         asset.setStatus(PhotoAssetStatus.PROCESSING);
         asset.setErrorMessage(null);
         photoAssetRepository.save(asset);
+        enqueueAfterCommit(uploadId);
+        return toUploadResponse(asset, null);
+    }
 
-        try {
-            byte[] originalBytes = downloadOriginalObject(asset);
-            ProcessedImage processed = processImage(originalBytes);
+    @Transactional(readOnly = true)
+    public PropertyPhotoUploadCompleteResponseDto getUploadStatus(
+            String uploadId,
+            PhotoAssetPrincipalRole principalRole,
+            long principalId
+    ) {
+        PhotoAsset asset = photoAssetRepository.findById(uploadId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Upload not found"));
 
-            uploadDerivedObject(
-                    asset,
-                    asset.getDisplayObjectKey(),
-                    processed.displayBytes(),
-                    "image/jpeg",
-                    "public, max-age=31536000, immutable"
-            );
-            uploadDerivedObject(
-                    asset,
-                    asset.getThumbObjectKey(),
-                    processed.thumbBytes(),
-                    "image/jpeg",
-                    "public, max-age=31536000, immutable"
-            );
-
-            asset.setUrl(buildPublicUrl(asset.getDisplayObjectKey()));
-            asset.setThumbnailUrl(buildPublicUrl(asset.getThumbObjectKey()));
-            asset.setDisplayWidth(processed.width());
-            asset.setDisplayHeight(processed.height());
-            asset.setStatus(PhotoAssetStatus.READY);
-            asset.setErrorMessage(null);
-            asset.setRetryCount(0);
-            photoAssetRepository.save(asset);
-
-            return new PropertyPhotoUploadCompleteResponseDto(
-                    asset.getId(),
-                    asset.getUrl(),
-                    asset.getThumbnailUrl(),
-                    asset.getDisplayWidth(),
-                    asset.getDisplayHeight(),
-                    "image/jpeg",
-                    (long) processed.displayBytes().length
-            );
-        } catch (ResponseStatusException ex) {
-            failAsset(asset, ex.getReason());
-            if (ex.getStatusCode().is5xxServerError()) {
-                log.error(
-                        "Photo upload processing failed. uploadId={}, bucket={}, objectKey={}",
-                        uploadId,
-                        asset.getOriginalBucket(),
-                        asset.getOriginalObjectKey(),
-                        ex
-                );
-            }
-            throw ex;
-        } catch (Exception ex) {
-            log.error(
-                    "Unexpected photo upload processing failure. uploadId={}, bucket={}, objectKey={}",
-                    uploadId,
-                    asset.getOriginalBucket(),
-                    asset.getOriginalObjectKey(),
-                    ex
-            );
-            failAsset(asset, "Failed to process upload");
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to process upload");
+        if (isAssetOwnedByAnotherPrincipal(asset, principalRole, principalId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Upload belongs to another principal");
         }
+
+        return toUploadResponse(asset, null);
     }
 
     @Transactional
@@ -341,8 +310,84 @@ public class PhotoAssetService {
                 null,
                 null,
                 null,
+                null,
+                PhotoAssetStatus.READY.name(),
                 null
         );
+    }
+
+    private void queueProcessing(String uploadId) {
+        photoProcessingExecutor.execute(() -> processUploadInBackground(uploadId));
+    }
+
+    private void enqueueAfterCommit(String uploadId) {
+        if (!TransactionSynchronizationManager.isActualTransactionActive()) {
+            queueProcessing(uploadId);
+            return;
+        }
+
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                queueProcessing(uploadId);
+            }
+        });
+    }
+
+    private void processUploadInBackground(String uploadId) {
+        PhotoAsset asset = photoAssetRepository.findById(uploadId).orElse(null);
+        if (asset == null || asset.getStatus() != PhotoAssetStatus.PROCESSING) {
+            return;
+        }
+
+        try {
+            byte[] originalBytes = downloadOriginalObject(asset);
+            ProcessedImage processed = processImage(originalBytes);
+
+            uploadDerivedObject(
+                    asset,
+                    asset.getDisplayObjectKey(),
+                    processed.displayBytes(),
+                    "image/jpeg",
+                    "public, max-age=31536000, immutable"
+            );
+            uploadDerivedObject(
+                    asset,
+                    asset.getThumbObjectKey(),
+                    processed.thumbBytes(),
+                    "image/jpeg",
+                    "public, max-age=31536000, immutable"
+            );
+
+            asset.setUrl(buildPublicUrl(asset.getDisplayObjectKey()));
+            asset.setThumbnailUrl(buildPublicUrl(asset.getThumbObjectKey()));
+            asset.setDisplayWidth(processed.width());
+            asset.setDisplayHeight(processed.height());
+            asset.setStatus(PhotoAssetStatus.READY);
+            asset.setErrorMessage(null);
+            asset.setRetryCount(0);
+            photoAssetRepository.save(asset);
+        } catch (ResponseStatusException ex) {
+            failAsset(asset, ex.getReason());
+            if (ex.getStatusCode().is5xxServerError()) {
+                log.error(
+                        "Photo upload processing failed. uploadId={}, bucket={}, objectKey={}",
+                        uploadId,
+                        asset.getOriginalBucket(),
+                        asset.getOriginalObjectKey(),
+                        ex
+                );
+            }
+        } catch (Exception ex) {
+            log.error(
+                    "Unexpected photo upload processing failure. uploadId={}, bucket={}, objectKey={}",
+                    uploadId,
+                    asset.getOriginalBucket(),
+                    asset.getOriginalObjectKey(),
+                    ex
+            );
+            failAsset(asset, "Failed to process upload");
+        }
     }
 
     @Transactional(readOnly = true)
@@ -620,6 +665,25 @@ public class PhotoAssetService {
             base = base.substring(0, base.length() - 1);
         }
         return base + "/" + objectKey;
+    }
+
+    private PropertyPhotoUploadCompleteResponseDto toUploadResponse(PhotoAsset asset, Long sizeBytes) {
+        if (asset == null) {
+            return new PropertyPhotoUploadCompleteResponseDto(null, null, null, null, null, null, null, null, null);
+        }
+
+        String contentType = StringUtils.hasText(asset.getUrl()) ? "image/jpeg" : null;
+        return new PropertyPhotoUploadCompleteResponseDto(
+                asset.getId(),
+                asset.getUrl(),
+                asset.getThumbnailUrl(),
+                asset.getDisplayWidth(),
+                asset.getDisplayHeight(),
+                contentType,
+                sizeBytes,
+                asset.getStatus() == null ? null : asset.getStatus().name(),
+                asset.getErrorMessage()
+        );
     }
 
     private PhotoObjectStorage.StoredObjectMetadata readUploadedObjectMetadata(PhotoAsset asset) {

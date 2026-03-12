@@ -7,6 +7,8 @@ public record PropertyPhotoUploadCompleteResponseDto(
         Integer width,
         Integer height,
         String contentType,
-        Long sizeBytes
+        Long sizeBytes,
+        String status,
+        String errorMessage
 ) {
 }
