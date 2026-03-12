@@ -2,6 +2,7 @@ package com.megna.backend.interfaces.rest.controller;
 
 import com.megna.backend.application.service.PropertyService;
 import com.megna.backend.application.service.PhotoAssetService;
+import com.megna.backend.domain.enums.PhotoAssetPrincipalRole;
 import com.megna.backend.infrastructure.security.SecurityUtils;
 import com.megna.backend.infrastructure.security.AuthPrincipal;
 import com.megna.backend.interfaces.rest.dto.property.PropertyPhotoUploadCompleteRequestDto;
@@ -94,7 +95,13 @@ public class SellerPropertyController {
     ) {
         long sellerId = requireSellerId();
         PropertyPhotoUploadCompleteResponseDto response = photoAssetService.completeUploadForSeller(uploadId, dto, sellerId);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.status(HttpStatus.ACCEPTED).body(response);
+    }
+
+    @GetMapping("/photos/uploads/{uploadId}")
+    public PropertyPhotoUploadCompleteResponseDto getPhotoUploadStatus(@PathVariable String uploadId) {
+        long sellerId = requireSellerId();
+        return photoAssetService.getUploadStatus(uploadId, PhotoAssetPrincipalRole.SELLER, sellerId);
     }
 
     @PostMapping("/photos/urls")

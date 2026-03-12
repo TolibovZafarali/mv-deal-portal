@@ -12,6 +12,7 @@ import com.megna.backend.interfaces.rest.dto.property.PropertyUpsertRequestDto;
 import com.megna.backend.domain.enums.ClosingTerms;
 import com.megna.backend.domain.enums.ExitStrategy;
 import com.megna.backend.domain.enums.OccupancyStatus;
+import com.megna.backend.domain.enums.PhotoAssetPrincipalRole;
 import com.megna.backend.domain.enums.PropertyStatus;
 import com.megna.backend.domain.enums.SellerWorkflowStatus;
 import com.megna.backend.application.service.PropertyAddressAutocompleteService;
@@ -91,7 +92,14 @@ public class PropertyController {
     ) {
         long adminId = SecurityUtils.requirePrincipal().userId();
         PropertyPhotoUploadCompleteResponseDto completed = photoAssetService.completeUpload(uploadId, dto, adminId);
-        return ResponseEntity.ok(completed);
+        return ResponseEntity.status(HttpStatus.ACCEPTED).body(completed);
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/photos/uploads/{uploadId}")
+    public PropertyPhotoUploadCompleteResponseDto getPhotoUploadStatus(@PathVariable String uploadId) {
+        long adminId = SecurityUtils.requirePrincipal().userId();
+        return photoAssetService.getUploadStatus(uploadId, PhotoAssetPrincipalRole.ADMIN, adminId);
     }
 
     @PreAuthorize("hasRole('ADMIN')")
