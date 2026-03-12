@@ -920,20 +920,15 @@ public class PropertyService {
             return;
         }
 
-        boolean hasMissingPhotoUrl = property.getPhotos().stream().anyMatch(photo ->
-                photo != null
-                        && StringUtils.hasText(photo.getPhotoAssetId())
-                        && !StringUtils.hasText(photo.getUrl())
+        // Always re-hydrate URLs from canonical photo assets before save so
+        // replacing photos in the same request cannot persist null photo URLs.
+        AuthPrincipal authPrincipal = principal();
+        hydratePhotoAssets(
+                property,
+                property.getId(),
+                resolvePhotoAssetPrincipalRole(authPrincipal.role()),
+                authPrincipal.userId()
         );
-        if (hasMissingPhotoUrl) {
-            AuthPrincipal authPrincipal = principal();
-            hydratePhotoAssets(
-                    property,
-                    property.getId(),
-                    resolvePhotoAssetPrincipalRole(authPrincipal.role()),
-                    authPrincipal.userId()
-            );
-        }
 
         for (PropertyPhoto photo : property.getPhotos()) {
             if (photo == null) {

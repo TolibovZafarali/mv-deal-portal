@@ -128,6 +128,8 @@ public class GlobalExceptionHandler {
 
         if (normalized.contains("property_photos") && normalized.contains("url") && normalized.contains("cannot be null")) {
             detail = "One or more photos are missing URL values. Re-upload the photo and try again.";
+        } else if (normalized.contains("column 'url' cannot be null")) {
+            detail = "One or more photos are missing URL values. Re-upload the photo and try again.";
         }
 
         ApiError body = new ApiError(
