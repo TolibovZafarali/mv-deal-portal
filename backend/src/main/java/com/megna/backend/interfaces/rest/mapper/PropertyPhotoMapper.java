@@ -32,6 +32,11 @@ public final class PropertyPhotoMapper {
         PropertyPhoto photo = new PropertyPhoto();
         photo.setProperty(property);
         photo.setPhotoAssetId(dto.photoAssetId());
+        // New photos are hydrated with canonical asset URLs later in the service layer.
+        // Keep non-null placeholders here to avoid premature JPA auto-flush violating
+        // the DB NOT NULL constraint on property_photos.url before hydration runs.
+        photo.setUrl("");
+        photo.setThumbnailUrl("");
         photo.setSortOrder(dto.sortOrder() != null ? dto.sortOrder() : 0);
         photo.setCaption(dto.caption());
         return photo;
