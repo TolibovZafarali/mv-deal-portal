@@ -30,15 +30,15 @@ export const ROLE_OPTION_CARDS = [
 export const ROLE_CONTENT = {
     [ROLE_INVESTOR]: {
         hero: {
-            eyebrow: "Private deal flow for decisive buyers",
-            title: "Private real estate, presented with conviction.",
+            eyebrow: "Private deal flow for active investors",
+            title: "Private real estate deals for serious buyers.",
             subtitle:
-                "Megna gives active investors a calmer way to discover vetted opportunities, evaluate quickly, and stay close to the deal without the noise.",
+                "Discover vetted off-market properties, review them quickly, and move on deals without the noise of public listings.",
             primaryCtaLabel: "Request buyer access",
             primaryCtaTo: "/signup",
             secondaryCtaLabel: "See recent closings",
             secondaryCtaHref: "#proof",
-            signals: ["Curated flow", "Clear underwriting", "Direct execution"],
+            signals: ["Vetted deals", "Clear numbers", "Fast execution"],
             spotlightLabel: "Buyer brief",
             spotlightTitle: "Signal before volume",
             spotlightText:
@@ -120,15 +120,15 @@ export const ROLE_CONTENT = {
     },
     [ROLE_SELLER]: {
         hero: {
-            eyebrow: "Elevated presentation for serious sellers",
-            title: "Serious buyers move faster when the presentation is clean.",
+            eyebrow: "For property owners and deal sources",
+            title: "Get your property in front of serious buyers.",
             subtitle:
-                "Megna gives sellers a more refined way to position off-market opportunities, attract qualified capital, and keep every conversation moving.",
+                "Present off-market opportunities to qualified investors and move deals forward faster.",
             primaryCtaLabel: "Launch seller profile",
             primaryCtaTo: "/signup/seller",
             secondaryCtaLabel: "See recent closings",
             secondaryCtaHref: "#proof",
-            signals: ["Sharper presentation", "Qualified buyers", "Faster movement"],
+            signals: ["Professional presentation", "Qualified buyers", "Faster closings"],
             spotlightLabel: "Seller brief",
             spotlightTitle: "Position the deal with precision",
             spotlightText:

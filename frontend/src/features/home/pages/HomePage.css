@@ -519,6 +519,10 @@ button.homeButton {
   text-wrap: balance;
 }
 
+.homeHero__title--seller {
+  line-height: 1.2;
+}
+
 .homeHero__subtitle {
   max-width: 560px;
   margin: 18px 0 0;
