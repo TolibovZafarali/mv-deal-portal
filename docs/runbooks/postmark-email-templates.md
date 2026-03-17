@@ -10,6 +10,7 @@ Use one reusable Postmark layout plus content-only templates:
 - `reset-password-cid-v1`
 - `welcome-cid-v1`
 - `investor-signup-under-review-cid-v1`
+- `admin-investor-signup-created-cid-v1`
 - `investor-new-property-published-cid-v1`
 - `admin-inquiry-created-cid-v1`
 - `admin-inquiry-follow-up-cid-v1`
@@ -32,6 +33,7 @@ All templates use the same HTTPS logo URL:
 - Reset content HTML: `/Users/zafaralitolibov/Documents/mv-deal-portal/docs/email/postmark-reset-password-content-v1.html`
 - Welcome content HTML: `/Users/zafaralitolibov/Documents/mv-deal-portal/docs/email/postmark-welcome-content-v1.html`
 - Investor signup under-review content HTML: `/Users/zafaralitolibov/Documents/mv-deal-portal/docs/email/postmark-investor-signup-under-review-content-v1.html`
+- Admin investor signup-created content HTML: `/Users/zafaralitolibov/Documents/mv-deal-portal/docs/email/postmark-admin-investor-signup-created-content-v1.html`
 - Investor property-published content HTML: `/Users/zafaralitolibov/Documents/mv-deal-portal/docs/email/postmark-investor-new-property-published-content-v1.html`
 - Admin inquiry-created content HTML: `/Users/zafaralitolibov/Documents/mv-deal-portal/docs/email/postmark-admin-inquiry-created-content-v1.html`
 - Admin inquiry-follow-up content HTML: `/Users/zafaralitolibov/Documents/mv-deal-portal/docs/email/postmark-admin-inquiry-follow-up-content-v1.html`
@@ -48,15 +50,16 @@ All templates use the same HTTPS logo URL:
 3. Create template `reset-password-cid-v1`, select that layout, paste reset content HTML.
 4. Create template `welcome-cid-v1`, select that layout, paste welcome content HTML.
 5. Create template `investor-signup-under-review-cid-v1`, select that layout, paste investor signup under-review content HTML.
-6. Create template `investor-new-property-published-cid-v1`, select that layout, paste investor property-published content HTML.
-7. Create template `admin-inquiry-created-cid-v1`, select that layout, paste admin inquiry-created content HTML.
-8. Create template `admin-inquiry-follow-up-cid-v1`, select that layout, paste admin inquiry-follow-up content HTML.
-9. Create template `admin-contact-request-created-cid-v1`, select that layout, paste admin contact-request-created content HTML.
-10. Create template `investor-inquiry-admin-reply-cid-v1`, select that layout, paste investor inquiry admin-reply content HTML.
-11. Create template `contact-request-reply-cid-v1`, select that layout, paste contact request reply content HTML.
-12. Create template `admin-seller-property-submitted-cid-v1`, select that layout, paste admin seller-property-submitted content HTML.
-13. Create template `seller-property-published-cid-v1`, select that layout, paste seller property-published content HTML.
-14. Add template subject as `{{subject}}` for each template.
+6. Create template `admin-investor-signup-created-cid-v1`, select that layout, paste admin investor signup-created content HTML.
+7. Create template `investor-new-property-published-cid-v1`, select that layout, paste investor property-published content HTML.
+8. Create template `admin-inquiry-created-cid-v1`, select that layout, paste admin inquiry-created content HTML.
+9. Create template `admin-inquiry-follow-up-cid-v1`, select that layout, paste admin inquiry-follow-up content HTML.
+10. Create template `admin-contact-request-created-cid-v1`, select that layout, paste admin contact-request-created content HTML.
+11. Create template `investor-inquiry-admin-reply-cid-v1`, select that layout, paste investor inquiry admin-reply content HTML.
+12. Create template `contact-request-reply-cid-v1`, select that layout, paste contact request reply content HTML.
+13. Create template `admin-seller-property-submitted-cid-v1`, select that layout, paste admin seller-property-submitted content HTML.
+14. Create template `seller-property-published-cid-v1`, select that layout, paste seller property-published content HTML.
+15. Add template subject as `{{subject}}` for each template.
 
 ## Text bodies
 
@@ -89,6 +92,26 @@ Reset password:
 
 {{message}}
 {{expiry_note}}
+
+{{action_text}}: {{action_url}}
+
+{{footer_text}}
+```
+
+Admin investor signup created:
+
+```txt
+{{title}}
+
+{{message}}
+
+Investor ID: {{investor_id}}
+Investor Name: {{investor_name}}
+Investor Email: {{investor_email}}
+Company: {{company_name}}
+Phone: {{phone}}
+Status: {{status}}
+Registered: {{registered_at}}
 
 {{action_text}}: {{action_url}}
 
@@ -305,6 +328,27 @@ Investor signup under-review model:
   "title": "Thanks for signing up, John",
   "message": "Your account is now under review by the Megna Team. One of our team members will reach out to you shortly.",
   "footer_text": "If you have questions, reply to this email and our team will assist you."
+}
+```
+
+Admin investor signup-created model:
+
+```json
+{
+  "subject": "New investor signup",
+  "logo_url": "https://raw.githubusercontent.com/TolibovZafarali/mv-deal-portal/dev/frontend/public/white-logo.png",
+  "title": "A new investor signed up",
+  "message": "A new investor account is pending admin review.",
+  "investor_id": "42",
+  "investor_name": "John Doe",
+  "investor_email": "john.doe@example.com",
+  "company_name": "Acme Capital",
+  "phone": "+1 555 000 1111",
+  "status": "PENDING",
+  "registered_at": "2026-03-16 9:30 AM CT",
+  "action_text": "Open Investor Reviews",
+  "action_url": "https://megna.us/admin/investors",
+  "footer_text": "This notification was sent because a new investor account was created."
 }
 ```
 
