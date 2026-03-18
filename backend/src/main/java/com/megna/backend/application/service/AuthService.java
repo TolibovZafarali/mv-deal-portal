@@ -15,6 +15,7 @@ import com.megna.backend.domain.repository.PasswordResetTokenRepository;
 import com.megna.backend.domain.repository.RefreshTokenRepository;
 import com.megna.backend.domain.repository.SellerRepository;
 import com.megna.backend.infrastructure.config.AuthProperties;
+import com.megna.backend.infrastructure.config.ContactProperties;
 import com.megna.backend.infrastructure.security.SecurityUtils;
 import com.megna.backend.infrastructure.security.jwt.JwtService;
 import com.megna.backend.interfaces.rest.dto.auth.ChangePasswordRequestDto;
@@ -46,6 +47,8 @@ import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.function.Consumer;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 
 @Service
 @RequiredArgsConstructor
@@ -59,7 +62,11 @@ public class AuthService {
     private static final String INVALID_REFRESH_TOKEN_MESSAGE = "Invalid or expired refresh token";
     private static final String RESET_PASSWORD_TEMPLATE_ALIAS = "reset-password-cid-v1";
     private static final String INVESTOR_SIGNUP_UNDER_REVIEW_TEMPLATE_ALIAS = "investor-signup-under-review-cid-v1";
+    private static final String ADMIN_INVESTOR_SIGNUP_TEMPLATE_ALIAS = "admin-investor-signup-created-cid-v1";
     private static final String PUBLIC_LOGO_URL = "https://raw.githubusercontent.com/TolibovZafarali/mv-deal-portal/dev/frontend/public/white-logo.png";
+    private static final String ADMIN_INVESTORS_URL = "https://megna.us/admin/investors";
+    private static final DateTimeFormatter ADMIN_SIGNUP_DATE_TIME_FORMATTER =
+            DateTimeFormatter.ofPattern("yyyy-MM-dd h:mm a 'CT'");
     private static final int OPAQUE_TOKEN_BYTE_LENGTH = 32;
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
@@ -72,6 +79,7 @@ public class AuthService {
     private final JwtService jwtService;
     private final TransactionalEmailService transactionalEmailService;
     private final AuthProperties authProperties;
+    private final ContactProperties contactProperties;
 
     @Transactional
     public LoginSessionResult login(LoginRequestDto dto) {
@@ -325,6 +333,7 @@ public class AuthService {
 
         Investor saved = investorRepository.save(investor);
         sendInvestorSignupUnderReviewEmail(saved);
+        sendAdminInvestorSignupNotification(saved);
 
         return new RegisterResponseDto(
                 saved.getId(),
@@ -624,6 +633,91 @@ public class AuthService {
         model.put("message", "Thanks for signing up. Your account is now under review by the Megna Team, and one of our team members will reach out to you shortly.");
         model.put("footer_text", "If you have questions, reply to this email and our team will assist you.");
         return model;
+    }
+
+    private void sendAdminInvestorSignupNotification(Investor investor) {
+        String recipient = resolveInvestorAdminInbox();
+        if (recipient.isBlank()) {
+            return;
+        }
+
+        try {
+            boolean sent = transactionalEmailService.sendTransactional(
+                    TransactionalEmailRequest.template(
+                            recipient,
+                            ADMIN_INVESTOR_SIGNUP_TEMPLATE_ALIAS,
+                            buildAdminInvestorSignupModel(investor)
+                    )
+            );
+            if (!sent) {
+                log.warn("Admin investor signup notification email was not delivered for investorId={}", investor == null ? null : investor.getId());
+            }
+        } catch (RuntimeException ex) {
+            log.warn(
+                    "Admin investor signup notification email send threw runtime exception for investorId={} type={}",
+                    investor == null ? null : investor.getId(),
+                    ex.getClass().getSimpleName()
+            );
+        }
+    }
+
+    private Map<String, Object> buildAdminInvestorSignupModel(Investor investor) {
+        Map<String, Object> model = new LinkedHashMap<>();
+        model.put("logo_url", PUBLIC_LOGO_URL);
+        model.put("subject", "New investor signup");
+        model.put("title", "A new investor signed up");
+        model.put("message", "A new investor account is pending admin review.");
+        model.put("investor_id", safeValue(investor == null ? null : investor.getId()));
+        model.put("investor_name", resolveInvestorFullName(investor));
+        model.put("investor_email", safeValue(investor == null ? null : investor.getEmail()));
+        model.put("company_name", safeValue(investor == null ? null : investor.getCompanyName()));
+        model.put("phone", safeValue(investor == null ? null : investor.getPhone()));
+        model.put("status", safeValue(investor == null || investor.getStatus() == null ? null : investor.getStatus().name()));
+        model.put("registered_at", formatAdminSignupDateTime(investor == null ? null : investor.getCreatedAt()));
+        model.put("action_text", "Open Investor Reviews");
+        model.put("action_url", ADMIN_INVESTORS_URL);
+        model.put("footer_text", "This notification was sent because a new investor account was created.");
+        return model;
+    }
+
+    private String resolveInvestorAdminInbox() {
+        if (contactProperties == null) {
+            return "";
+        }
+        return normalizeEmail(contactProperties.getInvestorInbox());
+    }
+
+    private String resolveInvestorFullName(Investor investor) {
+        if (investor == null) {
+            return "N/A";
+        }
+
+        String firstName = investor.getFirstName() == null ? "" : investor.getFirstName().trim();
+        String lastName = investor.getLastName() == null ? "" : investor.getLastName().trim();
+        String fullName = (firstName + " " + lastName).trim();
+        if (!fullName.isBlank()) {
+            return fullName;
+        }
+
+        String companyName = investor.getCompanyName() == null ? "" : investor.getCompanyName().trim();
+        if (!companyName.isBlank()) {
+            return companyName;
+        }
+
+        return safeValue(investor.getEmail());
+    }
+
+    private String formatAdminSignupDateTime(LocalDateTime value) {
+        LocalDateTime timestamp = value == null ? LocalDateTime.now() : value;
+        return timestamp.atZone(ZoneId.of("America/Chicago")).format(ADMIN_SIGNUP_DATE_TIME_FORMATTER);
+    }
+
+    private String safeValue(Object value) {
+        if (value == null) {
+            return "N/A";
+        }
+        String normalized = String.valueOf(value).trim();
+        return normalized.isBlank() ? "N/A" : normalized;
     }
 
     private String buildPasswordResetLink(String rawToken) {

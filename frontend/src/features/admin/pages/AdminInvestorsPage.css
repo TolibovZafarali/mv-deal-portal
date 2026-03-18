@@ -26,8 +26,41 @@
 .adminInv__tableSection { margin-top: 14px; }
 
 .adminInv__sectionTitle {
-  margin: 0 0 10px;
+  margin: 0;
   font-size: 16px;
+}
+
+.adminInv__sectionHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.adminInv__addBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--admin-ink);
+  background: transparent;
+  color: var(--admin-ink);
+  height: 34px;
+  padding: 0 10px;
+  cursor: pointer;
+  transition:
+    background 180ms ease,
+    color 180ms ease,
+    border-color 180ms ease;
+}
+
+.adminInv__addBtn .material-symbols-outlined {
+  font-size: 18px;
+}
+
+.adminInv__addBtn:hover {
+  background: var(--admin-ink);
+  color: var(--admin-bg);
 }
 
 .adminInv__filterRow { display: grid; grid-template-columns: 2fr 1fr auto; gap: 10px; align-items: end; }
@@ -255,5 +288,9 @@
     top: calc(100% + 8px);
     width: min(360px, calc(100vw - 24px));
     grid-template-columns: 1fr;
+  }
+
+  .adminInv__sectionHead {
+    flex-wrap: wrap;
   }
 }

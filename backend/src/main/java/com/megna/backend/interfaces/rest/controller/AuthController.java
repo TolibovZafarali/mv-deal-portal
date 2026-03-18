@@ -1,6 +1,7 @@
 package com.megna.backend.interfaces.rest.controller;
 
 import com.megna.backend.application.service.AuthService;
+import com.megna.backend.application.service.InvestorInvitationService;
 import com.megna.backend.domain.repository.AdminRepository;
 import com.megna.backend.domain.repository.InvestorRepository;
 import com.megna.backend.domain.repository.SellerRepository;
@@ -15,6 +16,8 @@ import com.megna.backend.interfaces.rest.dto.auth.RegisterRequestDto;
 import com.megna.backend.interfaces.rest.dto.auth.RegisterResponseDto;
 import com.megna.backend.interfaces.rest.dto.auth.ResetPasswordRequestDto;
 import com.megna.backend.interfaces.rest.dto.auth.SellerRegisterResponseDto;
+import com.megna.backend.interfaces.rest.dto.invitation.InvestorInvitationAcceptRequestDto;
+import com.megna.backend.interfaces.rest.dto.invitation.InvestorInvitationPreviewDto;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
@@ -22,6 +25,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -35,6 +39,7 @@ import org.springframework.web.server.ResponseStatusException;
 public class AuthController {
 
     private final AuthService authService;
+    private final InvestorInvitationService investorInvitationService;
     private final InvestorRepository investorRepository;
     private final SellerRepository sellerRepository;
     private final AdminRepository adminRepository;
@@ -158,5 +163,18 @@ public class AuthController {
     @PostMapping("/register/seller")
     public SellerRegisterResponseDto registerSeller(@Valid @RequestBody RegisterRequestDto dto) {
         return authService.registerSeller(dto);
+    }
+
+    @GetMapping("/invitations/{token}")
+    public InvestorInvitationPreviewDto getInvitationPreview(@PathVariable String token) {
+        return investorInvitationService.getInvitationPreview(token);
+    }
+
+    @PostMapping("/invitations/{token}/accept")
+    public RegisterResponseDto acceptInvitation(
+            @PathVariable String token,
+            @Valid @RequestBody InvestorInvitationAcceptRequestDto dto
+    ) {
+        return investorInvitationService.acceptInvitation(token, dto);
     }
 }

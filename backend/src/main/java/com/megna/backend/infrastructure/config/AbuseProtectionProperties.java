@@ -18,6 +18,7 @@ public class AbuseProtectionProperties {
     private EndpointLimit authLogin = new EndpointLimit(20, 60, 20);
     private EndpointLimit authRegister = new EndpointLimit(6, 600, 60);
     private EndpointLimit authRegisterSeller = new EndpointLimit(6, 600, 60);
+    private EndpointLimit authInvitationAccept = new EndpointLimit(6, 600, 60);
     private EndpointLimit authPasswordForgot = new EndpointLimit(6, 600, 60);
     private EndpointLimit authPasswordReset = new EndpointLimit(12, 600, 45);
     private EndpointLimit authPasswordChange = new EndpointLimit(20, 300, 30);

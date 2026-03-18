@@ -153,8 +153,8 @@ function sellerWorkflowLabel(value) {
 }
 
 const ABOUT_SCENE_CONTENT = {
-    label: "About us",
-    title: "Built for calmer deal execution.",
+    label: "Click here",
+    title: "About Megna",
     text:
         "Megna is a focused real estate marketplace built to remove noise and keep serious buyers and sellers aligned from first look to final close.",
 };
@@ -875,7 +875,7 @@ export default function HomePage({
                                     <p className="homeHero__eyebrow">
                                         {isAuthed ? "WELCOME BACK" : roleContent.hero.eyebrow}
                                     </p>
-                                    <h1 className="homeHero__title">
+                                    <h1 className={`homeHero__title ${displayRole === ROLE_SELLER ? "homeHero__title--seller" : ""}`}>
                                         {isAuthed
                                             ? signedInName
                                             : roleContent.hero.title}

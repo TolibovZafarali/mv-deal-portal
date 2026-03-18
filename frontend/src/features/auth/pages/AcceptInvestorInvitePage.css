@@ -1,0 +1,197 @@
+.inviteAcceptOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  background:
+    radial-gradient(circle at top, rgba(255, 255, 255, 0.08), transparent 55%),
+    rgba(16, 16, 16, 0.86);
+  display: grid;
+  place-items: center;
+  padding: 24px 16px;
+  transition: opacity 180ms ease;
+}
+
+.inviteAcceptOverlay--closing {
+  opacity: 0;
+}
+
+.inviteAccept {
+  width: min(560px, 100%);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: #101010;
+  color: #f2f2f2;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.35);
+  transition:
+    opacity 180ms ease,
+    transform 180ms ease;
+}
+
+.inviteAccept--closing {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+.inviteAccept__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 20px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.inviteAccept__title {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 500;
+}
+
+.inviteAccept__subtitle {
+  margin: 6px 0 0;
+  color: rgba(242, 242, 242, 0.68);
+  font-size: 13px;
+}
+
+.inviteAccept__close {
+  cursor: pointer;
+  color: rgba(242, 242, 242, 0.76);
+}
+
+.inviteAccept__form,
+.inviteAccept__success {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 20px;
+}
+
+.inviteAccept__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.inviteAccept__field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  position: relative;
+}
+
+.inviteAccept__field span {
+  color: rgba(242, 242, 242, 0.68);
+  font-size: 12px;
+}
+
+.inviteAccept__input {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: transparent;
+  color: #f2f2f2;
+  padding: 11px 12px;
+  font-family: inherit;
+}
+
+.inviteAccept__input:focus {
+  outline: none;
+  border-color: #f2f2f2;
+}
+
+.inviteAccept__input--locked {
+  color: rgba(242, 242, 242, 0.74);
+  background: rgba(242, 242, 242, 0.05);
+}
+
+.inviteAccept__field--password .inviteAccept__input {
+  padding-right: 44px;
+}
+
+.inviteAccept__toggle {
+  position: absolute;
+  right: 10px;
+  bottom: 9px;
+  border: 0;
+  background: transparent;
+  color: rgba(242, 242, 242, 0.7);
+  cursor: pointer;
+  padding: 0;
+}
+
+.inviteAccept__toggle .material-symbols-outlined {
+  font-size: 20px;
+}
+
+.inviteAccept__passwordStrength {
+  font-size: 12px;
+}
+
+.inviteAccept__passwordStrength--weak {
+  color: #fbbf24;
+}
+
+.inviteAccept__passwordStrength--strong {
+  color: #00e676;
+}
+
+.inviteAccept__copy,
+.inviteAccept__successText,
+.inviteAccept__successMeta,
+.inviteAccept__notice {
+  margin: 0;
+  color: rgba(242, 242, 242, 0.68);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.inviteAccept__notice--error,
+.inviteAccept__error {
+  color: #fca5a5;
+}
+
+.inviteAccept__actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.inviteAccept__btn {
+  border: 1px solid #f2f2f2;
+  background: transparent;
+  color: #f2f2f2;
+  padding: 12px 14px;
+  cursor: pointer;
+  transition:
+    background 180ms ease,
+    color 180ms ease,
+    border-color 180ms ease;
+}
+
+.inviteAccept__btn:hover {
+  background: #f2f2f2;
+  color: #101010;
+}
+
+.inviteAccept__btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.inviteAccept__btn--secondary {
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+.inviteAccept__btn--secondary:hover {
+  border-color: #f2f2f2;
+}
+
+.inviteAccept__btn--full {
+  width: 100%;
+}
+
+@media (max-width: 640px) {
+  .inviteAccept__grid,
+  .inviteAccept__actions {
+    grid-template-columns: 1fr;
+  }
+}

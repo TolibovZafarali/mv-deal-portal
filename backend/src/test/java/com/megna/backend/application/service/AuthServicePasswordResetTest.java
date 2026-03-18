@@ -10,6 +10,7 @@ import com.megna.backend.domain.repository.PasswordResetTokenRepository;
 import com.megna.backend.domain.repository.RefreshTokenRepository;
 import com.megna.backend.domain.repository.SellerRepository;
 import com.megna.backend.infrastructure.config.AuthProperties;
+import com.megna.backend.infrastructure.config.ContactProperties;
 import com.megna.backend.infrastructure.security.jwt.JwtService;
 import com.megna.backend.interfaces.rest.dto.auth.ForgotPasswordRequestDto;
 import org.junit.jupiter.api.Test;
@@ -69,6 +70,9 @@ class AuthServicePasswordResetTest {
 
     @Mock
     private AuthProperties authProperties;
+
+    @Mock
+    private ContactProperties contactProperties;
 
     @Test
     void requestPasswordResetShouldStoreHashedTokenAndSendEmailLink() {
@@ -170,7 +174,8 @@ class AuthServicePasswordResetTest {
                 passwordEncoder,
                 jwtService,
                 transactionalEmailService,
-                authProperties
+                authProperties,
+                contactProperties
         );
     }
 

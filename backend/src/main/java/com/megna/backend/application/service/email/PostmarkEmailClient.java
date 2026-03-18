@@ -86,7 +86,7 @@ public class PostmarkEmailClient {
 
     private Map<String, Object> buildPayload(TransactionalEmailRequest request) {
         Map<String, Object> payload = new LinkedHashMap<>();
-        payload.put("From", emailProperties.getFromAddress());
+        payload.put("From", resolveFromAddress(request));
         payload.put("To", request.to());
         payload.put("ReplyTo", emailProperties.getReplyToAddress());
         if (request.isTemplate()) {
@@ -109,6 +109,13 @@ public class PostmarkEmailClient {
             return baseUrl + endpointPath;
         }
         return baseUrl + "/" + endpointPath;
+    }
+
+    private String resolveFromAddress(TransactionalEmailRequest request) {
+        if (request != null && request.fromOverride() != null && !request.fromOverride().isBlank()) {
+            return request.fromOverride();
+        }
+        return emailProperties.getFromAddress();
     }
 
     private static boolean isRetryableStatus(int status) {

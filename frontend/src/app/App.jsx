@@ -10,6 +10,7 @@ const LoginModal = lazy(() => import("@/features/auth/modals/LoginModal"))
 const ForgotPasswordModal = lazy(() => import("@/features/auth/modals/ForgotPasswordModal"))
 const ResetPasswordModal = lazy(() => import("@/features/auth/modals/ResetPasswordModal"))
 const SignUpModal = lazy(() => import("@/features/auth/modals/SignUpModal"))
+const AcceptInvestorInvitePage = lazy(() => import("@/features/auth/pages/AcceptInvestorInvitePage"))
 const ContactModal = lazy(() => import("@/features/home/modals/ContactModal"))
 const ApiSmokeTest = IS_DEV_BUILD ? lazy(() => import("@/features/dev/pages/ApiSmokeTest")) : null
 const AppRedirect = lazy(() => import("@/app/routing/AppRedirect"))
@@ -60,6 +61,7 @@ export default function App() {
           <Route path="/reset-password" element={<ResetPasswordModal />} />
           <Route path="/signup" element={<SignUpModal />} />
           <Route path="/signup/seller" element={<SignUpModal />} />
+          <Route path="/invite/accept" element={<AcceptInvestorInvitePage />} />
           <Route path="/contact" element={<ContactModal />} />
 
           <Route element={<ProtectedRoute />}>
