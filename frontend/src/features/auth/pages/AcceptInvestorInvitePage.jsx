@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { acceptInvestorInvitation, getInvestorInvitationPreview } from "@/api";
+import { useAuth } from "@/features/auth";
 import { getPasswordStrength } from "@/shared/utils/passwordStrength";
 import { useAuthModalClose } from "@/features/auth/modals/useAuthModalClose";
 import "@/features/auth/pages/AcceptInvestorInvitePage.css";
@@ -47,6 +48,7 @@ function cursorPosFromDigitCount(formatted, digitCount) {
 export default function AcceptInvestorInvitePage() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { signIn } = useAuth();
   const [searchParams] = useSearchParams();
   const hasBackground = !!location.state?.backgroundLocation;
   const bg = location.state?.backgroundLocation || { pathname: "/" };
@@ -67,6 +69,7 @@ export default function AcceptInvestorInvitePage() {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const [result, setResult] = useState(null);
+  const [autoSignInError, setAutoSignInError] = useState("");
   const [companyName, setCompanyName] = useState("");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
@@ -131,6 +134,8 @@ export default function AcceptInvestorInvitePage() {
   async function handleSubmit(event) {
     event.preventDefault();
     setSubmitError("");
+    setAutoSignInError("");
+    setResult(null);
 
     if (!token) {
       setSubmitError("Invitation link is invalid or expired.");
@@ -142,31 +147,44 @@ export default function AcceptInvestorInvitePage() {
       return;
     }
 
-    if (!phone.trim()) {
+    const normalizedPhone = phone.trim();
+    const normalizedPassword = password.trim();
+    const normalizedConfirmPassword = confirmPassword.trim();
+    const invitationEmail = String(preview?.email || "").trim();
+
+    if (!normalizedPhone) {
       setSubmitError("Phone is required.");
       return;
     }
 
-    if (password.length < 8) {
+    if (normalizedPassword.length < 8) {
       setSubmitError("Password must be at least 8 characters.");
       return;
     }
 
-    if (password !== confirmPassword) {
+    if (normalizedPassword !== normalizedConfirmPassword) {
       setSubmitError("Passwords do not match.");
       return;
     }
 
     setSubmitting(true);
     try {
-      const response = await acceptInvestorInvitation(token, {
+      const acceptedAccount = await acceptInvestorInvitation(token, {
         companyName: companyName.trim(),
-        phone: phone.trim(),
-        password,
+        phone: normalizedPhone,
+        password: normalizedPassword,
       });
-      setResult(response);
       setPassword("");
       setConfirmPassword("");
+
+      try {
+        await signIn(invitationEmail, normalizedPassword);
+        navigate("/app", { replace: true });
+        return;
+      } catch {
+        setResult(acceptedAccount);
+        setAutoSignInError("Your account is ready, but automatic sign-in failed. Continue to sign in.");
+      }
     } catch (error) {
       setSubmitError(error?.message || "Failed to accept invitation.");
     } finally {
@@ -206,13 +224,14 @@ export default function AcceptInvestorInvitePage() {
         {result ? (
           <div className="inviteAccept__success">
             <p className="inviteAccept__successText">
-              Your investor account is ready. Sign in to access the portal.
+              Your investor account is ready.
             </p>
             {result?.email ? (
               <p className="inviteAccept__successMeta">
                 {result.email} {result.status ? `• ${result.status}` : ""}
               </p>
             ) : null}
+            {autoSignInError ? <div className="inviteAccept__error">{autoSignInError}</div> : null}
             <button type="button" className="inviteAccept__btn inviteAccept__btn--full" onClick={goToLogin}>
               Continue to sign in
             </button>
