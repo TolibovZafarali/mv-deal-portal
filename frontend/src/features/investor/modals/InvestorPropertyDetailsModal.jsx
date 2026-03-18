@@ -450,7 +450,7 @@ export default function InvestorPropertyDetailsModal({
 
           <section className="invPropDetail__section">
             <h3 className="invPropDetail__sectionTitle">Property Information</h3>
-            <div className="invPropDetail__facts">
+            <div className="invPropDetail__facts invPropDetail__facts--summary">
               <div>
                 <span>Bedrooms</span>
                 <strong>{property.beds ?? "—"}</strong>
@@ -467,8 +467,6 @@ export default function InvestorPropertyDetailsModal({
                 <span>Living Area</span>
                 <strong>{property.livingAreaSqft ? `${numberLabel(property.livingAreaSqft)} sqft` : "—"}</strong>
               </div>
-            </div>
-            <div className="invPropDetail__facts invPropDetail__facts--single">
               <div>
                 <span>Price / sqft</span>
                 <strong>{askingPricePerSqft === null ? "—" : money(askingPricePerSqft)}</strong>
