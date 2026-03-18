@@ -562,6 +562,7 @@ const DEFAULT_FORM = {
   currentRent: "",
   exitStrategy: "",
   closingTerms: "",
+  occupancyCertificate: "",
   photos: [],
   saleComps: [],
 };
@@ -778,6 +779,7 @@ export default function PropertyUpsertModal({
       currentRent: formatPriceInput(numOrEmpty(initialValue.currentRent)),
       exitStrategy: initialValue.exitStrategy ?? "",
       closingTerms: initialValue.closingTerms ?? "",
+      occupancyCertificate: initialValue.occupancyCertificate ?? "",
       photos: normalizedPhotos,
       saleComps: normalizedSaleComps,
     });
@@ -968,6 +970,7 @@ export default function PropertyUpsertModal({
         ["occupancyStatus", "Occupied"],
         ["exitStrategy", "Exit Strategy"],
         ["closingTerms", "Closing Terms"],
+        ["occupancyCertificate", "Occupancy"],
       );
     }
 
@@ -1932,56 +1935,71 @@ export default function PropertyUpsertModal({
                   inputMode="numeric"
                 />
               </div>
-
-              {!isSellerVariant ? (
-                <>
-                  <div className="propField propField--propOccupied">
-                    <div className="propField__label">Occupied</div>
-                    <select
-                      className="propField__input"
-                      value={form.occupancyStatus}
-                      onChange={(e) => setField("occupancyStatus", e.target.value)}
-                    >
-                      {OCCUPANCY.map((o) => (
-                        <option key={o.label} value={o.value}>
-                          {o.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="propField propField--propExit">
-                    <div className="propField__label">Exit Strategy</div>
-                    <select
-                      className="propField__input"
-                      value={form.exitStrategy}
-                      onChange={(e) => setField("exitStrategy", e.target.value)}
-                    >
-                      {EXIT.map((o) => (
-                        <option key={o.label} value={o.value}>
-                          {o.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="propField propField--propClosingTerms">
-                    <div className="propField__label">Closing Terms</div>
-                    <select
-                      className="propField__input"
-                      value={form.closingTerms}
-                      onChange={(e) => setField("closingTerms", e.target.value)}
-                    >
-                      {CLOSING_TERMS.map((o) => (
-                        <option key={o.label} value={o.value}>
-                          {o.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </>
-              ) : null}
             </div>
+
+            {!isSellerVariant ? (
+              <div className="propGrid propGrid--4 propGrid--tightTop">
+                <div className="propField propField--propOccupied">
+                  <div className="propField__label">Occupied</div>
+                  <select
+                    className="propField__input"
+                    value={form.occupancyStatus}
+                    onChange={(e) => setField("occupancyStatus", e.target.value)}
+                  >
+                    {OCCUPANCY.map((o) => (
+                      <option key={o.label} value={o.value}>
+                        {o.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="propField propField--propExit">
+                  <div className="propField__label">Exit Strategy</div>
+                  <select
+                    className="propField__input"
+                    value={form.exitStrategy}
+                    onChange={(e) => setField("exitStrategy", e.target.value)}
+                  >
+                    {EXIT.map((o) => (
+                      <option key={o.label} value={o.value}>
+                        {o.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="propField propField--propClosingTerms">
+                  <div className="propField__label">Closing Terms</div>
+                  <select
+                    className="propField__input"
+                    value={form.closingTerms}
+                    onChange={(e) => setField("closingTerms", e.target.value)}
+                  >
+                    {CLOSING_TERMS.map((o) => (
+                      <option key={o.label} value={o.value}>
+                        {o.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="propField propField--propOccupancyCertificate">
+                  <div className="propField__label">Occupancy</div>
+                  <select
+                    className="propField__input"
+                    value={form.occupancyCertificate}
+                    onChange={(e) => setField("occupancyCertificate", e.target.value)}
+                  >
+                    {OCCUPANCY.map((o) => (
+                      <option key={`occupancy-certificate-${o.value || "blank"}`} value={o.value}>
+                        {o.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            ) : null}
           </div>
 
           {!isSellerVariant ? (

@@ -57,6 +57,7 @@ public final class PropertyMapper {
                 entity.getCurrentRent(),
                 entity.getExitStrategy(),
                 entity.getClosingTerms(),
+                entity.getOccupancyCertificate(),
 
                 entity.getSeller() == null ? null : entity.getSeller().getId(),
                 entity.getSellerWorkflowStatus(),
@@ -117,6 +118,7 @@ public final class PropertyMapper {
         entity.setCurrentRent(dto.currentRent());
         entity.setExitStrategy(dto.exitStrategy());
         entity.setClosingTerms(dto.closingTerms());
+        entity.setOccupancyCertificate(dto.occupancyCertificate());
 
         if (dto.photos() != null) {
             if (entity.getPhotos() == null) {

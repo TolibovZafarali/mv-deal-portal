@@ -639,6 +639,7 @@ public class PropertyService {
         }
         requireNotNull(property.getExitStrategy(), "exitStrategy", missingFields);
         requireNotNull(property.getClosingTerms(), "closingTerms", missingFields);
+        requireNotNull(property.getOccupancyCertificate(), "occupancyCertificate", missingFields);
 
         boolean hasAtLeastOnePhoto = property.getPhotos() != null
                 && property.getPhotos().stream().anyMatch(photo ->
@@ -788,6 +789,7 @@ public class PropertyService {
         property.setCurrentRent(dto.currentRent());
         property.setExitStrategy(dto.exitStrategy());
         property.setClosingTerms(dto.closingTerms());
+        property.setOccupancyCertificate(dto.occupancyCertificate());
 
         if (dto.photos() != null) {
             PropertyMapper.applyUpsert(
@@ -811,6 +813,7 @@ public class PropertyService {
                             dto.currentRent(),
                             dto.exitStrategy(),
                             dto.closingTerms(),
+                            dto.occupancyCertificate(),
                             dto.photos(),
                             dto.saleComps()
                     ),
@@ -841,6 +844,7 @@ public class PropertyService {
                             dto.currentRent(),
                             dto.exitStrategy(),
                             dto.closingTerms(),
+                            dto.occupancyCertificate(),
                             null,
                             dto.saleComps()
                     ),
