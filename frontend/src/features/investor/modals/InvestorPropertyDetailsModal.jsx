@@ -467,10 +467,14 @@ export default function InvestorPropertyDetailsModal({
                 <span>Living Area</span>
                 <strong>{property.livingAreaSqft ? `${numberLabel(property.livingAreaSqft)} sqft` : "—"}</strong>
               </div>
+            </div>
+            <div className="invPropDetail__facts invPropDetail__facts--single">
               <div>
                 <span>Price / sqft</span>
                 <strong>{askingPricePerSqft === null ? "—" : money(askingPricePerSqft)}</strong>
               </div>
+            </div>
+            <div className="invPropDetail__facts invPropDetail__facts--status">
               <div>
                 <span>Occupied</span>
                 <strong>{enumLabel(property.occupancyStatus)}</strong>
@@ -482,6 +486,10 @@ export default function InvestorPropertyDetailsModal({
               <div>
                 <span>Closing Terms</span>
                 <strong>{enumLabel(property.closingTerms)}</strong>
+              </div>
+              <div>
+                <span>Occupancy Certificate</span>
+                <strong>{enumLabel(property.occupancyCertificate)}</strong>
               </div>
             </div>
           </section>

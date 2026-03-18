@@ -97,6 +97,10 @@ public class Property {
     @Column(name = "closing_terms", length = 30)
     private ClosingTerms closingTerms;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "occupancy_certificate", length = 20)
+    private OccupancyStatus occupancyCertificate;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "seller_id")
     private Seller seller;

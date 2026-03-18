@@ -37,6 +37,7 @@ public record PropertyResponseDto(
         BigDecimal currentRent,
         ExitStrategy exitStrategy,
         ClosingTerms closingTerms,
+        OccupancyStatus occupancyCertificate,
 
         Long sellerId,
         SellerWorkflowStatus sellerWorkflowStatus,

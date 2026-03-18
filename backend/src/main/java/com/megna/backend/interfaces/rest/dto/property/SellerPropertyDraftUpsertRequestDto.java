@@ -31,6 +31,7 @@ public record SellerPropertyDraftUpsertRequestDto(
         BigDecimal currentRent,
         ExitStrategy exitStrategy,
         ClosingTerms closingTerms,
+        OccupancyStatus occupancyCertificate,
 
         @Valid List<PropertyPhotoRequestDto> photos,
         @Valid List<PropertySaleCompRequestDto> saleComps

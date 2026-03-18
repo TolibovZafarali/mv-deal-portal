@@ -141,6 +141,8 @@ class PropertyServiceTest {
 
     @Test
     void updateTransitionToActiveEnqueuesInvestorNotifications() {
+        authenticateAsAdmin();
+
         Property existing = activeReadyProperty(21L);
         existing.setStatus(PropertyStatus.DRAFT);
         when(propertyRepository.findById(21L)).thenReturn(Optional.of(existing));
@@ -152,6 +154,8 @@ class PropertyServiceTest {
 
     @Test
     void updateAlreadyActiveDoesNotEnqueueInvestorNotifications() {
+        authenticateAsAdmin();
+
         Property existing = activeReadyProperty(22L);
         existing.setStatus(PropertyStatus.ACTIVE);
         when(propertyRepository.findById(22L)).thenReturn(Optional.of(existing));
@@ -159,6 +163,26 @@ class PropertyServiceTest {
         propertyService.update(22L, activeDto("62001", 3));
 
         verify(propertyPublicationNotificationService, never()).enqueueForFirstPublication(any());
+    }
+
+    @Test
+    void updateToActiveRequiresOccupancyCertificate() {
+        authenticateAsAdmin();
+
+        Property existing = activeReadyProperty(24L);
+        existing.setStatus(PropertyStatus.DRAFT);
+        when(propertyRepository.findById(24L)).thenReturn(Optional.of(existing));
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class, () ->
+                propertyService.update(24L, activeDtoWithoutOccupancyCertificate("62001", 3))
+        );
+
+        assertEquals(HttpStatus.BAD_REQUEST, ex.getStatusCode());
+        assertEquals(
+                "Cannot set status to ACTIVE while required fields are missing: occupancyCertificate",
+                ex.getReason()
+        );
+        verify(propertyRepository, never()).save(existing);
     }
 
     @Test
@@ -362,6 +386,7 @@ class PropertyServiceTest {
                 null,
                 null,
                 null,
+                null,
                 null
         );
     }
@@ -387,6 +412,34 @@ class PropertyServiceTest {
                 null,
                 ExitStrategy.FLIP,
                 ClosingTerms.CASH_ONLY,
+                OccupancyStatus.YES,
+                null,
+                null
+        );
+    }
+
+    private static PropertyUpsertRequestDto activeDtoWithoutOccupancyCertificate(String zip, Integer beds) {
+        return new PropertyUpsertRequestDto(
+                PropertyStatus.ACTIVE,
+                "123 Main St",
+                null,
+                "St Louis",
+                "MO",
+                zip,
+                new BigDecimal("120000"),
+                new BigDecimal("185000"),
+                new BigDecimal("25000"),
+                beds,
+                new BigDecimal("2.0"),
+                1200,
+                1988,
+                8,
+                5,
+                OccupancyStatus.NO,
+                null,
+                ExitStrategy.FLIP,
+                ClosingTerms.CASH_ONLY,
+                null,
                 null,
                 null
         );
@@ -406,6 +459,7 @@ class PropertyServiceTest {
         property.setOccupancyStatus(OccupancyStatus.NO);
         property.setExitStrategy(ExitStrategy.FLIP);
         property.setClosingTerms(ClosingTerms.CASH_ONLY);
+        property.setOccupancyCertificate(OccupancyStatus.YES);
 
         PropertyPhoto photo = new PropertyPhoto();
         photo.setPhotoAssetId("asset-1");

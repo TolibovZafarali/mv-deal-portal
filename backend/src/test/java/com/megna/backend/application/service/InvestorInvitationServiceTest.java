@@ -1,5 +1,6 @@
 package com.megna.backend.application.service;
 
+import com.megna.backend.application.service.email.TransactionalEmailRequest;
 import com.megna.backend.domain.entity.Investor;
 import com.megna.backend.domain.entity.InvestorInvitation;
 import com.megna.backend.domain.enums.InvestorInvitationStatus;
@@ -28,9 +29,14 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -139,6 +145,19 @@ class InvestorInvitationServiceTest {
         assertEquals(4, response.results().size());
 
         verify(investorInvitationRepository, times(2)).save(any(InvestorInvitation.class));
+
+        ArgumentCaptor<TransactionalEmailRequest> emailCaptor = ArgumentCaptor.forClass(TransactionalEmailRequest.class);
+        verify(transactionalEmailService, times(2)).sendTransactional(emailCaptor.capture());
+
+        TransactionalEmailRequest latestEmail = emailCaptor.getAllValues().get(1);
+        @SuppressWarnings("unchecked")
+        Map<String, Object> templateModel = (Map<String, Object>) latestEmail.templateModel();
+        String actionUrl = templateModel.get("action_url").toString();
+        assertTrue(actionUrl.contains("http://localhost:5173/invite/accept?token="));
+
+        Matcher matcher = Pattern.compile("token=([^\\s]+)").matcher(actionUrl);
+        assertTrue(matcher.find());
+        assertTrue(URLDecoder.decode(matcher.group(1), StandardCharsets.UTF_8).length() >= 40);
     }
 
     @Test

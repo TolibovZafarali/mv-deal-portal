@@ -962,7 +962,8 @@ select.propField__input {
 
 .propField--propOccupied,
 .propField--propExit,
-.propField--propClosingTerms {
+.propField--propClosingTerms,
+.propField--propOccupancyCertificate {
   grid-column: 1 / -1;
 }
 

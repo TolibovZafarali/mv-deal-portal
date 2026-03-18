@@ -74,6 +74,7 @@ function buildPropertyUpsertPayload(form) {
     currentRent: occupancyStatus === "YES" ? parseNum(form.currentRent) : null,
     exitStrategy: cleanStr(form.exitStrategy),
     closingTerms: cleanStr(form.closingTerms),
+    occupancyCertificate: cleanStr(form.occupancyCertificate),
     photos: mapPhotosForUpsert(form.photos),
     saleComps: mapSaleCompsForUpsert(form.saleComps),
   };
