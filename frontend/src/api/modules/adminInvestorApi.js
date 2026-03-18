@@ -42,6 +42,11 @@ export async function updateInvestorRejectionReason(id, rejectionReason) {
   return data;
 }
 
+export async function sendInvestorInvitations(invitations, requestConfig = {}) {
+  const body = { invitations };
+  const { data } = await apiClient.post(`${BASE}/invitations`, body, requestConfig);
+  return data;
+}
 
 export async function getPendingInvestors(pageOpts = {}) {
   return searchAdminInvestors({ status: "PENDING" }, pageOpts);

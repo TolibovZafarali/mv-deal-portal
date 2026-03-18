@@ -10,6 +10,7 @@ import java.util.Optional;
 
 public interface InvestorRepository extends JpaRepository<Investor, Long>, JpaSpecificationExecutor<Investor> {
     Optional<Investor> findByEmail(String email);
+    boolean existsByEmail(String email);
 
     List<Investor> findByStatus(InvestorStatus status);
 }

@@ -9,6 +9,7 @@ Use one reusable Postmark layout plus content-only templates:
 - `verify-email-cid-v1`
 - `reset-password-cid-v1`
 - `welcome-cid-v1`
+- `investor-invitation-cid-v1`
 - `investor-signup-under-review-cid-v1`
 - `admin-investor-signup-created-cid-v1`
 - `investor-new-property-published-cid-v1`
@@ -32,6 +33,7 @@ All templates use the same HTTPS logo URL:
 - Verify content HTML: `/Users/zafaralitolibov/Documents/mv-deal-portal/docs/email/postmark-verify-email-content-v1.html`
 - Reset content HTML: `/Users/zafaralitolibov/Documents/mv-deal-portal/docs/email/postmark-reset-password-content-v1.html`
 - Welcome content HTML: `/Users/zafaralitolibov/Documents/mv-deal-portal/docs/email/postmark-welcome-content-v1.html`
+- Investor invitation content HTML: `/Users/zafaralitolibov/Documents/mv-deal-portal/docs/email/postmark-investor-invitation-content-v1.html`
 - Investor signup under-review content HTML: `/Users/zafaralitolibov/Documents/mv-deal-portal/docs/email/postmark-investor-signup-under-review-content-v1.html`
 - Admin investor signup-created content HTML: `/Users/zafaralitolibov/Documents/mv-deal-portal/docs/email/postmark-admin-investor-signup-created-content-v1.html`
 - Investor property-published content HTML: `/Users/zafaralitolibov/Documents/mv-deal-portal/docs/email/postmark-investor-new-property-published-content-v1.html`
@@ -49,17 +51,18 @@ All templates use the same HTTPS logo URL:
 2. Create template `verify-email-cid-v1`, select that layout, paste verify content HTML.
 3. Create template `reset-password-cid-v1`, select that layout, paste reset content HTML.
 4. Create template `welcome-cid-v1`, select that layout, paste welcome content HTML.
-5. Create template `investor-signup-under-review-cid-v1`, select that layout, paste investor signup under-review content HTML.
-6. Create template `admin-investor-signup-created-cid-v1`, select that layout, paste admin investor signup-created content HTML.
-7. Create template `investor-new-property-published-cid-v1`, select that layout, paste investor property-published content HTML.
-8. Create template `admin-inquiry-created-cid-v1`, select that layout, paste admin inquiry-created content HTML.
-9. Create template `admin-inquiry-follow-up-cid-v1`, select that layout, paste admin inquiry-follow-up content HTML.
-10. Create template `admin-contact-request-created-cid-v1`, select that layout, paste admin contact-request-created content HTML.
-11. Create template `investor-inquiry-admin-reply-cid-v1`, select that layout, paste investor inquiry admin-reply content HTML.
-12. Create template `contact-request-reply-cid-v1`, select that layout, paste contact request reply content HTML.
-13. Create template `admin-seller-property-submitted-cid-v1`, select that layout, paste admin seller-property-submitted content HTML.
-14. Create template `seller-property-published-cid-v1`, select that layout, paste seller property-published content HTML.
-15. Add template subject as `{{subject}}` for each template.
+5. Create template `investor-invitation-cid-v1`, select that layout, paste investor invitation content HTML.
+6. Create template `investor-signup-under-review-cid-v1`, select that layout, paste investor signup under-review content HTML.
+7. Create template `admin-investor-signup-created-cid-v1`, select that layout, paste admin investor signup-created content HTML.
+8. Create template `investor-new-property-published-cid-v1`, select that layout, paste investor property-published content HTML.
+9. Create template `admin-inquiry-created-cid-v1`, select that layout, paste admin inquiry-created content HTML.
+10. Create template `admin-inquiry-follow-up-cid-v1`, select that layout, paste admin inquiry-follow-up content HTML.
+11. Create template `admin-contact-request-created-cid-v1`, select that layout, paste admin contact-request-created content HTML.
+12. Create template `investor-inquiry-admin-reply-cid-v1`, select that layout, paste investor inquiry admin-reply content HTML.
+13. Create template `contact-request-reply-cid-v1`, select that layout, paste contact request reply content HTML.
+14. Create template `admin-seller-property-submitted-cid-v1`, select that layout, paste admin seller-property-submitted content HTML.
+15. Create template `seller-property-published-cid-v1`, select that layout, paste seller property-published content HTML.
+16. Add template subject as `{{subject}}` for each template.
 
 ## Text bodies
 
@@ -71,6 +74,22 @@ Verify + Welcome:
 {{message}}
 
 {{action_text}}: {{action_url}}
+
+{{footer_text}}
+```
+
+Investor invitation:
+
+```txt
+{{title}}
+
+{{message}}
+{{expiry_note}}
+
+{{action_text}}: {{action_url}}
+
+{{sender_name}}
+{{sender_title}}
 
 {{footer_text}}
 ```

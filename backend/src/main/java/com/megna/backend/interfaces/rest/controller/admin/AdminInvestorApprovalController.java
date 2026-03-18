@@ -3,7 +3,10 @@ package com.megna.backend.interfaces.rest.controller.admin;
 import com.megna.backend.interfaces.rest.dto.investor.InvestorRejectionRequestDto;
 import com.megna.backend.interfaces.rest.dto.investor.InvestorResponseDto;
 import com.megna.backend.interfaces.rest.dto.investor.InvestorStatusUpdateRequestDto;
+import com.megna.backend.interfaces.rest.dto.invitation.AdminInvestorInvitationBatchRequestDto;
+import com.megna.backend.interfaces.rest.dto.invitation.AdminInvestorInvitationBatchResponseDto;
 import com.megna.backend.domain.enums.InvestorStatus;
+import com.megna.backend.application.service.InvestorInvitationService;
 import com.megna.backend.application.service.InvestorService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +27,7 @@ import java.time.LocalDateTime;
 public class AdminInvestorApprovalController {
 
     private final InvestorService investorService;
+    private final InvestorInvitationService investorInvitationService;
 
     @GetMapping("/pending")
     public Page<InvestorResponseDto> getPending(
@@ -65,6 +69,13 @@ public class AdminInvestorApprovalController {
     @PatchMapping("/{id}/rejection-reason")
     public InvestorResponseDto updateRejectionReason(@PathVariable Long id, @Valid @RequestBody InvestorRejectionRequestDto dto) {
         return investorService.updateRejectionReason(id, dto);
+    }
+
+    @PostMapping("/invitations")
+    public AdminInvestorInvitationBatchResponseDto sendInvitations(
+            @Valid @RequestBody AdminInvestorInvitationBatchRequestDto dto
+    ) {
+        return investorInvitationService.sendInvitations(dto);
     }
 
     @GetMapping("/approved")

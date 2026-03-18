@@ -1,0 +1,244 @@
+.invInvite {
+  --text: #f2f2f2;
+  --muted: rgba(242, 242, 242, 0.7);
+  --border-muted: rgba(242, 242, 242, 0.24);
+  --bg: #101010;
+  --panel: rgba(242, 242, 242, 0.04);
+
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  color: var(--text);
+}
+
+.invInvite__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.invInvite__copy {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.invInvite__count {
+  border: 1px solid var(--border-muted);
+  padding: 6px 10px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.invInvite__rows {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 380px;
+  overflow: auto;
+  padding-right: 2px;
+}
+
+.invInvite__row {
+  border: 1px solid var(--border-muted);
+  background: var(--panel);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.invInvite__rowHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.invInvite__rowTitle {
+  font-size: 12px;
+  color: var(--muted);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.invInvite__removeBtn {
+  border: 1px solid var(--border-muted);
+  background: transparent;
+  color: var(--text);
+  padding: 7px 10px;
+  cursor: pointer;
+}
+
+.invInvite__removeBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.invInvite__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1.3fr;
+  gap: 10px;
+}
+
+.invInvite__field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.invInvite__field span {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.invInvite__field input {
+  border: 1px solid var(--border-muted);
+  background: transparent;
+  color: var(--text);
+  padding: 10px;
+  font-family: inherit;
+}
+
+.invInvite__field input:focus {
+  outline: none;
+  border-color: var(--text);
+}
+
+.invInvite__field--wide {
+  min-width: 0;
+}
+
+.invInvite__issues {
+  color: #fca5a5;
+  font-size: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.invInvite__toolbar {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.invInvite__btn {
+  border: 1px solid var(--text);
+  background: transparent;
+  color: var(--text);
+  padding: 11px 14px;
+  cursor: pointer;
+  transition:
+    background 180ms ease,
+    color 180ms ease,
+    border-color 180ms ease;
+}
+
+.invInvite__btn:hover {
+  background: var(--text);
+  color: var(--bg);
+}
+
+.invInvite__btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.invInvite__btn--secondary {
+  border-color: var(--border-muted);
+}
+
+.invInvite__btn--secondary:hover {
+  border-color: var(--text);
+}
+
+.invInvite__error {
+  color: #fca5a5;
+  font-size: 12px;
+}
+
+.invInvite__result {
+  border-top: 1px solid rgba(242, 242, 242, 0.18);
+  padding-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.invInvite__resultSummary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.invInvite__resultSummary span {
+  border: 1px solid var(--border-muted);
+  padding: 6px 10px;
+  font-size: 12px;
+}
+
+.invInvite__resultList {
+  display: grid;
+  gap: 10px;
+}
+
+.invInvite__resultItem {
+  border: 1px solid var(--border-muted);
+  padding: 12px;
+  background: rgba(242, 242, 242, 0.03);
+  display: grid;
+  gap: 6px;
+}
+
+.invInvite__resultItem--sent,
+.invInvite__resultItem--resent {
+  border-color: rgba(0, 230, 118, 0.55);
+}
+
+.invInvite__resultItem--failed {
+  border-color: rgba(248, 113, 113, 0.55);
+}
+
+.invInvite__resultItem--skipped_existing_account,
+.invInvite__resultItem--skipped_duplicate_in_request {
+  border-color: rgba(250, 204, 21, 0.4);
+}
+
+.invInvite__resultTitle {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.invInvite__resultMeta,
+.invInvite__resultMessage {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.invInvite__resultStatus {
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.invInvite__actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+@media (max-width: 760px) {
+  .invInvite__head {
+    flex-direction: column;
+  }
+
+  .invInvite__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .invInvite__actions {
+    grid-template-columns: 1fr;
+  }
+}

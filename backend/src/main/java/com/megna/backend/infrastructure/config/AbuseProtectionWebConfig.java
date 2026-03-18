@@ -19,6 +19,7 @@ public class AbuseProtectionWebConfig implements WebMvcConfigurer {
                         "/api/auth/login",
                         "/api/auth/register",
                         "/api/auth/register/seller",
+                        "/api/auth/invitations/*/accept",
                         "/api/auth/password/forgot",
                         "/api/auth/password/reset",
                         "/api/auth/password/change",

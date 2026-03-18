@@ -35,6 +35,8 @@ app:
   auth:
     password-reset-url-base: ${APP_AUTH_PASSWORD_RESET_URL_BASE:http://localhost:5173/reset-password}
     password-reset-token-ttl-minutes: ${APP_AUTH_PASSWORD_RESET_TOKEN_TTL_MINUTES:30}
+    invitation-url-base: ${APP_AUTH_INVITATION_URL_BASE:http://localhost:5173/invite/accept}
+    invitation-ttl-days: ${APP_AUTH_INVITATION_TTL_DAYS:7}
     refresh-token-ttl-minutes: ${APP_AUTH_REFRESH_TOKEN_TTL_MINUTES:20160}
     refresh-cookie-name: ${APP_AUTH_REFRESH_COOKIE_NAME:mv_refresh_token}
     refresh-cookie-domain: ${APP_AUTH_REFRESH_COOKIE_DOMAIN:}
@@ -63,6 +65,12 @@ app:
       window-seconds: ${APP_ABUSE_PROTECTION_AUTH_REGISTER_WINDOW_SECONDS:600}
       cooldown-seconds: ${APP_ABUSE_PROTECTION_AUTH_REGISTER_COOLDOWN_SECONDS:60}
       cooldown-trigger-denials: ${APP_ABUSE_PROTECTION_AUTH_REGISTER_COOLDOWN_TRIGGER_DENIALS:3}
+    auth-invitation-accept:
+      enabled: ${APP_ABUSE_PROTECTION_AUTH_INVITATION_ACCEPT_ENABLED:true}
+      max-requests: ${APP_ABUSE_PROTECTION_AUTH_INVITATION_ACCEPT_MAX_REQUESTS:6}
+      window-seconds: ${APP_ABUSE_PROTECTION_AUTH_INVITATION_ACCEPT_WINDOW_SECONDS:600}
+      cooldown-seconds: ${APP_ABUSE_PROTECTION_AUTH_INVITATION_ACCEPT_COOLDOWN_SECONDS:60}
+      cooldown-trigger-denials: ${APP_ABUSE_PROTECTION_AUTH_INVITATION_ACCEPT_COOLDOWN_TRIGGER_DENIALS:3}
     auth-register-seller:
       enabled: ${APP_ABUSE_PROTECTION_AUTH_REGISTER_SELLER_ENABLED:true}
       max-requests: ${APP_ABUSE_PROTECTION_AUTH_REGISTER_SELLER_MAX_REQUESTS:6}

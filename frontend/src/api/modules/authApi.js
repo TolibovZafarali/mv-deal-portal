@@ -20,6 +20,18 @@ export async function registerSeller(registerDto) {
     return data;
 }
 
+export async function getInvestorInvitationPreview(token) {
+    const encodedToken = encodeURIComponent(String(token || "").trim());
+    const { data } = await apiClient.get(`${AUTH_BASE}/invitations/${encodedToken}`, AUTH_REQUEST_CONFIG);
+    return data;
+}
+
+export async function acceptInvestorInvitation(token, payload) {
+    const encodedToken = encodeURIComponent(String(token || "").trim());
+    const { data } = await apiClient.post(`${AUTH_BASE}/invitations/${encodedToken}/accept`, payload, AUTH_REQUEST_CONFIG);
+    return data;
+}
+
 export async function login(credentials) {
     const { data } = await apiClient.post(`${AUTH_BASE}/login`, credentials, AUTH_REQUEST_CONFIG);
 

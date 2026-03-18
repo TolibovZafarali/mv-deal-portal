@@ -99,6 +99,16 @@ public class PublicEndpointRateLimitInterceptor implements HandlerInterceptor {
                     new RateLimitRule("auth.register", abuseProtectionProperties.getAuthRegister(), Scope.IP);
             case "/api/auth/register/seller" ->
                     new RateLimitRule("auth.register-seller", abuseProtectionProperties.getAuthRegisterSeller(), Scope.IP);
+            case null, default -> resolveDynamicRule(servletPath);
+        };
+    }
+
+    private RateLimitRule resolveDynamicRule(String servletPath) {
+        if (servletPath == null || servletPath.isBlank()) {
+            return null;
+        }
+
+        return switch (servletPath) {
             case "/api/auth/password/forgot" ->
                     new RateLimitRule("auth.password-forgot", abuseProtectionProperties.getAuthPasswordForgot(), Scope.IP);
             case "/api/auth/password/reset" ->
@@ -113,7 +123,16 @@ public class PublicEndpointRateLimitInterceptor implements HandlerInterceptor {
                     new RateLimitRule("inquiries.create", abuseProtectionProperties.getInquiries(), Scope.USER_OR_IP);
             case "/api/contact-requests" ->
                     new RateLimitRule("contact-requests", abuseProtectionProperties.getContactRequests(), Scope.IP);
-            default -> null;
+            default -> {
+                if (servletPath.startsWith("/api/auth/invitations/") && servletPath.endsWith("/accept")) {
+                    yield new RateLimitRule(
+                            "auth.invitation-accept",
+                            abuseProtectionProperties.getAuthInvitationAccept(),
+                            Scope.IP
+                    );
+                }
+                yield null;
+            }
         };
     }
 

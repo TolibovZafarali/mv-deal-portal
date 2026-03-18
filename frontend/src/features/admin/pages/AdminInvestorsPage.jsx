@@ -9,6 +9,7 @@ import {
 import AdminFilterBar, { AdminFilterMore } from "@/features/admin/components/AdminFilterBar";
 import AdminPagination from "@/features/admin/components/AdminPagination";
 import useFilterBarMinWidth from "@/features/admin/hooks/useFilterBarMinWidth";
+import AdminInvestorInviteModal from "@/features/admin/modals/AdminInvestorInviteModal";
 import AdminInvestorReviewModal from "@/features/admin/modals/AdminInvestorReviewModal";
 import { signalAdminQueueRefresh } from "@/features/admin/utils/adminTelemetry";
 import "@/features/admin/pages/AdminInvestorsPage.css";
@@ -78,6 +79,7 @@ export default function AdminInvestorsPage() {
 
   const [selectedInvestor, setSelectedInvestor] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [inviteOpen, setInviteOpen] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [isMobileView, setIsMobileView] = useState(() => {
@@ -299,7 +301,17 @@ export default function AdminInvestorsPage() {
       </AdminFilterBar>
 
       <div className="adminInv__tableSection">
-        <h3 className="adminInv__sectionTitle">Investors</h3>
+        <div className="adminInv__sectionHead">
+          <h3 className="adminInv__sectionTitle">Investors</h3>
+          <button
+            type="button"
+            className="adminInv__addBtn"
+            onClick={() => setInviteOpen(true)}
+          >
+            <span className="material-symbols-outlined" aria-hidden="true">group_add</span>
+            Invite Investors
+          </button>
+        </div>
         {loading ? <div className="adminInv__notice">Loading investors...</div> : null}
         {!loading && error ? <div className="adminInv__notice adminInv__notice--error">{error}</div> : null}
         {!loading && !error && rows.length === 0 ? <div className="adminInv__notice">No investors found.</div> : null}
@@ -415,6 +427,11 @@ export default function AdminInvestorsPage() {
           }
         }}
         onSave={handleSave}
+      />
+
+      <AdminInvestorInviteModal
+        open={inviteOpen}
+        onClose={() => setInviteOpen(false)}
       />
     </section>
   );
