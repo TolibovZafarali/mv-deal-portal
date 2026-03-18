@@ -17,6 +17,7 @@ APP_EMAIL_NON_PROD_ALLOWLIST: "fffarhod@mail.ru,zafaralit67@gmail.com"
 POSTMARK_API_BASE_URL: https://api.postmarkapp.com
 POSTMARK_MESSAGE_STREAM: outbound
 APP_AUTH_PASSWORD_RESET_URL_BASE: http://localhost:5173/reset-password
+APP_AUTH_INVITATION_URL_BASE: http://localhost:5173/invite/accept
 APP_AUTH_PASSWORD_RESET_TOKEN_TTL_MINUTES: "30"
 APP_AUTH_REFRESH_TOKEN_TTL_MINUTES: "20160"
 APP_AUTH_REFRESH_COOKIE_NAME: mv_refresh_token
