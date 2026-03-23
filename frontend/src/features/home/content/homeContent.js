@@ -30,7 +30,7 @@ export const ROLE_OPTION_CARDS = [
 export const ROLE_CONTENT = {
     [ROLE_INVESTOR]: {
         hero: {
-            eyebrow: "Private deal flow for active investors",
+            eyebrow: "Exclusive deals for active investors",
             title: "Private real estate deals for serious buyers.",
             subtitle:
                 "Discover vetted off-market properties, review them quickly, and move on deals without the noise of public listings.",
@@ -115,12 +115,12 @@ export const ROLE_CONTENT = {
             eyebrow: "Access",
             title: "Access the private side of the market.",
             lead:
-                "Apply once and step into a deal flow built for investors who move with discipline.",
+                "Apply once and step into a pipeline built for investors who move with discipline.",
         },
     },
     [ROLE_SELLER]: {
         hero: {
-            eyebrow: "For property owners and deal sources",
+            eyebrow: "For property owners and deal finders",
             title: "Get your property in front of serious buyers.",
             subtitle:
                 "Present off-market opportunities to qualified investors and move deals forward faster.",
