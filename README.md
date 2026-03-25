@@ -233,9 +233,9 @@ Expected:
 Expected:
 
 - `200 OK`
-- Response includes `photoAssetId`, `url`, `thumbnailUrl`, `width`, `height`, `contentType = "image/jpeg"`, `sizeBytes`
+- Response includes `photoAssetId`, `url`, `thumbnailUrl`, `width`, `height`, `contentType` (original uploaded type), `sizeBytes`
 - `photo_assets.status` transitions to `READY`
-- `display/yyyy/MM/...` and `thumb/yyyy/MM/...` objects exist
+- `url` and `thumbnailUrl` both resolve to the original uploaded object (`original/yyyy/MM/...`)
 
 ### 4) Save property with photo assets
 

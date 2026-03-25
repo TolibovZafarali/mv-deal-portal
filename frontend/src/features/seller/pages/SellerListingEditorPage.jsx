@@ -119,7 +119,7 @@ function fromProperty(property) {
       ? property.photos.map((photo, index) => ({
           photoAssetId: photo.photoAssetId,
           url: photo.url,
-          thumbnailUrl: photo.thumbnailUrl || photo.url,
+          thumbnailUrl: photo.url || photo.thumbnailUrl,
           caption: photo.caption ?? "",
           sortOrder: photo.sortOrder ?? index,
           uploadId: null,
@@ -375,7 +375,7 @@ export default function SellerListingEditorPage() {
             {
               photoAssetId: uploaded?.photoAssetId,
               url: uploaded?.url,
-              thumbnailUrl: uploaded?.thumbnailUrl || uploaded?.url,
+              thumbnailUrl: uploaded?.url || uploaded?.thumbnailUrl,
               caption: "",
               sortOrder: prev.photos.length,
               uploadId: uploaded?.uploadId || null,
@@ -611,7 +611,7 @@ export default function SellerListingEditorPage() {
         <div className="sellerEditorMedia__grid">
           {form.photos.map((photo, index) => (
             <article key={`photo-${photo.photoAssetId}-${index}`} className="sellerEditorMedia__card">
-              <img src={photo.thumbnailUrl || photo.url} alt={`Listing photo ${index + 1}`} />
+              <img src={photo.url || photo.thumbnailUrl} alt={`Listing photo ${index + 1}`} />
               <label>
                 Caption
                 <input

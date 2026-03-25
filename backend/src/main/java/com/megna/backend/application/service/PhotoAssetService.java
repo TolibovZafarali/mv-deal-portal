@@ -25,17 +25,9 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 import org.springframework.util.StringUtils;
 import org.springframework.web.server.ResponseStatusException;
 
-import javax.imageio.IIOImage;
 import javax.imageio.ImageIO;
-import javax.imageio.ImageWriteParam;
-import javax.imageio.ImageWriter;
-import javax.imageio.stream.MemoryCacheImageOutputStream;
-import java.awt.AlphaComposite;
-import java.awt.Graphics2D;
-import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -61,8 +53,6 @@ import java.util.stream.Collectors;
 public class PhotoAssetService {
 
     private static final DateTimeFormatter OBJECT_DATE_PREFIX = DateTimeFormatter.ofPattern("yyyy/MM");
-    private static final int DISPLAY_MAX_EDGE = 1920;
-    private static final int THUMB_MAX_EDGE = 400;
 
     private final PhotoAssetRepository photoAssetRepository;
     private final PropertyPhotoRepository propertyPhotoRepository;
@@ -101,8 +91,6 @@ public class PhotoAssetService {
         String datePrefix = now.format(OBJECT_DATE_PREFIX);
 
         String originalObjectKey = "original/" + datePrefix + "/" + uploadId + extension;
-        String displayObjectKey = "display/" + datePrefix + "/" + uploadId + ".jpg";
-        String thumbObjectKey = "thumb/" + datePrefix + "/" + uploadId + ".jpg";
 
         PhotoAsset asset = new PhotoAsset();
         asset.setId(uploadId);
@@ -110,8 +98,8 @@ public class PhotoAssetService {
         asset.setStatus(PhotoAssetStatus.UPLOADING);
         asset.setOriginalBucket(photoStorageProperties.getBucket());
         asset.setOriginalObjectKey(originalObjectKey);
-        asset.setDisplayObjectKey(displayObjectKey);
-        asset.setThumbObjectKey(thumbObjectKey);
+        asset.setDisplayObjectKey(null);
+        asset.setThumbObjectKey(null);
         asset.setOriginalContentType(contentType);
         asset.setOriginalSizeBytes(request.sizeBytes());
         asset.setExpiresAt(expiresAt);
@@ -342,27 +330,13 @@ public class PhotoAssetService {
 
         try {
             byte[] originalBytes = downloadOriginalObject(asset);
-            ProcessedImage processed = processImage(originalBytes);
+            ImageDimensions dimensions = readOriginalImageDimensions(originalBytes);
 
-            uploadDerivedObject(
-                    asset,
-                    asset.getDisplayObjectKey(),
-                    processed.displayBytes(),
-                    "image/jpeg",
-                    "public, max-age=31536000, immutable"
-            );
-            uploadDerivedObject(
-                    asset,
-                    asset.getThumbObjectKey(),
-                    processed.thumbBytes(),
-                    "image/jpeg",
-                    "public, max-age=31536000, immutable"
-            );
-
-            asset.setUrl(buildPublicUrl(asset.getDisplayObjectKey()));
-            asset.setThumbnailUrl(buildPublicUrl(asset.getThumbObjectKey()));
-            asset.setDisplayWidth(processed.width());
-            asset.setDisplayHeight(processed.height());
+            String originalPublicUrl = buildPublicUrl(asset.getOriginalObjectKey());
+            asset.setUrl(originalPublicUrl);
+            asset.setThumbnailUrl(originalPublicUrl);
+            asset.setDisplayWidth(dimensions.width());
+            asset.setDisplayHeight(dimensions.height());
             asset.setStatus(PhotoAssetStatus.READY);
             asset.setErrorMessage(null);
             asset.setRetryCount(0);
@@ -672,7 +646,12 @@ public class PhotoAssetService {
             return new PropertyPhotoUploadCompleteResponseDto(null, null, null, null, null, null, null, null, null);
         }
 
-        String contentType = StringUtils.hasText(asset.getUrl()) ? "image/jpeg" : null;
+        String contentType = null;
+        if (StringUtils.hasText(asset.getUrl()) && StringUtils.hasText(asset.getOriginalContentType())) {
+            contentType = normalizeContentType(asset.getOriginalContentType());
+        }
+        Long resolvedSizeBytes = sizeBytes != null ? sizeBytes : asset.getOriginalSizeBytes();
+
         return new PropertyPhotoUploadCompleteResponseDto(
                 asset.getId(),
                 asset.getUrl(),
@@ -680,7 +659,7 @@ public class PhotoAssetService {
                 asset.getDisplayWidth(),
                 asset.getDisplayHeight(),
                 contentType,
-                sizeBytes,
+                resolvedSizeBytes,
                 asset.getStatus() == null ? null : asset.getStatus().name(),
                 asset.getErrorMessage()
         );
@@ -707,109 +686,16 @@ public class PhotoAssetService {
         }
     }
 
-    private void uploadDerivedObject(
-            PhotoAsset asset,
-            String objectKey,
-            byte[] bytes,
-            String contentType,
-            String cacheControl
-    ) {
-        try {
-            photoObjectStorage.upload(
-                    asset.getOriginalBucket(),
-                    objectKey,
-                    bytes,
-                    contentType,
-                    cacheControl
-            );
-        } catch (ResponseStatusException ex) {
-            throw ex;
-        } catch (Exception ex) {
-            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "Photo storage upload failed");
-        }
-    }
-
-    private ProcessedImage processImage(byte[] bytes) {
+    private ImageDimensions readOriginalImageDimensions(byte[] bytes) {
         try {
             BufferedImage source = ImageIO.read(new ByteArrayInputStream(bytes));
             if (source == null) {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Could not decode uploaded image");
             }
-
-            BufferedImage display = resizePreservingAspect(source, DISPLAY_MAX_EDGE);
-            BufferedImage thumb = resizePreservingAspect(source, THUMB_MAX_EDGE);
-
-            byte[] displayBytes = writeJpeg(display, 0.88f);
-            byte[] thumbBytes = writeJpeg(thumb, 0.82f);
-
-            return new ProcessedImage(displayBytes, thumbBytes, display.getWidth(), display.getHeight());
+            return new ImageDimensions(source.getWidth(), source.getHeight());
         } catch (IOException ex) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Could not process uploaded image");
         }
-    }
-
-    private BufferedImage resizePreservingAspect(BufferedImage source, int maxLongEdge) {
-        int width = source.getWidth();
-        int height = source.getHeight();
-        int longEdge = Math.max(width, height);
-
-        if (longEdge <= maxLongEdge) {
-            return toRgb(source);
-        }
-
-        double scale = (double) maxLongEdge / (double) longEdge;
-        int targetWidth = Math.max(1, (int) Math.round(width * scale));
-        int targetHeight = Math.max(1, (int) Math.round(height * scale));
-
-        BufferedImage target = new BufferedImage(targetWidth, targetHeight, BufferedImage.TYPE_INT_RGB);
-        Graphics2D graphics = target.createGraphics();
-        try {
-            graphics.setComposite(AlphaComposite.Src);
-            graphics.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
-            graphics.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
-            graphics.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-            graphics.drawImage(source, 0, 0, targetWidth, targetHeight, null);
-        } finally {
-            graphics.dispose();
-        }
-
-        return target;
-    }
-
-    private BufferedImage toRgb(BufferedImage source) {
-        if (source.getType() == BufferedImage.TYPE_INT_RGB) {
-            return source;
-        }
-
-        BufferedImage target = new BufferedImage(source.getWidth(), source.getHeight(), BufferedImage.TYPE_INT_RGB);
-        Graphics2D graphics = target.createGraphics();
-        try {
-            graphics.drawImage(source, 0, 0, null);
-        } finally {
-            graphics.dispose();
-        }
-
-        return target;
-    }
-
-    private byte[] writeJpeg(BufferedImage image, float quality) throws IOException {
-        ImageWriter writer = ImageIO.getImageWritersByFormatName("jpg")
-                .next();
-
-        ByteArrayOutputStream output = new ByteArrayOutputStream();
-        try (MemoryCacheImageOutputStream imageOutputStream = new MemoryCacheImageOutputStream(output)) {
-            writer.setOutput(imageOutputStream);
-            ImageWriteParam params = writer.getDefaultWriteParam();
-            if (params.canWriteCompressed()) {
-                params.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
-                params.setCompressionQuality(quality);
-            }
-            writer.write(null, new IIOImage(image, null, null), params);
-        } finally {
-            writer.dispose();
-        }
-
-        return output.toByteArray();
     }
 
     public void applyAssetUrlsToPhotos(List<PropertyPhoto> photos, Map<String, PhotoAsset> assetById) {
@@ -859,6 +745,6 @@ public class PhotoAssetService {
         }
     }
 
-    private record ProcessedImage(byte[] displayBytes, byte[] thumbBytes, int width, int height) {
+    private record ImageDimensions(int width, int height) {
     }
 }

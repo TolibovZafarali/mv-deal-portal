@@ -182,7 +182,7 @@ function DealCard({
     linkState = null,
     hidePriceDetails = false,
 }) {
-    const leadPhoto = property?.photos?.[0]?.thumbnailUrl || property?.photos?.[0]?.url || "";
+    const leadPhoto = property?.photos?.[0]?.url || property?.photos?.[0]?.thumbnailUrl || "";
     const address = fullAddress(property) || "Address unavailable";
     const market = [property?.city, property?.state].filter(Boolean).join(", ");
     const livingArea = Number(property?.livingAreaSqft);

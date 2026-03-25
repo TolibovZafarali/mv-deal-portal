@@ -1036,7 +1036,7 @@ export default function InvestorDashboard() {
                 const cardPhotos = Array.isArray(property.photos)
                   ? property.photos
                     .map((photo) => ({
-                      thumb: String(photo?.thumbnailUrl ?? photo?.url ?? "").trim(),
+                      thumb: String(photo?.url ?? photo?.thumbnailUrl ?? "").trim(),
                       full: String(photo?.url ?? photo?.thumbnailUrl ?? "").trim(),
                     }))
                     .filter((photo) => photo.thumb || photo.full)

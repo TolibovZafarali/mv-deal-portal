@@ -141,7 +141,7 @@ export default function InvestorPropertyDetailsModal({
     ? property.photos
       .map((photo) => ({
         full: String(photo?.url ?? "").trim(),
-        thumb: String(photo?.thumbnailUrl ?? photo?.url ?? "").trim(),
+        thumb: String(photo?.url ?? photo?.thumbnailUrl ?? "").trim(),
       }))
       .filter((photo) => photo.full)
     : [];

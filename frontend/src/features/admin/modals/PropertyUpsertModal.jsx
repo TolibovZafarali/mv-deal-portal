@@ -123,7 +123,7 @@ function normalizePhotos(photos, options = {}) {
       if (!url) return null;
 
       const thumb = String(
-        typeof photo === "string" ? rawUrl : photo?.thumbnailUrl ?? rawUrl,
+        typeof photo === "string" ? rawUrl : photo?.url ?? photo?.thumbnailUrl ?? rawUrl,
       ).trim();
 
       return {
@@ -1537,7 +1537,7 @@ export default function PropertyUpsertModal({
         const photoAssetId = String(uploadedPhoto?.photoAssetId ?? "").trim();
         const url = String(uploadedPhoto?.url ?? "").trim();
         const thumbnailUrl = String(
-          uploadedPhoto?.thumbnailUrl ?? uploadedPhoto?.url ?? "",
+          uploadedPhoto?.url ?? uploadedPhoto?.thumbnailUrl ?? "",
         ).trim();
 
         if (!photoAssetId || !url) {
@@ -1593,14 +1593,14 @@ export default function PropertyUpsertModal({
       const photoAssetId = String(uploadedPhoto?.photoAssetId ?? "").trim();
       const uploadedUrl = String(uploadedPhoto?.url ?? "").trim();
       const thumbnailUrl = String(
-        uploadedPhoto?.thumbnailUrl ?? uploadedPhoto?.url ?? "",
+        uploadedPhoto?.url ?? uploadedPhoto?.thumbnailUrl ?? "",
       ).trim();
 
       if (!photoAssetId || !uploadedUrl) {
         throw new Error("Photo URL import failed to return a valid photo.");
       }
 
-      await ensureImageIsReachable(thumbnailUrl || uploadedUrl);
+      await ensureImageIsReachable(uploadedUrl || thumbnailUrl);
 
       setForm((prev) => ({
         ...prev,
@@ -2238,7 +2238,7 @@ export default function PropertyUpsertModal({
                       >
                         <img
                           className="propPhotoCard__image"
-                          src={photo.thumbnailUrl || photo.url}
+                          src={photo.url || photo.thumbnailUrl}
                           alt={`Property photo ${index + 1}`}
                           loading="lazy"
                         />
