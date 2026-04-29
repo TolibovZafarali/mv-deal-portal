@@ -266,6 +266,7 @@ export default function HomePage({
     const homeRef = useRef(null);
     const metricsRef = useRef(null);
     const sceneFrameRef = useRef(null);
+    const showcaseRailRef = useRef(null);
     const aboutCloseTimerRef = useRef(0);
     const [selectedRole, setSelectedRole] = useState(() => getInitialRole(location));
     const [metricValues, setMetricValues] = useState(() => buildEmptyMetrics(ROLE_CONTENT[ROLE_INVESTOR].metrics));
@@ -277,6 +278,10 @@ export default function HomePage({
     const [closedDeals, setClosedDeals] = useState([]);
     const [closedDealsLoading, setClosedDealsLoading] = useState(true);
     const [closedDealsError, setClosedDealsError] = useState("");
+    const [showcaseScrollState, setShowcaseScrollState] = useState({
+        canScrollLeft: false,
+        canScrollRight: false,
+    });
     const [signedInName, setSignedInName] = useState("");
 
     const authenticatedRole = normalizeRole(user?.role);
@@ -316,11 +321,56 @@ export default function HomePage({
             loadingLabel: "Loading recent closings",
             carouselLabel: "Recent closings carousel",
         };
+    const showShowcaseControls = !closedDealsLoading && !closedDealsError && featuredDeals.length > 1;
     const hideHomeSections = aboutPageOpen && !aboutPageClosing;
 
     const handleSelectRole = (role) => {
         startTransition(() => {
             setSelectedRole(role);
+        });
+    };
+
+    const syncShowcaseScrollState = useEffectEvent(() => {
+        const rail = showcaseRailRef.current;
+        if (!rail) {
+            setShowcaseScrollState((prev) => {
+                if (!prev.canScrollLeft && !prev.canScrollRight) return prev;
+                return { canScrollLeft: false, canScrollRight: false };
+            });
+            return;
+        }
+
+        const maxScrollLeft = Math.max(rail.scrollWidth - rail.clientWidth, 0);
+        const next = {
+            canScrollLeft: rail.scrollLeft > 1,
+            canScrollRight: rail.scrollLeft < maxScrollLeft - 1,
+        };
+
+        setShowcaseScrollState((prev) => {
+            if (
+                prev.canScrollLeft === next.canScrollLeft
+                && prev.canScrollRight === next.canScrollRight
+            ) {
+                return prev;
+            }
+
+            return next;
+        });
+    });
+
+    const scrollShowcase = (direction) => {
+        const rail = showcaseRailRef.current;
+        if (!rail || typeof window === "undefined") return;
+
+        const firstCard = rail.querySelector(".homeShowcase__cardLink, .homeShowcase__card, .homeShowcase__placeholder");
+        const grid = rail.querySelector(".homeShowcase__grid");
+        const gridStyles = grid ? window.getComputedStyle(grid) : null;
+        const gap = parseFloat(gridStyles?.columnGap || gridStyles?.gap || "0") || 0;
+        const distance = (firstCard?.getBoundingClientRect().width || rail.clientWidth) + gap;
+
+        rail.scrollBy({
+            left: direction * distance,
+            behavior: userPrefersReducedMotion() ? "auto" : "smooth",
         });
     };
 
@@ -598,6 +648,31 @@ export default function HomePage({
         frameId = window.requestAnimationFrame(tick);
         return () => window.cancelAnimationFrame(frameId);
     }, [metricsVisible, roleContent.metrics]);
+
+    useEffect(() => {
+        const rail = showcaseRailRef.current;
+        if (!rail) {
+            syncShowcaseScrollState();
+            return undefined;
+        }
+
+        let frameId = 0;
+        const requestSync = () => {
+            window.cancelAnimationFrame(frameId);
+            frameId = window.requestAnimationFrame(syncShowcaseScrollState);
+        };
+
+        rail.scrollTo({ left: 0, behavior: "auto" });
+        requestSync();
+        rail.addEventListener("scroll", requestSync, { passive: true });
+        window.addEventListener("resize", requestSync, { passive: true });
+
+        return () => {
+            rail.removeEventListener("scroll", requestSync);
+            window.removeEventListener("resize", requestSync);
+            window.cancelAnimationFrame(frameId);
+        };
+    }, [closedDealsError, closedDealsLoading, displayRole, featuredDeals.length]);
 
     useEffect(() => {
         let alive = true;
@@ -1091,17 +1166,42 @@ export default function HomePage({
 
                         <section id="proof" className="homeShowcase" aria-label={showcaseHeading.carouselLabel}>
                             <div className="homeShell">
-                                <div key={`proof-heading-${displayRole}`} className="homeRoleMotion">
-                                    <SectionHeading
-                                        eyebrow={showcaseHeading.eyebrow}
-                                        title={showcaseHeading.title}
-                                        lead={showcaseHeading.lead}
-                                        className="homeReveal"
-                                    />
+                                <div className="homeShowcase__header">
+                                    <div key={`proof-heading-${displayRole}`} className="homeRoleMotion">
+                                        <SectionHeading
+                                            eyebrow={showcaseHeading.eyebrow}
+                                            title={showcaseHeading.title}
+                                            lead={showcaseHeading.lead}
+                                            className="homeReveal"
+                                        />
+                                    </div>
+
+                                    {showShowcaseControls ? (
+                                        <div className="homeShowcase__controls" aria-label="Property carousel controls">
+                                            <button
+                                                className="homeShowcase__navBtn"
+                                                type="button"
+                                                aria-label="Previous property"
+                                                disabled={!showcaseScrollState.canScrollLeft}
+                                                onClick={() => scrollShowcase(-1)}
+                                            >
+                                                <span className="material-symbols-outlined" aria-hidden="true">chevron_left</span>
+                                            </button>
+                                            <button
+                                                className="homeShowcase__navBtn"
+                                                type="button"
+                                                aria-label="Next property"
+                                                disabled={!showcaseScrollState.canScrollRight}
+                                                onClick={() => scrollShowcase(1)}
+                                            >
+                                                <span className="material-symbols-outlined" aria-hidden="true">chevron_right</span>
+                                            </button>
+                                        </div>
+                                    ) : null}
                                 </div>
 
                                 {closedDealsLoading ? (
-                                    <div className="homeShowcase__scroller" aria-label={showcaseHeading.loadingLabel}>
+                                    <div ref={showcaseRailRef} className="homeShowcase__scroller" aria-label={showcaseHeading.loadingLabel}>
                                         <div className="homeShowcase__grid homeShowcase__grid--loading">
                                             {Array.from({ length: 4 }).map((_, index) => (
                                                 <div
@@ -1123,7 +1223,7 @@ export default function HomePage({
                                 ) : null}
 
                                 {!closedDealsLoading && !closedDealsError && featuredDeals.length > 0 ? (
-                                    <div className="homeShowcase__scroller" aria-label={showcaseHeading.carouselLabel}>
+                                    <div ref={showcaseRailRef} className="homeShowcase__scroller" aria-label={showcaseHeading.carouselLabel}>
                                         <div className="homeShowcase__grid">
                                             {featuredDeals.map((property, index) => (
                                                 <DealCard
