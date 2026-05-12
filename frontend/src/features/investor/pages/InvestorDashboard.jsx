@@ -199,6 +199,7 @@ function FilterDropdown({
 
 export default function InvestorDashboard() {
   const { user } = useAuth();
+  const isAdminPreview = user?.role === "ADMIN";
   const location = useLocation();
   const navigate = useNavigate();
   const { setPropertyDetailsOpener, openMessagesModal } = useOutletContext() || {};
@@ -254,9 +255,10 @@ export default function InvestorDashboard() {
   }, [latestReplyPropertyIds]);
 
   const filteredRows = useMemo(() => {
+    if (isAdminPreview) return rows;
     if (!showFavoritesOnly) return rows;
     return rows.filter((row) => favoritePropertyIdSet.has(String(row.id)));
-  }, [favoritePropertyIdSet, rows, showFavoritesOnly]);
+  }, [favoritePropertyIdSet, isAdminPreview, rows, showFavoritesOnly]);
 
   const orderedRows = useMemo(() => {
     return [...filteredRows].sort((left, right) => {
@@ -325,6 +327,7 @@ export default function InvestorDashboard() {
       try {
         const response = await searchProperties(
           {
+            status: isAdminPreview ? "ACTIVE" : undefined,
             q: cleanString(filters.q),
             occupancyStatus: cleanString(filters.occupancyStatus),
             exitStrategy: cleanString(filters.exitStrategy),
@@ -354,7 +357,7 @@ export default function InvestorDashboard() {
       alive = false;
       clearTimeout(timer);
     };
-  }, [filters]);
+  }, [filters, isAdminPreview]);
 
   useEffect(() => {
     if (!filteredRows.length) {
@@ -842,7 +845,7 @@ export default function InvestorDashboard() {
     }
   }
 
-  const emptyMessage = showFavoritesOnly ? "No favorite properties found." : "No properties found.";
+  const emptyMessage = !isAdminPreview && showFavoritesOnly ? "No favorite properties found." : "No properties found.";
   const nowMs = Date.now();
 
   return (
@@ -863,20 +866,22 @@ export default function InvestorDashboard() {
           </div>
 
           <div className="invDash__controlGroup">
-            <button
-              type="button"
-              className={`invDash__favoritesFilter ${
-                showFavoritesOnly ? "invDash__favoritesFilter--active" : ""
-              }`}
-              onClick={() => setShowFavoritesOnly((prev) => !prev)}
-              aria-label={showFavoritesOnly ? "Show all listings" : "Show favorite listings"}
-              aria-pressed={showFavoritesOnly}
-            >
-              <span className="material-symbols-outlined invDash__favoritesIcon" aria-hidden="true">
-                bookmark
-              </span>
-              <span className="invDash__favoritesLabel">Favorites</span>
-            </button>
+            {!isAdminPreview ? (
+              <button
+                type="button"
+                className={`invDash__favoritesFilter ${
+                  showFavoritesOnly ? "invDash__favoritesFilter--active" : ""
+                }`}
+                onClick={() => setShowFavoritesOnly((prev) => !prev)}
+                aria-label={showFavoritesOnly ? "Show all listings" : "Show favorite listings"}
+                aria-pressed={showFavoritesOnly}
+              >
+                <span className="material-symbols-outlined invDash__favoritesIcon" aria-hidden="true">
+                  bookmark
+                </span>
+                <span className="invDash__favoritesLabel">Favorites</span>
+              </button>
+            ) : null}
 
             <div className="invDash__desktopOnlyControl">
               <FilterDropdown
@@ -1025,7 +1030,9 @@ export default function InvestorDashboard() {
         </div>
 
         <div className="invDash__listPane" ref={listPaneRef}>
-          {favoritesError ? <div className="invDash__notice invDash__notice--error">{favoritesError}</div> : null}
+          {!isAdminPreview && favoritesError ? (
+            <div className="invDash__notice invDash__notice--error">{favoritesError}</div>
+          ) : null}
           {loading ? <div className="invDash__notice">Loading properties...</div> : null}
           {!loading && error ? <div className="invDash__notice invDash__notice--error">{error}</div> : null}
           {!loading && !error && orderedRows.length === 0 ? <div className="invDash__notice">{emptyMessage}</div> : null}
@@ -1054,8 +1061,8 @@ export default function InvestorDashboard() {
                   "";
                 const estimatedProfit = potentialProfit(property);
                 const isActive = selectedPropertyId === property.id;
-                const isFavorite = favoritePropertyIdSet.has(String(property.id));
-                const isMessaged = messagedPropertyIdSet.has(String(property.id));
+                const isFavorite = !isAdminPreview && favoritePropertyIdSet.has(String(property.id));
+                const isMessaged = !isAdminPreview && messagedPropertyIdSet.has(String(property.id));
                 const showNewBadge = isNewlyActive(property, nowMs);
 
                 return (
@@ -1072,27 +1079,29 @@ export default function InvestorDashboard() {
                       </span>
                     ) : null}
 
-                    <button
-                      type="button"
-                      className={`invDash__favoriteToggle ${
-                        isFavorite ? "invDash__favoriteToggle--active" : ""
-                      }`}
-                      onClick={(event) => {
-                        event.preventDefault();
-                        event.stopPropagation();
-                        void toggleFavoriteProperty(property.id);
-                      }}
-                      aria-label={isFavorite ? "Remove bookmark" : "Save bookmark"}
-                      aria-pressed={isFavorite}
-                    >
-                      <svg
-                        className="invDash__favoriteIcon"
-                        viewBox="0 0 24 24"
-                        aria-hidden="true"
+                    {!isAdminPreview ? (
+                      <button
+                        type="button"
+                        className={`invDash__favoriteToggle ${
+                          isFavorite ? "invDash__favoriteToggle--active" : ""
+                        }`}
+                        onClick={(event) => {
+                          event.preventDefault();
+                          event.stopPropagation();
+                          void toggleFavoriteProperty(property.id);
+                        }}
+                        aria-label={isFavorite ? "Remove bookmark" : "Save bookmark"}
+                        aria-pressed={isFavorite}
                       >
-                        <path d="M6 3h12a1 1 0 0 1 1 1v17l-7-3-7 3V4a1 1 0 0 1 1-1z" />
-                      </svg>
-                    </button>
+                        <svg
+                          className="invDash__favoriteIcon"
+                          viewBox="0 0 24 24"
+                          aria-hidden="true"
+                        >
+                          <path d="M6 3h12a1 1 0 0 1 1 1v17l-7-3-7 3V4a1 1 0 0 1 1-1z" />
+                        </svg>
+                      </button>
+                    ) : null}
 
                     <div
                       className="invDash__cardFocus"
@@ -1215,14 +1224,17 @@ export default function InvestorDashboard() {
         inquiryError={inquiryError}
         inquirySuccess={inquirySuccess}
         profileError={investorProfileError}
-        alreadyMessaged={detailProperty ? messagedPropertyIdSet.has(String(detailProperty.id)) : false}
-        latestThreadIsReply={detailProperty ? latestReplyPropertyIdSet.has(String(detailProperty.id)) : false}
-        isFavorite={detailProperty ? favoritePropertyIdSet.has(String(detailProperty.id)) : false}
-        onToggleFavorite={() => {
-          if (!detailProperty) return;
-          void toggleFavoriteProperty(detailProperty.id);
-        }}
-        onOpenMessages={openMessagesFromPropertyDetails}
+        alreadyMessaged={!isAdminPreview && detailProperty ? messagedPropertyIdSet.has(String(detailProperty.id)) : false}
+        latestThreadIsReply={!isAdminPreview && detailProperty ? latestReplyPropertyIdSet.has(String(detailProperty.id)) : false}
+        isFavorite={!isAdminPreview && detailProperty ? favoritePropertyIdSet.has(String(detailProperty.id)) : false}
+        onToggleFavorite={!isAdminPreview
+          ? () => {
+            if (!detailProperty) return;
+            void toggleFavoriteProperty(detailProperty.id);
+          }
+          : undefined}
+        onOpenMessages={!isAdminPreview ? openMessagesFromPropertyDetails : undefined}
+        showInvestorActions={!isAdminPreview}
         onClose={closePropertyDetails}
       />
     </section>
