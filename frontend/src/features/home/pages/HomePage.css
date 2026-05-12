@@ -88,8 +88,8 @@ html.homeSmoothScroll body::-webkit-scrollbar {
   position: fixed;
   inset: 0 0 auto;
   z-index: 60;
-  backdrop-filter: blur(22px);
-  -webkit-backdrop-filter: blur(22px);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   background: rgba(7, 10, 14, var(--header-opacity));
   border-bottom: 1px solid rgba(246, 241, 232, var(--header-border-opacity));
   transition:
@@ -834,8 +834,8 @@ button.homeButton {
 .home--aboutClosing .homeHeader {
   background: rgba(7, 10, 14, var(--header-opacity));
   border-bottom-color: rgba(246, 241, 232, var(--header-border-opacity));
-  backdrop-filter: blur(22px);
-  -webkit-backdrop-filter: blur(22px);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   transition-delay: 60ms;
 }
 
@@ -1410,10 +1410,6 @@ button.homeButton {
   max-width: 620px;
 }
 
-.homeSectionHeading--sellerProcess {
-  max-width: 760px;
-}
-
 .homeSectionHeading__title {
   margin: 14px 0 0;
   font-size: clamp(2.6rem, 5vw, 4.55rem);
@@ -1421,10 +1417,6 @@ button.homeButton {
   letter-spacing: -0.035em;
   font-weight: 600;
   text-wrap: balance;
-}
-
-.homeSectionHeading--sellerProcess .homeSectionHeading__title {
-  font-size: clamp(2.2rem, 4vw, 3.95rem);
 }
 
 .homeSectionHeading__lead {
@@ -1439,7 +1431,7 @@ button.homeButton {
 .homeShowcase,
 .homeClosing {
   position: relative;
-  padding: 120px 0;
+  padding: 44px 0;
 }
 
 .homeStory::before,
@@ -1479,7 +1471,7 @@ button.homeButton {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 18px;
-  margin-top: 44px;
+  margin-top: 20px;
 }
 
 .homeStory__metric,
@@ -1532,7 +1524,7 @@ button.homeButton {
 
 .homeStory__principlesIntro {
   max-width: 680px;
-  margin-top: 54px;
+  margin-top: 30px;
 }
 
 .homeStory__principlesTitle {
@@ -1624,7 +1616,7 @@ button.homeButton {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 18px;
-  margin-top: 44px;
+  margin-top: 20px;
 }
 
 .homeProcess__card {
@@ -1711,11 +1703,11 @@ button.homeButton {
 
 .homeShowcase__carousel {
   position: relative;
-  margin-top: 38px;
+  margin-top: 20px;
 }
 
 .homeShowcase__scroller {
-  margin-top: 38px;
+  margin-top: 20px;
   padding: 4px 0 18px;
   overflow-x: auto;
   overflow-y: hidden;
@@ -1917,7 +1909,7 @@ button.homeButton {
 }
 
 .homeNotice {
-  margin-top: 44px;
+  margin-top: 20px;
   padding: 22px 24px;
 }
 
@@ -1931,7 +1923,7 @@ button.homeButton {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 18px;
-  margin-top: 44px;
+  margin-top: 20px;
 }
 
 .homeClosing__card,
@@ -1946,7 +1938,7 @@ button.homeButton {
 }
 
 .homeClosing__card {
-  min-height: 348px;
+  min-height: 300px;
 }
 
 .homeClosing__card.is-selected {
@@ -1969,6 +1961,49 @@ button.homeButton {
   margin-bottom: 2px;
 }
 
+.homeClosing__card:not(.is-selected) .homeClosing__cardButton {
+  border-color: rgba(20, 20, 20, 0.22);
+  background: #ffffff;
+  color: #141414;
+  box-shadow: none;
+}
+
+.homeClosing__card:not(.is-selected) .homeClosing__cardButton:hover,
+.homeClosing__card:not(.is-selected) .homeClosing__cardButton:focus-visible {
+  border-color: var(--home-accent);
+  background: #ffffff;
+  color: #141414;
+  box-shadow: 0 18px 38px rgba(20, 20, 20, 0.12);
+}
+
+.homeClosing__roleList {
+  display: grid;
+  gap: 12px;
+  margin: 14px 0 18px;
+  padding: 0;
+  list-style: none;
+}
+
+.homeClosing__roleItem {
+  display: grid;
+  gap: 4px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(246, 241, 232, 0.12);
+}
+
+.homeClosing__roleTitle {
+  color: var(--home-text);
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.homeClosing__roleText {
+  color: var(--home-soft);
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
 .homeClosing__panelActions {
   display: flex;
   align-items: center;
@@ -1978,7 +2013,7 @@ button.homeButton {
 }
 
 .homeClosing__signin {
-  margin: 26px 0 0;
+  margin: 18px 0 0;
   color: var(--home-soft);
   font-size: 0.95rem;
   line-height: 1.6;
@@ -2224,16 +2259,14 @@ button.homeButton {
 }
 
 .homeHeader {
-  background: rgba(247, 244, 238, 0.88);
-  background: rgba(247, 244, 238, calc(0.7 + var(--header-opacity) * 0.3));
-  border-bottom-color: rgba(35, 50, 65, 0.16);
-  border-bottom-color: rgba(35, 50, 65, calc(0.08 + var(--header-border-opacity) * 0.44));
-  box-shadow: 0 16px 48px rgba(35, 50, 65, 0.06);
+  background: rgba(255, 255, 255, calc(var(--header-opacity) * 0.16));
+  border-bottom-color: rgba(35, 50, 65, calc(var(--header-border-opacity) * 0.36));
+  box-shadow: none;
 }
 
 .home--aboutClosing .homeHeader {
-  background: rgba(247, 244, 238, 0.88);
-  border-bottom-color: rgba(35, 50, 65, 0.16);
+  background: rgba(255, 255, 255, calc(var(--header-opacity) * 0.16));
+  border-bottom-color: rgba(35, 50, 65, calc(var(--header-border-opacity) * 0.36));
 }
 
 .homeHeader__logoImage {
@@ -2502,6 +2535,12 @@ button.homeButton {
   box-shadow: none;
 }
 
+.homeShowcase__card,
+.homeShowcase--closedDeals .homeShowcase__card,
+.homeShowcase--closedDeals .homeShowcase__card:hover {
+  background: #ffffff;
+}
+
 .homeStory__metricValue,
 .homeShowcase__value {
   color: var(--home-trust);
@@ -2617,6 +2656,105 @@ button.homeButton {
     inset 4px 0 0 var(--home-accent);
 }
 
+.homeShowcase,
+.homeClosing {
+  color: #f6f1e8;
+  background:
+    radial-gradient(circle at 18% 8%, rgba(169, 120, 63, 0.18), transparent 30%),
+    linear-gradient(180deg, #090c10 0%, #111820 100%);
+}
+
+.homeShowcase::before,
+.homeClosing::before {
+  background:
+    radial-gradient(circle at 78% 0%, rgba(169, 120, 63, 0.18), transparent 28%),
+    linear-gradient(180deg, rgba(246, 241, 232, 0.05) 0%, rgba(246, 241, 232, 0) 70%);
+}
+
+.homeShowcase .homeSectionHeading__title,
+.homeClosing .homeSectionHeading__title,
+.homeClosing .homeClosing__cardTitle {
+  color: #f6f1e8;
+}
+
+.homeShowcase .homeSectionHeading__lead,
+.homeClosing .homeSectionHeading__lead,
+.homeClosing .homeClosing__cardText,
+.homeClosing .homeClosing__roleText,
+.homeClosing .homeClosing__signin {
+  color: rgba(246, 241, 232, 0.72);
+}
+
+.homeShowcase .homeSectionHeading__eyebrow,
+.homeClosing .homeSectionHeading__eyebrow,
+.homeClosing .homeClosing__cardTag {
+  color: #d6bb92;
+}
+
+.homeShowcase .homeShowcase__navBtn {
+  color: #f6f1e8;
+}
+
+.homeShowcase .homeShowcase__navBtn:hover,
+.homeShowcase .homeShowcase__navBtn:focus-visible {
+  color: #d6bb92;
+}
+
+.homeShowcase .homeShowcase__navBtn:disabled:hover,
+.homeShowcase .homeShowcase__navBtn:disabled:focus-visible {
+  color: #f6f1e8;
+}
+
+.homeClosing .homeClosing__card,
+.homeClosing .homeClosing__panel {
+  border-color: rgba(246, 241, 232, 0.14);
+  background: rgba(246, 241, 232, 0.06);
+  box-shadow:
+    0 18px 46px rgba(0, 0, 0, 0.18),
+    inset 0 1px 0 rgba(246, 241, 232, 0.08);
+}
+
+.homeClosing .homeClosing__card:hover {
+  border-color: rgba(214, 187, 146, 0.42);
+  box-shadow:
+    0 24px 56px rgba(0, 0, 0, 0.24),
+    inset 0 1px 0 rgba(246, 241, 232, 0.1);
+}
+
+.homeClosing .homeClosing__card.is-selected {
+  border-color: rgba(214, 187, 146, 0.5);
+  background:
+    linear-gradient(180deg, rgba(214, 187, 146, 0.13) 0%, rgba(246, 241, 232, 0.06) 100%),
+    rgba(246, 241, 232, 0.06);
+  box-shadow:
+    0 24px 62px rgba(0, 0, 0, 0.24),
+    inset 4px 0 0 #d6bb92;
+}
+
+.homeClosing .homeClosing__card.is-selected .homeClosing__cardButton {
+  border-color: rgba(214, 187, 146, 0.78);
+  background: linear-gradient(180deg, #e7c98e 0%, #b98245 100%);
+  color: #15110b;
+  box-shadow: 0 14px 30px rgba(169, 120, 63, 0.22);
+}
+
+.homeClosing .homeClosing__card.is-selected .homeClosing__cardButton:hover,
+.homeClosing .homeClosing__card.is-selected .homeClosing__cardButton:focus-visible {
+  border-color: rgba(240, 214, 164, 0.92);
+  background: linear-gradient(180deg, #efd6a2 0%, #c6904d 100%);
+  color: #15110b;
+  box-shadow: 0 16px 34px rgba(169, 120, 63, 0.26);
+}
+
+.homeClosing .homeClosing__roleItem {
+  border-top-color: rgba(246, 241, 232, 0.14);
+}
+
+.homeClosing .homeClosing__roleTitle,
+.homeClosing .homeClosing__signinLink {
+  color: #f6f1e8;
+}
+
 .homeFooter {
   background: linear-gradient(180deg, rgba(247, 244, 238, 0) 0%, rgba(237, 232, 223, 0.72) 100%);
 }
@@ -2637,6 +2775,31 @@ button.homeButton {
 .homeFooter__link:hover,
 .homeFooter__link:focus-visible {
   color: var(--home-text);
+}
+
+.home:not(.legalPageShell) .homeFooter {
+  border-top: 1px solid rgba(246, 241, 232, 0.18);
+  background:
+    radial-gradient(circle at 82% 0%, rgba(169, 120, 63, 0.14), transparent 30%),
+    linear-gradient(180deg, #111820 0%, #090c10 100%);
+}
+
+.home:not(.legalPageShell) .homeFooter__inner {
+  border-top-color: transparent;
+}
+
+.home:not(.legalPageShell) .homeFooter__brand,
+.home:not(.legalPageShell) .homeFooter__copy {
+  color: rgba(246, 241, 232, 0.68);
+}
+
+.home:not(.legalPageShell) .homeFooter__link {
+  color: rgba(246, 241, 232, 0.76);
+}
+
+.home:not(.legalPageShell) .homeFooter__link:hover,
+.home:not(.legalPageShell) .homeFooter__link:focus-visible {
+  color: #f6f1e8;
 }
 
 .homeBoot {
@@ -2856,7 +3019,7 @@ button.homeButton {
   .homeProcess,
   .homeShowcase,
   .homeClosing {
-    padding: 102px 0;
+    padding: 40px 0;
   }
 
   .homeAboutPage__hero {
@@ -3125,7 +3288,7 @@ button.homeButton {
   }
 
   .homeShowcase__scroller {
-    padding-bottom: 14px;
+    padding-bottom: 10px;
   }
 
   .homeShowcase__header {

@@ -256,6 +256,9 @@ export default function HomePage({
         };
     const showShowcaseControls = !closedDealsLoading && !closedDealsError && featuredDeals.length > 1;
     const hideHomeSections = aboutPageOpen && !aboutPageClosing;
+    const showcaseHeadingMotionKey = `proof-heading-${showcaseHeading.eyebrow}-${showcaseHeading.title}-${showcaseHeading.lead || ""}`;
+    const processHeadingMotionKey = `process-heading-${roleContent.process.eyebrow}-${roleContent.process.title}-${roleContent.process.lead || ""}`;
+    const closingHeadingMotionKey = `closing-heading-${roleContent.closing.eyebrow}-${roleContent.closing.title}-${roleContent.closing.lead || ""}`;
 
     const handleSelectRole = (role) => {
         startTransition(() => {
@@ -956,7 +959,7 @@ export default function HomePage({
                         >
                             <div className="homeShell">
                                 <div className="homeShowcase__header">
-                                    <div key={`proof-heading-${displayRole}`} className="homeRoleMotion">
+                                    <div key={showcaseHeadingMotionKey} className="homeRoleMotion">
                                         <SectionHeading
                                             eyebrow={showcaseHeading.eyebrow}
                                             title={showcaseHeading.title}
@@ -1035,12 +1038,12 @@ export default function HomePage({
                         {!isAuthed ? (
                             <section id="flow" className="homeProcess" aria-label="Process">
                                 <div className="homeShell">
-                                    <div key={`process-heading-${selectedRole}`} className="homeRoleMotion">
+                                    <div key={processHeadingMotionKey} className="homeRoleMotion">
                                         <SectionHeading
                                             eyebrow={roleContent.process.eyebrow}
                                             title={roleContent.process.title}
                                             lead={roleContent.process.lead}
-                                            className={`homeReveal ${selectedRole === ROLE_SELLER ? "homeSectionHeading--sellerProcess" : ""}`}
+                                            className="homeReveal"
                                         />
                                     </div>
 
@@ -1064,7 +1067,7 @@ export default function HomePage({
                         {!isAuthed ? (
                             <section className="homeClosing" aria-label="Get started">
                                 <div className="homeShell">
-                                    <div key={`closing-heading-${selectedRole}`} className="homeRoleMotion">
+                                    <div key={closingHeadingMotionKey} className="homeRoleMotion">
                                         <SectionHeading
                                             eyebrow={roleContent.closing.eyebrow}
                                             title={roleContent.closing.title}
@@ -1083,7 +1086,17 @@ export default function HomePage({
                                                 >
                                                     <p className="homeClosing__cardTag">{option.tag}</p>
                                                     <h3 className="homeClosing__cardTitle">{option.title}</h3>
-                                                    <p className="homeClosing__cardText">{option.text}</p>
+                                                    {option.text ? <p className="homeClosing__cardText">{option.text}</p> : null}
+                                                    {option.roles?.length ? (
+                                                        <ul className="homeClosing__roleList" aria-label={`${option.title} include`}>
+                                                            {option.roles.map((role) => (
+                                                                <li key={role.title} className="homeClosing__roleItem">
+                                                                    <span className="homeClosing__roleTitle">{role.title}</span>
+                                                                    <span className="homeClosing__roleText">{role.text}</span>
+                                                                </li>
+                                                            ))}
+                                                        </ul>
+                                                    ) : null}
                                                     <Link
                                                         to={option.ctaTo}
                                                         className="homeButton homeClosing__cardButton"

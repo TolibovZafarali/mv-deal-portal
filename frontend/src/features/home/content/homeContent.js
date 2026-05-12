@@ -4,24 +4,32 @@ export const HOME_ROLE_STORAGE_KEY = "home.selectedRole";
 
 export const NAV_LINKS = [
     { label: "Recent Closings", href: "#proof" },
-    { label: "Flow", href: "#flow" },
+    { label: "Getting started", href: "#flow" },
 ];
 
 export const ROLE_OPTION_CARDS = [
     {
         role: ROLE_INVESTOR,
         tag: "Buyer access",
-        title: "Join as buyer",
-        text: "Receive curated opportunities and evaluate them inside a calmer, more disciplined workflow.",
-        ctaLabel: "Request buyer access",
+        title: "Buyers",
+        roles: [
+            { title: "Fix-and-flip investors", text: "Buy homes to renovate and resell." },
+            { title: "Landlords", text: "Find rentals to hold long term." },
+            { title: "Cash buyers", text: "Move quickly without lender delays." },
+        ],
+        ctaLabel: "Join as buyer",
         ctaTo: "/signup",
     },
     {
         role: ROLE_SELLER,
         tag: "Seller access",
-        title: "Join as seller",
-        text: "Present opportunities with more clarity, reach qualified capital, and keep momentum intact.",
-        ctaLabel: "Launch seller profile",
+        title: "Sellers",
+        roles: [
+            { title: "Listing agents", text: "Share listings with active buyers." },
+            { title: "Wholesalers", text: "Bring deals ready to move." },
+            { title: "Homeowners", text: "Reach serious buyers directly." },
+        ],
+        ctaLabel: "Join as seller",
         ctaTo: "/signup/seller",
     },
 ];
@@ -32,7 +40,7 @@ export const ROLE_CONTENT = {
             eyebrow: "Exclusive deals for active investors",
             title: "Private real estate deals for serious buyers.",
             subtitle: "",
-            primaryCtaLabel: "Request buyer access",
+            primaryCtaLabel: "Join as buyer",
             primaryCtaTo: "/signup",
             secondaryCtaLabel: "See recent closings",
             secondaryCtaHref: "#proof",
@@ -52,10 +60,8 @@ export const ROLE_CONTENT = {
             { value: 100, suffix: "%", label: "focused on private-market flow" },
         ],
         process: {
-            eyebrow: "Flow",
-            title: "A quieter path from buy box to close.",
-            lead:
-                "The workflow keeps momentum high by removing presentation drag and communication clutter.",
+            eyebrow: "Getting started",
+            title: "How it works.",
             steps: [
                 {
                     label: "01",
@@ -79,10 +85,8 @@ export const ROLE_CONTENT = {
             title: "Recently closed deals.",
         },
         closing: {
-            eyebrow: "Access",
-            title: "Access the private side of the market.",
-            lead:
-                "Apply once and step into a pipeline built for investors who move with discipline.",
+            eyebrow: "Our customer",
+            title: "Who we work with.",
         },
     },
     [ROLE_SELLER]: {
@@ -90,7 +94,7 @@ export const ROLE_CONTENT = {
             eyebrow: "For property owners and deal finders",
             title: "Get your property in front of serious buyers.",
             subtitle: "",
-            primaryCtaLabel: "Launch seller profile",
+            primaryCtaLabel: "Join as seller",
             primaryCtaTo: "/signup/seller",
             secondaryCtaLabel: "See recent closings",
             secondaryCtaHref: "#proof",
@@ -110,10 +114,8 @@ export const ROLE_CONTENT = {
             { value: 100, suffix: "%", label: "centered on qualified demand" },
         ],
         process: {
-            eyebrow: "Flow",
-            title: "From opportunity intake\nto confident execution.",
-            lead:
-                "The seller workflow is designed to make the deal feel sharper, calmer, and easier to move forward.",
+            eyebrow: "Getting started",
+            title: "How it works.",
             steps: [
                 {
                     label: "01",
@@ -134,15 +136,11 @@ export const ROLE_CONTENT = {
         },
         proof: {
             eyebrow: "Recent Closings",
-            title: "Closings that reflect a sharper process.",
-            lead:
-                "These completed transactions show how well-positioned opportunities can move when the signal is clear.",
+            title: "Recently closed deals.",
         },
         closing: {
-            eyebrow: "Access",
-            title: "Bring your next deal to a better room.",
-            lead:
-                "Share it once, put it in front of the right buyers, and keep momentum from first look to final signature.",
+            eyebrow: "Our customer",
+            title: "Who we work with.",
         },
     },
 };
