@@ -1577,7 +1577,6 @@ button.homeButton {
 .homeProcess__label,
 .homeClosing__cardTag,
 .homeShowcase__label,
-.homeShowcase__metaRow,
 .homeShowcase__status,
 .homeFooter__brand {
   margin: 0;
@@ -1654,35 +1653,39 @@ button.homeButton {
 }
 
 .homeShowcase__controls {
+  position: absolute;
+  inset: 4px -34px 18px;
+  z-index: 3;
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 10px;
-  flex: 0 0 auto;
-  padding-bottom: 5px;
+  pointer-events: none;
 }
 
 .homeShowcase__navBtn {
   display: grid;
   place-items: center;
-  width: 48px;
-  height: 48px;
-  border: 1px solid rgba(246, 241, 232, 0.14);
+  width: 28px;
+  height: 46px;
+  border: 0;
   border-radius: 0;
-  background: rgba(246, 241, 232, 0.04);
+  background: transparent;
   color: var(--home-text);
+  box-shadow: none;
   cursor: pointer;
+  pointer-events: auto;
   transition:
-    background-color 220ms var(--home-ease),
-    border-color 220ms var(--home-ease),
     color 220ms var(--home-ease),
-    opacity 220ms var(--home-ease);
+    opacity 220ms var(--home-ease),
+    transform 220ms var(--home-ease);
 }
 
 .homeShowcase__navBtn:hover,
 .homeShowcase__navBtn:focus-visible {
-  border-color: rgba(214, 187, 146, 0.46);
-  background: rgba(214, 187, 146, 0.14);
+  background: transparent;
   color: var(--home-gold);
+  transform: scale(1.08);
 }
 
 .homeShowcase__navBtn:disabled {
@@ -1692,14 +1695,23 @@ button.homeButton {
 
 .homeShowcase__navBtn:disabled:hover,
 .homeShowcase__navBtn:disabled:focus-visible {
-  border-color: rgba(246, 241, 232, 0.14);
-  background: rgba(246, 241, 232, 0.04);
+  background: transparent;
   color: var(--home-text);
+  transform: none;
+}
+
+.homeShowcase__navBtn--prev {
+  margin-left: -22px;
 }
 
 .homeShowcase__navBtn .material-symbols-outlined {
-  font-size: 1.8rem;
+  font-size: 2.35rem;
   line-height: 1;
+}
+
+.homeShowcase__carousel {
+  position: relative;
+  margin-top: 38px;
 }
 
 .homeShowcase__scroller {
@@ -1713,6 +1725,10 @@ button.homeButton {
   scrollbar-width: none;
 }
 
+.homeShowcase__carousel .homeShowcase__scroller {
+  margin-top: 0;
+}
+
 .homeShowcase__scroller::-webkit-scrollbar {
   display: none;
 }
@@ -1720,7 +1736,7 @@ button.homeButton {
 .homeShowcase__grid {
   display: grid;
   grid-auto-flow: column;
-  grid-auto-columns: clamp(320px, 34vw, 400px);
+  grid-auto-columns: calc((var(--home-shell-width) - 36px) / 3);
   gap: 18px;
   width: max-content;
   min-width: 100%;
@@ -1749,7 +1765,8 @@ button.homeButton {
 
 .homeShowcase__card {
   display: grid;
-  align-content: start;
+  grid-template-rows: auto 1fr;
+  align-content: stretch;
   min-height: 100%;
   transition:
     transform 320ms var(--home-ease),
@@ -1766,7 +1783,7 @@ button.homeButton {
 
 .homeShowcase__imageWrap {
   position: relative;
-  min-height: 220px;
+  height: clamp(220px, 18vw, 260px);
   overflow: hidden;
 }
 
@@ -1813,17 +1830,10 @@ button.homeButton {
 }
 
 .homeShowcase__body {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 14px;
   padding: 22px 22px 24px;
-}
-
-.homeShowcase__metaRow {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-  color: var(--home-soft);
 }
 
 .homeShowcase__address {
@@ -1840,6 +1850,7 @@ button.homeButton {
   display: grid;
   grid-template-columns: 1fr;
   gap: 10px;
+  margin-top: auto;
 }
 
 .homeShowcase__stat {
@@ -1858,22 +1869,39 @@ button.homeButton {
 }
 
 .homeShowcase__detailRow {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
 }
 
 .homeShowcase__detailChip {
-  display: inline-flex;
-  align-items: center;
-  min-height: 34px;
-  padding: 0 14px;
+  display: grid;
+  place-items: center;
+  gap: 2px;
+  min-width: 0;
+  min-height: 54px;
+  padding: 9px 10px;
   border: 1px solid rgba(246, 241, 232, 0.1);
   background: rgba(246, 241, 232, 0.03);
   color: var(--home-soft);
-  font-size: 0.84rem;
+}
+
+.homeShowcase__detailValue {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  color: var(--home-text);
+  font-size: 1rem;
+  line-height: 1.05;
+  font-weight: 800;
+  font-variant-numeric: lining-nums tabular-nums;
+}
+
+.homeShowcase__detailLabel {
+  color: var(--home-soft);
+  font-size: 0.68rem;
   font-weight: 700;
-  letter-spacing: 0.04em;
+  line-height: 1;
+  letter-spacing: 0.08em;
 }
 
 .homeShowcase__placeholder {
@@ -2464,29 +2492,40 @@ button.homeButton {
     inset 0 1px 0 rgba(255, 255, 255, 0.92);
 }
 
+.homeShowcase--closedDeals .homeShowcase__card {
+  background: transparent;
+  box-shadow: none;
+}
+
+.homeShowcase--closedDeals .homeShowcase__card:hover {
+  background: transparent;
+  box-shadow: none;
+}
+
 .homeStory__metricValue,
 .homeShowcase__value {
   color: var(--home-trust);
 }
 
 .homeShowcase__navBtn {
-  border-color: var(--home-border);
-  border-radius: 6px;
-  background: rgba(255, 255, 255, 0.8);
+  border-color: transparent;
+  border-radius: 0;
+  background: transparent;
   color: var(--home-text);
+  box-shadow: none;
 }
 
 .homeShowcase__navBtn:hover,
 .homeShowcase__navBtn:focus-visible {
-  border-color: rgba(169, 120, 63, 0.46);
-  background: #ffffff;
+  border-color: transparent;
+  background: transparent;
   color: var(--home-accent);
 }
 
 .homeShowcase__navBtn:disabled:hover,
 .homeShowcase__navBtn:disabled:focus-visible {
-  border-color: var(--home-border);
-  background: rgba(255, 255, 255, 0.8);
+  border-color: transparent;
+  background: transparent;
   color: var(--home-text);
 }
 
@@ -2510,7 +2549,6 @@ button.homeButton {
   box-shadow: 0 10px 24px rgba(35, 50, 65, 0.1);
 }
 
-.homeShowcase__metaRow,
 .homeFooter__brand,
 .homeShowcase__label {
   color: var(--home-soft);
@@ -2522,6 +2560,14 @@ button.homeButton {
   border-radius: 6px;
   background: #f8f6f1;
   color: var(--home-muted);
+}
+
+.homeShowcase__detailValue {
+  color: var(--home-trust);
+}
+
+.homeShowcase__detailLabel {
+  color: var(--home-soft);
 }
 
 .homeShowcase__stat:nth-child(1) {
@@ -3089,9 +3135,13 @@ button.homeButton {
   }
 
   .homeShowcase__controls {
-    width: 100%;
-    justify-content: flex-end;
-    padding-bottom: 0;
+    inset: 4px -18px 14px;
+    width: auto;
+    justify-content: space-between;
+  }
+
+  .homeShowcase__navBtn--prev {
+    margin-left: -12px;
   }
 
   .homeShowcase__grid {
@@ -3099,7 +3149,7 @@ button.homeButton {
   }
 
   .homeShowcase__imageWrap {
-    min-height: 240px;
+    height: 240px;
   }
 
   .homeShowcase__stats {

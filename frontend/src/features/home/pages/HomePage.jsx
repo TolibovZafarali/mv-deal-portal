@@ -113,13 +113,21 @@ function DealCard({
 }) {
     const leadPhoto = property?.photos?.[0]?.url || property?.photos?.[0]?.thumbnailUrl || "";
     const address = fullAddress(property) || "Address unavailable";
-    const market = [property?.city, property?.state].filter(Boolean).join(", ");
     const livingArea = Number(property?.livingAreaSqft);
     const detailItems = [
-        property?.beds !== null && property?.beds !== undefined ? `${property.beds} bd` : null,
-        property?.baths !== null && property?.baths !== undefined ? `${property.baths} ba` : null,
-        Number.isFinite(livingArea) ? `${livingArea.toLocaleString("en-US")} sqft` : null,
-    ].filter(Boolean);
+        {
+            label: "bd",
+            value: property?.beds !== null && property?.beds !== undefined ? property.beds : "—",
+        },
+        {
+            label: "ba",
+            value: property?.baths !== null && property?.baths !== undefined ? property.baths : "—",
+        },
+        {
+            label: "sqft",
+            value: Number.isFinite(livingArea) ? livingArea.toLocaleString("en-US") : "—",
+        },
+    ];
 
     const card = (
         <article
@@ -141,9 +149,15 @@ function DealCard({
             </div>
 
             <div className="homeShowcase__body">
-                <div className="homeShowcase__metaRow">
-                    <span>{market || "Private market"}</span>
+                <div className="homeShowcase__detailRow" aria-label="Property details">
+                    {detailItems.map((item) => (
+                        <span key={item.label} className="homeShowcase__detailChip">
+                            <span className="homeShowcase__detailValue">{item.value}</span>
+                            <span className="homeShowcase__detailLabel">{item.label}</span>
+                        </span>
+                    ))}
                 </div>
+
                 <h3 className="homeShowcase__address">{address}</h3>
 
                 {!hidePriceDetails ? (
@@ -159,15 +173,6 @@ function DealCard({
                     </div>
                 ) : null}
 
-                {detailItems.length ? (
-                    <div className="homeShowcase__detailRow">
-                        {detailItems.map((item) => (
-                            <span key={item} className="homeShowcase__detailChip">
-                                {item}
-                            </span>
-                        ))}
-                    </div>
-                ) : null}
             </div>
         </article>
     );
@@ -944,7 +949,11 @@ export default function HomePage({
                 ) : null}
                 {hideHomeSections ? null : (
                     <>
-                        <section id="proof" className="homeShowcase" aria-label={showcaseHeading.carouselLabel}>
+                        <section
+                            id="proof"
+                            className={`homeShowcase ${!isAuthed ? "homeShowcase--closedDeals" : ""}`.trim()}
+                            aria-label={showcaseHeading.carouselLabel}
+                        >
                             <div className="homeShell">
                                 <div className="homeShowcase__header">
                                     <div key={`proof-heading-${displayRole}`} className="homeRoleMotion">
@@ -955,29 +964,6 @@ export default function HomePage({
                                             className="homeReveal"
                                         />
                                     </div>
-
-                                    {showShowcaseControls ? (
-                                        <div className="homeShowcase__controls" aria-label="Property carousel controls">
-                                            <button
-                                                className="homeShowcase__navBtn"
-                                                type="button"
-                                                aria-label="Previous property"
-                                                disabled={!showcaseScrollState.canScrollLeft}
-                                                onClick={() => scrollShowcase(-1)}
-                                            >
-                                                <span className="material-symbols-outlined" aria-hidden="true">chevron_left</span>
-                                            </button>
-                                            <button
-                                                className="homeShowcase__navBtn"
-                                                type="button"
-                                                aria-label="Next property"
-                                                disabled={!showcaseScrollState.canScrollRight}
-                                                onClick={() => scrollShowcase(1)}
-                                            >
-                                                <span className="material-symbols-outlined" aria-hidden="true">chevron_right</span>
-                                            </button>
-                                        </div>
-                                    ) : null}
                                 </div>
 
                                 {closedDealsLoading ? (
@@ -1003,18 +989,43 @@ export default function HomePage({
                                 ) : null}
 
                                 {!closedDealsLoading && !closedDealsError && featuredDeals.length > 0 ? (
-                                    <div ref={showcaseRailRef} className="homeShowcase__scroller" aria-label={showcaseHeading.carouselLabel}>
-                                        <div className="homeShowcase__grid">
-                                            {featuredDeals.map((property, index) => (
-                                                <DealCard
-                                                    key={property?.id ?? `${property?.street1 ?? "deal"}-${index}`}
-                                                    property={property}
-                                                    delay={index * 100}
-                                                    hidePriceDetails={isSellerAuthed}
-                                                    linkTo={isAuthed && !isSellerAuthed ? "/investor" : null}
-                                                    linkState={isAuthed && !isSellerAuthed ? { homeSelectedPropertyId: property?.id } : null}
-                                                />
-                                            ))}
+                                    <div className="homeShowcase__carousel">
+                                        {showShowcaseControls ? (
+                                            <div className="homeShowcase__controls" aria-label="Property carousel controls">
+                                                <button
+                                                    className="homeShowcase__navBtn homeShowcase__navBtn--prev"
+                                                    type="button"
+                                                    aria-label="Previous property"
+                                                    disabled={!showcaseScrollState.canScrollLeft}
+                                                    onClick={() => scrollShowcase(-1)}
+                                                >
+                                                    <span className="material-symbols-outlined" aria-hidden="true">chevron_left</span>
+                                                </button>
+                                                <button
+                                                    className="homeShowcase__navBtn homeShowcase__navBtn--next"
+                                                    type="button"
+                                                    aria-label="Next property"
+                                                    disabled={!showcaseScrollState.canScrollRight}
+                                                    onClick={() => scrollShowcase(1)}
+                                                >
+                                                    <span className="material-symbols-outlined" aria-hidden="true">chevron_right</span>
+                                                </button>
+                                            </div>
+                                        ) : null}
+
+                                        <div ref={showcaseRailRef} className="homeShowcase__scroller" aria-label={showcaseHeading.carouselLabel}>
+                                            <div className="homeShowcase__grid">
+                                                {featuredDeals.map((property, index) => (
+                                                    <DealCard
+                                                        key={property?.id ?? `${property?.street1 ?? "deal"}-${index}`}
+                                                        property={property}
+                                                        delay={index * 100}
+                                                        hidePriceDetails={isSellerAuthed}
+                                                        linkTo={isAuthed && !isSellerAuthed ? "/investor" : null}
+                                                        linkState={isAuthed && !isSellerAuthed ? { homeSelectedPropertyId: property?.id } : null}
+                                                    />
+                                                ))}
+                                            </div>
                                         </div>
                                     </div>
                                 ) : null}
