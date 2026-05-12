@@ -73,20 +73,6 @@ function buildModalState(location, signupRole) {
     };
 }
 
-function buildEmptyMetrics(metrics) {
-    return metrics.map(() => 0);
-}
-
-function formatMetric(metric, value) {
-    return (
-        <>
-            {metric.prefix ? <span className="homeMetric__affix">{metric.prefix}</span> : null}
-            {value.toLocaleString("en-US")}
-            {metric.suffix ? <span className="homeMetric__affix">{metric.suffix}</span> : null}
-        </>
-    );
-}
-
 function getDealSummary(property) {
     const asking = money(property?.askingPrice);
     const arv = money(property?.arv);
@@ -264,13 +250,10 @@ export default function HomePage({
     signOut,
 }) {
     const homeRef = useRef(null);
-    const metricsRef = useRef(null);
     const sceneFrameRef = useRef(null);
     const showcaseRailRef = useRef(null);
     const aboutCloseTimerRef = useRef(0);
     const [selectedRole, setSelectedRole] = useState(() => getInitialRole(location));
-    const [metricValues, setMetricValues] = useState(() => buildEmptyMetrics(ROLE_CONTENT[ROLE_INVESTOR].metrics));
-    const [metricsVisible, setMetricsVisible] = useState(false);
     const [sceneHovered, setSceneHovered] = useState(false);
     const [aboutPageOpen, setAboutPageOpen] = useState(false);
     const [aboutPageReady, setAboutPageReady] = useState(false);
@@ -590,64 +573,6 @@ export default function HomePage({
             cleanup.forEach((disconnect) => disconnect());
         };
     }, [selectedRole, closedDeals.length, closedDealsLoading, closedDealsError, aboutPageOpen, isAuthed]);
-
-    useEffect(() => {
-        const section = metricsRef.current;
-        if (!section) {
-            setMetricsVisible(false);
-            return undefined;
-        }
-
-        if (typeof IntersectionObserver === "undefined") {
-            setMetricsVisible(true);
-            return undefined;
-        }
-
-        const rect = section.getBoundingClientRect();
-        const viewportHeight = window.innerHeight || 0;
-        const initiallyVisible = rect.bottom > 0 && rect.top < viewportHeight;
-        setMetricsVisible(initiallyVisible);
-
-        const observer = new IntersectionObserver(
-            ([entry]) => {
-                setMetricsVisible(entry?.isIntersecting ?? false);
-            },
-            {
-                threshold: 0.35,
-                rootMargin: "0px 0px -10% 0px",
-            },
-        );
-
-        observer.observe(section);
-        return () => observer.disconnect();
-    }, [aboutPageOpen, isAuthed, selectedRole]);
-
-    useEffect(() => {
-        let frameId = 0;
-        if (!metricsVisible) {
-            return undefined;
-        }
-
-        setMetricValues(buildEmptyMetrics(roleContent.metrics));
-        const durationMs = 1350;
-        const startedAt = performance.now();
-
-        const tick = (now) => {
-            const progress = Math.min((now - startedAt) / durationMs, 1);
-            const eased = 1 - Math.pow(1 - progress, 3);
-
-            setMetricValues(
-                roleContent.metrics.map((metric) => Math.round(metric.value * eased)),
-            );
-
-            if (progress < 1) {
-                frameId = window.requestAnimationFrame(tick);
-            }
-        };
-
-        frameId = window.requestAnimationFrame(tick);
-        return () => window.cancelAnimationFrame(frameId);
-    }, [metricsVisible, roleContent.metrics]);
 
     useEffect(() => {
         const rail = showcaseRailRef.current;
@@ -1079,91 +1004,6 @@ export default function HomePage({
                 ) : null}
                 {hideHomeSections ? null : (
                     <>
-                        {!isAuthed ? (
-                            <section id="perspective" className="homeStory" aria-label="Perspective">
-                                <div className="homeShell">
-                                    <div className="homeReveal" data-delay="40">
-                                        <div key={`story-top-${selectedRole}`} className="homeStory__top homeRoleMotion">
-                                            <SectionHeading
-                                                eyebrow={roleContent.statement.eyebrow}
-                                                title={roleContent.statement.title}
-                                                lead={roleContent.statement.lead}
-                                                className=""
-                                            />
-
-                                            {roleContent.statement.quote ? (
-                                                <p className="homeStory__quote">
-                                                    {roleContent.statement.quote}
-                                                </p>
-                                            ) : null}
-                                        </div>
-                                    </div>
-
-                                    <div ref={metricsRef} className="homeStory__metrics">
-                                        {roleContent.metrics.map((metric, index) => (
-                                            <article
-                                                key={metric.label}
-                                                className="homeStory__metric homeReveal homeRoleMotion"
-                                                data-delay={index * 90}
-                                            >
-                                                <p className="homeStory__metricValue">{formatMetric(metric, metricValues[index] ?? 0)}</p>
-                                                <p className="homeStory__metricLabel">{metric.label}</p>
-                                            </article>
-                                        ))}
-                                    </div>
-
-                                    <div key={`principles-intro-${selectedRole}`} className="homeStory__principlesIntro homeReveal homeRoleMotion" data-delay="60">
-                                        <p className="homeStory__principlesEyebrow">Design principles</p>
-                                        <h3 className="homeStory__principlesTitle">{roleContent.principles.title}</h3>
-                                        <p className="homeStory__principlesLead">{roleContent.principles.lead}</p>
-                                    </div>
-
-                                    <div className="homeStory__principlesGrid">
-                                        {roleContent.principles.items.map((item, index) => (
-                                            <article
-                                                key={item.title}
-                                                className="homeStory__principle homeReveal homeRoleMotion"
-                                                data-delay={index * 110}
-                                            >
-                                                <p className="homeStory__principleLabel">{item.label}</p>
-                                                <h3 className="homeStory__principleTitle">{item.title}</h3>
-                                                <p className="homeStory__principleText">{item.text}</p>
-                                            </article>
-                                        ))}
-                                    </div>
-                                </div>
-                            </section>
-                        ) : null}
-
-                        {!isAuthed ? (
-                            <section id="flow" className="homeProcess" aria-label="Process">
-                                <div className="homeShell">
-                                    <div key={`process-heading-${selectedRole}`} className="homeRoleMotion">
-                                        <SectionHeading
-                                            eyebrow={roleContent.process.eyebrow}
-                                            title={roleContent.process.title}
-                                            lead={roleContent.process.lead}
-                                            className={`homeReveal ${selectedRole === ROLE_SELLER ? "homeSectionHeading--sellerProcess" : ""}`}
-                                        />
-                                    </div>
-
-                                    <div className="homeProcess__grid">
-                                        {roleContent.process.steps.map((step, index) => (
-                                            <article
-                                                key={step.title}
-                                                className="homeProcess__card homeReveal homeRoleMotion"
-                                                data-delay={index * 110}
-                                            >
-                                                <p className="homeProcess__label">{step.label}</p>
-                                                <h3 className="homeProcess__title">{step.title}</h3>
-                                                <p className="homeProcess__text">{step.text}</p>
-                                            </article>
-                                        ))}
-                                    </div>
-                                </div>
-                            </section>
-                        ) : null}
-
                         <section id="proof" className="homeShowcase" aria-label={showcaseHeading.carouselLabel}>
                             <div className="homeShell">
                                 <div className="homeShowcase__header">
@@ -1245,6 +1085,35 @@ export default function HomePage({
                                 ) : null}
                             </div>
                         </section>
+
+                        {!isAuthed ? (
+                            <section id="flow" className="homeProcess" aria-label="Process">
+                                <div className="homeShell">
+                                    <div key={`process-heading-${selectedRole}`} className="homeRoleMotion">
+                                        <SectionHeading
+                                            eyebrow={roleContent.process.eyebrow}
+                                            title={roleContent.process.title}
+                                            lead={roleContent.process.lead}
+                                            className={`homeReveal ${selectedRole === ROLE_SELLER ? "homeSectionHeading--sellerProcess" : ""}`}
+                                        />
+                                    </div>
+
+                                    <div className="homeProcess__grid">
+                                        {roleContent.process.steps.map((step, index) => (
+                                            <article
+                                                key={step.title}
+                                                className="homeProcess__card homeReveal homeRoleMotion"
+                                                data-delay={index * 110}
+                                            >
+                                                <p className="homeProcess__label">{step.label}</p>
+                                                <h3 className="homeProcess__title">{step.title}</h3>
+                                                <p className="homeProcess__text">{step.text}</p>
+                                            </article>
+                                        ))}
+                                    </div>
+                                </div>
+                            </section>
+                        ) : null}
 
                         {!isAuthed ? (
                             <section className="homeClosing" aria-label="Get started">

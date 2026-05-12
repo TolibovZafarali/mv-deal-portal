@@ -3,9 +3,8 @@ export const ROLE_SELLER = "SELLER";
 export const HOME_ROLE_STORAGE_KEY = "home.selectedRole";
 
 export const NAV_LINKS = [
-    { label: "Perspective", href: "#perspective" },
-    { label: "Flow", href: "#flow" },
     { label: "Proof", href: "#proof" },
+    { label: "Flow", href: "#flow" },
 ];
 
 export const ROLE_OPTION_CARDS = [
@@ -49,39 +48,11 @@ export const ROLE_CONTENT = {
                 "Clear movement to next action",
             ],
         },
-        statement: {
-            eyebrow: "Perspective",
-            title: "Less chasing. More decision-making.",
-            lead:
-                "Every surface is designed to strip out ambiguity, so serious buyers can stay focused on fit, risk, and the next move.",
-        },
         metrics: [
             { value: 24, suffix: "h", label: "typical first-response window" },
             { value: 3, suffix: "x", label: "faster deal triage" },
             { value: 100, suffix: "%", label: "focused on private-market flow" },
         ],
-        principles: {
-            title: "Built for buyers who know what matters.",
-            lead:
-                "The experience stays selective, visual, and operationally sharp from first look to final movement.",
-            items: [
-                {
-                    label: "01",
-                    title: "Selective by design",
-                    text: "Opportunities are framed for relevance before they ever reach your attention.",
-                },
-                {
-                    label: "02",
-                    title: "Underwriting in context",
-                    text: "Core numbers, condition, and upside sit in a tighter, cleaner read.",
-                },
-                {
-                    label: "03",
-                    title: "Momentum built in",
-                    text: "From first look to next step, the workflow stays direct and intentional.",
-                },
-            ],
-        },
         process: {
             eyebrow: "Flow",
             title: "A quieter path from buy box to close.",
@@ -139,39 +110,11 @@ export const ROLE_CONTENT = {
                 "Less friction to close",
             ],
         },
-        statement: {
-            eyebrow: "Perspective",
-            title: "Presentation shapes momentum.",
-            lead:
-                "When the deal is staged with precision, better buyers arrive sooner and the process stays cleaner from first interest to close.",
-        },
         metrics: [
             { value: 24, suffix: "h", label: "typical investor response window" },
             { value: 3, suffix: "x", label: "faster buyer alignment" },
             { value: 100, suffix: "%", label: "centered on qualified demand" },
         ],
-        principles: {
-            title: "Built for sellers who value how a deal is received.",
-            lead:
-                "The platform keeps the opportunity crisp, the audience serious, and the next step unmistakably clear.",
-            items: [
-                {
-                    label: "01",
-                    title: "Editorial-level presentation",
-                    text: "Each opportunity is framed with enough clarity for buyers to act sooner.",
-                },
-                {
-                    label: "02",
-                    title: "Qualified investor reach",
-                    text: "Serious capital sees the deal without the usual low-intent noise around it.",
-                },
-                {
-                    label: "03",
-                    title: "Operational clarity",
-                    text: "Communication, updates, and next actions stay aligned all the way to execution.",
-                },
-            ],
-        },
         process: {
             eyebrow: "Flow",
             title: "From opportunity intake\nto confident execution.",
