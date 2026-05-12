@@ -3,7 +3,7 @@ export const ROLE_SELLER = "SELLER";
 export const HOME_ROLE_STORAGE_KEY = "home.selectedRole";
 
 export const NAV_LINKS = [
-    { label: "Proof", href: "#proof" },
+    { label: "Recent Closings", href: "#proof" },
     { label: "Flow", href: "#flow" },
 ];
 
@@ -36,7 +36,6 @@ export const ROLE_CONTENT = {
             primaryCtaTo: "/signup",
             secondaryCtaLabel: "See recent closings",
             secondaryCtaHref: "#proof",
-            signals: ["Vetted deals", "Clear numbers", "Fast execution"],
             spotlightLabel: "Buyer brief",
             spotlightTitle: "Signal before volume",
             spotlightText:
@@ -76,10 +75,8 @@ export const ROLE_CONTENT = {
             ],
         },
         proof: {
-            eyebrow: "Proof",
-            title: "Recent closings that show the standard.",
-            lead:
-                "Active inventory remains private. These completed opportunities reflect the level of work moving through the platform.",
+            eyebrow: "Recent Closings",
+            title: "Recently closed deals.",
         },
         closing: {
             eyebrow: "Access",
@@ -97,7 +94,6 @@ export const ROLE_CONTENT = {
             primaryCtaTo: "/signup/seller",
             secondaryCtaLabel: "See recent closings",
             secondaryCtaHref: "#proof",
-            signals: ["Professional presentation", "Qualified buyers", "Faster closings"],
             spotlightLabel: "Seller brief",
             spotlightTitle: "Position the deal with precision",
             spotlightText:
@@ -137,7 +133,7 @@ export const ROLE_CONTENT = {
             ],
         },
         proof: {
-            eyebrow: "Proof",
+            eyebrow: "Recent Closings",
             title: "Closings that reflect a sharper process.",
             lead:
                 "These completed transactions show how well-positioned opportunities can move when the signal is clear.",

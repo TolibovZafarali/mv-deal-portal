@@ -1838,14 +1838,15 @@ button.homeButton {
 
 .homeShowcase__stats {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  grid-template-columns: 1fr;
+  gap: 10px;
 }
 
 .homeShowcase__stat {
   display: grid;
-  gap: 8px;
-  padding: 16px;
+  gap: 9px;
+  width: 100%;
+  padding: 16px 18px;
   background: rgba(246, 241, 232, 0.04);
 }
 
@@ -2521,6 +2522,36 @@ button.homeButton {
   border-radius: 6px;
   background: #f8f6f1;
   color: var(--home-muted);
+}
+
+.homeShowcase__stat:nth-child(1) {
+  border-color: rgba(169, 120, 63, 0.24);
+  background:
+    linear-gradient(135deg, rgba(169, 120, 63, 0.14) 0%, rgba(255, 255, 255, 0.74) 100%),
+    #f8f4ec;
+}
+
+.homeShowcase__stat:nth-child(1) .homeShowcase__label {
+  color: #8b622f;
+}
+
+.homeShowcase__stat:nth-child(1) .homeShowcase__value {
+  color: var(--home-accent-deep);
+}
+
+.homeShowcase__stat:nth-child(2) {
+  border-color: rgba(38, 132, 76, 0.3);
+  background:
+    linear-gradient(135deg, rgba(38, 132, 76, 0.18) 0%, rgba(255, 255, 255, 0.74) 100%),
+    #edf8f1;
+}
+
+.homeShowcase__stat:nth-child(2) .homeShowcase__label {
+  color: #2f7d4f;
+}
+
+.homeShowcase__stat:nth-child(2) .homeShowcase__value {
+  color: #155f35;
 }
 
 .homeShowcase__placeholder {

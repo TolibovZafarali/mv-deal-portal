@@ -73,54 +73,6 @@ function buildModalState(location, signupRole) {
     };
 }
 
-function getDealSummary(property) {
-    const asking = money(property?.askingPrice);
-    const arv = money(property?.arv);
-
-    if (asking !== "—" && arv !== "—") {
-        return `Asking ${asking} with an ARV of ${arv}.`;
-    }
-
-    if (asking !== "—") {
-        return `Presented at ${asking} inside the Megna preview flow.`;
-    }
-
-    if (arv !== "—") {
-        return `Closed with a projected ARV of ${arv}.`;
-    }
-
-    return "Closed opportunity surfaced through the Megna preview flow.";
-}
-
-function getShowcaseSummary(property, statusLabel, includePriceDetails = true) {
-    if (!includePriceDetails) {
-        const normalizedStatus = String(statusLabel ?? "").trim();
-        return normalizedStatus ? `${normalizedStatus} property in your Megna workflow.` : "Property in your Megna workflow.";
-    }
-
-    if (statusLabel === "Closed") {
-        return getDealSummary(property);
-    }
-
-    const asking = money(property?.askingPrice);
-    const arv = money(property?.arv);
-    const normalizedStatus = String(statusLabel ?? "").trim();
-
-    if (asking !== "—" && arv !== "—") {
-        return `${normalizedStatus} at ${asking} with an ARV of ${arv}.`;
-    }
-
-    if (asking !== "—") {
-        return `${normalizedStatus} at ${asking}.`;
-    }
-
-    if (arv !== "—") {
-        return `${normalizedStatus} with an ARV of ${arv}.`;
-    }
-
-    return normalizedStatus ? `${normalizedStatus} property in your Megna workflow.` : "Property in your Megna workflow.";
-}
-
 function normalizeRole(value) {
     return String(value ?? "").trim().toUpperCase();
 }
@@ -128,14 +80,6 @@ function normalizeRole(value) {
 function userDisplayName(user) {
     const full = [user?.firstName, user?.lastName].filter(Boolean).join(" ").trim();
     return full;
-}
-
-function sellerWorkflowLabel(value) {
-    const normalized = normalizeRole(value);
-    if (normalized === "PUBLISHED") return "Published";
-    if (normalized === "DRAFT") return "Draft";
-    if (normalized === "SUBMITTED") return "Under review";
-    return normalized ? normalized.toLowerCase().replaceAll("_", " ") : "Listing";
 }
 
 const ABOUT_SCENE_CONTENT = {
@@ -155,7 +99,7 @@ function SectionHeading({ eyebrow, title, lead, className = "" }) {
             >
                 {title}
             </h2>
-            <p className="homeSectionHeading__lead">{lead}</p>
+            {lead ? <p className="homeSectionHeading__lead">{lead}</p> : null}
         </div>
     );
 }
@@ -163,7 +107,6 @@ function SectionHeading({ eyebrow, title, lead, className = "" }) {
 function DealCard({
     property,
     delay = 0,
-    statusLabel = "Closed",
     linkTo = null,
     linkState = null,
     hidePriceDetails = false,
@@ -195,25 +138,22 @@ function DealCard({
                         <span className="material-symbols-outlined">home</span>
                     </div>
                 )}
-                <span className="homeShowcase__status">{statusLabel}</span>
             </div>
 
             <div className="homeShowcase__body">
                 <div className="homeShowcase__metaRow">
                     <span>{market || "Private market"}</span>
-                    <span>Megna preview</span>
                 </div>
                 <h3 className="homeShowcase__address">{address}</h3>
-                <p className="homeShowcase__summary">{getShowcaseSummary(property, statusLabel, !hidePriceDetails)}</p>
 
                 {!hidePriceDetails ? (
                     <div className="homeShowcase__stats">
                         <div className="homeShowcase__stat">
-                            <span className="homeShowcase__label">Asking</span>
+                            <span className="homeShowcase__label">Investor Purchase Price</span>
                             <span className="homeShowcase__value">{money(property?.askingPrice)}</span>
                         </div>
                         <div className="homeShowcase__stat">
-                            <span className="homeShowcase__label">ARV</span>
+                            <span className="homeShowcase__label">Sold After Rehab</span>
                             <span className="homeShowcase__value">{money(property?.arv)}</span>
                         </div>
                     </div>
@@ -922,13 +862,6 @@ export default function HomePage({
                                         ) : null}
                                     </div>
 
-                                    <div className="homeHero__signalRow" aria-label="Experience highlights">
-                                        {roleContent.hero.signals.map((signal) => (
-                                            <span key={signal} className="homeHero__signal homeRoleMotion">
-                                                {signal}
-                                            </span>
-                                        ))}
-                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -1080,11 +1013,6 @@ export default function HomePage({
                                                     hidePriceDetails={isSellerAuthed}
                                                     linkTo={isAuthed && !isSellerAuthed ? "/investor" : null}
                                                     linkState={isAuthed && !isSellerAuthed ? { homeSelectedPropertyId: property?.id } : null}
-                                                    statusLabel={isAuthed
-                                                        ? (isSellerAuthed
-                                                            ? sellerWorkflowLabel(property?.sellerWorkflowStatus)
-                                                            : "Active")
-                                                        : "Closed"}
                                                 />
                                             ))}
                                         </div>
