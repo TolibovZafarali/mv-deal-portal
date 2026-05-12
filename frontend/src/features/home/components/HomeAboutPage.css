@@ -704,6 +704,140 @@
   transform: translateY(0);
 }
 
+/* Light product treatment for the expanded about experience. */
+.homeAboutPage::before {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.4) 0%, rgba(247, 244, 238, 0.82) 100%);
+}
+
+.homeAboutPage__progress {
+  background: linear-gradient(90deg, rgba(169, 120, 63, 0.9) 0%, rgba(35, 50, 65, 0.72) 100%);
+  box-shadow: none;
+}
+
+.homeAboutPage__scroll {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.86) 0%, rgba(247, 244, 238, 0.98) 42%, #f7f4ee 100%);
+}
+
+.homeAboutPage__scroll::before {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.58) 0%, rgba(247, 244, 238, 0.78) 48%, rgba(237, 232, 223, 0.86) 100%);
+}
+
+.homeAboutPage__scroll::after {
+  background:
+    linear-gradient(90deg, transparent 0%, rgba(35, 50, 65, 0.12) 50%, transparent 100%);
+  opacity: 0.72;
+}
+
+.homeAboutPage__close {
+  border-color: rgba(35, 50, 65, 0.14);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.86);
+  color: var(--home-text);
+  box-shadow: 0 18px 44px rgba(35, 50, 65, 0.12);
+}
+
+.homeAboutPage__close:hover,
+.homeAboutPage__close:focus-visible {
+  border-color: rgba(169, 120, 63, 0.42);
+  background: #ffffff;
+  box-shadow: 0 22px 52px rgba(35, 50, 65, 0.14);
+}
+
+.homeAboutPage__hero::after,
+.homeAboutPage__section .homeShell::before {
+  background: linear-gradient(90deg, transparent, rgba(35, 50, 65, 0.13), transparent);
+}
+
+.homeAboutPage__eyebrow,
+.homeAboutPage__cardLabel,
+.homeAboutPage__detailLabel,
+.homeAboutPage__storyLabel,
+.homeAboutPage__quoteLabel,
+.homeAboutPage__differenceLabel,
+.homeAboutPage__differenceCardLabel,
+.homeAboutPage__beliefLabel,
+.homeAboutPage__processLabel,
+.homeAboutPage__teamLabel,
+.homeAboutPage__ctaEyebrow {
+  color: var(--home-accent);
+}
+
+.homeAboutPage__title,
+.homeAboutPage__quote,
+.homeAboutPage__heroCardTitle,
+.homeAboutPage__metricValue,
+.homeAboutPage__quotePanelText,
+.homeAboutPage__beliefTitle,
+.homeAboutPage__differenceCardTitle,
+.homeAboutPage__processTitle,
+.homeAboutPage__teamTitle,
+.homeAboutPage__differenceTitle,
+.homeAboutPage__ctaTitle {
+  color: var(--home-text);
+  letter-spacing: 0;
+}
+
+.homeAboutPage__lead,
+.homeAboutPage__heroCardText,
+.homeAboutPage__detailText,
+.homeAboutPage__storyText,
+.homeAboutPage__differenceText,
+.homeAboutPage__beliefText,
+.homeAboutPage__processText,
+.homeAboutPage__teamText,
+.homeAboutPage__ctaLead,
+.homeAboutPage__differenceCardText,
+.homeAboutPage__quoteNote {
+  color: var(--home-muted);
+}
+
+.homeAboutPage__signal {
+  border-color: rgba(35, 50, 65, 0.12);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.68);
+  color: var(--home-muted);
+}
+
+.homeAboutPage__surface {
+  border-color: var(--home-border);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow:
+    0 20px 54px rgba(35, 50, 65, 0.09),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+.homeAboutPage__surface::before {
+  background:
+    linear-gradient(135deg, rgba(169, 120, 63, 0.08) 0%, rgba(255, 255, 255, 0) 48%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.42), rgba(255, 255, 255, 0));
+  opacity: 0.86;
+}
+
+.homeAboutPage__surface:hover {
+  border-color: rgba(169, 120, 63, 0.34);
+  box-shadow:
+    0 26px 62px rgba(35, 50, 65, 0.11),
+    inset 0 1px 0 rgba(255, 255, 255, 0.96);
+}
+
+.homeAboutPage__metricBlock {
+  border-color: rgba(35, 50, 65, 0.1);
+  border-radius: 6px;
+  background: #f8f6f1;
+}
+
+.homeAboutPage__metricText {
+  color: var(--home-soft);
+}
+
+.homeAboutPage__ctaPanel::after {
+  display: none;
+}
+
 @media (max-width: 1100px) {
   .homeAboutPage__heroInner {
     grid-template-columns: minmax(0, 1fr) minmax(320px, 0.9fr);

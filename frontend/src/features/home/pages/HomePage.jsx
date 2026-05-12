@@ -278,6 +278,11 @@ export default function HomePage({
         : "Investor";
     const featuredDeals = isAuthed && !isSellerAuthed ? closedDeals : closedDeals.slice(0, 4);
     const heroMetric = roleContent.metrics[0];
+    const heroSubtitle = isAuthed
+        ? (authenticatedRole === "SELLER"
+            ? "Published listings are surfaced first, followed by drafts so you can prioritize quickly."
+            : "Review active properties and jump back into live opportunities without extra noise.")
+        : roleContent.hero.subtitle;
     const showcaseHeading = isAuthed
         ? (isSellerAuthed
             ? {
@@ -878,15 +883,17 @@ export default function HomePage({
                                     <h1 className={`homeHero__title ${displayRole === ROLE_SELLER ? "homeHero__title--seller" : ""}`}>
                                         {isAuthed
                                             ? signedInName
-                                            : roleContent.hero.title}
+                                            : (displayRole === ROLE_SELLER
+                                                ? (
+                                                    <>
+                                                        <span className="homeHero__titleNoWrap">Get your property</span> in front of serious buyers.
+                                                    </>
+                                                )
+                                                : roleContent.hero.title)}
                                     </h1>
-                                    <p className="homeHero__subtitle">
-                                        {isAuthed
-                                            ? (authenticatedRole === "SELLER"
-                                                ? "Published listings are surfaced first, followed by drafts so you can prioritize quickly."
-                                                : "Review active properties and jump back into live opportunities without extra noise.")
-                                            : roleContent.hero.subtitle}
-                                    </p>
+                                    {heroSubtitle ? (
+                                        <p className="homeHero__subtitle">{heroSubtitle}</p>
+                                    ) : null}
 
                                     <div className="homeHero__actions">
                                         {isAuthed ? (

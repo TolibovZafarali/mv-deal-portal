@@ -31,8 +31,7 @@ export const ROLE_CONTENT = {
         hero: {
             eyebrow: "Exclusive deals for active investors",
             title: "Private real estate deals for serious buyers.",
-            subtitle:
-                "Discover vetted off-market properties, review them quickly, and move on deals without the noise of public listings.",
+            subtitle: "",
             primaryCtaLabel: "Request buyer access",
             primaryCtaTo: "/signup",
             secondaryCtaLabel: "See recent closings",
@@ -93,8 +92,7 @@ export const ROLE_CONTENT = {
         hero: {
             eyebrow: "For property owners and deal finders",
             title: "Get your property in front of serious buyers.",
-            subtitle:
-                "Present off-market opportunities to qualified investors and move deals forward faster.",
+            subtitle: "",
             primaryCtaLabel: "Launch seller profile",
             primaryCtaTo: "/signup/seller",
             secondaryCtaLabel: "See recent closings",
