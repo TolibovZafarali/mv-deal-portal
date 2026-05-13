@@ -32,6 +32,10 @@
   --scene-origin-bottom: 0px;
   --scene-origin-left: 0px;
   --scene-origin-radius: 0px;
+  --scene-hover-x: 0px;
+  --scene-hover-y: 0px;
+  --scene-hover-scale-x: 1;
+  --scene-hover-scale-y: 1;
   position: relative;
   min-height: 100%;
   overflow: clip;
@@ -379,7 +383,8 @@ button.homeButton {
 }
 
 .homeHero__backdrop,
-.homeHero__mesh {
+.homeHero__mesh,
+.homeHero__imageWash {
   position: absolute;
   inset: 0;
   pointer-events: none;
@@ -403,6 +408,28 @@ button.homeButton {
   opacity: 0.28;
   mask-image: radial-gradient(circle at 50% 42%, rgba(0, 0, 0, 1) 32%, transparent 88%);
   transform: translateY(calc(var(--hero-orbit-shift) * -0.16));
+}
+
+.homeHero__imageWash {
+  opacity: 0;
+  background:
+    linear-gradient(90deg, rgba(7, 10, 14, 0.92) 0%, rgba(7, 10, 14, 0.76) 48%, rgba(7, 10, 14, 0.84) 100%),
+    linear-gradient(180deg, rgba(7, 10, 14, 0.34) 0%, rgba(7, 10, 14, 0.9) 100%),
+    url("/hero.jpg") center / cover no-repeat;
+  transform: translate3d(var(--scene-hover-x), var(--scene-hover-y), 0)
+    scale3d(var(--scene-hover-scale-x), var(--scene-hover-scale-y), 1);
+  transform-origin: top left;
+  backface-visibility: hidden;
+  contain: paint;
+  will-change: opacity, transform;
+  transition:
+    opacity 420ms var(--home-ease),
+    transform 920ms cubic-bezier(0.18, 0.92, 0.24, 1);
+}
+
+.homeHero--immersed .homeHero__imageWash {
+  opacity: 0.96;
+  transform: translate3d(0, 0, 0) scale3d(1, 1, 1);
 }
 
 .homeHero__inner {
@@ -525,6 +552,31 @@ button.homeButton {
   letter-spacing: -0.04em;
   font-weight: 600;
   text-wrap: balance;
+}
+
+.homeHero__eyebrow,
+.homeHero__title,
+.homeHero__subtitle {
+  transition:
+    color 360ms var(--home-ease);
+}
+
+.homeHero--immersed .homeHero__eyebrow {
+  color: #d6bb92;
+}
+
+.homeHero--immersed .homeHero__title {
+  color: #fffaf0;
+}
+
+.homeHero--immersed .homeHero__subtitle {
+  color: rgba(246, 241, 232, 0.84);
+}
+
+.homeHero--immersed .homeHero__actions .homeButton--ghost {
+  border-color: rgba(246, 241, 232, 0.32);
+  background: rgba(7, 10, 14, 0.22);
+  color: #f6f1e8;
 }
 
 .homeHero__title.homeHero__title--seller {
@@ -738,12 +790,6 @@ button.homeButton {
   animation-delay: -2.4s;
 }
 
-.homeHero--immersed::before {
-  opacity: 0.42;
-  transform: scale(1);
-  filter: saturate(0.92) contrast(1.04) brightness(0.52);
-}
-
 .homeHero--immersed .homeHero__mesh {
   opacity: 0.16;
 }
@@ -755,7 +801,6 @@ button.homeButton {
 
 .homeHero--immersed .homeHero__sceneImage {
   transform: scale(1.12);
-  filter: saturate(0.98) contrast(1.08) brightness(0.88);
 }
 
 .home--aboutOpen .homeProgress {
@@ -1737,6 +1782,10 @@ button.homeButton {
   margin-top: 0;
 }
 
+.homeShowcase__mobileScrollHint {
+  display: none;
+}
+
 .homeShowcase__scroller::-webkit-scrollbar {
   display: none;
 }
@@ -2435,11 +2484,6 @@ button.homeButton {
   mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.46), rgba(0, 0, 0, 0.08) 78%, transparent);
 }
 
-.homeHero--immersed::before {
-  opacity: 0.3;
-  filter: saturate(0.9) contrast(1.05) brightness(1.04);
-}
-
 .homeHero__eyebrow,
 .homeSectionHeading__eyebrow,
 .homeStory__principlesEyebrow,
@@ -2504,10 +2548,6 @@ button.homeButton {
 
 .homeHero__sceneImage {
   filter: saturate(0.92) contrast(1.02) brightness(1.02);
-}
-
-.homeHero--immersed .homeHero__sceneImage {
-  filter: saturate(1) contrast(1.04) brightness(1.02);
 }
 
 .homeHero__sceneGradient {
@@ -3213,6 +3253,14 @@ button.homeButton {
     display: none;
   }
 
+  .homeHero {
+    min-height: 100vh;
+    min-height: 100svh;
+    min-height: 100dvh;
+    padding-top: max(108px, calc(env(safe-area-inset-top) + 96px));
+    padding-bottom: max(36px, calc(env(safe-area-inset-bottom) + 32px));
+  }
+
   .homeHero__title {
     font-size: clamp(3.1rem, 16vw, 4.6rem);
   }
@@ -3236,8 +3284,7 @@ button.homeButton {
   }
 
   .homeHero__scene {
-    min-height: auto;
-    padding-bottom: 0;
+    display: none;
   }
 
   .homeHero__sceneText {
@@ -3352,7 +3399,9 @@ button.homeButton {
   }
 
   .homeShowcase__scroller {
-    padding-bottom: 10px;
+    --home-mobile-card-width: min(86vw, 340px);
+    padding: 4px max(0px, calc((100% - var(--home-mobile-card-width)) / 2)) 10px;
+    scroll-padding-inline: max(0px, calc((100% - var(--home-mobile-card-width)) / 2));
   }
 
   .homeShowcase__header {
@@ -3362,9 +3411,7 @@ button.homeButton {
   }
 
   .homeShowcase__controls {
-    inset: 4px -18px 14px;
-    width: auto;
-    justify-content: space-between;
+    display: none;
   }
 
   .homeShowcase__navBtn--prev {
@@ -3372,7 +3419,41 @@ button.homeButton {
   }
 
   .homeShowcase__grid {
-    grid-auto-columns: min(86vw, 340px);
+    grid-auto-columns: var(--home-mobile-card-width);
+    justify-content: center;
+  }
+
+  .homeShowcase__cardLink,
+  .homeShowcase__card,
+  .homeShowcase__placeholder {
+    scroll-snap-align: center;
+  }
+
+  .homeShowcase__mobileScrollHint {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 7px;
+    min-height: 20px;
+    margin-top: 12px;
+  }
+
+  .homeShowcase__mobileScrollDot {
+    width: 7px;
+    height: 7px;
+    border: 1px solid rgba(214, 187, 146, 0.6);
+    border-radius: 999px;
+    background: rgba(246, 241, 232, 0.16);
+    transition:
+      width 220ms var(--home-ease),
+      background-color 220ms var(--home-ease),
+      border-color 220ms var(--home-ease);
+  }
+
+  .homeShowcase__mobileScrollDot.is-active {
+    width: 26px;
+    border-color: #d6bb92;
+    background: #d6bb92;
   }
 
   .homeShowcase__imageWrap {
