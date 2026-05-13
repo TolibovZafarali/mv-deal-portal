@@ -18,6 +18,28 @@ import HomeAboutPage from "@/features/home/components/HomeAboutPage";
 
 const ABOUT_PAGE_ID = "home-about-page";
 const ABOUT_TRANSITION_DURATION_MS = 980;
+const PUBLIC_CLOSED_DEAL_FALLBACKS = [
+    {
+        id: "fallback-recent-closing-1",
+        displayAddress: "Recent value-add closing",
+        isFallbackDeal: true,
+    },
+    {
+        id: "fallback-recent-closing-2",
+        displayAddress: "Recent rental-ready closing",
+        isFallbackDeal: true,
+    },
+    {
+        id: "fallback-recent-closing-3",
+        displayAddress: "Recent infill closing",
+        isFallbackDeal: true,
+    },
+    {
+        id: "fallback-recent-closing-4",
+        displayAddress: "Recent off-market closing",
+        isFallbackDeal: true,
+    },
+];
 
 function userPrefersReducedMotion() {
     if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
@@ -38,6 +60,9 @@ function money(value) {
 }
 
 function fullAddress(property) {
+    const displayAddress = String(property?.displayAddress ?? "").trim();
+    if (displayAddress) return displayAddress;
+
     const line1 = [property?.street1, property?.street2].filter(Boolean).join(", ");
     const stateZip = [property?.state, property?.zip].filter(Boolean).join(" ");
     return [line1, property?.city, stateZip].filter(Boolean).join(", ");
@@ -73,68 +98,6 @@ function buildModalState(location, signupRole) {
     };
 }
 
-function buildEmptyMetrics(metrics) {
-    return metrics.map(() => 0);
-}
-
-function formatMetric(metric, value) {
-    return (
-        <>
-            {metric.prefix ? <span className="homeMetric__affix">{metric.prefix}</span> : null}
-            {value.toLocaleString("en-US")}
-            {metric.suffix ? <span className="homeMetric__affix">{metric.suffix}</span> : null}
-        </>
-    );
-}
-
-function getDealSummary(property) {
-    const asking = money(property?.askingPrice);
-    const arv = money(property?.arv);
-
-    if (asking !== "—" && arv !== "—") {
-        return `Asking ${asking} with an ARV of ${arv}.`;
-    }
-
-    if (asking !== "—") {
-        return `Presented at ${asking} inside the Megna preview flow.`;
-    }
-
-    if (arv !== "—") {
-        return `Closed with a projected ARV of ${arv}.`;
-    }
-
-    return "Closed opportunity surfaced through the Megna preview flow.";
-}
-
-function getShowcaseSummary(property, statusLabel, includePriceDetails = true) {
-    if (!includePriceDetails) {
-        const normalizedStatus = String(statusLabel ?? "").trim();
-        return normalizedStatus ? `${normalizedStatus} property in your Megna workflow.` : "Property in your Megna workflow.";
-    }
-
-    if (statusLabel === "Closed") {
-        return getDealSummary(property);
-    }
-
-    const asking = money(property?.askingPrice);
-    const arv = money(property?.arv);
-    const normalizedStatus = String(statusLabel ?? "").trim();
-
-    if (asking !== "—" && arv !== "—") {
-        return `${normalizedStatus} at ${asking} with an ARV of ${arv}.`;
-    }
-
-    if (asking !== "—") {
-        return `${normalizedStatus} at ${asking}.`;
-    }
-
-    if (arv !== "—") {
-        return `${normalizedStatus} with an ARV of ${arv}.`;
-    }
-
-    return normalizedStatus ? `${normalizedStatus} property in your Megna workflow.` : "Property in your Megna workflow.";
-}
-
 function normalizeRole(value) {
     return String(value ?? "").trim().toUpperCase();
 }
@@ -142,14 +105,6 @@ function normalizeRole(value) {
 function userDisplayName(user) {
     const full = [user?.firstName, user?.lastName].filter(Boolean).join(" ").trim();
     return full;
-}
-
-function sellerWorkflowLabel(value) {
-    const normalized = normalizeRole(value);
-    if (normalized === "PUBLISHED") return "Published";
-    if (normalized === "DRAFT") return "Draft";
-    if (normalized === "SUBMITTED") return "Under review";
-    return normalized ? normalized.toLowerCase().replaceAll("_", " ") : "Listing";
 }
 
 const ABOUT_SCENE_CONTENT = {
@@ -169,7 +124,7 @@ function SectionHeading({ eyebrow, title, lead, className = "" }) {
             >
                 {title}
             </h2>
-            <p className="homeSectionHeading__lead">{lead}</p>
+            {lead ? <p className="homeSectionHeading__lead">{lead}</p> : null}
         </div>
     );
 }
@@ -177,20 +132,28 @@ function SectionHeading({ eyebrow, title, lead, className = "" }) {
 function DealCard({
     property,
     delay = 0,
-    statusLabel = "Closed",
     linkTo = null,
     linkState = null,
     hidePriceDetails = false,
 }) {
-    const leadPhoto = property?.photos?.[0]?.thumbnailUrl || property?.photos?.[0]?.url || "";
+    const leadPhoto = property?.photos?.[0]?.url || property?.photos?.[0]?.thumbnailUrl || "";
     const address = fullAddress(property) || "Address unavailable";
-    const market = [property?.city, property?.state].filter(Boolean).join(", ");
+    const isFallbackDeal = property?.isFallbackDeal === true;
     const livingArea = Number(property?.livingAreaSqft);
     const detailItems = [
-        property?.beds !== null && property?.beds !== undefined ? `${property.beds} bd` : null,
-        property?.baths !== null && property?.baths !== undefined ? `${property.baths} ba` : null,
-        Number.isFinite(livingArea) ? `${livingArea.toLocaleString("en-US")} sqft` : null,
-    ].filter(Boolean);
+        {
+            label: "bd",
+            value: property?.beds !== null && property?.beds !== undefined ? property.beds : "—",
+        },
+        {
+            label: "ba",
+            value: property?.baths !== null && property?.baths !== undefined ? property.baths : "—",
+        },
+        {
+            label: "sqft",
+            value: Number.isFinite(livingArea) ? livingArea.toLocaleString("en-US") : "—",
+        },
+    ];
 
     const card = (
         <article
@@ -209,39 +172,41 @@ function DealCard({
                         <span className="material-symbols-outlined">home</span>
                     </div>
                 )}
-                <span className="homeShowcase__status">{statusLabel}</span>
             </div>
 
             <div className="homeShowcase__body">
-                <div className="homeShowcase__metaRow">
-                    <span>{market || "Private market"}</span>
-                    <span>Megna preview</span>
+                <div className="homeShowcase__detailRow" aria-label="Property details">
+                    {detailItems.map((item) => (
+                        <span key={item.label} className="homeShowcase__detailChip">
+                            <span className="homeShowcase__detailValue">{item.value}</span>
+                            <span className="homeShowcase__detailLabel">{item.label}</span>
+                        </span>
+                    ))}
                 </div>
+
                 <h3 className="homeShowcase__address">{address}</h3>
-                <p className="homeShowcase__summary">{getShowcaseSummary(property, statusLabel, !hidePriceDetails)}</p>
 
                 {!hidePriceDetails ? (
                     <div className="homeShowcase__stats">
                         <div className="homeShowcase__stat">
-                            <span className="homeShowcase__label">Asking</span>
-                            <span className="homeShowcase__value">{money(property?.askingPrice)}</span>
+                            <span className="homeShowcase__label">
+                                {isFallbackDeal ? "Status" : "Investor Purchase Price"}
+                            </span>
+                            <span className="homeShowcase__value">
+                                {isFallbackDeal ? "Recently closed" : money(property?.askingPrice)}
+                            </span>
                         </div>
                         <div className="homeShowcase__stat">
-                            <span className="homeShowcase__label">ARV</span>
-                            <span className="homeShowcase__value">{money(property?.arv)}</span>
+                            <span className="homeShowcase__label">
+                                {isFallbackDeal ? "Details" : "Sold After Rehab"}
+                            </span>
+                            <span className="homeShowcase__value">
+                                {isFallbackDeal ? "Data refreshing" : money(property?.arv)}
+                            </span>
                         </div>
                     </div>
                 ) : null}
 
-                {detailItems.length ? (
-                    <div className="homeShowcase__detailRow">
-                        {detailItems.map((item) => (
-                            <span key={item} className="homeShowcase__detailChip">
-                                {item}
-                            </span>
-                        ))}
-                    </div>
-                ) : null}
             </div>
         </article>
     );
@@ -264,13 +229,10 @@ export default function HomePage({
     signOut,
 }) {
     const homeRef = useRef(null);
-    const metricsRef = useRef(null);
     const sceneFrameRef = useRef(null);
     const showcaseRailRef = useRef(null);
     const aboutCloseTimerRef = useRef(0);
     const [selectedRole, setSelectedRole] = useState(() => getInitialRole(location));
-    const [metricValues, setMetricValues] = useState(() => buildEmptyMetrics(ROLE_CONTENT[ROLE_INVESTOR].metrics));
-    const [metricsVisible, setMetricsVisible] = useState(false);
     const [sceneHovered, setSceneHovered] = useState(false);
     const [aboutPageOpen, setAboutPageOpen] = useState(false);
     const [aboutPageReady, setAboutPageReady] = useState(false);
@@ -295,6 +257,11 @@ export default function HomePage({
         : "Investor";
     const featuredDeals = isAuthed && !isSellerAuthed ? closedDeals : closedDeals.slice(0, 4);
     const heroMetric = roleContent.metrics[0];
+    const heroSubtitle = isAuthed
+        ? (authenticatedRole === "SELLER"
+            ? "Published listings are surfaced first, followed by drafts so you can prioritize quickly."
+            : "Review active properties and jump back into live opportunities without extra noise.")
+        : roleContent.hero.subtitle;
     const showcaseHeading = isAuthed
         ? (isSellerAuthed
             ? {
@@ -323,6 +290,9 @@ export default function HomePage({
         };
     const showShowcaseControls = !closedDealsLoading && !closedDealsError && featuredDeals.length > 1;
     const hideHomeSections = aboutPageOpen && !aboutPageClosing;
+    const showcaseHeadingMotionKey = `proof-heading-${showcaseHeading.eyebrow}-${showcaseHeading.title}-${showcaseHeading.lead || ""}`;
+    const processHeadingMotionKey = `process-heading-${roleContent.process.eyebrow}-${roleContent.process.title}-${roleContent.process.lead || ""}`;
+    const closingHeadingMotionKey = `closing-heading-${roleContent.closing.eyebrow}-${roleContent.closing.title}-${roleContent.closing.lead || ""}`;
 
     const handleSelectRole = (role) => {
         startTransition(() => {
@@ -592,64 +562,6 @@ export default function HomePage({
     }, [selectedRole, closedDeals.length, closedDealsLoading, closedDealsError, aboutPageOpen, isAuthed]);
 
     useEffect(() => {
-        const section = metricsRef.current;
-        if (!section) {
-            setMetricsVisible(false);
-            return undefined;
-        }
-
-        if (typeof IntersectionObserver === "undefined") {
-            setMetricsVisible(true);
-            return undefined;
-        }
-
-        const rect = section.getBoundingClientRect();
-        const viewportHeight = window.innerHeight || 0;
-        const initiallyVisible = rect.bottom > 0 && rect.top < viewportHeight;
-        setMetricsVisible(initiallyVisible);
-
-        const observer = new IntersectionObserver(
-            ([entry]) => {
-                setMetricsVisible(entry?.isIntersecting ?? false);
-            },
-            {
-                threshold: 0.35,
-                rootMargin: "0px 0px -10% 0px",
-            },
-        );
-
-        observer.observe(section);
-        return () => observer.disconnect();
-    }, [aboutPageOpen, isAuthed, selectedRole]);
-
-    useEffect(() => {
-        let frameId = 0;
-        if (!metricsVisible) {
-            return undefined;
-        }
-
-        setMetricValues(buildEmptyMetrics(roleContent.metrics));
-        const durationMs = 1350;
-        const startedAt = performance.now();
-
-        const tick = (now) => {
-            const progress = Math.min((now - startedAt) / durationMs, 1);
-            const eased = 1 - Math.pow(1 - progress, 3);
-
-            setMetricValues(
-                roleContent.metrics.map((metric) => Math.round(metric.value * eased)),
-            );
-
-            if (progress < 1) {
-                frameId = window.requestAnimationFrame(tick);
-            }
-        };
-
-        frameId = window.requestAnimationFrame(tick);
-        return () => window.cancelAnimationFrame(frameId);
-    }, [metricsVisible, roleContent.metrics]);
-
-    useEffect(() => {
         const rail = showcaseRailRef.current;
         if (!rail) {
             syncShowcaseScrollState();
@@ -722,13 +634,21 @@ export default function HomePage({
             } catch (error) {
                 if (error?.code === "ERR_CANCELED") return;
                 if (!alive) return;
-                setClosedDeals([]);
+
                 const fallbackError = isAuthed
                     ? (authenticatedRole === "SELLER"
                         ? "Failed to load your listings."
                         : "Failed to load active properties.")
                     : "Failed to load featured closings.";
-                setClosedDealsError(error?.message || fallbackError);
+
+                if (!isAuthed) {
+                    setClosedDeals(PUBLIC_CLOSED_DEAL_FALLBACKS);
+                    setClosedDealsError("");
+                    return;
+                }
+
+                setClosedDeals([]);
+                setClosedDealsError(fallbackError);
             } finally {
                 if (alive) {
                     setClosedDealsLoading(false);
@@ -955,13 +875,9 @@ export default function HomePage({
                                             ? signedInName
                                             : roleContent.hero.title}
                                     </h1>
-                                    <p className="homeHero__subtitle">
-                                        {isAuthed
-                                            ? (authenticatedRole === "SELLER"
-                                                ? "Published listings are surfaced first, followed by drafts so you can prioritize quickly."
-                                                : "Review active properties and jump back into live opportunities without extra noise.")
-                                            : roleContent.hero.subtitle}
-                                    </p>
+                                    {heroSubtitle ? (
+                                        <p className="homeHero__subtitle">{heroSubtitle}</p>
+                                    ) : null}
 
                                     <div className="homeHero__actions">
                                         {isAuthed ? (
@@ -990,13 +906,6 @@ export default function HomePage({
                                         ) : null}
                                     </div>
 
-                                    <div className="homeHero__signalRow" aria-label="Experience highlights">
-                                        {roleContent.hero.signals.map((signal) => (
-                                            <span key={signal} className="homeHero__signal homeRoleMotion">
-                                                {signal}
-                                            </span>
-                                        ))}
-                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -1057,9 +966,9 @@ export default function HomePage({
                         isVisible={aboutPageReady}
                         isClosing={aboutPageClosing}
                         isAuthed={isAuthed}
-                        primaryCtaLabel={isAuthed ? "Open dashboard" : roleContent.hero.primaryCtaLabel}
-                        primaryCtaTo={isAuthed ? "/app" : roleContent.hero.primaryCtaTo}
-                        primaryCtaState={isAuthed ? null : buildModalState(location, selectedRole)}
+                        primaryCtaLabel={isAuthed ? "Open dashboard" : "Join"}
+                        primaryCtaTo={isAuthed ? "/app" : "/signup"}
+                        primaryCtaState={isAuthed ? null : buildModalState(location)}
                         onClose={closeScene}
                     />
                 ) : null}
@@ -1079,95 +988,14 @@ export default function HomePage({
                 ) : null}
                 {hideHomeSections ? null : (
                     <>
-                        {!isAuthed ? (
-                            <section id="perspective" className="homeStory" aria-label="Perspective">
-                                <div className="homeShell">
-                                    <div className="homeReveal" data-delay="40">
-                                        <div key={`story-top-${selectedRole}`} className="homeStory__top homeRoleMotion">
-                                            <SectionHeading
-                                                eyebrow={roleContent.statement.eyebrow}
-                                                title={roleContent.statement.title}
-                                                lead={roleContent.statement.lead}
-                                                className=""
-                                            />
-
-                                            {roleContent.statement.quote ? (
-                                                <p className="homeStory__quote">
-                                                    {roleContent.statement.quote}
-                                                </p>
-                                            ) : null}
-                                        </div>
-                                    </div>
-
-                                    <div ref={metricsRef} className="homeStory__metrics">
-                                        {roleContent.metrics.map((metric, index) => (
-                                            <article
-                                                key={metric.label}
-                                                className="homeStory__metric homeReveal homeRoleMotion"
-                                                data-delay={index * 90}
-                                            >
-                                                <p className="homeStory__metricValue">{formatMetric(metric, metricValues[index] ?? 0)}</p>
-                                                <p className="homeStory__metricLabel">{metric.label}</p>
-                                            </article>
-                                        ))}
-                                    </div>
-
-                                    <div key={`principles-intro-${selectedRole}`} className="homeStory__principlesIntro homeReveal homeRoleMotion" data-delay="60">
-                                        <p className="homeStory__principlesEyebrow">Design principles</p>
-                                        <h3 className="homeStory__principlesTitle">{roleContent.principles.title}</h3>
-                                        <p className="homeStory__principlesLead">{roleContent.principles.lead}</p>
-                                    </div>
-
-                                    <div className="homeStory__principlesGrid">
-                                        {roleContent.principles.items.map((item, index) => (
-                                            <article
-                                                key={item.title}
-                                                className="homeStory__principle homeReveal homeRoleMotion"
-                                                data-delay={index * 110}
-                                            >
-                                                <p className="homeStory__principleLabel">{item.label}</p>
-                                                <h3 className="homeStory__principleTitle">{item.title}</h3>
-                                                <p className="homeStory__principleText">{item.text}</p>
-                                            </article>
-                                        ))}
-                                    </div>
-                                </div>
-                            </section>
-                        ) : null}
-
-                        {!isAuthed ? (
-                            <section id="flow" className="homeProcess" aria-label="Process">
-                                <div className="homeShell">
-                                    <div key={`process-heading-${selectedRole}`} className="homeRoleMotion">
-                                        <SectionHeading
-                                            eyebrow={roleContent.process.eyebrow}
-                                            title={roleContent.process.title}
-                                            lead={roleContent.process.lead}
-                                            className={`homeReveal ${selectedRole === ROLE_SELLER ? "homeSectionHeading--sellerProcess" : ""}`}
-                                        />
-                                    </div>
-
-                                    <div className="homeProcess__grid">
-                                        {roleContent.process.steps.map((step, index) => (
-                                            <article
-                                                key={step.title}
-                                                className="homeProcess__card homeReveal homeRoleMotion"
-                                                data-delay={index * 110}
-                                            >
-                                                <p className="homeProcess__label">{step.label}</p>
-                                                <h3 className="homeProcess__title">{step.title}</h3>
-                                                <p className="homeProcess__text">{step.text}</p>
-                                            </article>
-                                        ))}
-                                    </div>
-                                </div>
-                            </section>
-                        ) : null}
-
-                        <section id="proof" className="homeShowcase" aria-label={showcaseHeading.carouselLabel}>
+                        <section
+                            id="proof"
+                            className={`homeShowcase ${!isAuthed ? "homeShowcase--closedDeals" : ""}`.trim()}
+                            aria-label={showcaseHeading.carouselLabel}
+                        >
                             <div className="homeShell">
                                 <div className="homeShowcase__header">
-                                    <div key={`proof-heading-${displayRole}`} className="homeRoleMotion">
+                                    <div key={showcaseHeadingMotionKey} className="homeRoleMotion">
                                         <SectionHeading
                                             eyebrow={showcaseHeading.eyebrow}
                                             title={showcaseHeading.title}
@@ -1175,29 +1003,6 @@ export default function HomePage({
                                             className="homeReveal"
                                         />
                                     </div>
-
-                                    {showShowcaseControls ? (
-                                        <div className="homeShowcase__controls" aria-label="Property carousel controls">
-                                            <button
-                                                className="homeShowcase__navBtn"
-                                                type="button"
-                                                aria-label="Previous property"
-                                                disabled={!showcaseScrollState.canScrollLeft}
-                                                onClick={() => scrollShowcase(-1)}
-                                            >
-                                                <span className="material-symbols-outlined" aria-hidden="true">chevron_left</span>
-                                            </button>
-                                            <button
-                                                className="homeShowcase__navBtn"
-                                                type="button"
-                                                aria-label="Next property"
-                                                disabled={!showcaseScrollState.canScrollRight}
-                                                onClick={() => scrollShowcase(1)}
-                                            >
-                                                <span className="material-symbols-outlined" aria-hidden="true">chevron_right</span>
-                                            </button>
-                                        </div>
-                                    ) : null}
                                 </div>
 
                                 {closedDealsLoading ? (
@@ -1223,23 +1028,43 @@ export default function HomePage({
                                 ) : null}
 
                                 {!closedDealsLoading && !closedDealsError && featuredDeals.length > 0 ? (
-                                    <div ref={showcaseRailRef} className="homeShowcase__scroller" aria-label={showcaseHeading.carouselLabel}>
-                                        <div className="homeShowcase__grid">
-                                            {featuredDeals.map((property, index) => (
-                                                <DealCard
-                                                    key={property?.id ?? `${property?.street1 ?? "deal"}-${index}`}
-                                                    property={property}
-                                                    delay={index * 100}
-                                                    hidePriceDetails={isSellerAuthed}
-                                                    linkTo={isAuthed && !isSellerAuthed ? "/investor" : null}
-                                                    linkState={isAuthed && !isSellerAuthed ? { homeSelectedPropertyId: property?.id } : null}
-                                                    statusLabel={isAuthed
-                                                        ? (isSellerAuthed
-                                                            ? sellerWorkflowLabel(property?.sellerWorkflowStatus)
-                                                            : "Active")
-                                                        : "Closed"}
-                                                />
-                                            ))}
+                                    <div className="homeShowcase__carousel">
+                                        {showShowcaseControls ? (
+                                            <div className="homeShowcase__controls" aria-label="Property carousel controls">
+                                                <button
+                                                    className="homeShowcase__navBtn homeShowcase__navBtn--prev"
+                                                    type="button"
+                                                    aria-label="Previous property"
+                                                    disabled={!showcaseScrollState.canScrollLeft}
+                                                    onClick={() => scrollShowcase(-1)}
+                                                >
+                                                    <span className="material-symbols-outlined" aria-hidden="true">chevron_left</span>
+                                                </button>
+                                                <button
+                                                    className="homeShowcase__navBtn homeShowcase__navBtn--next"
+                                                    type="button"
+                                                    aria-label="Next property"
+                                                    disabled={!showcaseScrollState.canScrollRight}
+                                                    onClick={() => scrollShowcase(1)}
+                                                >
+                                                    <span className="material-symbols-outlined" aria-hidden="true">chevron_right</span>
+                                                </button>
+                                            </div>
+                                        ) : null}
+
+                                        <div ref={showcaseRailRef} className="homeShowcase__scroller" aria-label={showcaseHeading.carouselLabel}>
+                                            <div className="homeShowcase__grid">
+                                                {featuredDeals.map((property, index) => (
+                                                    <DealCard
+                                                        key={property?.id ?? `${property?.street1 ?? "deal"}-${index}`}
+                                                        property={property}
+                                                        delay={index * 100}
+                                                        hidePriceDetails={isSellerAuthed}
+                                                        linkTo={isAuthed && !isSellerAuthed ? "/investor" : null}
+                                                        linkState={isAuthed && !isSellerAuthed ? { homeSelectedPropertyId: property?.id } : null}
+                                                    />
+                                                ))}
+                                            </div>
                                         </div>
                                     </div>
                                 ) : null}
@@ -1247,9 +1072,38 @@ export default function HomePage({
                         </section>
 
                         {!isAuthed ? (
+                            <section id="flow" className="homeProcess" aria-label="Process">
+                                <div className="homeShell">
+                                    <div key={processHeadingMotionKey} className="homeRoleMotion">
+                                        <SectionHeading
+                                            eyebrow={roleContent.process.eyebrow}
+                                            title={roleContent.process.title}
+                                            lead={roleContent.process.lead}
+                                            className="homeReveal"
+                                        />
+                                    </div>
+
+                                    <div className="homeProcess__grid">
+                                        {roleContent.process.steps.map((step, index) => (
+                                            <article
+                                                key={step.title}
+                                                className="homeProcess__card homeReveal homeRoleMotion"
+                                                data-delay={index * 110}
+                                            >
+                                                <p className="homeProcess__label">{step.label}</p>
+                                                <h3 className="homeProcess__title">{step.title}</h3>
+                                                <p className="homeProcess__text">{step.text}</p>
+                                            </article>
+                                        ))}
+                                    </div>
+                                </div>
+                            </section>
+                        ) : null}
+
+                        {!isAuthed ? (
                             <section className="homeClosing" aria-label="Get started">
                                 <div className="homeShell">
-                                    <div key={`closing-heading-${selectedRole}`} className="homeRoleMotion">
+                                    <div key={closingHeadingMotionKey} className="homeRoleMotion">
                                         <SectionHeading
                                             eyebrow={roleContent.closing.eyebrow}
                                             title={roleContent.closing.title}
@@ -1268,7 +1122,17 @@ export default function HomePage({
                                                 >
                                                     <p className="homeClosing__cardTag">{option.tag}</p>
                                                     <h3 className="homeClosing__cardTitle">{option.title}</h3>
-                                                    <p className="homeClosing__cardText">{option.text}</p>
+                                                    {option.text ? <p className="homeClosing__cardText">{option.text}</p> : null}
+                                                    {option.roles?.length ? (
+                                                        <ul className="homeClosing__roleList" aria-label={`${option.title} include`}>
+                                                            {option.roles.map((role) => (
+                                                                <li key={role.title} className="homeClosing__roleItem">
+                                                                    <span className="homeClosing__roleTitle">{role.title}</span>
+                                                                    <span className="homeClosing__roleText">{role.text}</span>
+                                                                </li>
+                                                            ))}
+                                                        </ul>
+                                                    ) : null}
                                                     <Link
                                                         to={option.ctaTo}
                                                         className="homeButton homeClosing__cardButton"

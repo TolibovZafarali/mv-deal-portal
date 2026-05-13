@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useLocation } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import {
   createPropertyPhotoFromUrl,
   createProperty,
@@ -941,6 +941,14 @@ export default function AdminPropertiesPage() {
               ) : null}
             </div>
             <div className="adminProps__sectionActions">
+              <Link
+                className="adminProps__investorPanelBtn"
+                to="/investor"
+                aria-label="Open Investor Panel preview"
+              >
+                <span className="material-symbols-outlined" aria-hidden="true">visibility</span>
+                Investor Panel
+              </Link>
               {!isMobileView ? (
                 <SecondaryColumnsMenu
                   secondaryColumns={secondaryColumns}

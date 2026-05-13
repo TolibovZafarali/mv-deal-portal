@@ -59,7 +59,7 @@ function formatDateTime(value) {
 function primaryPhoto(property) {
   const photos = Array.isArray(property?.photos) ? property.photos : [];
   const first = photos[0];
-  return String(first?.thumbnailUrl ?? first?.url ?? "").trim();
+  return String(first?.url ?? first?.thumbnailUrl ?? "").trim();
 }
 
 function workflowValue(property) {

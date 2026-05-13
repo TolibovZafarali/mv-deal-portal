@@ -69,9 +69,9 @@ function propertyAddress(property) {
 
 function propertyLeadPhoto(property) {
   const photos = Array.isArray(property?.photos) ? property.photos : [];
-  const first = photos.find((photo) => cleanString(photo?.thumbnailUrl) || cleanString(photo?.url));
+  const first = photos.find((photo) => cleanString(photo?.url) || cleanString(photo?.thumbnailUrl));
   if (!first) return "";
-  return cleanString(first.thumbnailUrl) || cleanString(first.url);
+  return cleanString(first.url) || cleanString(first.thumbnailUrl);
 }
 
 function investorNameFromModel(investor) {

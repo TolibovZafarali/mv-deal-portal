@@ -354,6 +354,7 @@
   padding: 16px 12px;
 }
 
+.adminProps__investorPanelBtn,
 .adminProps__addBtn {
   display: inline-flex;
   align-items: center;
@@ -364,16 +365,19 @@
   height: 34px;
   padding: 0 10px;
   cursor: pointer;
+  text-decoration: none;
   transition:
     background 180ms ease,
     color 180ms ease,
     border-color 180ms ease;
 }
 
+.adminProps__investorPanelBtn .material-symbols-outlined,
 .adminProps__addBtn .material-symbols-outlined {
   font-size: 18px;
 }
 
+.adminProps__investorPanelBtn:hover,
 .adminProps__addBtn:hover {
   background: var(--admin-ink);
   color: var(--admin-bg);

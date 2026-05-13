@@ -3,26 +3,33 @@ export const ROLE_SELLER = "SELLER";
 export const HOME_ROLE_STORAGE_KEY = "home.selectedRole";
 
 export const NAV_LINKS = [
-    { label: "Perspective", href: "#perspective" },
-    { label: "Flow", href: "#flow" },
-    { label: "Proof", href: "#proof" },
+    { label: "Recent Closings", href: "#proof" },
+    { label: "Getting started", href: "#flow" },
 ];
 
 export const ROLE_OPTION_CARDS = [
     {
         role: ROLE_INVESTOR,
         tag: "Buyer access",
-        title: "Join as buyer",
-        text: "Receive curated opportunities and evaluate them inside a calmer, more disciplined workflow.",
-        ctaLabel: "Request buyer access",
+        title: "Buyers",
+        roles: [
+            { title: "Fix-and-flip investors", text: "Buy homes to renovate and resell." },
+            { title: "Landlords", text: "Find rentals to hold long term." },
+            { title: "Cash buyers", text: "Move quickly without lender delays." },
+        ],
+        ctaLabel: "Join as buyer",
         ctaTo: "/signup",
     },
     {
         role: ROLE_SELLER,
         tag: "Seller access",
-        title: "Join as seller",
-        text: "Present opportunities with more clarity, reach qualified capital, and keep momentum intact.",
-        ctaLabel: "Launch seller profile",
+        title: "Sellers",
+        roles: [
+            { title: "Listing agents", text: "Share listings with active buyers." },
+            { title: "Wholesalers", text: "Bring deals ready to move." },
+            { title: "Homeowners", text: "Reach serious buyers directly." },
+        ],
+        ctaLabel: "Join as seller",
         ctaTo: "/signup/seller",
     },
 ];
@@ -30,15 +37,13 @@ export const ROLE_OPTION_CARDS = [
 export const ROLE_CONTENT = {
     [ROLE_INVESTOR]: {
         hero: {
-            eyebrow: "Private deal flow for active investors",
+            eyebrow: "Exclusive deals for active investors",
             title: "Private real estate deals for serious buyers.",
-            subtitle:
-                "Discover vetted off-market properties, review them quickly, and move on deals without the noise of public listings.",
-            primaryCtaLabel: "Request buyer access",
+            subtitle: "",
+            primaryCtaLabel: "Join as buyer",
             primaryCtaTo: "/signup",
             secondaryCtaLabel: "See recent closings",
             secondaryCtaHref: "#proof",
-            signals: ["Vetted deals", "Clear numbers", "Fast execution"],
             spotlightLabel: "Buyer brief",
             spotlightTitle: "Signal before volume",
             spotlightText:
@@ -49,44 +54,14 @@ export const ROLE_CONTENT = {
                 "Clear movement to next action",
             ],
         },
-        statement: {
-            eyebrow: "Perspective",
-            title: "Less chasing. More decision-making.",
-            lead:
-                "Every surface is designed to strip out ambiguity, so serious buyers can stay focused on fit, risk, and the next move.",
-        },
         metrics: [
             { value: 24, suffix: "h", label: "typical first-response window" },
             { value: 3, suffix: "x", label: "faster deal triage" },
             { value: 100, suffix: "%", label: "focused on private-market flow" },
         ],
-        principles: {
-            title: "Built for buyers who know what matters.",
-            lead:
-                "The experience stays selective, visual, and operationally sharp from first look to final movement.",
-            items: [
-                {
-                    label: "01",
-                    title: "Selective by design",
-                    text: "Opportunities are framed for relevance before they ever reach your attention.",
-                },
-                {
-                    label: "02",
-                    title: "Underwriting in context",
-                    text: "Core numbers, condition, and upside sit in a tighter, cleaner read.",
-                },
-                {
-                    label: "03",
-                    title: "Momentum built in",
-                    text: "From first look to next step, the workflow stays direct and intentional.",
-                },
-            ],
-        },
         process: {
-            eyebrow: "Flow",
-            title: "A quieter path from buy box to close.",
-            lead:
-                "The workflow keeps momentum high by removing presentation drag and communication clutter.",
+            eyebrow: "Getting started",
+            title: "How it works.",
             steps: [
                 {
                     label: "01",
@@ -106,29 +81,23 @@ export const ROLE_CONTENT = {
             ],
         },
         proof: {
-            eyebrow: "Proof",
-            title: "Recent closings that show the standard.",
-            lead:
-                "Active inventory remains private. These completed opportunities reflect the level of work moving through the platform.",
+            eyebrow: "Recent Closings",
+            title: "Recently closed deals.",
         },
         closing: {
-            eyebrow: "Access",
-            title: "Access the private side of the market.",
-            lead:
-                "Apply once and step into a deal flow built for investors who move with discipline.",
+            eyebrow: "Our customer",
+            title: "Who we work with.",
         },
     },
     [ROLE_SELLER]: {
         hero: {
-            eyebrow: "For property owners and deal sources",
-            title: "Get your property in front of serious buyers.",
-            subtitle:
-                "Present off-market opportunities to qualified investors and move deals forward faster.",
-            primaryCtaLabel: "Launch seller profile",
+            eyebrow: "For property owners and deal finders",
+            title: "Sell your property to serious buyers.",
+            subtitle: "",
+            primaryCtaLabel: "Join as seller",
             primaryCtaTo: "/signup/seller",
             secondaryCtaLabel: "See recent closings",
             secondaryCtaHref: "#proof",
-            signals: ["Professional presentation", "Qualified buyers", "Faster closings"],
             spotlightLabel: "Seller brief",
             spotlightTitle: "Position the deal with precision",
             spotlightText:
@@ -139,44 +108,14 @@ export const ROLE_CONTENT = {
                 "Less friction to close",
             ],
         },
-        statement: {
-            eyebrow: "Perspective",
-            title: "Presentation shapes momentum.",
-            lead:
-                "When the deal is staged with precision, better buyers arrive sooner and the process stays cleaner from first interest to close.",
-        },
         metrics: [
             { value: 24, suffix: "h", label: "typical investor response window" },
             { value: 3, suffix: "x", label: "faster buyer alignment" },
             { value: 100, suffix: "%", label: "centered on qualified demand" },
         ],
-        principles: {
-            title: "Built for sellers who value how a deal is received.",
-            lead:
-                "The platform keeps the opportunity crisp, the audience serious, and the next step unmistakably clear.",
-            items: [
-                {
-                    label: "01",
-                    title: "Editorial-level presentation",
-                    text: "Each opportunity is framed with enough clarity for buyers to act sooner.",
-                },
-                {
-                    label: "02",
-                    title: "Qualified investor reach",
-                    text: "Serious capital sees the deal without the usual low-intent noise around it.",
-                },
-                {
-                    label: "03",
-                    title: "Operational clarity",
-                    text: "Communication, updates, and next actions stay aligned all the way to execution.",
-                },
-            ],
-        },
         process: {
-            eyebrow: "Flow",
-            title: "From opportunity intake\nto confident execution.",
-            lead:
-                "The seller workflow is designed to make the deal feel sharper, calmer, and easier to move forward.",
+            eyebrow: "Getting started",
+            title: "How it works.",
             steps: [
                 {
                     label: "01",
@@ -196,16 +135,12 @@ export const ROLE_CONTENT = {
             ],
         },
         proof: {
-            eyebrow: "Proof",
-            title: "Closings that reflect a sharper process.",
-            lead:
-                "These completed transactions show how well-positioned opportunities can move when the signal is clear.",
+            eyebrow: "Recent Closings",
+            title: "Recently closed deals.",
         },
         closing: {
-            eyebrow: "Access",
-            title: "Bring your next deal to a better room.",
-            lead:
-                "Share it once, put it in front of the right buyers, and keep momentum from first look to final signature.",
+            eyebrow: "Our customer",
+            title: "Who we work with.",
         },
     },
 };

@@ -43,6 +43,7 @@
   padding: 10px 16px;
   min-width: 132px;
   cursor: pointer;
+  text-decoration: none;
   display: inline-flex;
   align-items: center;
   justify-content: center;

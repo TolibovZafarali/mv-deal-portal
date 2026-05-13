@@ -81,7 +81,7 @@ export default function App() {
             </Route>
           </Route>
 
-          <Route element={<ProtectedRoute roles={["INVESTOR"]} />}>
+          <Route element={<ProtectedRoute roles={["INVESTOR", "ADMIN"]} />}>
             <Route path="/investor" element={<InvestorLayout />}>
               <Route index element={<InvestorHome />} />
               <Route path="pending" element={<InvestorPending />} />

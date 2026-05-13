@@ -15,3 +15,5 @@ backend/.idea/
 # Generated local artifacts (non-source)
 output/
 tmp/
+.playwright-mcp/
+mv-deal-portal-home.png

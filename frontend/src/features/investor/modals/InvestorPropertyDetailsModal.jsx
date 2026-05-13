@@ -93,6 +93,7 @@ export default function InvestorPropertyDetailsModal({
   isFavorite = false,
   onToggleFavorite,
   onOpenMessages,
+  showInvestorActions = true,
   onClose,
 }) {
   const [photoPreviewIndex, setPhotoPreviewIndex] = useState(0);
@@ -141,7 +142,7 @@ export default function InvestorPropertyDetailsModal({
     ? property.photos
       .map((photo) => ({
         full: String(photo?.url ?? "").trim(),
-        thumb: String(photo?.thumbnailUrl ?? photo?.url ?? "").trim(),
+        thumb: String(photo?.url ?? photo?.thumbnailUrl ?? "").trim(),
       }))
       .filter((photo) => photo.full)
     : [];
@@ -163,7 +164,7 @@ export default function InvestorPropertyDetailsModal({
   const profitMetricStyle = { backgroundColor: "#0a7d2c", borderColor: "#0a7d2c" };
   const profitMetricLabelStyle = { color: "#ffffff" };
   const profitMetricValueStyle = { color: "#ffffff", fontSize: "21px" };
-  const canSendMessage = !alreadyMessaged || latestThreadIsReply;
+  const canSendMessage = showInvestorActions && (!alreadyMessaged || latestThreadIsReply);
   const sideTitle = !canSendMessage
     ? "Awaiting Megna Team Reply"
     : alreadyMessaged && latestThreadIsReply
@@ -380,7 +381,7 @@ export default function InvestorPropertyDetailsModal({
                 <h3 className="invPropDetail__sectionTitle">Address</h3>
                 <p className="invPropDetail__address">{propertyAddress || "Address unavailable"}</p>
               </div>
-              {!alreadyMessaged || onToggleFavorite ? (
+              {showInvestorActions && (!alreadyMessaged || onToggleFavorite) ? (
                 <div className="invPropDetail__addressActions">
                   {canSendMessage ? (
                     <button
@@ -538,58 +539,60 @@ export default function InvestorPropertyDetailsModal({
             )}
           </section>
 
-          <aside className="invPropDetail__right" ref={messageSectionRef}>
-            <div className="invPropDetail__sideHeader">
-              <h3 className="invPropDetail__sideTitle">{sideTitle}</h3>
-              {alreadyMessaged && onOpenMessages ? (
-                <button
-                  type="button"
-                  className="invPropDetail__openMessages"
-                  onClick={onOpenMessages}
-                >
-                  Messages
-                </button>
+          {showInvestorActions ? (
+            <aside className="invPropDetail__right" ref={messageSectionRef}>
+              <div className="invPropDetail__sideHeader">
+                <h3 className="invPropDetail__sideTitle">{sideTitle}</h3>
+                {alreadyMessaged && onOpenMessages ? (
+                  <button
+                    type="button"
+                    className="invPropDetail__openMessages"
+                    onClick={onOpenMessages}
+                  >
+                    Messages
+                  </button>
+                ) : null}
+              </div>
+              <p className="invPropDetail__sideHelp">{sideHelp}</p>
+
+              {canSendMessage ? (
+                <>
+                  <div className="invPropDetail__messageWrap">
+                    <span className="invPropDetail__charCount" aria-live="polite">
+                      {messageCharsRemaining}/{MESSAGE_CHAR_LIMIT}
+                    </span>
+                    <textarea
+                      className="invPropDetail__message"
+                      value={messageBody}
+                      onChange={(event) =>
+                        onMessageBodyChange?.(String(event.target.value ?? "").slice(0, MESSAGE_CHAR_LIMIT))
+                      }
+                      placeholder="Write your message"
+                      rows={6}
+                      maxLength={MESSAGE_CHAR_LIMIT}
+                    />
+                  </div>
+
+                  {profileError ? <div className="invPropDetail__msg invPropDetail__msg--error">{profileError}</div> : null}
+                  {inquiryError ? <div className="invPropDetail__msg invPropDetail__msg--error">{inquiryError}</div> : null}
+                  {inquirySuccess ? <div className="invPropDetail__msg invPropDetail__msg--ok">{inquirySuccess}</div> : null}
+
+                  <button
+                    type="button"
+                    className="invPropDetail__send"
+                    onClick={onSubmitInquiry}
+                    disabled={inquirySending}
+                  >
+                    {inquirySending
+                      ? "Sending..."
+                      : alreadyMessaged && latestThreadIsReply
+                        ? "Send Follow-up"
+                        : "Send to Megna Team"}
+                  </button>
+                </>
               ) : null}
-            </div>
-            <p className="invPropDetail__sideHelp">{sideHelp}</p>
-
-            {canSendMessage ? (
-              <>
-                <div className="invPropDetail__messageWrap">
-                  <span className="invPropDetail__charCount" aria-live="polite">
-                    {messageCharsRemaining}/{MESSAGE_CHAR_LIMIT}
-                  </span>
-                  <textarea
-                    className="invPropDetail__message"
-                    value={messageBody}
-                    onChange={(event) =>
-                      onMessageBodyChange?.(String(event.target.value ?? "").slice(0, MESSAGE_CHAR_LIMIT))
-                    }
-                    placeholder="Write your message"
-                    rows={6}
-                    maxLength={MESSAGE_CHAR_LIMIT}
-                  />
-                </div>
-
-                {profileError ? <div className="invPropDetail__msg invPropDetail__msg--error">{profileError}</div> : null}
-                {inquiryError ? <div className="invPropDetail__msg invPropDetail__msg--error">{inquiryError}</div> : null}
-                {inquirySuccess ? <div className="invPropDetail__msg invPropDetail__msg--ok">{inquirySuccess}</div> : null}
-
-                <button
-                  type="button"
-                  className="invPropDetail__send"
-                  onClick={onSubmitInquiry}
-                  disabled={inquirySending}
-                >
-                  {inquirySending
-                    ? "Sending..."
-                    : alreadyMessaged && latestThreadIsReply
-                      ? "Send Follow-up"
-                      : "Send to Megna Team"}
-                </button>
-              </>
-            ) : null}
-          </aside>
+            </aside>
+          ) : null}
         </div>
       </div>
 

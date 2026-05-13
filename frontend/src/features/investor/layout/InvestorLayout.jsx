@@ -23,9 +23,10 @@ function normalizePropertyId(value) {
 
 export default function InvestorLayout() {
   const { user } = useAuth();
+  const isAdminPreview = user?.role === "ADMIN";
   const [searchParams, setSearchParams] = useSearchParams();
   const accountParam = searchParams.get("account");
-  const accountOpen = ACCOUNT_VIEWS.has(accountParam);
+  const accountOpen = !isAdminPreview && ACCOUNT_VIEWS.has(accountParam);
   const accountView = accountParam === MESSAGES_VIEW
     ? MESSAGES_VIEW
     : accountParam === SECURITY_VIEW
@@ -104,28 +105,43 @@ export default function InvestorLayout() {
         </Link>
 
         <div className="investorHeader__actions">
-          <button
-            className="investorHeader__actionBtn"
-            type="button"
-            aria-label="Messages"
-            onClick={() => openAccount(MESSAGES_VIEW)}
-          >
-            <span className="material-symbols-outlined investorHeader__actionIcon" aria-hidden="true">
-              forum
-            </span>
-            <span className="investorHeader__actionLabel">Messages</span>
-          </button>
-          <button
-            className="investorHeader__actionBtn"
-            type="button"
-            aria-label="Account"
-            onClick={() => openAccount(PROFILE_VIEW)}
-          >
-            <span className="material-symbols-outlined investorHeader__actionIcon" aria-hidden="true">
-              person
-            </span>
-            <span className="investorHeader__actionLabel">Account</span>
-          </button>
+          {isAdminPreview ? (
+            <Link
+              className="investorHeader__actionBtn"
+              to="/admin/properties"
+              aria-label="Back to admin dashboard"
+            >
+              <span className="material-symbols-outlined investorHeader__actionIcon" aria-hidden="true">
+                arrow_back
+              </span>
+              <span className="investorHeader__actionLabel">Back to Dashboard</span>
+            </Link>
+          ) : (
+            <>
+              <button
+                className="investorHeader__actionBtn"
+                type="button"
+                aria-label="Messages"
+                onClick={() => openAccount(MESSAGES_VIEW)}
+              >
+                <span className="material-symbols-outlined investorHeader__actionIcon" aria-hidden="true">
+                  forum
+                </span>
+                <span className="investorHeader__actionLabel">Messages</span>
+              </button>
+              <button
+                className="investorHeader__actionBtn"
+                type="button"
+                aria-label="Account"
+                onClick={() => openAccount(PROFILE_VIEW)}
+              >
+                <span className="material-symbols-outlined investorHeader__actionIcon" aria-hidden="true">
+                  person
+                </span>
+                <span className="investorHeader__actionLabel">Account</span>
+              </button>
+            </>
+          )}
         </div>
       </header>
 
