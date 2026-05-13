@@ -92,7 +92,7 @@ export const ROLE_CONTENT = {
     [ROLE_SELLER]: {
         hero: {
             eyebrow: "For property owners and deal finders",
-            title: "Get your property in front of serious buyers.",
+            title: "Sell your property to serious buyers.",
             subtitle: "",
             primaryCtaLabel: "Join as seller",
             primaryCtaTo: "/signup/seller",

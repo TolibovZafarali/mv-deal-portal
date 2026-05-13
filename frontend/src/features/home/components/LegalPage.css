@@ -2,17 +2,24 @@
   --legal-shell-width: min(1224px, calc(100vw - 36px));
   --legal-sticky-top: 108px;
   --legal-toc-max-height: calc(100dvh - var(--legal-sticky-top) - 20px);
-  --legal-paper: #f2ede4;
-  --legal-paper-alt: #faf7f1;
+  --legal-paper: #ffffff;
+  --legal-paper-alt: #fbfaf7;
   --legal-ink: #171b21;
   --legal-muted: #4d5966;
   --legal-muted-strong: #33404d;
-  --legal-line: rgba(23, 27, 33, 0.1);
+  --legal-line: rgba(23, 27, 33, 0.14);
   --legal-accent: #a97d4f;
-  --legal-shadow: 0 34px 110px rgba(0, 0, 0, 0.24);
+  --legal-accent-strong: #7b542d;
+  --legal-panel: rgba(255, 255, 255, 0.76);
+  --legal-panel-strong: rgba(255, 255, 255, 0.92);
+  --legal-panel-line: rgba(35, 50, 65, 0.16);
+  --legal-shadow: 0 30px 84px rgba(35, 50, 65, 0.16);
   min-height: 100dvh;
   isolation: isolate;
   overflow: visible;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.72) 0%, rgba(247, 244, 238, 0.94) 42%, #ede8df 100%),
+    var(--home-bg);
 }
 
 .legalPageShell .homeShell {
@@ -39,7 +46,25 @@
   flex: 1 1 320px;
 }
 
+.legalPageShell .homeHeader {
+  background: rgba(255, 255, 255, 0.78);
+  border-bottom-color: rgba(35, 50, 65, 0.12);
+  box-shadow: 0 8px 28px rgba(35, 50, 65, 0.08);
+}
+
+.legalPageShell .homeHeader__roleBadge,
+.legalPageShell .homeHeader__utilityLink {
+  color: var(--legal-muted);
+}
+
+.legalPageShell .homeHeader__pageTitle,
+.legalPageShell .homeHeader__utilityLink:hover,
+.legalPageShell .homeHeader__utilityLink:focus-visible {
+  color: var(--legal-ink);
+}
+
 .legalPageShell .homeHeader__logoImage {
+  background: linear-gradient(135deg, #121820 0%, #2d3945 58%, #7c5b39 100%);
   transition:
     filter 320ms var(--home-ease),
     opacity 320ms var(--home-ease),
@@ -145,7 +170,7 @@
 .legalPageHero__lead {
   margin: 18px 0 0;
   max-width: 56ch;
-  color: rgba(246, 241, 232, 0.84);
+  color: var(--legal-muted-strong);
   font-size: clamp(1.04rem, 1.8vw, 1.18rem);
   line-height: 1.74;
 }
@@ -158,9 +183,11 @@
 
 .legalPageHero__metaCard,
 .legalPageToc {
-  border: 1px solid rgba(246, 241, 232, 0.12);
-  background: linear-gradient(180deg, rgba(246, 241, 232, 0.07) 0%, rgba(246, 241, 232, 0.03) 100%);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--legal-panel-line);
+  background: linear-gradient(180deg, var(--legal-panel-strong) 0%, var(--legal-panel) 100%);
+  box-shadow:
+    0 18px 48px rgba(35, 50, 65, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
   backdrop-filter: blur(18px);
   -webkit-backdrop-filter: blur(18px);
 }
@@ -174,12 +201,12 @@
 
 .legalPageHero__metaCard--primary {
   background:
-    linear-gradient(135deg, rgba(214, 187, 146, 0.18) 0%, rgba(246, 241, 232, 0.08) 100%),
-    linear-gradient(180deg, rgba(246, 241, 232, 0.07) 0%, rgba(246, 241, 232, 0.03) 100%);
+    linear-gradient(135deg, rgba(214, 187, 146, 0.3) 0%, rgba(255, 255, 255, 0.76) 100%),
+    linear-gradient(180deg, var(--legal-panel-strong) 0%, var(--legal-panel) 100%);
 }
 
 .legalPageHero__metaLabel {
-  color: rgba(246, 241, 232, 0.62);
+  color: var(--legal-accent-strong);
   font-size: 0.76rem;
   font-weight: 800;
   letter-spacing: 0.14em;
@@ -188,7 +215,7 @@
 }
 
 .legalPageHero__metaValue {
-  color: var(--home-text);
+  color: var(--legal-ink);
   font-size: 0.98rem;
   line-height: 1.62;
   text-wrap: pretty;
@@ -230,7 +257,7 @@
 
 .legalPageToc__intro {
   margin: 10px 0 0;
-  color: var(--home-muted);
+  color: var(--legal-muted);
   font-size: 0.94rem;
   line-height: 1.68;
 }
@@ -255,7 +282,7 @@
   min-height: 54px;
   padding: 12px 14px;
   border: 1px solid transparent;
-  color: rgba(246, 241, 232, 0.76);
+  color: var(--legal-muted-strong);
   text-decoration: none;
   transition:
     color 260ms var(--home-ease),
@@ -266,14 +293,14 @@
 
 .legalPageToc__link:hover,
 .legalPageToc__link:focus-visible {
-  color: var(--home-text);
+  color: var(--legal-ink);
   transform: translateX(4px);
 }
 
 .legalPageToc__link.is-active {
-  border-color: rgba(246, 241, 232, 0.16);
-  background: rgba(246, 241, 232, 0.08);
-  color: var(--home-text);
+  border-color: rgba(169, 125, 79, 0.28);
+  background: rgba(169, 125, 79, 0.1);
+  color: var(--legal-ink);
 }
 
 .legalPageToc__index {

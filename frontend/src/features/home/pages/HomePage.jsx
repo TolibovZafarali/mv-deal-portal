@@ -18,6 +18,28 @@ import HomeAboutPage from "@/features/home/components/HomeAboutPage";
 
 const ABOUT_PAGE_ID = "home-about-page";
 const ABOUT_TRANSITION_DURATION_MS = 980;
+const PUBLIC_CLOSED_DEAL_FALLBACKS = [
+    {
+        id: "fallback-recent-closing-1",
+        displayAddress: "Recent value-add closing",
+        isFallbackDeal: true,
+    },
+    {
+        id: "fallback-recent-closing-2",
+        displayAddress: "Recent rental-ready closing",
+        isFallbackDeal: true,
+    },
+    {
+        id: "fallback-recent-closing-3",
+        displayAddress: "Recent infill closing",
+        isFallbackDeal: true,
+    },
+    {
+        id: "fallback-recent-closing-4",
+        displayAddress: "Recent off-market closing",
+        isFallbackDeal: true,
+    },
+];
 
 function userPrefersReducedMotion() {
     if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
@@ -38,6 +60,9 @@ function money(value) {
 }
 
 function fullAddress(property) {
+    const displayAddress = String(property?.displayAddress ?? "").trim();
+    if (displayAddress) return displayAddress;
+
     const line1 = [property?.street1, property?.street2].filter(Boolean).join(", ");
     const stateZip = [property?.state, property?.zip].filter(Boolean).join(" ");
     return [line1, property?.city, stateZip].filter(Boolean).join(", ");
@@ -113,6 +138,7 @@ function DealCard({
 }) {
     const leadPhoto = property?.photos?.[0]?.url || property?.photos?.[0]?.thumbnailUrl || "";
     const address = fullAddress(property) || "Address unavailable";
+    const isFallbackDeal = property?.isFallbackDeal === true;
     const livingArea = Number(property?.livingAreaSqft);
     const detailItems = [
         {
@@ -163,12 +189,20 @@ function DealCard({
                 {!hidePriceDetails ? (
                     <div className="homeShowcase__stats">
                         <div className="homeShowcase__stat">
-                            <span className="homeShowcase__label">Investor Purchase Price</span>
-                            <span className="homeShowcase__value">{money(property?.askingPrice)}</span>
+                            <span className="homeShowcase__label">
+                                {isFallbackDeal ? "Status" : "Investor Purchase Price"}
+                            </span>
+                            <span className="homeShowcase__value">
+                                {isFallbackDeal ? "Recently closed" : money(property?.askingPrice)}
+                            </span>
                         </div>
                         <div className="homeShowcase__stat">
-                            <span className="homeShowcase__label">Sold After Rehab</span>
-                            <span className="homeShowcase__value">{money(property?.arv)}</span>
+                            <span className="homeShowcase__label">
+                                {isFallbackDeal ? "Details" : "Sold After Rehab"}
+                            </span>
+                            <span className="homeShowcase__value">
+                                {isFallbackDeal ? "Data refreshing" : money(property?.arv)}
+                            </span>
                         </div>
                     </div>
                 ) : null}
@@ -600,13 +634,21 @@ export default function HomePage({
             } catch (error) {
                 if (error?.code === "ERR_CANCELED") return;
                 if (!alive) return;
-                setClosedDeals([]);
+
                 const fallbackError = isAuthed
                     ? (authenticatedRole === "SELLER"
                         ? "Failed to load your listings."
                         : "Failed to load active properties.")
                     : "Failed to load featured closings.";
-                setClosedDealsError(error?.message || fallbackError);
+
+                if (!isAuthed) {
+                    setClosedDeals(PUBLIC_CLOSED_DEAL_FALLBACKS);
+                    setClosedDealsError("");
+                    return;
+                }
+
+                setClosedDeals([]);
+                setClosedDealsError(fallbackError);
             } finally {
                 if (alive) {
                     setClosedDealsLoading(false);
@@ -831,13 +873,7 @@ export default function HomePage({
                                     <h1 className={`homeHero__title ${displayRole === ROLE_SELLER ? "homeHero__title--seller" : ""}`}>
                                         {isAuthed
                                             ? signedInName
-                                            : (displayRole === ROLE_SELLER
-                                                ? (
-                                                    <>
-                                                        <span className="homeHero__titleNoWrap">Get your property</span> in front of serious buyers.
-                                                    </>
-                                                )
-                                                : roleContent.hero.title)}
+                                            : roleContent.hero.title}
                                     </h1>
                                     {heroSubtitle ? (
                                         <p className="homeHero__subtitle">{heroSubtitle}</p>
