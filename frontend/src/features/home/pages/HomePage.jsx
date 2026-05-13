@@ -966,9 +966,9 @@ export default function HomePage({
                         isVisible={aboutPageReady}
                         isClosing={aboutPageClosing}
                         isAuthed={isAuthed}
-                        primaryCtaLabel={isAuthed ? "Open dashboard" : roleContent.hero.primaryCtaLabel}
-                        primaryCtaTo={isAuthed ? "/app" : roleContent.hero.primaryCtaTo}
-                        primaryCtaState={isAuthed ? null : buildModalState(location, selectedRole)}
+                        primaryCtaLabel={isAuthed ? "Open dashboard" : "Join"}
+                        primaryCtaTo={isAuthed ? "/app" : "/signup"}
+                        primaryCtaState={isAuthed ? null : buildModalState(location)}
                         onClose={closeScene}
                     />
                 ) : null}

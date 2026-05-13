@@ -15,6 +15,10 @@
   --home-radius-lg: 6px;
   --home-radius-md: 6px;
   --home-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --home-toggle-active-bg: linear-gradient(135deg, #f1dfbf 0%, #cfa76f 100%);
+  --home-toggle-active-color: #11161c;
+  --home-toggle-active-shadow: 0 12px 24px rgba(214, 187, 146, 0.16);
+  --home-scroll-line-color: #cfa76f;
   --home-shell-width: min(1224px, calc(100vw - 36px));
   --home-scroll-progress: 0;
   --hero-shift: 0px;
@@ -76,7 +80,7 @@ html.homeSmoothScroll body::-webkit-scrollbar {
   height: 2px;
   transform-origin: left center;
   transform: scaleX(var(--home-scroll-progress));
-  background: linear-gradient(90deg, rgba(214, 187, 146, 0.9) 0%, rgba(246, 241, 232, 0.64) 100%);
+  background: var(--home-scroll-line-color);
   box-shadow: 0 0 18px rgba(214, 187, 146, 0.3);
   pointer-events: none;
   transition:
@@ -2258,37 +2262,43 @@ button.homeButton {
 
 .homeProgress,
 .homeAboutPage__progress {
-  background: linear-gradient(90deg, rgba(169, 120, 63, 0.9) 0%, rgba(35, 50, 65, 0.72) 100%);
+  background: var(--home-scroll-line-color);
   box-shadow: none;
 }
 
 .homeHeader {
-  background: rgba(255, 255, 255, calc(var(--header-opacity) * 0.16));
-  border-bottom-color: rgba(35, 50, 65, calc(var(--header-border-opacity) * 0.36));
-  box-shadow: none;
+  background: rgba(7, 10, 14, 0.9);
+  border-bottom-color: rgba(246, 241, 232, 0.12);
+  box-shadow: 0 18px 48px rgba(7, 10, 14, 0.24);
 }
 
 .home--aboutClosing .homeHeader {
-  background: rgba(255, 255, 255, calc(var(--header-opacity) * 0.16));
-  border-bottom-color: rgba(35, 50, 65, calc(var(--header-border-opacity) * 0.36));
+  background: rgba(7, 10, 14, 0.9);
+  border-bottom-color: rgba(246, 241, 232, 0.12);
 }
 
 .homeHeader__logoImage {
-  background: #141414;
+  background: linear-gradient(135deg, #f1dfbf 0%, #c99f68 48%, #a9783f 100%);
 }
 
 .homeHeader__logo:hover .homeHeader__logoImage,
 .homeHeader__logo:focus-visible .homeHeader__logoImage {
-  filter: drop-shadow(0 10px 22px rgba(35, 50, 65, 0.12));
+  filter:
+    brightness(1.08)
+    drop-shadow(0 0 10px rgba(214, 187, 146, 0.32))
+    drop-shadow(0 0 24px rgba(214, 187, 146, 0.2));
 }
 
 .homeHeader__roleBadge,
 .homeHeader__utilityLink {
-  color: var(--home-muted);
+  color: rgba(246, 241, 232, 0.78);
 }
 
 .homeHeader__utilityLink:hover,
-.homeHeader__utilityLink:focus-visible,
+.homeHeader__utilityLink:focus-visible {
+  color: rgba(246, 241, 232, 0.96);
+}
+
 .homeClosing__signinLink {
   color: var(--home-text);
 }
@@ -2341,6 +2351,42 @@ button.homeButton {
 
 .homeRoleSwitch__button.is-active {
   color: #ffffff;
+}
+
+.homeHeader .homeButton--compact {
+  border-color: transparent;
+  border-radius: 4px;
+  background: var(--home-toggle-active-bg);
+  color: var(--home-toggle-active-color);
+  box-shadow: var(--home-toggle-active-shadow);
+}
+
+.homeHeader .homeButton--compact:hover,
+.homeHeader .homeButton--compact:focus-visible {
+  border-color: transparent;
+  background: var(--home-toggle-active-bg);
+  color: var(--home-toggle-active-color);
+  box-shadow: var(--home-toggle-active-shadow);
+  filter: brightness(1.04);
+}
+
+.homeHeader .homeRoleSwitch--header {
+  border-color: rgba(246, 241, 232, 0.18);
+  background: rgba(246, 241, 232, 0.06);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.homeHeader .homeRoleSwitch--header::before {
+  background: var(--home-toggle-active-bg);
+  box-shadow: var(--home-toggle-active-shadow);
+}
+
+.homeHeader .homeRoleSwitch--header .homeRoleSwitch__button {
+  color: rgba(246, 241, 232, 0.72);
+}
+
+.homeHeader .homeRoleSwitch--header .homeRoleSwitch__button.is-active {
+  color: #11161c;
 }
 
 .homeHero {
@@ -2736,18 +2782,20 @@ button.homeButton {
 }
 
 .homeClosing .homeClosing__card.is-selected .homeClosing__cardButton {
-  border-color: rgba(214, 187, 146, 0.78);
-  background: linear-gradient(180deg, #e7c98e 0%, #b98245 100%);
-  color: #15110b;
-  box-shadow: 0 14px 30px rgba(169, 120, 63, 0.22);
+  border-color: transparent;
+  border-radius: 4px;
+  background: var(--home-toggle-active-bg);
+  color: var(--home-toggle-active-color);
+  box-shadow: var(--home-toggle-active-shadow);
 }
 
 .homeClosing .homeClosing__card.is-selected .homeClosing__cardButton:hover,
 .homeClosing .homeClosing__card.is-selected .homeClosing__cardButton:focus-visible {
-  border-color: rgba(240, 214, 164, 0.92);
-  background: linear-gradient(180deg, #efd6a2 0%, #c6904d 100%);
-  color: #15110b;
-  box-shadow: 0 16px 34px rgba(169, 120, 63, 0.26);
+  border-color: transparent;
+  background: var(--home-toggle-active-bg);
+  color: var(--home-toggle-active-color);
+  box-shadow: var(--home-toggle-active-shadow);
+  filter: brightness(1.04);
 }
 
 .homeClosing .homeClosing__roleItem {
