@@ -241,6 +241,7 @@ export default function HomePage({
     const [closedDealsLoading, setClosedDealsLoading] = useState(true);
     const [closedDealsError, setClosedDealsError] = useState("");
     const [showcaseScrollState, setShowcaseScrollState] = useState({
+        activeIndex: 0,
         canScrollLeft: false,
         canScrollRight: false,
     });
@@ -304,21 +305,30 @@ export default function HomePage({
         const rail = showcaseRailRef.current;
         if (!rail) {
             setShowcaseScrollState((prev) => {
-                if (!prev.canScrollLeft && !prev.canScrollRight) return prev;
-                return { canScrollLeft: false, canScrollRight: false };
+                if (prev.activeIndex === 0 && !prev.canScrollLeft && !prev.canScrollRight) return prev;
+                return { activeIndex: 0, canScrollLeft: false, canScrollRight: false };
             });
             return;
         }
 
+        const firstCard = rail.querySelector(".homeShowcase__cardLink, .homeShowcase__card, .homeShowcase__placeholder");
+        const grid = rail.querySelector(".homeShowcase__grid");
+        const gridStyles = grid ? window.getComputedStyle(grid) : null;
+        const gap = parseFloat(gridStyles?.columnGap || gridStyles?.gap || "0") || 0;
+        const cardWidth = firstCard?.getBoundingClientRect().width || rail.clientWidth;
+        const scrollStep = Math.max(cardWidth + gap, 1);
         const maxScrollLeft = Math.max(rail.scrollWidth - rail.clientWidth, 0);
+        const activeIndex = Math.max(0, Math.min(featuredDeals.length - 1, Math.round(rail.scrollLeft / scrollStep)));
         const next = {
+            activeIndex,
             canScrollLeft: rail.scrollLeft > 1,
             canScrollRight: rail.scrollLeft < maxScrollLeft - 1,
         };
 
         setShowcaseScrollState((prev) => {
             if (
-                prev.canScrollLeft === next.canScrollLeft
+                prev.activeIndex === next.activeIndex
+                && prev.canScrollLeft === next.canScrollLeft
                 && prev.canScrollRight === next.canScrollRight
             ) {
                 return prev;
@@ -1066,6 +1076,16 @@ export default function HomePage({
                                                 ))}
                                             </div>
                                         </div>
+                                        {showShowcaseControls ? (
+                                            <div className="homeShowcase__mobileScrollHint" aria-hidden="true">
+                                                {featuredDeals.map((property, index) => (
+                                                    <span
+                                                        key={`showcase-scroll-hint-${property?.id ?? index}`}
+                                                        className={`homeShowcase__mobileScrollDot ${index === showcaseScrollState.activeIndex ? "is-active" : ""}`}
+                                                    />
+                                                ))}
+                                            </div>
+                                        ) : null}
                                     </div>
                                 ) : null}
                             </div>

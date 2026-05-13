@@ -1737,6 +1737,10 @@ button.homeButton {
   margin-top: 0;
 }
 
+.homeShowcase__mobileScrollHint {
+  display: none;
+}
+
 .homeShowcase__scroller::-webkit-scrollbar {
   display: none;
 }
@@ -3213,6 +3217,14 @@ button.homeButton {
     display: none;
   }
 
+  .homeHero {
+    min-height: 100vh;
+    min-height: 100svh;
+    min-height: 100dvh;
+    padding-top: max(108px, calc(env(safe-area-inset-top) + 96px));
+    padding-bottom: max(36px, calc(env(safe-area-inset-bottom) + 32px));
+  }
+
   .homeHero__title {
     font-size: clamp(3.1rem, 16vw, 4.6rem);
   }
@@ -3236,8 +3248,7 @@ button.homeButton {
   }
 
   .homeHero__scene {
-    min-height: auto;
-    padding-bottom: 0;
+    display: none;
   }
 
   .homeHero__sceneText {
@@ -3352,7 +3363,9 @@ button.homeButton {
   }
 
   .homeShowcase__scroller {
-    padding-bottom: 10px;
+    --home-mobile-card-width: min(86vw, 340px);
+    padding: 4px max(0px, calc((100% - var(--home-mobile-card-width)) / 2)) 10px;
+    scroll-padding-inline: max(0px, calc((100% - var(--home-mobile-card-width)) / 2));
   }
 
   .homeShowcase__header {
@@ -3362,9 +3375,7 @@ button.homeButton {
   }
 
   .homeShowcase__controls {
-    inset: 4px -18px 14px;
-    width: auto;
-    justify-content: space-between;
+    display: none;
   }
 
   .homeShowcase__navBtn--prev {
@@ -3372,7 +3383,41 @@ button.homeButton {
   }
 
   .homeShowcase__grid {
-    grid-auto-columns: min(86vw, 340px);
+    grid-auto-columns: var(--home-mobile-card-width);
+    justify-content: center;
+  }
+
+  .homeShowcase__cardLink,
+  .homeShowcase__card,
+  .homeShowcase__placeholder {
+    scroll-snap-align: center;
+  }
+
+  .homeShowcase__mobileScrollHint {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 7px;
+    min-height: 20px;
+    margin-top: 12px;
+  }
+
+  .homeShowcase__mobileScrollDot {
+    width: 7px;
+    height: 7px;
+    border: 1px solid rgba(214, 187, 146, 0.6);
+    border-radius: 999px;
+    background: rgba(246, 241, 232, 0.16);
+    transition:
+      width 220ms var(--home-ease),
+      background-color 220ms var(--home-ease),
+      border-color 220ms var(--home-ease);
+  }
+
+  .homeShowcase__mobileScrollDot.is-active {
+    width: 26px;
+    border-color: #d6bb92;
+    background: #d6bb92;
   }
 
   .homeShowcase__imageWrap {
