@@ -1,4 +1,4 @@
-import { startTransition, useEffect, useEffectEvent, useRef, useState } from "react";
+import { startTransition, useCallback, useEffect, useEffectEvent, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { getClosedPropertyPreviews, searchProperties } from "@/api/modules/propertyApi";
 import { getInvestorById } from "@/api/modules/investorApi";
@@ -232,6 +232,8 @@ export default function HomePage({
     const sceneFrameRef = useRef(null);
     const showcaseRailRef = useRef(null);
     const aboutCloseTimerRef = useRef(0);
+    const sceneHoverLockedRef = useRef(false);
+    const sceneFocusSuppressedRef = useRef(false);
     const [selectedRole, setSelectedRole] = useState(() => getInitialRole(location));
     const [sceneHovered, setSceneHovered] = useState(false);
     const [aboutPageOpen, setAboutPageOpen] = useState(false);
@@ -354,7 +356,7 @@ export default function HomePage({
         });
     };
 
-    const setSceneExpandMetrics = () => {
+    const setSceneExpandMetrics = useCallback(() => {
         const root = homeRef.current;
         const frame = sceneFrameRef.current;
         if (!root || !frame || typeof window === "undefined") return;
@@ -362,6 +364,8 @@ export default function HomePage({
         const rect = frame.getBoundingClientRect();
         if (!rect.width || !rect.height) return;
 
+        const hero = frame.closest(".homeHero");
+        const heroRect = hero?.getBoundingClientRect();
         const viewportWidth = window.innerWidth || rect.width;
         const viewportHeight = window.innerHeight || rect.height;
         const computedStyle = window.getComputedStyle(frame);
@@ -374,13 +378,26 @@ export default function HomePage({
         root.style.setProperty("--scene-origin-bottom", `${bottom.toFixed(1)}px`);
         root.style.setProperty("--scene-origin-left", `${rect.left.toFixed(1)}px`);
         root.style.setProperty("--scene-origin-radius", `${radius.toFixed(1)}px`);
-    };
+
+        if (heroRect?.width && heroRect?.height) {
+            const hoverX = Math.max(rect.left - heroRect.left, 0);
+            const hoverY = Math.max(rect.top - heroRect.top, 0);
+            const hoverScaleX = Math.max(rect.width / heroRect.width, 0.01);
+            const hoverScaleY = Math.max(rect.height / heroRect.height, 0.01);
+
+            root.style.setProperty("--scene-hover-x", `${hoverX.toFixed(1)}px`);
+            root.style.setProperty("--scene-hover-y", `${hoverY.toFixed(1)}px`);
+            root.style.setProperty("--scene-hover-scale-x", hoverScaleX.toFixed(4));
+            root.style.setProperty("--scene-hover-scale-y", hoverScaleY.toFixed(4));
+        }
+    }, []);
 
     const openScene = () => {
         if (typeof window === "undefined") return;
 
         window.clearTimeout(aboutCloseTimerRef.current);
-        setSceneHovered(false);
+        sceneHoverLockedRef.current = true;
+        setSceneHovered(true);
         setAboutPageClosing(false);
         setSceneExpandMetrics();
         window.scrollTo({ top: 0, left: 0, behavior: "auto" });
@@ -398,8 +415,19 @@ export default function HomePage({
         });
     };
 
+    const focusSceneFrameWithoutHover = () => {
+        sceneFocusSuppressedRef.current = true;
+        sceneFrameRef.current?.focus({ preventScroll: true });
+        window.setTimeout(() => {
+            sceneFocusSuppressedRef.current = false;
+        }, 0);
+    };
+
     const closeScene = () => {
         if (typeof window === "undefined") return;
+
+        sceneHoverLockedRef.current = false;
+        setSceneHovered(false);
 
         if (userPrefersReducedMotion()) {
             window.clearTimeout(aboutCloseTimerRef.current);
@@ -407,7 +435,7 @@ export default function HomePage({
             setAboutPageClosing(false);
             setAboutPageOpen(false);
             window.requestAnimationFrame(() => {
-                sceneFrameRef.current?.focus({ preventScroll: true });
+                focusSceneFrameWithoutHover();
             });
             return;
         }
@@ -422,7 +450,7 @@ export default function HomePage({
         aboutCloseTimerRef.current = window.setTimeout(() => {
             setAboutPageOpen(false);
             setAboutPageClosing(false);
-            sceneFrameRef.current?.focus({ preventScroll: true });
+            focusSceneFrameWithoutHover();
         }, ABOUT_TRANSITION_DURATION_MS);
     };
 
@@ -438,12 +466,40 @@ export default function HomePage({
         openScene();
     };
 
+    const handleSceneEnter = (event) => {
+        if (event?.type === "focus" && sceneFocusSuppressedRef.current) return;
+        setSceneHovered(true);
+    };
+
+    const handleSceneLeave = () => {
+        if (sceneHoverLockedRef.current) return;
+        setSceneHovered(false);
+    };
+
     useEffect(() => {
         document.documentElement.classList.add("homeSmoothScroll");
         return () => {
             document.documentElement.classList.remove("homeSmoothScroll");
         };
     }, []);
+
+    useEffect(() => {
+        if (typeof window === "undefined") return undefined;
+
+        let frameId = 0;
+        const requestMeasure = () => {
+            window.cancelAnimationFrame(frameId);
+            frameId = window.requestAnimationFrame(setSceneExpandMetrics);
+        };
+
+        requestMeasure();
+        window.addEventListener("resize", requestMeasure, { passive: true });
+
+        return () => {
+            window.removeEventListener("resize", requestMeasure);
+            window.cancelAnimationFrame(frameId);
+        };
+    }, [displayRole, isAuthed, setSceneExpandMetrics]);
 
     useEffect(() => {
         const root = homeRef.current;
@@ -759,7 +815,7 @@ export default function HomePage({
             window.removeEventListener("resize", onResize);
             window.removeEventListener("keydown", onKeyDown);
         };
-    }, [aboutPageOpen]);
+    }, [aboutPageOpen, setSceneExpandMetrics]);
 
     useEffect(() => {
         if (!aboutPageOpen || typeof document === "undefined") {
@@ -872,6 +928,7 @@ export default function HomePage({
                 <section className={`homeHero ${sceneHovered ? "homeHero--immersed" : ""}`} aria-label="Homepage hero">
                     <div className="homeHero__backdrop" aria-hidden="true" />
                     <div className="homeHero__mesh" aria-hidden="true" />
+                    <div className="homeHero__imageWash" aria-hidden="true" />
 
                     <div className="homeShell homeHero__inner">
                         <div className="homeHero__copy homeReveal" data-delay="120">
@@ -924,8 +981,12 @@ export default function HomePage({
                             <div
                                 ref={sceneFrameRef}
                                 className="homeHero__sceneFrame"
-                                onPointerEnter={() => setSceneHovered(true)}
-                                onPointerLeave={() => setSceneHovered(false)}
+                                onPointerEnter={handleSceneEnter}
+                                onPointerLeave={handleSceneLeave}
+                                onMouseEnter={handleSceneEnter}
+                                onMouseLeave={handleSceneLeave}
+                                onFocus={handleSceneEnter}
+                                onBlur={handleSceneLeave}
                                 onClick={handleSceneToggle}
                                 role="button"
                                 tabIndex={0}
