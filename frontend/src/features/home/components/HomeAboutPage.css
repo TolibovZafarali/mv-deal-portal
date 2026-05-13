@@ -51,6 +51,7 @@
   overflow-y: auto;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
   background: var(--home-bg);
   opacity: 0;
   transform: translateY(28px);
@@ -59,6 +60,10 @@
     opacity 460ms var(--home-ease) 120ms,
     transform 760ms var(--home-ease) 80ms,
     filter 760ms var(--home-ease) 80ms;
+}
+
+.homeAboutPage__scroll::-webkit-scrollbar {
+  display: none;
 }
 
 .homeAboutPage.is-visible .homeAboutPage__scroll {
@@ -276,6 +281,10 @@
   align-items: center;
   justify-content: space-between;
   gap: clamp(36px, 7vw, 108px);
+}
+
+.homeAboutPage__storySection--offset .homeAboutPage__storyInner {
+  grid-template-columns: minmax(260px, 360px) minmax(0, 760px);
 }
 
 .homeAboutPage__sectionHeading {

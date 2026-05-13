@@ -92,11 +92,15 @@ html.homeSmoothScroll body::-webkit-scrollbar {
   position: fixed;
   inset: 0 0 auto;
   z-index: 60;
+  opacity: 1;
+  transform: translateY(0);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   background: rgba(7, 10, 14, var(--header-opacity));
   border-bottom: 1px solid rgba(246, 241, 232, var(--header-border-opacity));
   transition:
+    opacity 360ms var(--home-ease),
+    transform 520ms var(--home-ease),
     background 420ms var(--home-ease),
     border-color 420ms var(--home-ease),
     backdrop-filter 420ms var(--home-ease),
@@ -760,6 +764,8 @@ button.homeButton {
 }
 
 .home--aboutOpen .homeHeader {
+  opacity: 0;
+  transform: translateY(-100%);
   background: rgba(7, 10, 14, 0);
   border-bottom-color: rgba(246, 241, 232, 0);
   backdrop-filter: blur(0);
@@ -778,6 +784,10 @@ button.homeButton {
   transform: translateY(-72px);
   opacity: 0;
   pointer-events: none;
+}
+
+.home--aboutOpen .homeHeader__logo {
+  transform: translateX(-50%) translateY(-72px);
 }
 
 .home--aboutOpen .homeHero__copy {
@@ -836,24 +846,26 @@ button.homeButton {
 }
 
 .home--aboutClosing .homeHeader {
+  opacity: 1;
+  transform: translateY(0);
   background: rgba(7, 10, 14, var(--header-opacity));
   border-bottom-color: rgba(246, 241, 232, var(--header-border-opacity));
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  transition-delay: 60ms;
+  transition-delay: 0ms;
 }
 
 .home--aboutClosing .homeHeader__left {
   transform: translateY(0);
   opacity: 1;
-  transition-delay: 80ms;
+  transition-delay: 0ms;
 }
 
 .home--aboutClosing .homeHeader__logo,
 .home--aboutClosing .homeHeader__actions {
   transform: translateX(-50%) translateY(0);
   opacity: 1;
-  transition-delay: 100ms;
+  transition-delay: 0ms;
 }
 
 .home--aboutClosing .homeHeader__actions {
