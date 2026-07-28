@@ -300,7 +300,7 @@ Verify model:
 ```json
 {
   "subject": "Confirm your email",
-  "logo_url": "https://raw.githubusercontent.com/TolibovZafarali/mv-deal-portal/dev/frontend/public/white-logo.png",
+  "logo_url": "https://megna.us/white-logo.png",
   "title": "Confirm your email address",
   "message": "Click below to verify your email and finish setting up your account.",
   "action_text": "Verify Email",
@@ -314,7 +314,7 @@ Reset model:
 ```json
 {
   "subject": "Reset your password",
-  "logo_url": "https://raw.githubusercontent.com/TolibovZafarali/mv-deal-portal/dev/frontend/public/white-logo.png",
+  "logo_url": "https://megna.us/white-logo.png",
   "title": "Reset your password",
   "message": "We received a request to reset your password.",
   "expiry_note": "For your security, this link expires in 30 minutes.",
@@ -329,7 +329,7 @@ Welcome model:
 ```json
 {
   "subject": "Welcome to MV Deal Portal",
-  "logo_url": "https://raw.githubusercontent.com/TolibovZafarali/mv-deal-portal/dev/frontend/public/white-logo.png",
+  "logo_url": "https://megna.us/white-logo.png",
   "title": "Welcome to MV Deal Portal",
   "message": "Your account is ready. You can now explore listings and manage your deals.",
   "action_text": "Open Dashboard",
@@ -343,7 +343,7 @@ Investor signup under-review model:
 ```json
 {
   "subject": "Your Megna account is under review",
-  "logo_url": "https://raw.githubusercontent.com/TolibovZafarali/mv-deal-portal/dev/frontend/public/white-logo.png",
+  "logo_url": "https://megna.us/white-logo.png",
   "title": "Thanks for signing up, John",
   "message": "Your account is now under review by the Megna Team. One of our team members will reach out to you shortly.",
   "footer_text": "If you have questions, reply to this email and our team will assist you."
@@ -355,7 +355,7 @@ Admin investor signup-created model:
 ```json
 {
   "subject": "New investor signup",
-  "logo_url": "https://raw.githubusercontent.com/TolibovZafarali/mv-deal-portal/dev/frontend/public/white-logo.png",
+  "logo_url": "https://megna.us/white-logo.png",
   "title": "A new investor signed up",
   "message": "A new investor account is pending admin review.",
   "investor_id": "42",
@@ -376,7 +376,7 @@ Investor new-property-published model:
 ```json
 {
   "subject": "New property published",
-  "logo_url": "https://raw.githubusercontent.com/TolibovZafarali/mv-deal-portal/dev/frontend/public/white-logo.png",
+  "logo_url": "https://megna.us/white-logo.png",
   "title": "A new property just went live",
   "message": "A listing that matches your interest has been published.",
   "property_address": "123 Main St, Dallas, TX",
@@ -392,7 +392,7 @@ Admin inquiry-created model:
 ```json
 {
   "subject": "New investor inquiry",
-  "logo_url": "https://raw.githubusercontent.com/TolibovZafarali/mv-deal-portal/dev/frontend/public/white-logo.png",
+  "logo_url": "https://megna.us/white-logo.png",
   "title": "A new investor inquiry was created",
   "message": "A new inquiry has been submitted and needs admin attention.",
   "inquiry_id": "inquiry_12345",
@@ -412,7 +412,7 @@ Admin inquiry-follow-up model:
 ```json
 {
   "subject": "Investor follow-up on inquiry",
-  "logo_url": "https://raw.githubusercontent.com/TolibovZafarali/mv-deal-portal/dev/frontend/public/white-logo.png",
+  "logo_url": "https://megna.us/white-logo.png",
   "title": "An investor sent a follow-up message",
   "message": "There is a new follow-up in an existing inquiry thread.",
   "inquiry_id": "inquiry_12345",
@@ -434,7 +434,7 @@ Admin contact-request-created model:
 ```json
 {
   "subject": "New contact request",
-  "logo_url": "https://raw.githubusercontent.com/TolibovZafarali/mv-deal-portal/dev/frontend/public/white-logo.png",
+  "logo_url": "https://megna.us/white-logo.png",
   "title": "A new contact request was submitted",
   "message": "A new contact request has been submitted and needs admin attention.",
   "request_id": "301",
@@ -454,7 +454,7 @@ Investor inquiry admin-reply model:
 ```json
 {
   "subject": "Megna Team replied to your inquiry",
-  "logo_url": "https://raw.githubusercontent.com/TolibovZafarali/mv-deal-portal/dev/frontend/public/white-logo.png",
+  "logo_url": "https://megna.us/white-logo.png",
   "title": "You have a new inquiry reply",
   "message": "Megna Team has posted a reply to your inquiry.",
   "reply_id": "700",
@@ -473,7 +473,7 @@ Contact request reply model:
 ```json
 {
   "subject": "Reply from Megna Real Estate - Request #998",
-  "logo_url": "https://raw.githubusercontent.com/TolibovZafarali/mv-deal-portal/dev/frontend/public/white-logo.png",
+  "logo_url": "https://megna.us/white-logo.png",
   "title": "Megna Team replied to your contact request",
   "message": "Thanks for reaching out to Megna Real Estate. We sent a response to your request.",
   "contact_name": "Alex Johnson",
@@ -490,7 +490,7 @@ Admin seller-property-submitted model:
 ```json
 {
   "subject": "Seller submitted a property for review",
-  "logo_url": "https://raw.githubusercontent.com/TolibovZafarali/mv-deal-portal/dev/frontend/public/white-logo.png",
+  "logo_url": "https://megna.us/white-logo.png",
   "title": "A seller listing is ready for admin review",
   "message": "A seller submitted a property and it is now waiting in the review queue.",
   "property_id": "501",
@@ -509,7 +509,7 @@ Seller property-published model:
 ```json
 {
   "subject": "Your property is now published",
-  "logo_url": "https://raw.githubusercontent.com/TolibovZafarali/mv-deal-portal/dev/frontend/public/white-logo.png",
+  "logo_url": "https://megna.us/white-logo.png",
   "title": "Your listing is live",
   "message": "Your property passed review and is now visible to approved investors.",
   "property_id": "601",
@@ -532,7 +532,7 @@ Seller property-published model:
   "TemplateAlias": "verify-email-cid-v1",
   "TemplateModel": {
     "subject": "Confirm your email",
-    "logo_url": "https://raw.githubusercontent.com/TolibovZafarali/mv-deal-portal/dev/frontend/public/white-logo.png",
+    "logo_url": "https://megna.us/white-logo.png",
     "title": "Confirm your email address",
     "message": "Click below to verify your email and finish setting up your account.",
     "action_text": "Verify Email",

@@ -65,6 +65,9 @@ class AuthServiceRegistrationEmailTest {
     @Mock
     private ContactProperties contactProperties;
 
+    @Mock
+    private EmailTemplateAssets emailTemplateAssets;
+
     @Test
     void registerInvestorShouldSendUnderReviewAndAdminNotificationEmails() {
         AuthService authService = newAuthService();
@@ -210,7 +213,8 @@ class AuthServiceRegistrationEmailTest {
                 jwtService,
                 transactionalEmailService,
                 authProperties,
-                contactProperties
+                contactProperties,
+                emailTemplateAssets
         );
     }
 }

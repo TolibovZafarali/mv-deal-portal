@@ -1,0 +1,207 @@
+.adminAccount {
+  --account-ink: #101010;
+  --account-muted: rgba(16, 16, 16, 0.64);
+  --account-border: rgba(16, 16, 16, 0.24);
+  --account-surface: rgba(255, 255, 255, 0.58);
+  color: var(--account-ink);
+  max-width: 980px;
+  margin: 0 auto;
+}
+
+.adminAccount__header {
+  max-width: 660px;
+  margin-bottom: 28px;
+}
+
+.adminAccount__eyebrow {
+  margin: 0 0 8px;
+  color: var(--account-muted);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.adminAccount__title {
+  margin: 0;
+  font-size: clamp(30px, 4vw, 46px);
+  line-height: 1;
+  letter-spacing: -0.035em;
+}
+
+.adminAccount__intro {
+  margin: 14px 0 0;
+  color: var(--account-muted);
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+.adminAccount__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 640px) minmax(220px, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.adminAccount__card,
+.adminAccount__notice {
+  border: 1px solid var(--account-border);
+  background: var(--account-surface);
+}
+
+.adminAccount__card {
+  padding: 24px;
+}
+
+.adminAccount__cardHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid rgba(16, 16, 16, 0.12);
+}
+
+.adminAccount__cardTitle,
+.adminAccount__notice h2 {
+  margin: 0;
+  font-size: 17px;
+}
+
+.adminAccount__cardText,
+.adminAccount__notice p {
+  margin: 7px 0 0;
+  color: var(--account-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.adminAccount__cardIcon {
+  font-size: 28px;
+}
+
+.adminAccount__fields {
+  display: grid;
+  gap: 16px;
+  padding-top: 22px;
+}
+
+.adminAccount__field {
+  display: grid;
+  gap: 7px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.adminAccount__field small {
+  margin-left: 5px;
+  color: var(--account-muted);
+  font: inherit;
+  font-weight: 400;
+}
+
+.adminAccount__field input {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid var(--account-border);
+  border-radius: 0;
+  background: rgba(255, 255, 255, 0.45);
+  color: var(--account-ink);
+  padding: 12px;
+  font: inherit;
+  font-size: 14px;
+  outline: none;
+}
+
+.adminAccount__field input:focus {
+  border-color: var(--account-ink);
+  box-shadow: 0 0 0 1px var(--account-ink);
+}
+
+.adminAccount__field input:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+
+.adminAccount__field input::placeholder {
+  color: rgba(16, 16, 16, 0.42);
+}
+
+.adminAccount__strength {
+  margin: -8px 0 0;
+  font-size: 12px;
+}
+
+.adminAccount__strength--weak {
+  color: #9d5a13;
+}
+
+.adminAccount__strength--strong {
+  color: #27633a;
+}
+
+.adminAccount__message {
+  margin: 18px 0 0;
+  border: 1px solid currentColor;
+  padding: 11px 12px;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.adminAccount__message--error {
+  color: #8f2424;
+  background: rgba(143, 36, 36, 0.06);
+}
+
+.adminAccount__message--success {
+  color: #27633a;
+  background: rgba(39, 99, 58, 0.07);
+}
+
+.adminAccount__submit {
+  width: 100%;
+  margin-top: 20px;
+  border: 1px solid var(--account-ink);
+  background: var(--account-ink);
+  color: #f2f2f2;
+  padding: 13px 18px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 160ms ease, background 160ms ease, color 160ms ease;
+}
+
+.adminAccount__submit:hover:not(:disabled),
+.adminAccount__submit:focus-visible {
+  background: transparent;
+  color: var(--account-ink);
+}
+
+.adminAccount__submit:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.adminAccount__notice {
+  display: flex;
+  gap: 12px;
+  padding: 18px;
+}
+
+.adminAccount__notice > .material-symbols-outlined {
+  font-size: 22px;
+}
+
+@media (max-width: 760px) {
+  .adminAccount__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .adminAccount__notice {
+    grid-row: 1;
+  }
+
+  .adminAccount__card {
+    padding: 18px;
+  }
+}

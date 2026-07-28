@@ -28,13 +28,12 @@ public class SellerPropertyEmailNotificationService {
 
     private static final String ADMIN_TEMPLATE_ALIAS = "admin-seller-property-submitted-cid-v1";
     private static final String SELLER_TEMPLATE_ALIAS = "seller-property-published-cid-v1";
-    private static final String PUBLIC_LOGO_URL =
-            "https://raw.githubusercontent.com/TolibovZafarali/mv-deal-portal/dev/frontend/public/white-logo.png";
     private static final DateTimeFormatter DATE_TIME_FORMATTER =
             DateTimeFormatter.ofPattern("yyyy-MM-dd hh:mm a z");
 
     private final TransactionalEmailService transactionalEmailService;
     private final ContactProperties contactProperties;
+    private final EmailTemplateAssets emailTemplateAssets;
 
     public void notifyAdminPropertySubmitted(Property property) {
         String recipient = normalizeEmail(contactProperties.getSellerInbox());
@@ -72,9 +71,9 @@ public class SellerPropertyEmailNotificationService {
         }
     }
 
-    private static Map<String, Object> buildAdminSubmissionModel(Property property) {
+    private Map<String, Object> buildAdminSubmissionModel(Property property) {
         Map<String, Object> model = new LinkedHashMap<>();
-        model.put("logo_url", PUBLIC_LOGO_URL);
+        model.put("logo_url", EmailTemplateAssets.resolvePublicLogoUrl(emailTemplateAssets));
         model.put("subject", "Seller submitted a property for review");
         model.put("title", "A seller listing is ready for admin review");
         model.put("message", "A seller submitted a property and it is now waiting in the review queue.");
@@ -89,13 +88,13 @@ public class SellerPropertyEmailNotificationService {
         return model;
     }
 
-    private static Map<String, Object> buildSellerPublishedModel(Property property) {
+    private Map<String, Object> buildSellerPublishedModel(Property property) {
         Map<String, Object> model = new LinkedHashMap<>();
         Long propertyId = property == null ? null : property.getId();
         Seller seller = property == null ? null : property.getSeller();
         String sellerName = resolveSellerName(seller);
         String greetingName = resolveGreetingName(seller);
-        model.put("logo_url", PUBLIC_LOGO_URL);
+        model.put("logo_url", EmailTemplateAssets.resolvePublicLogoUrl(emailTemplateAssets));
         model.put("subject", "Your property is now published");
         model.put("title", "Your listing is live, " + greetingName);
         model.put("message", "Great news, " + greetingName + ". Your property passed review and is now visible to approved investors.");

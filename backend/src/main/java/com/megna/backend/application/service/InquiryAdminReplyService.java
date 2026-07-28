@@ -37,7 +37,6 @@ import java.util.Map;
 @Slf4j
 public class InquiryAdminReplyService {
     private static final String TEMPLATE_ALIAS = "investor-inquiry-admin-reply-cid-v1";
-    private static final String PUBLIC_LOGO_URL = "https://raw.githubusercontent.com/TolibovZafarali/mv-deal-portal/dev/frontend/public/white-logo.png";
     private static final String INVESTOR_PROPERTIES_URL = "https://megna.us/investor";
 
 
@@ -47,6 +46,7 @@ public class InquiryAdminReplyService {
     private final PropertyRepository propertyRepository;
     private final AdminRepository adminRepository;
     private final TransactionalEmailService transactionalEmailService;
+    private final EmailTemplateAssets emailTemplateAssets;
 
     public Page<InquiryAdminReplyResponseDto> getAll(Pageable pageable) {
         requireAdmin();
@@ -125,7 +125,7 @@ public class InquiryAdminReplyService {
     private Map<String, Object> buildReplyTemplateModel(InquiryAdminReply reply, Inquiry inquiry) {
         String investorName = resolveInvestorName(reply, inquiry);
         Map<String, Object> model = new LinkedHashMap<>();
-        model.put("logo_url", PUBLIC_LOGO_URL);
+        model.put("logo_url", EmailTemplateAssets.resolvePublicLogoUrl(emailTemplateAssets));
         model.put("subject", "Megna Team replied to your inquiry");
         model.put("title", "You have a new inquiry reply, " + investorName);
         model.put("message", "Megna Team has posted a reply to your inquiry, " + investorName + ".");

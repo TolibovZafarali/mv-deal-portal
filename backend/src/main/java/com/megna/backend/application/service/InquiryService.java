@@ -41,7 +41,6 @@ public class InquiryService {
     private static final String MEGNA_TEAM_INBOX = "contact@megna.us";
     private static final String INQUIRY_CREATED_TEMPLATE_ALIAS = "admin-inquiry-created-cid-v1";
     private static final String INQUIRY_FOLLOW_UP_TEMPLATE_ALIAS = "admin-inquiry-follow-up-cid-v1";
-    private static final String PUBLIC_LOGO_URL = "https://raw.githubusercontent.com/TolibovZafarali/mv-deal-portal/dev/frontend/public/white-logo.png";
     private static final DateTimeFormatter CREATED_AT_FORMATTER =
             DateTimeFormatter.ofPattern("yyyy-MM-dd hh:mm a z");
 
@@ -50,6 +49,7 @@ public class InquiryService {
     private final PropertyRepository propertyRepository;
     private final InvestorRepository investorRepository;
     private final TransactionalEmailService transactionalEmailService;
+    private final EmailTemplateAssets emailTemplateAssets;
 
     public InquiryResponseDto create(InquiryCreateRequestDto dto) {
         requireSelf(dto.investorId());
@@ -232,7 +232,7 @@ public class InquiryService {
 
     private Map<String, Object> buildInquiryCreatedTemplateModel(Inquiry inquiry) {
         Map<String, Object> model = new LinkedHashMap<>();
-        model.put("logo_url", PUBLIC_LOGO_URL);
+        model.put("logo_url", EmailTemplateAssets.resolvePublicLogoUrl(emailTemplateAssets));
         model.put("subject", "New investor inquiry");
         model.put("title", "A new investor inquiry was created");
         model.put("message", "A new inquiry has been submitted and needs admin attention.");
@@ -250,7 +250,7 @@ public class InquiryService {
 
     private Map<String, Object> buildFollowUpTemplateModel(Inquiry inquiry, Inquiry latestInquiry, InquiryAdminReply latestReply) {
         Map<String, Object> model = new LinkedHashMap<>();
-        model.put("logo_url", PUBLIC_LOGO_URL);
+        model.put("logo_url", EmailTemplateAssets.resolvePublicLogoUrl(emailTemplateAssets));
         model.put("subject", "Investor follow-up on inquiry");
         model.put("title", "An investor sent a follow-up message");
         model.put("message", "There is a new follow-up in an existing inquiry thread.");

@@ -32,10 +32,10 @@ import java.time.LocalDateTime;
 public class InvestorService {
 
     private static final String INVESTOR_WELCOME_TEMPLATE_ALIAS = "welcome-cid-v1";
-    private static final String PUBLIC_LOGO_URL = "https://raw.githubusercontent.com/TolibovZafarali/mv-deal-portal/dev/frontend/public/white-logo.png";
 
     private final InvestorRepository investorRepository;
     private final TransactionalEmailService transactionalEmailService;
+    private final EmailTemplateAssets emailTemplateAssets;
 
     public InvestorResponseDto getById(Long id) {
         requireSelf(id);
@@ -256,14 +256,14 @@ public class InvestorService {
         }
     }
 
-    private static Map<String, Object> buildInvestorApprovedWelcomeModel(Investor investor) {
+    private Map<String, Object> buildInvestorApprovedWelcomeModel(Investor investor) {
         String firstName = investor == null || investor.getFirstName() == null
                 ? ""
                 : investor.getFirstName().trim();
         String greetingName = firstName.isBlank() ? "there" : firstName;
 
         Map<String, Object> model = new LinkedHashMap<>();
-        model.put("logo_url", PUBLIC_LOGO_URL);
+        model.put("logo_url", EmailTemplateAssets.resolvePublicLogoUrl(emailTemplateAssets));
         model.put("subject", "Welcome to Megna");
         model.put("title", "Welcome to Megna, " + greetingName);
         model.put("message", "Your investor account has been approved. You can now access listings and submit inquiries.");

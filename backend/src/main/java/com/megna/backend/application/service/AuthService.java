@@ -18,6 +18,7 @@ import com.megna.backend.infrastructure.config.AuthProperties;
 import com.megna.backend.infrastructure.config.ContactProperties;
 import com.megna.backend.infrastructure.security.SecurityUtils;
 import com.megna.backend.infrastructure.security.jwt.JwtService;
+import com.megna.backend.interfaces.rest.dto.admin.AdminCredentialsUpdateRequestDto;
 import com.megna.backend.interfaces.rest.dto.auth.ChangePasswordRequestDto;
 import com.megna.backend.interfaces.rest.dto.auth.ForgotPasswordRequestDto;
 import com.megna.backend.interfaces.rest.dto.auth.LoginRequestDto;
@@ -63,7 +64,6 @@ public class AuthService {
     private static final String RESET_PASSWORD_TEMPLATE_ALIAS = "reset-password-cid-v1";
     private static final String INVESTOR_SIGNUP_UNDER_REVIEW_TEMPLATE_ALIAS = "investor-signup-under-review-cid-v1";
     private static final String ADMIN_INVESTOR_SIGNUP_TEMPLATE_ALIAS = "admin-investor-signup-created-cid-v1";
-    private static final String PUBLIC_LOGO_URL = "https://raw.githubusercontent.com/TolibovZafarali/mv-deal-portal/dev/frontend/public/white-logo.png";
     private static final String ADMIN_INVESTORS_URL = "https://megna.us/admin/investors";
     private static final DateTimeFormatter ADMIN_SIGNUP_DATE_TIME_FORMATTER =
             DateTimeFormatter.ofPattern("yyyy-MM-dd h:mm a 'CT'");
@@ -80,6 +80,7 @@ public class AuthService {
     private final TransactionalEmailService transactionalEmailService;
     private final AuthProperties authProperties;
     private final ContactProperties contactProperties;
+    private final EmailTemplateAssets emailTemplateAssets;
 
     @Transactional
     public LoginSessionResult login(LoginRequestDto dto) {
@@ -223,6 +224,46 @@ public class AuthService {
         }
 
         throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Not authenticated");
+    }
+
+    @Transactional
+    public void updateAdminCredentials(AdminCredentialsUpdateRequestDto dto) {
+        var principal = SecurityUtils.requirePrincipal();
+        String role = principal.role() == null ? "" : principal.role().trim().toUpperCase(Locale.US);
+
+        if (principal.userId() <= 0 || !PRINCIPAL_ADMIN.equals(role)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Forbidden");
+        }
+
+        Admin admin = adminRepository.findById(principal.userId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Not authenticated"));
+
+        String currentPassword = dto.currentPassword().trim();
+        if (!passwordEncoder.matches(currentPassword, admin.getPasswordHash())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Current password is incorrect");
+        }
+
+        String nextEmail = normalizeEmail(dto.email());
+        String nextPassword = dto.newPassword() == null ? "" : dto.newPassword().trim();
+        boolean emailChanged = !nextEmail.equals(normalizeEmail(admin.getEmail()));
+        boolean passwordChanged = !nextPassword.isBlank();
+
+        if (!emailChanged && !passwordChanged) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Enter a new email or password");
+        }
+
+        if (emailChanged) {
+            assertEmailAvailable(nextEmail);
+            admin.setEmail(nextEmail);
+        }
+
+        if (passwordChanged) {
+            ensurePasswordDifferent(nextPassword, admin.getPasswordHash());
+            admin.setPasswordHash(passwordEncoder.encode(nextPassword));
+        }
+
+        adminRepository.save(admin);
+        revokeActiveRefreshTokens(PRINCIPAL_ADMIN, admin.getId(), LocalDateTime.now());
     }
 
     @Transactional
@@ -586,7 +627,7 @@ public class AuthService {
         long ttlMinutes = resolvePasswordResetTtlMinutes();
         String greetingName = resolveGreetingName(recipientName, null);
         Map<String, Object> model = new LinkedHashMap<>();
-        model.put("logo_url", PUBLIC_LOGO_URL);
+        model.put("logo_url", EmailTemplateAssets.resolvePublicLogoUrl(emailTemplateAssets));
         model.put("subject", "Reset your password");
         model.put("title", "Reset your password, " + greetingName);
         model.put("message", "We received a request to reset your password, " + greetingName + ".");
@@ -627,7 +668,7 @@ public class AuthService {
         String greetingName = firstName.isBlank() ? "there" : firstName;
 
         Map<String, Object> model = new LinkedHashMap<>();
-        model.put("logo_url", PUBLIC_LOGO_URL);
+        model.put("logo_url", EmailTemplateAssets.resolvePublicLogoUrl(emailTemplateAssets));
         model.put("subject", "Welcome to Megna - your account is under review");
         model.put("title", "Welcome to Megna, " + greetingName);
         model.put("message", "Thanks for signing up. Your account is now under review by the Megna Team, and one of our team members will reach out to you shortly.");
@@ -663,7 +704,7 @@ public class AuthService {
 
     private Map<String, Object> buildAdminInvestorSignupModel(Investor investor) {
         Map<String, Object> model = new LinkedHashMap<>();
-        model.put("logo_url", PUBLIC_LOGO_URL);
+        model.put("logo_url", EmailTemplateAssets.resolvePublicLogoUrl(emailTemplateAssets));
         model.put("subject", "New investor signup");
         model.put("title", "A new investor signed up");
         model.put("message", "A new investor account is pending admin review.");

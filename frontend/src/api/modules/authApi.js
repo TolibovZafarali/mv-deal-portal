@@ -66,6 +66,11 @@ export async function changePassword(payload) {
     return true;
 }
 
+export async function updateAdminCredentials(payload) {
+    await apiClient.patch("/api/admin/account/credentials", payload);
+    return true;
+}
+
 export async function requestPasswordReset(payload) {
     await apiClient.post(`${AUTH_BASE}/password/forgot`, payload);
     return true;

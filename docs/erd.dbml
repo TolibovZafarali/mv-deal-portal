@@ -1,0 +1,303 @@
+// DBML for dbdiagram.io
+// Generated from Flyway migrations V1-V34.
+// MySQL unsigned bigint columns are represented as bigint for dbdiagram compatibility.
+
+Table investors {
+  id bigint [pk, increment]
+  first_name varchar(80) [not null]
+  last_name varchar(80) [not null]
+  company_name varchar(120) [not null]
+  email varchar(255) [not null, unique]
+  notification_email varchar(255)
+  phone varchar(30) [not null]
+  password_hash varchar(255) [not null]
+  status varchar(20) [not null]
+  rejection_reason varchar(500)
+  approved_at datetime
+  created_at datetime [not null]
+  updated_at datetime [not null]
+}
+
+Table admins {
+  id bigint [pk, increment]
+  email varchar(255) [not null, unique]
+  password_hash varchar(255) [not null]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+}
+
+Table sellers {
+  id bigint [pk, increment]
+  first_name varchar(80) [not null]
+  last_name varchar(80) [not null]
+  company_name varchar(120) [not null]
+  email varchar(255) [not null, unique]
+  notification_email varchar(255)
+  phone varchar(30) [not null]
+  password_hash varchar(255) [not null]
+  status varchar(20) [not null]
+  created_at datetime [not null]
+  updated_at datetime [not null]
+}
+
+Table properties {
+  id bigint [pk, increment]
+  status varchar(20) [not null]
+  street_1 varchar(120)
+  street_2 varchar(120)
+  city varchar(80)
+  state varchar(40)
+  zip varchar(15)
+  latitude decimal(10,7)
+  longitude decimal(10,7)
+  asking_price decimal(12,2)
+  arv decimal(12,2)
+  est_repairs decimal(12,2)
+  fmr decimal(12,2)
+  beds int
+  baths decimal(3,1)
+  living_area_sqft int
+  year_built int
+  roof_age int
+  hvac int
+  occupancy_status varchar(20)
+  current_rent decimal(12,2)
+  exit_strategy varchar(20)
+  closing_terms varchar(80)
+  occupancy_certificate varchar(20)
+  seller_id bigint [ref: > sellers.id]
+  created_by_seller_id bigint [ref: > sellers.id]
+  seller_workflow_status varchar(30)
+  seller_review_note text
+  submitted_at datetime
+  reviewed_at datetime
+  published_at datetime
+  investor_notification_enqueued_at datetime
+  created_at datetime [not null]
+  updated_at datetime [not null]
+}
+
+Table photo_assets {
+  id char(36) [pk]
+  created_by_admin_id bigint [ref: > admins.id]
+  created_by_seller_id bigint [ref: > sellers.id]
+  status varchar(20) [not null]
+  original_bucket varchar(255)
+  original_object_key varchar(512)
+  display_object_key varchar(512)
+  thumb_object_key varchar(512)
+  url text
+  thumbnail_url text
+  original_content_type varchar(100)
+  original_size_bytes bigint
+  display_width int
+  display_height int
+  error_message varchar(500)
+  expires_at datetime
+  purge_after_at datetime
+  deleted_at datetime
+  retry_count int [not null]
+  created_at datetime [not null]
+  updated_at datetime [not null]
+}
+
+Table property_photos {
+  id bigint [pk, increment]
+  property_id bigint [not null, ref: > properties.id]
+  photo_asset_id char(36) [not null, ref: > photo_assets.id]
+  url text [not null]
+  thumbnail_url text
+  sort_order int [not null]
+  caption varchar(120)
+  created_at datetime [not null]
+
+  indexes {
+    (property_id, photo_asset_id) [unique]
+  }
+}
+
+Table inquiries {
+  id bigint [pk, increment]
+  property_id bigint [not null, ref: > properties.id]
+  investor_id bigint [not null, ref: > investors.id]
+  subject varchar(120)
+  message_body text [not null]
+  contact_name varchar(160) [not null]
+  company_name varchar(160) [not null]
+  contact_email varchar(255) [not null]
+  contact_phone varchar(30) [not null]
+  email_status varchar(20)
+  created_at datetime [not null]
+}
+
+Table inquiry_admin_replies {
+  id bigint [pk, increment]
+  investor_id bigint [not null, ref: > investors.id]
+  property_id bigint [not null, ref: > properties.id]
+  admin_id bigint [not null, ref: > admins.id]
+  message_body text [not null]
+  email_status varchar(20) [not null]
+  created_at datetime [not null]
+}
+
+Table property_sale_comps {
+  id bigint [pk, increment]
+  property_id bigint [not null, ref: > properties.id]
+  address varchar(200) [not null]
+  sold_price decimal(12,2)
+  sold_date date
+  beds int
+  baths decimal(3,1)
+  living_area_sqft int
+  distance_miles decimal(4,2)
+  notes varchar(255)
+  sort_order int [not null]
+  created_at datetime [not null]
+}
+
+Table property_change_requests {
+  id bigint [pk, increment]
+  property_id bigint [not null, ref: > properties.id]
+  seller_id bigint [not null, ref: > sellers.id]
+  requested_changes text [not null]
+  status varchar(20) [not null]
+  admin_note text
+  resolved_by_admin_id bigint [ref: > admins.id]
+  resolved_at datetime
+  created_at datetime [not null]
+  updated_at datetime [not null]
+}
+
+Table investor_favorites {
+  id bigint [pk, increment]
+  investor_id bigint [not null, ref: > investors.id]
+  property_id bigint [not null, ref: > properties.id]
+  created_at datetime [not null]
+
+  indexes {
+    (investor_id, property_id) [unique]
+  }
+}
+
+Table email_events {
+  id bigint [pk, increment]
+  record_type varchar(50) [not null]
+  recipient_email varchar(255)
+  postmark_message_id varchar(120)
+  postmark_message_stream varchar(120)
+  occurred_at datetime
+  raw_payload text
+  created_at datetime [not null]
+}
+
+Table email_suppressions {
+  email varchar(255) [pk]
+  suppression_reason varchar(40) [not null]
+  source_record_type varchar(50) [not null]
+  last_postmark_message_id varchar(120)
+  first_suppressed_at datetime [not null]
+  last_suppressed_at datetime [not null]
+  created_at datetime [not null]
+  updated_at datetime [not null]
+}
+
+Table password_reset_tokens {
+  id bigint [pk, increment]
+  principal_type varchar(20) [not null]
+  principal_id bigint [not null]
+  token_hash char(64) [not null, unique]
+  expires_at datetime [not null]
+  used_at datetime
+  created_at datetime [not null]
+}
+
+Table refresh_tokens {
+  id bigint [pk, increment]
+  principal_type varchar(20) [not null]
+  principal_id bigint [not null]
+  token_hash char(64) [not null, unique]
+  expires_at datetime [not null]
+  revoked_at datetime
+  last_used_at datetime
+  created_at datetime [not null]
+}
+
+Table seller_threads {
+  id bigint [pk, increment]
+  property_id bigint [not null, ref: > properties.id]
+  seller_id bigint [not null, ref: > sellers.id]
+  status varchar(20) [not null]
+  topic_type varchar(40) [not null]
+  topic_ref_id bigint
+  last_message_at datetime
+  created_at datetime [not null]
+  updated_at datetime [not null]
+}
+
+Table seller_thread_messages {
+  id bigint [pk, increment]
+  thread_id bigint [not null, ref: > seller_threads.id]
+  sender_role varchar(20) [not null]
+  sender_id bigint [not null]
+  message_type varchar(30) [not null]
+  body text [not null]
+  created_at datetime [not null]
+}
+
+Table seller_thread_reads {
+  thread_id bigint [not null, ref: > seller_threads.id]
+  principal_role varchar(20) [not null]
+  principal_id bigint [not null]
+  last_read_message_id bigint [ref: > seller_thread_messages.id]
+  last_read_at datetime [not null]
+
+  indexes {
+    (thread_id, principal_role, principal_id) [pk]
+  }
+}
+
+Table property_publication_notifications {
+  id bigint [pk, increment]
+  property_id bigint [not null, ref: > properties.id]
+  investor_id bigint [not null, ref: > investors.id]
+  recipient_email varchar(255) [not null]
+  status varchar(20) [not null]
+  attempt_count int [not null]
+  next_attempt_at datetime
+  sent_at datetime
+  last_error varchar(500)
+  created_at datetime [not null]
+  updated_at datetime [not null]
+
+  indexes {
+    (property_id, investor_id) [unique]
+  }
+}
+
+Table contact_requests {
+  id bigint [pk, increment]
+  category varchar(40) [not null]
+  name varchar(160) [not null]
+  email varchar(255) [not null]
+  message_body text [not null]
+  status varchar(20) [not null]
+  admin_email_status varchar(20)
+  confirmation_email_status varchar(20)
+  created_at datetime [not null]
+}
+
+Table investor_invitations {
+  id bigint [pk, increment]
+  first_name varchar(80) [not null]
+  last_name varchar(80) [not null]
+  email varchar(255) [not null]
+  token_hash varchar(64) [not null, unique]
+  status varchar(20) [not null]
+  expires_at datetime [not null]
+  sent_at datetime
+  accepted_at datetime
+  created_by_admin_id bigint [not null, ref: > admins.id]
+  investor_id bigint [ref: > investors.id]
+  created_at datetime [not null]
+  updated_at datetime [not null]
+}

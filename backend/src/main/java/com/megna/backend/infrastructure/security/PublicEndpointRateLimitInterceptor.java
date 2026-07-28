@@ -88,6 +88,17 @@ public class PublicEndpointRateLimitInterceptor implements HandlerInterceptor {
             return null;
         }
 
+        if ("PATCH".equalsIgnoreCase(method)) {
+            if ("/api/admin/account/credentials".equals(servletPath)) {
+                return new RateLimitRule(
+                        "auth.password-change",
+                        abuseProtectionProperties.getAuthPasswordChange(),
+                        Scope.USER_OR_IP
+                );
+            }
+            return null;
+        }
+
         if (!"POST".equalsIgnoreCase(method)) {
             return null;
         }

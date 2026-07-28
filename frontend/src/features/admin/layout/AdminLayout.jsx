@@ -280,6 +280,19 @@ export default function AdminLayout() {
               <span className="adminNav__icon material-symbols-outlined" aria-hidden="true">contact_support</span>
             </span>
           </NavLink>
+          <NavLink
+            to="settings"
+            className={({ isActive }) =>
+              `adminNav__link ${isActive ? "adminNav__link--active" : ""}`
+            }
+            onClick={() => setMobileMenuOpen(false)}
+            aria-label="Account settings"
+          >
+            <span className="adminNav__content">
+              <span className="adminNav__label">Account Settings</span>
+              <span className="adminNav__icon material-symbols-outlined" aria-hidden="true">manage_accounts</span>
+            </span>
+          </NavLink>
         </nav>
 
         <button className="adminLogout" type="button" onClick={handleLogoutIntent} aria-label="Log out">

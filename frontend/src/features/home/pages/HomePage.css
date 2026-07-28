@@ -360,7 +360,7 @@ button.homeButton {
   content: "";
   position: absolute;
   inset: 0;
-  background-image: url("/hero.jpg");
+  background-image: url("/hero-optimized.jpg");
   background-size: cover;
   background-position: center;
   opacity: 0;
@@ -415,7 +415,7 @@ button.homeButton {
   background:
     linear-gradient(90deg, rgba(7, 10, 14, 0.92) 0%, rgba(7, 10, 14, 0.76) 48%, rgba(7, 10, 14, 0.84) 100%),
     linear-gradient(180deg, rgba(7, 10, 14, 0.34) 0%, rgba(7, 10, 14, 0.9) 100%),
-    url("/hero.jpg") center / cover no-repeat;
+    url("/hero-optimized.jpg") center / cover no-repeat;
   transform: translate3d(var(--scene-hover-x), var(--scene-hover-y), 0)
     scale3d(var(--scene-hover-scale-x), var(--scene-hover-scale-y), 1);
   transform-origin: top left;
@@ -700,7 +700,7 @@ button.homeButton {
 }
 
 .homeHero__sceneImage {
-  background-image: url("/hero.jpg");
+  background-image: url("/hero-optimized.jpg");
   background-size: cover;
   background-position: center;
   filter: saturate(0.88) contrast(1.05) brightness(0.8);
@@ -1024,7 +1024,7 @@ button.homeButton {
 
 .homeAboutTransition__image {
   inset: -4%;
-  background-image: url("/hero.jpg");
+  background-image: url("/hero-optimized.jpg");
   background-size: cover;
   background-position: center;
   filter: saturate(0.86) contrast(1.02) brightness(0.76);

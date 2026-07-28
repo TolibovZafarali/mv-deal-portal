@@ -2,7 +2,9 @@ package com.megna.backend.infrastructure.security.jwt;
 
 import com.megna.backend.domain.repository.RefreshTokenRepository;
 import com.megna.backend.infrastructure.security.AuthPrincipal;
+import com.megna.backend.infrastructure.security.RestAuthenticationEntryPoint;
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -14,6 +16,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
@@ -26,6 +29,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
     private final RefreshTokenRepository refreshTokenRepository;
+    private final RestAuthenticationEntryPoint restAuthenticationEntryPoint;
 
     @Override
     protected void doFilterInternal(
@@ -82,13 +86,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
             SecurityContextHolder.getContext().setAuthentication(authentication);
 
-            filterChain.doFilter(request, response);
-
-        } catch (Exception ex) {
+        } catch (BadCredentialsException | ResponseStatusException | JwtException | IllegalArgumentException ex) {
             SecurityContextHolder.clearContext();
-            // Let Spring Security's entry point produce the 401 ApiError response
-            throw new BadCredentialsException("Invalid or expired token", ex);
+            restAuthenticationEntryPoint.commence(
+                    request,
+                    response,
+                    new BadCredentialsException("Invalid or expired token", ex)
+            );
+            return;
         }
+
+        filterChain.doFilter(request, response);
     }
 
     private boolean isTokenBoundToActiveSession(String role, long userId, Long sessionId) {

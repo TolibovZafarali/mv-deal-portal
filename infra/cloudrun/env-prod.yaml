@@ -18,6 +18,7 @@ APP_EMAIL_PRODUCTION: "true"
 APP_EMAIL_WEBHOOKS_ENABLED: "true"
 APP_EMAIL_FROM_ADDRESS: "Megna <contact@megna.us>"
 APP_EMAIL_REPLY_TO_ADDRESS: contact@megna.us
+APP_EMAIL_PUBLIC_LOGO_URL: https://megna.us/white-logo.png
 APP_EMAIL_INQUIRY_NOTIFICATION_TO: contact@megna.us
 POSTMARK_API_BASE_URL: https://api.postmarkapp.com
 POSTMARK_MESSAGE_STREAM: outbound

@@ -22,6 +22,7 @@ const AdminContactRequestsPage = lazy(() => import("@/features/admin/pages/Admin
 const AdminInvestorsPage = lazy(() => import("@/features/admin/pages/AdminInvestorsPage"))
 const AdminSellersPage = lazy(() => import("@/features/admin/pages/AdminSellersPage"))
 const AdminPropertiesPage = lazy(() => import("@/features/admin/pages/AdminPropertiesPage"))
+const AdminAccountPage = lazy(() => import("@/features/admin/pages/AdminAccountPage"))
 const InvestorHome = lazy(() => import("@/features/investor/pages/InvestorHome"))
 const InvestorPending = lazy(() => import("@/features/investor/pages/InvestorPending"))
 const SellerListingsPage = lazy(() => import("@/features/seller/pages/SellerListingsPage"))
@@ -78,6 +79,7 @@ export default function App() {
               <Route path="sellers" element={<AdminSellersPage />} />
               <Route path="inquiries" element={<AdminInquiriesPage />} />
               <Route path="contact-requests" element={<AdminContactRequestsPage />} />
+              <Route path="settings" element={<AdminAccountPage />} />
             </Route>
           </Route>
 

@@ -9,6 +9,8 @@ import org.springframework.boot.ApplicationRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
+import java.util.Locale;
+
 @Component
 @RequiredArgsConstructor
 public class AdminBootstrapRunner implements ApplicationRunner {
@@ -28,10 +30,10 @@ public class AdminBootstrapRunner implements ApplicationRunner {
             return; // nothing to do
         }
 
-        String normalizedEmail = email.trim().toLowerCase();
+        String normalizedEmail = email.trim().toLowerCase(Locale.US);
 
-        if (adminRepository.existsByEmail(normalizedEmail)) {
-            return; // already created
+        if (adminRepository.count() > 0) {
+            return; // bootstrap only initializes an empty admin table
         }
 
         Admin admin = Admin.builder()

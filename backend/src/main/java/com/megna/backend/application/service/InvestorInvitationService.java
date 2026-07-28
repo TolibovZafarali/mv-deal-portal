@@ -52,7 +52,6 @@ import java.util.Set;
 public class InvestorInvitationService {
 
     private static final String INVESTOR_INVITATION_TEMPLATE_ALIAS = "investor-invitation-cid-v1";
-    private static final String PUBLIC_LOGO_URL = "https://raw.githubusercontent.com/TolibovZafarali/mv-deal-portal/dev/frontend/public/white-logo.png";
     private static final String MICHAEL_MEGNA_DISPLAY_NAME = "Michael Megna";
     private static final String INVALID_INVITATION_MESSAGE = "Invitation link is invalid or expired.";
     private static final int OPAQUE_TOKEN_BYTE_LENGTH = 32;
@@ -305,7 +304,7 @@ public class InvestorInvitationService {
         String actionUrl = buildInvitationLink(rawToken);
 
         Map<String, Object> model = new LinkedHashMap<>();
-        model.put("logo_url", PUBLIC_LOGO_URL);
+        model.put("logo_url", emailProperties.resolvePublicLogoUrl());
         model.put("subject", "You're invited to Megna");
         model.put("title", "You're invited to Megna, " + greetingName);
         model.put("message", MICHAEL_MEGNA_DISPLAY_NAME + " invited you to create your investor account at Megna. Complete your setup to start reviewing opportunities.");

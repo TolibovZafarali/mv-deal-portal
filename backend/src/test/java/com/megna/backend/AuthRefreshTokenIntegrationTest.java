@@ -10,7 +10,6 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import jakarta.servlet.http.Cookie;
@@ -25,7 +24,6 @@ import java.util.List;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.notNullValue;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
@@ -154,10 +152,10 @@ class AuthRefreshTokenIntegrationTest {
         LoginResult firstLogin = loginAndExtractTokens(email, password);
         LoginResult secondLogin = loginAndExtractTokens(email, password);
 
-        assertThrows(BadCredentialsException.class, () ->
-                mockMvc.perform(get("/api/auth/me")
+        mockMvc.perform(get("/api/auth/me")
                         .header("Authorization", "Bearer " + firstLogin.accessToken()))
-        );
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.message").value("Invalid or expired token"));
 
         mockMvc.perform(get("/api/auth/me")
                         .header("Authorization", "Bearer " + secondLogin.accessToken()))

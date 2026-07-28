@@ -36,7 +36,6 @@ public class ContactRequestService {
     private static final String ADMIN_TEMPLATE_ALIAS = "admin-contact-request-created-cid-v1";
     private static final String CONTACT_REPLY_TEMPLATE_ALIAS = "contact-request-reply-cid-v1";
     private static final String REPLY_SUBJECT_PREFIX = "Reply from Megna Real Estate";
-    private static final String PUBLIC_LOGO_URL = "https://raw.githubusercontent.com/TolibovZafarali/mv-deal-portal/dev/frontend/public/white-logo.png";
     private static final String ACTION_URL = "https://megna.us/admin/contact-requests";
     private static final String CONTACT_PAGE_URL = "https://megna.us/contact";
     private static final DateTimeFormatter CREATED_AT_FORMATTER =
@@ -45,6 +44,7 @@ public class ContactRequestService {
     private final ContactRequestRepository contactRequestRepository;
     private final TransactionalEmailService transactionalEmailService;
     private final ContactProperties contactProperties;
+    private final EmailTemplateAssets emailTemplateAssets;
 
     @Transactional
     public ContactRequestResponseDto create(ContactRequestCreateRequestDto dto) {
@@ -159,7 +159,7 @@ public class ContactRequestService {
 
     private Map<String, Object> buildAdminTemplateModel(ContactRequest contactRequest) {
         Map<String, Object> model = new LinkedHashMap<>();
-        model.put("logo_url", PUBLIC_LOGO_URL);
+        model.put("logo_url", EmailTemplateAssets.resolvePublicLogoUrl(emailTemplateAssets));
         model.put("subject", "New contact request");
         model.put("title", "A new contact request was submitted");
         model.put("message", "A new contact request has been submitted and needs admin attention.");
@@ -179,7 +179,7 @@ public class ContactRequestService {
         String recipientName = safeValue(contactRequest == null ? null : contactRequest.getName());
         String greetingName = greetingName(contactRequest == null ? null : contactRequest.getName());
         Map<String, Object> model = new LinkedHashMap<>();
-        model.put("logo_url", PUBLIC_LOGO_URL);
+        model.put("logo_url", EmailTemplateAssets.resolvePublicLogoUrl(emailTemplateAssets));
         model.put("subject", REPLY_SUBJECT_PREFIX + " - Request #" + safeValue(contactRequest == null ? null : contactRequest.getId()));
         model.put("title", "Megna Team replied to your contact request, " + greetingName);
         model.put("message", "Thanks for reaching out, " + greetingName + ". We sent a response to your request.");

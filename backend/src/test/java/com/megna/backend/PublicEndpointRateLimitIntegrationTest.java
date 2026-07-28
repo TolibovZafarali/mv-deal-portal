@@ -1,5 +1,7 @@
 package com.megna.backend;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.megna.backend.infrastructure.security.PublicEndpointRateLimiter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -11,12 +13,14 @@ import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -28,6 +32,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
                 "app.abuse-protection.auth-login.max-requests=3",
                 "app.abuse-protection.auth-login.window-seconds=300",
                 "app.abuse-protection.auth-login.cooldown-seconds=0",
+                "app.abuse-protection.auth-password-change.max-requests=2",
+                "app.abuse-protection.auth-password-change.window-seconds=300",
+                "app.abuse-protection.auth-password-change.cooldown-seconds=0",
                 "app.abuse-protection.contact-requests.max-requests=2",
                 "app.abuse-protection.contact-requests.window-seconds=300",
                 "app.abuse-protection.contact-requests.cooldown-seconds=0"
@@ -44,6 +51,9 @@ class PublicEndpointRateLimitIntegrationTest {
 
     @Autowired
     private PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private ObjectMapper objectMapper;
 
     @Autowired
     private PublicEndpointRateLimiter publicEndpointRateLimiter;
@@ -140,6 +150,38 @@ class PublicEndpointRateLimitIntegrationTest {
         assertEquals(2, savedCount == null ? 0 : savedCount);
     }
 
+    @Test
+    void adminCredentialUpdatesShouldRateLimitCurrentPasswordAttempts() throws Exception {
+        String email = "abuse.credentials@example.com";
+        String password = "AdminPass123!";
+        insertAdmin(email, password);
+        String accessToken = loginAndExtractToken(email, password);
+        String body = """
+                {
+                  "email":"new-admin@example.com",
+                  "currentPassword":"WrongPass123!",
+                  "newPassword":"AdminPass456!"
+                }
+                """;
+
+        for (int attempt = 0; attempt < 2; attempt++) {
+            mockMvc.perform(patch("/api/admin/account/credentials")
+                            .header("Authorization", "Bearer " + accessToken)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(body))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.message").value("Current password is incorrect"));
+        }
+
+        mockMvc.perform(patch("/api/admin/account/credentials")
+                        .header("Authorization", "Bearer " + accessToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isTooManyRequests())
+                .andExpect(header().exists(HttpHeaders.RETRY_AFTER))
+                .andExpect(jsonPath("$.code").value("RATE_LIMIT_EXCEEDED"));
+    }
+
     private void insertAdmin(String email, String password) {
         LocalDateTime now = LocalDateTime.now();
         jdbcTemplate.update("""
@@ -153,4 +195,18 @@ class PublicEndpointRateLimitIntegrationTest {
                 Timestamp.valueOf(now)
         );
     }
+
+    private String loginAndExtractToken(String email, String password) throws Exception {
+        String body = objectMapper.writeValueAsString(new LoginBody(email, password));
+        MvcResult result = mockMvc.perform(post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        JsonNode response = objectMapper.readTree(result.getResponse().getContentAsString());
+        return response.get("accessToken").asText();
+    }
+
+    private record LoginBody(String email, String password) {}
 }

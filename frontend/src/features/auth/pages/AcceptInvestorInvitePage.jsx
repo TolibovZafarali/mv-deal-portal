@@ -10,15 +10,9 @@ function formatPhoneDigits(digits) {
   if (!digits) return "";
 
   const raw = digits.slice(0, 11);
-  let prefix = "";
-  let normalizedDigits = raw;
-
-  if (raw.length === 11 && raw.startsWith("1")) {
-    prefix = "+1 ";
-    normalizedDigits = raw.slice(1);
-  } else {
-    normalizedDigits = raw.slice(0, 10);
-  }
+  const hasCountryCode = raw.length === 11 && raw.startsWith("1");
+  const prefix = hasCountryCode ? "+1 " : "";
+  const normalizedDigits = hasCountryCode ? raw.slice(1) : raw.slice(0, 10);
 
   const a = normalizedDigits.slice(0, 3);
   const b = normalizedDigits.slice(3, 6);

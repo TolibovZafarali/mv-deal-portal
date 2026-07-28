@@ -36,12 +36,12 @@ public class PropertyPublicationNotificationService {
 
     private static final int MAX_DELIVERY_ATTEMPTS = 5;
     private static final String TEMPLATE_ALIAS = "investor-new-property-published-cid-v1";
-    private static final String PUBLIC_LOGO_URL = "https://raw.githubusercontent.com/TolibovZafarali/mv-deal-portal/dev/frontend/public/white-logo.png";
 
     private final PropertyRepository propertyRepository;
     private final InvestorRepository investorRepository;
     private final PropertyPublicationNotificationRepository notificationRepository;
     private final TransactionalEmailService transactionalEmailService;
+    private final EmailTemplateAssets emailTemplateAssets;
 
     @Transactional
     public void enqueueForFirstPublication(Long propertyId) {
@@ -176,7 +176,7 @@ public class PropertyPublicationNotificationService {
         String investorName = resolveInvestorGreetingName(investor);
 
         Map<String, Object> model = new LinkedHashMap<>();
-        model.put("logo_url", PUBLIC_LOGO_URL);
+        model.put("logo_url", EmailTemplateAssets.resolvePublicLogoUrl(emailTemplateAssets));
         model.put("subject", "New property published");
         model.put("title", "A new property just went live, " + investorName);
         model.put("message", "A listing that matches your interest has been published, " + investorName + ".");

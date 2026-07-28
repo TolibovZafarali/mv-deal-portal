@@ -100,16 +100,9 @@ export default function SignUpModal() {
 
     // allow up to 11 digits, but only show +1 if it's exactly 11 and starts with 1
     const raw = digits.slice(0, 11);
-
-    let prefix = "";
-    let d = raw;
-
-    if (raw.length === 11 && raw.startsWith("1")) {
-      prefix = "+1 ";
-      d = raw.slice(1); // now 10 digits
-    } else {
-      d = raw.slice(0, 10);
-    }
+    const hasCountryCode = raw.length === 11 && raw.startsWith("1");
+    const prefix = hasCountryCode ? "+1 " : "";
+    const d = hasCountryCode ? raw.slice(1) : raw.slice(0, 10);
 
     const a = d.slice(0, 3);
     const b = d.slice(3, 6);

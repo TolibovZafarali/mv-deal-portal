@@ -74,6 +74,9 @@ class AuthServicePasswordResetTest {
     @Mock
     private ContactProperties contactProperties;
 
+    @Mock
+    private EmailTemplateAssets emailTemplateAssets;
+
     @Test
     void requestPasswordResetShouldStoreHashedTokenAndSendEmailLink() {
         AuthService authService = newAuthService();
@@ -175,7 +178,8 @@ class AuthServicePasswordResetTest {
                 jwtService,
                 transactionalEmailService,
                 authProperties,
-                contactProperties
+                contactProperties,
+                emailTemplateAssets
         );
     }
 
