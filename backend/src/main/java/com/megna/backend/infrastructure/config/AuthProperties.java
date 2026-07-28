@@ -12,6 +12,8 @@ import org.springframework.stereotype.Component;
 public class AuthProperties {
     private String passwordResetUrlBase = "http://localhost:5173/reset-password";
     private long passwordResetTokenTtlMinutes = 30;
+    private long adminPasswordResetCodeTtlMinutes = 10;
+    private int adminPasswordResetMaxAttempts = 5;
     private String invitationUrlBase = "http://localhost:5173/invite/accept";
     private long invitationTtlDays = 7;
 

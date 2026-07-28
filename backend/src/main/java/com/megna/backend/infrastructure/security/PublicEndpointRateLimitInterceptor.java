@@ -124,6 +124,8 @@ public class PublicEndpointRateLimitInterceptor implements HandlerInterceptor {
                     new RateLimitRule("auth.password-forgot", abuseProtectionProperties.getAuthPasswordForgot(), Scope.IP);
             case "/api/auth/password/reset" ->
                     new RateLimitRule("auth.password-reset", abuseProtectionProperties.getAuthPasswordReset(), Scope.IP);
+            case "/api/auth/password/reset/admin" ->
+                    new RateLimitRule("auth.password-reset", abuseProtectionProperties.getAuthPasswordReset(), Scope.IP);
             case "/api/auth/password/change" ->
                     new RateLimitRule("auth.password-change", abuseProtectionProperties.getAuthPasswordChange(), Scope.USER_OR_IP);
             case "/api/auth/refresh" ->

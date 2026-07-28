@@ -108,16 +108,127 @@ class AuthPasswordResetIntegrationTest {
     }
 
     @Test
-    void forgotPasswordShouldIgnoreAdminEmail() throws Exception {
-        insertAdmin("admin.reset@example.com", "AdminPass123!");
+    void forgotPasswordShouldCreatePasscodeForAdminEmail() throws Exception {
+        Long adminId = insertAdmin("admin.reset@example.com", "AdminPass123!");
 
         mockMvc.perform(post("/api/auth/password/forgot")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(new ForgotBody("admin.reset@example.com"))))
                 .andExpect(status().isNoContent());
 
-        Integer tokenCount = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM password_reset_tokens", Integer.class);
-        org.junit.jupiter.api.Assertions.assertEquals(0, tokenCount);
+        Integer tokenCount = jdbcTemplate.queryForObject(
+                """
+                        SELECT COUNT(*)
+                        FROM password_reset_tokens
+                        WHERE principal_type = 'ADMIN'
+                          AND principal_id = ?
+                          AND used_at IS NULL
+                          AND verification_attempts = 0
+                        """,
+                Integer.class,
+                adminId
+        );
+        org.junit.jupiter.api.Assertions.assertEquals(1, tokenCount);
+    }
+
+    @Test
+    void adminPasscodeShouldResetPasswordRevokeSessionsAndRejectReuse() throws Exception {
+        String email = "admin.flow@example.com";
+        String currentPassword = "AdminPass123!";
+        String newPassword = "AdminPass456!";
+        String passcode = "314159";
+        Long adminId = insertAdmin(email, currentPassword);
+        insertAdminPasscode(adminId, passcode, LocalDateTime.now().plusMinutes(10));
+
+        mockMvc.perform(post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new LoginBody(email, currentPassword))))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(post("/api/auth/password/reset/admin")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(
+                                new AdminResetBody(email, passcode, newPassword)
+                        )))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new LoginBody(email, currentPassword))))
+                .andExpect(status().isUnauthorized());
+
+        mockMvc.perform(post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(new LoginBody(email, newPassword))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.user.role").value("ADMIN"));
+
+        Integer activeOldSessions = jdbcTemplate.queryForObject(
+                """
+                        SELECT COUNT(*)
+                        FROM refresh_tokens
+                        WHERE principal_type = 'ADMIN'
+                          AND principal_id = ?
+                          AND revoked_at IS NULL
+                        """,
+                Integer.class,
+                adminId
+        );
+        org.junit.jupiter.api.Assertions.assertEquals(1, activeOldSessions);
+
+        mockMvc.perform(post("/api/auth/password/reset/admin")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(
+                                new AdminResetBody(email, passcode, "AdminPass789!")
+                        )))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Invalid or expired passcode"));
+    }
+
+    @Test
+    void wrongAdminPasscodesShouldIncrementAttemptsAndLockTheCode() throws Exception {
+        String email = "admin.attempts@example.com";
+        Long adminId = insertAdmin(email, "AdminPass123!");
+        insertAdminPasscode(adminId, "654321", LocalDateTime.now().plusMinutes(10));
+
+        for (int attempt = 1; attempt <= 5; attempt++) {
+            mockMvc.perform(post("/api/auth/password/reset/admin")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(
+                                    new AdminResetBody(email, "000000", "AdminPass456!")
+                            )))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.message").value("Invalid or expired passcode"));
+        }
+
+        Integer attempts = jdbcTemplate.queryForObject(
+                """
+                        SELECT verification_attempts
+                        FROM password_reset_tokens
+                        WHERE principal_type = 'ADMIN' AND principal_id = ?
+                        """,
+                Integer.class,
+                adminId
+        );
+        Timestamp usedAt = jdbcTemplate.queryForObject(
+                """
+                        SELECT used_at
+                        FROM password_reset_tokens
+                        WHERE principal_type = 'ADMIN' AND principal_id = ?
+                        """,
+                Timestamp.class,
+                adminId
+        );
+        org.junit.jupiter.api.Assertions.assertEquals(5, attempts);
+        org.junit.jupiter.api.Assertions.assertNotNull(usedAt);
+
+        mockMvc.perform(post("/api/auth/password/reset/admin")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(
+                                new AdminResetBody(email, "654321", "AdminPass456!")
+                        )))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Invalid or expired passcode"));
     }
 
     @Test
@@ -167,6 +278,17 @@ class AuthPasswordResetIntegrationTest {
                         .content(objectMapper.writeValueAsString(new ResetBody(rawToken, "InvestorPass456!"))))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("Invalid or expired reset token"));
+
+        Timestamp usedAt = jdbcTemplate.queryForObject(
+                """
+                        SELECT used_at
+                        FROM password_reset_tokens
+                        WHERE principal_type = 'INVESTOR' AND principal_id = ?
+                        """,
+                Timestamp.class,
+                investorId
+        );
+        org.junit.jupiter.api.Assertions.assertNotNull(usedAt);
 
         mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -245,7 +367,7 @@ class AuthPasswordResetIntegrationTest {
         return jdbcTemplate.queryForObject("SELECT id FROM sellers WHERE email = ?", Long.class, email);
     }
 
-    private void insertAdmin(String email, String password) {
+    private Long insertAdmin(String email, String password) {
         LocalDateTime now = LocalDateTime.now();
         jdbcTemplate.update("""
                         INSERT INTO admins
@@ -257,6 +379,25 @@ class AuthPasswordResetIntegrationTest {
                 Timestamp.valueOf(now),
                 Timestamp.valueOf(now)
         );
+
+        return jdbcTemplate.queryForObject("SELECT id FROM admins WHERE email = ?", Long.class, email);
+    }
+
+    private void insertAdminPasscode(Long adminId, String passcode, LocalDateTime expiresAt) {
+        jdbcTemplate.update("""
+                        INSERT INTO password_reset_tokens
+                        (principal_type, principal_id, token_hash, expires_at, used_at,
+                         verification_attempts, created_at)
+                        VALUES (?, ?, ?, ?, ?, ?, ?)
+                        """,
+                "ADMIN",
+                adminId,
+                passwordEncoder.encode(passcode),
+                Timestamp.valueOf(expiresAt),
+                null,
+                0,
+                Timestamp.valueOf(LocalDateTime.now())
+        );
     }
 
     private void insertPasswordResetToken(
@@ -266,16 +407,18 @@ class AuthPasswordResetIntegrationTest {
             LocalDateTime expiresAt,
             LocalDateTime usedAt
     ) {
-        jdbcTemplate.update("""
+                jdbcTemplate.update("""
                         INSERT INTO password_reset_tokens
-                        (principal_type, principal_id, token_hash, expires_at, used_at, created_at)
-                        VALUES (?, ?, ?, ?, ?, ?)
+                        (principal_type, principal_id, token_hash, expires_at, used_at,
+                         verification_attempts, created_at)
+                        VALUES (?, ?, ?, ?, ?, ?, ?)
                         """,
                 principalType,
                 principalId,
                 hashToken(rawToken),
                 Timestamp.valueOf(expiresAt),
                 usedAt == null ? null : Timestamp.valueOf(usedAt),
+                0,
                 Timestamp.valueOf(LocalDateTime.now())
         );
     }
@@ -292,5 +435,6 @@ class AuthPasswordResetIntegrationTest {
 
     private record ForgotBody(String email) {}
     private record ResetBody(String token, String newPassword) {}
+    private record AdminResetBody(String email, String passcode, String newPassword) {}
     private record LoginBody(String email, String password) {}
 }
