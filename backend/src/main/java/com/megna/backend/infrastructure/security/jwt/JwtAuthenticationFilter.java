@@ -124,7 +124,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 || path.startsWith("/api/auth/invitations/")
                 || path.equals("/api/auth/password/forgot")
                 || path.equals("/api/auth/password/reset")
-                || path.equals("/api/auth/password/reset/admin")
+                || path.equals("/api/auth/password/reset/passcode")
                 || path.equals("/api/auth/refresh")
                 || path.equals("/api/auth/logout");
     }

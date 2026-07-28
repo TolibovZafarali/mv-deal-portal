@@ -84,6 +84,7 @@ Investor invitation:
 {{title}}
 
 {{message}}
+Your six-digit passcode: {{passcode}}
 {{expiry_note}}
 
 {{action_text}}: {{action_url}}

@@ -173,6 +173,30 @@ class AuthSessionIntegrationTest {
                 .andExpect(jsonPath("$.message").value("Invalid or expired refresh token"));
     }
 
+    @Test
+    void passcodeResetShouldRevokeRefreshSessions() throws Exception {
+        String email = "session.passcode.reset@example.com";
+        String password = "SellerPass123!";
+        String nextPassword = "SellerPass456!";
+        String passcode = "424242";
+        Long sellerId = insertSeller(email, password);
+
+        SessionResponse loginSession = loginAndExtractSession(email, password);
+        insertPasswordResetPasscode("SELLER", sellerId, passcode, LocalDateTime.now().plusMinutes(10));
+
+        mockMvc.perform(post("/api/auth/password/reset/passcode")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(
+                                new PasscodeResetBody(email, passcode, nextPassword)
+                        )))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(post("/api/auth/refresh")
+                        .cookie(new Cookie(REFRESH_COOKIE_NAME, loginSession.refreshCookie().getValue())))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.message").value("Invalid or expired refresh token"));
+    }
+
     private SessionResponse loginAndExtractSession(String email, String password) throws Exception {
         MvcResult loginResult = mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -239,6 +263,28 @@ class AuthSessionIntegrationTest {
         );
     }
 
+    private void insertPasswordResetPasscode(
+            String principalType,
+            Long principalId,
+            String passcode,
+            LocalDateTime expiresAt
+    ) {
+        jdbcTemplate.update("""
+                        INSERT INTO password_reset_tokens
+                        (principal_type, principal_id, token_hash, expires_at, used_at,
+                         verification_attempts, created_at)
+                        VALUES (?, ?, ?, ?, ?, ?, ?)
+                        """,
+                principalType,
+                principalId,
+                passwordEncoder.encode(passcode),
+                Timestamp.valueOf(expiresAt),
+                null,
+                0,
+                Timestamp.valueOf(LocalDateTime.now())
+        );
+    }
+
     private String hashToken(String token) {
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
@@ -252,5 +298,6 @@ class AuthSessionIntegrationTest {
     private record LoginBody(String email, String password) {}
     private record ChangePasswordBody(String currentPassword, String newPassword) {}
     private record ResetBody(String token, String newPassword) {}
+    private record PasscodeResetBody(String email, String passcode, String newPassword) {}
     private record SessionResponse(String accessToken, Cookie refreshCookie) {}
 }
