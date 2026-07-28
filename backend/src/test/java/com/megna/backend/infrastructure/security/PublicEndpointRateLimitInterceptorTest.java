@@ -84,9 +84,9 @@ class PublicEndpointRateLimitInterceptorTest {
     }
 
     @Test
-    void rateLimitsAdminPasscodeResetByIp() throws Exception {
+    void rateLimitsPasscodeResetByIp() throws Exception {
         when(request.getMethod()).thenReturn("POST");
-        when(request.getRequestURI()).thenReturn("/api/auth/password/reset/admin");
+        when(request.getRequestURI()).thenReturn("/api/auth/password/reset/passcode");
         when(request.getContextPath()).thenReturn("");
         when(request.getHeader("X-Forwarded-For")).thenReturn("203.0.113.25");
 

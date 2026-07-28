@@ -19,12 +19,12 @@ import com.megna.backend.infrastructure.config.ContactProperties;
 import com.megna.backend.infrastructure.security.SecurityUtils;
 import com.megna.backend.infrastructure.security.jwt.JwtService;
 import com.megna.backend.interfaces.rest.dto.admin.AdminCredentialsUpdateRequestDto;
-import com.megna.backend.interfaces.rest.dto.auth.AdminPasswordResetRequestDto;
 import com.megna.backend.interfaces.rest.dto.auth.ChangePasswordRequestDto;
 import com.megna.backend.interfaces.rest.dto.auth.ForgotPasswordRequestDto;
 import com.megna.backend.interfaces.rest.dto.auth.LoginRequestDto;
 import com.megna.backend.interfaces.rest.dto.auth.LoginResponseDto;
 import com.megna.backend.interfaces.rest.dto.auth.MeResponseDto;
+import com.megna.backend.interfaces.rest.dto.auth.PasswordResetPasscodeRequestDto;
 import com.megna.backend.interfaces.rest.dto.auth.RegisterRequestDto;
 import com.megna.backend.interfaces.rest.dto.auth.RegisterResponseDto;
 import com.megna.backend.interfaces.rest.dto.auth.ResetPasswordRequestDto;
@@ -61,7 +61,7 @@ public class AuthService {
     private static final String PRINCIPAL_INVESTOR = "INVESTOR";
     private static final String PRINCIPAL_SELLER = "SELLER";
     private static final String INVALID_RESET_TOKEN_MESSAGE = "Invalid or expired reset token";
-    private static final String INVALID_ADMIN_PASSCODE_MESSAGE = "Invalid or expired passcode";
+    private static final String INVALID_PASSCODE_MESSAGE = "Invalid or expired passcode";
     private static final String INVALID_REFRESH_TOKEN_MESSAGE = "Invalid or expired refresh token";
     private static final String RESET_PASSWORD_TEMPLATE_ALIAS = "reset-password-cid-v1";
     private static final String INVESTOR_SIGNUP_UNDER_REVIEW_TEMPLATE_ALIAS = "investor-signup-under-review-cid-v1";
@@ -70,7 +70,7 @@ public class AuthService {
     private static final DateTimeFormatter ADMIN_SIGNUP_DATE_TIME_FORMATTER =
             DateTimeFormatter.ofPattern("yyyy-MM-dd h:mm a 'CT'");
     private static final int OPAQUE_TOKEN_BYTE_LENGTH = 32;
-    private static final int ADMIN_PASSCODE_UPPER_BOUND = 1_000_000;
+    private static final int PASSCODE_UPPER_BOUND = 1_000_000;
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
     private final InvestorRepository investorRepository;
@@ -286,27 +286,20 @@ public class AuthService {
                 principal.id()
         );
 
-        boolean adminReset = PRINCIPAL_ADMIN.equals(principal.type());
-        String resetCredential = adminReset ? generateAdminPasscode() : generateOpaqueToken();
+        String passcode = generatePasscode();
         PasswordResetToken resetToken = new PasswordResetToken();
         resetToken.setPrincipalType(principal.type());
         resetToken.setPrincipalId(principal.id());
-        resetToken.setTokenHash(adminReset
-                ? passwordEncoder.encode(resetCredential)
-                : hashToken(resetCredential));
-        resetToken.setExpiresAt(LocalDateTime.now().plusMinutes(adminReset
-                ? resolveAdminPasswordResetCodeTtlMinutes()
-                : resolvePasswordResetTtlMinutes()));
+        resetToken.setTokenHash(passwordEncoder.encode(passcode));
+        resetToken.setExpiresAt(LocalDateTime.now().plusMinutes(resolvePasswordResetCodeTtlMinutes()));
         passwordResetTokenRepository.save(resetToken);
 
         try {
-            TransactionalEmailRequest emailRequest = adminReset
-                    ? buildAdminPasswordResetEmail(principal.email(), resetCredential)
-                    : TransactionalEmailRequest.template(
-                            principal.email(),
-                            RESET_PASSWORD_TEMPLATE_ALIAS,
-                            buildPasswordResetModel(resetCredential, principal.greetingName())
-                    );
+            TransactionalEmailRequest emailRequest = TransactionalEmailRequest.template(
+                    principal.email(),
+                    RESET_PASSWORD_TEMPLATE_ALIAS,
+                    buildPasswordResetPasscodeModel(passcode, principal)
+            );
             boolean sent = transactionalEmailService.sendTransactional(emailRequest);
             if (!sent) {
                 log.warn("Password reset email was not delivered for principalType={} principalId={}",
@@ -320,28 +313,31 @@ public class AuthService {
     }
 
     @Transactional(noRollbackFor = ResponseStatusException.class)
-    public void resetAdminPassword(AdminPasswordResetRequestDto dto) {
+    public void resetPasswordWithPasscode(PasswordResetPasscodeRequestDto dto) {
         String email = normalizeEmail(dto.email());
         String passcode = dto.passcode().trim();
         String newPassword = dto.newPassword().trim();
 
-        Admin admin = adminRepository.findByEmail(email)
-                .orElseThrow(this::invalidAdminPasscode);
+        PrincipalRef principal = resolvePasswordResetPrincipal(email);
+        if (principal == null) {
+            throw invalidPasscode();
+        }
+
         PasswordResetToken resetToken = passwordResetTokenRepository
                 .findTopByPrincipalTypeAndPrincipalIdAndUsedAtIsNullOrderByCreatedAtDescIdDesc(
-                        PRINCIPAL_ADMIN,
-                        admin.getId()
+                        principal.type(),
+                        principal.id()
                 )
-                .orElseThrow(this::invalidAdminPasscode);
+                .orElseThrow(this::invalidPasscode);
 
         LocalDateTime now = LocalDateTime.now();
-        int maxAttempts = resolveAdminPasswordResetMaxAttempts();
+        int maxAttempts = resolvePasswordResetMaxAttempts();
         if (resetToken.getExpiresAt() == null
                 || resetToken.getExpiresAt().isBefore(now)
                 || resetToken.getVerificationAttempts() >= maxAttempts) {
             resetToken.setUsedAt(now);
             passwordResetTokenRepository.save(resetToken);
-            throw invalidAdminPasscode();
+            throw invalidPasscode();
         }
 
         if (!passwordEncoder.matches(passcode, resetToken.getTokenHash())) {
@@ -351,22 +347,20 @@ public class AuthService {
                 resetToken.setUsedAt(now);
             }
             passwordResetTokenRepository.save(resetToken);
-            throw invalidAdminPasscode();
+            throw invalidPasscode();
         }
 
-        ensurePasswordDifferent(newPassword, admin.getPasswordHash());
-        admin.setPasswordHash(passwordEncoder.encode(newPassword));
-        adminRepository.save(admin);
+        updatePrincipalPassword(principal, newPassword);
 
         resetToken.setUsedAt(now);
         passwordResetTokenRepository.save(resetToken);
         passwordResetTokenRepository.markActiveTokensUsed(
-                PRINCIPAL_ADMIN,
-                admin.getId(),
+                principal.type(),
+                principal.id(),
                 now,
                 resetToken.getId()
         );
-        revokeActiveRefreshTokens(PRINCIPAL_ADMIN, admin.getId(), now);
+        revokeActiveRefreshTokens(principal.type(), principal.id(), now);
     }
 
     @Transactional(noRollbackFor = ResponseStatusException.class)
@@ -682,18 +676,44 @@ public class AuthService {
         return null;
     }
 
-    private long resolvePasswordResetTtlMinutes() {
-        long ttlMinutes = authProperties.getPasswordResetTokenTtlMinutes();
-        return ttlMinutes > 0 ? ttlMinutes : 30;
+    private void updatePrincipalPassword(PrincipalRef principal, String newPassword) {
+        if (PRINCIPAL_ADMIN.equals(principal.type())) {
+            Admin admin = adminRepository.findById(principal.id())
+                    .orElseThrow(this::invalidPasscode);
+            ensurePasswordDifferent(newPassword, admin.getPasswordHash());
+            admin.setPasswordHash(passwordEncoder.encode(newPassword));
+            adminRepository.save(admin);
+            return;
+        }
+
+        if (PRINCIPAL_INVESTOR.equals(principal.type())) {
+            Investor investor = investorRepository.findById(principal.id())
+                    .orElseThrow(this::invalidPasscode);
+            ensurePasswordDifferent(newPassword, investor.getPasswordHash());
+            investor.setPasswordHash(passwordEncoder.encode(newPassword));
+            investorRepository.save(investor);
+            return;
+        }
+
+        if (PRINCIPAL_SELLER.equals(principal.type())) {
+            Seller seller = sellerRepository.findById(principal.id())
+                    .orElseThrow(this::invalidPasscode);
+            ensurePasswordDifferent(newPassword, seller.getPasswordHash());
+            seller.setPasswordHash(passwordEncoder.encode(newPassword));
+            sellerRepository.save(seller);
+            return;
+        }
+
+        throw invalidPasscode();
     }
 
-    private long resolveAdminPasswordResetCodeTtlMinutes() {
-        long ttlMinutes = authProperties.getAdminPasswordResetCodeTtlMinutes();
+    private long resolvePasswordResetCodeTtlMinutes() {
+        long ttlMinutes = authProperties.getPasswordResetCodeTtlMinutes();
         return ttlMinutes > 0 ? ttlMinutes : 10;
     }
 
-    private int resolveAdminPasswordResetMaxAttempts() {
-        int maxAttempts = authProperties.getAdminPasswordResetMaxAttempts();
+    private int resolvePasswordResetMaxAttempts() {
+        int maxAttempts = authProperties.getPasswordResetMaxAttempts();
         return maxAttempts > 0 ? maxAttempts : 5;
     }
 
@@ -702,43 +722,23 @@ public class AuthService {
         return ttlMinutes > 0 ? ttlMinutes : 20160;
     }
 
-    private Map<String, Object> buildPasswordResetModel(String rawToken, String recipientName) {
-        String resetLink = buildPasswordResetLink(rawToken);
-        long ttlMinutes = resolvePasswordResetTtlMinutes();
-        String greetingName = resolveGreetingName(recipientName, null);
+    private Map<String, Object> buildPasswordResetPasscodeModel(String passcode, PrincipalRef principal) {
+        String resetLink = buildPasscodeResetLink(principal.email());
+        long ttlMinutes = resolvePasswordResetCodeTtlMinutes();
+        String greetingName = resolveGreetingName(principal.greetingName(), null);
         Map<String, Object> model = new LinkedHashMap<>();
         model.put("logo_url", EmailTemplateAssets.resolvePublicLogoUrl(emailTemplateAssets));
-        model.put("subject", "Reset your password");
+        model.put("subject", "Your Megna password reset code");
         model.put("title", "Reset your password, " + greetingName);
         model.put("message", "We received a request to reset your password, " + greetingName + ".");
+        model.put("passcode", passcode);
         model.put("recipient_name", greetingName);
-        model.put("expiry_note", "For your security, this link expires in " + ttlMinutes + " minutes.");
-        model.put("action_text", "Reset Password");
+        model.put("expiry_note", "For your security, this passcode expires in " + ttlMinutes
+                + " minutes and can only be used once.");
+        model.put("action_text", "Continue Password Reset");
         model.put("action_url", resetLink);
         model.put("footer_text", "If you didn't request this, you can ignore this email.");
         return model;
-    }
-
-    private TransactionalEmailRequest buildAdminPasswordResetEmail(String email, String passcode) {
-        long ttlMinutes = resolveAdminPasswordResetCodeTtlMinutes();
-        String resetLink = buildAdminPasscodeResetLink(email);
-        String textBody = """
-                We received a request to reset the Megna admin password.
-
-                Your one-time passcode is: %s
-
-                This passcode expires in %d minutes and can only be used once.
-                Enter it on the password reset page:
-                %s
-
-                If you did not request this reset, you can ignore this email.
-                """.formatted(passcode, ttlMinutes, resetLink);
-
-        return new TransactionalEmailRequest(
-                email,
-                "Your Megna admin password reset code",
-                textBody
-        );
     }
 
     private void sendInvestorSignupUnderReviewEmail(Investor investor) {
@@ -863,19 +863,7 @@ public class AuthService {
         return normalized.isBlank() ? "N/A" : normalized;
     }
 
-    private String buildPasswordResetLink(String rawToken) {
-        String baseUrl = authProperties.getPasswordResetUrlBase() == null
-                ? ""
-                : authProperties.getPasswordResetUrlBase().trim();
-        if (baseUrl.isBlank()) {
-            return "";
-        }
-
-        String separator = baseUrl.contains("?") ? "&" : "?";
-        return baseUrl + separator + "token=" + urlEncode(rawToken);
-    }
-
-    private String buildAdminPasscodeResetLink(String email) {
+    private String buildPasscodeResetLink(String email) {
         String baseUrl = authProperties.getPasswordResetUrlBase() == null
                 ? ""
                 : authProperties.getPasswordResetUrlBase().trim();
@@ -887,8 +875,8 @@ public class AuthService {
         return baseUrl + separator + "email=" + urlEncode(email);
     }
 
-    private String generateAdminPasscode() {
-        return "%06d".formatted(SECURE_RANDOM.nextInt(ADMIN_PASSCODE_UPPER_BOUND));
+    private String generatePasscode() {
+        return "%06d".formatted(SECURE_RANDOM.nextInt(PASSCODE_UPPER_BOUND));
     }
 
     private String generateOpaqueToken() {
@@ -927,8 +915,8 @@ public class AuthService {
         return new ResponseStatusException(HttpStatus.BAD_REQUEST, INVALID_RESET_TOKEN_MESSAGE);
     }
 
-    private ResponseStatusException invalidAdminPasscode() {
-        return new ResponseStatusException(HttpStatus.BAD_REQUEST, INVALID_ADMIN_PASSCODE_MESSAGE);
+    private ResponseStatusException invalidPasscode() {
+        return new ResponseStatusException(HttpStatus.BAD_REQUEST, INVALID_PASSCODE_MESSAGE);
     }
 
     private ResponseStatusException invalidRefreshToken() {

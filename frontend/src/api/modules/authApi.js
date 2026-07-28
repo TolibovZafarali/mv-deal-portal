@@ -81,8 +81,8 @@ export async function resetPassword(payload) {
     return true;
 }
 
-export async function resetAdminPassword(payload) {
-    await apiClient.post(`${AUTH_BASE}/password/reset/admin`, payload, AUTH_REQUEST_CONFIG);
+export async function resetPasswordWithPasscode(payload) {
+    await apiClient.post(`${AUTH_BASE}/password/reset/passcode`, payload, AUTH_REQUEST_CONFIG);
     return true;
 }
 

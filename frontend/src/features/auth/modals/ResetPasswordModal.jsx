@@ -1,6 +1,6 @@
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { useMemo, useState } from "react";
-import { resetAdminPassword, resetPassword } from "@/api";
+import { resetPassword, resetPasswordWithPasscode } from "@/api";
 import "@/features/auth/modals/ResetPasswordModal.css";
 import { getPasswordStrength } from "@/shared/utils/passwordStrength";
 import { useAuthModalClose } from "@/features/auth/modals/useAuthModalClose";
@@ -12,6 +12,9 @@ export default function ResetPasswordModal() {
   const hasBackground = !!location.state?.backgroundLocation;
   const bg = location.state?.backgroundLocation || { pathname: "/" };
   const forceHomeOnClose = !!location.state?.forceHomeOnClose;
+  const token = (searchParams.get("token") || "").trim();
+  const email = (searchParams.get("email") || "").trim();
+  const isPasscodeReset = !token && !!email;
 
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -21,9 +24,7 @@ export default function ResetPasswordModal() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
-  const token = (searchParams.get("token") || "").trim();
-  const email = (searchParams.get("email") || "").trim();
-  const isAdminPasscodeReset = !token && !!email;
+  const [passcodeStepComplete, setPasscodeStepComplete] = useState(!isPasscodeReset);
   const passwordStrength = useMemo(() => getPasswordStrength(newPassword), [newPassword]);
   const { isClosing, close } = useAuthModalClose({
     navigate,
@@ -45,16 +46,26 @@ export default function ResetPasswordModal() {
     navigate("/login", { replace: true, state: loginLinkState });
   }
 
+  function continueFromPasscode(event) {
+    event.preventDefault();
+    setError("");
+    if (!/^[0-9]{6}$/.test(passcode)) {
+      setError("Enter the six-digit passcode from the email.");
+      return;
+    }
+    setPasscodeStepComplete(true);
+  }
+
   async function handleSubmit(event) {
     event.preventDefault();
     setError("");
 
-    if (!token && !isAdminPasscodeReset) {
+    if (!token && !isPasscodeReset) {
       setError("Reset request is invalid or expired.");
       return;
     }
 
-    if (isAdminPasscodeReset && !/^[0-9]{6}$/.test(passcode)) {
+    if (isPasscodeReset && !/^[0-9]{6}$/.test(passcode)) {
       setError("Enter the six-digit passcode from the email.");
       return;
     }
@@ -71,8 +82,8 @@ export default function ResetPasswordModal() {
 
     setLoading(true);
     try {
-      if (isAdminPasscodeReset) {
-        await resetAdminPassword({ email, passcode, newPassword });
+      if (isPasscodeReset) {
+        await resetPasswordWithPasscode({ email, passcode, newPassword });
       } else {
         await resetPassword({ token, newPassword });
       }
@@ -95,7 +106,7 @@ export default function ResetPasswordModal() {
       >
         <div className="resetModal__header">
           <h2 className="resetModal__title">
-            {isAdminPasscodeReset ? "Enter admin passcode" : "Set new password"}
+            {isPasscodeReset && !passcodeStepComplete ? "Enter passcode" : "Set new password"}
           </h2>
           <div
             className="resetModal__close"
@@ -111,34 +122,43 @@ export default function ResetPasswordModal() {
           </div>
         </div>
 
-        {!success ? (
-          <form className="resetModal__form" onSubmit={handleSubmit}>
-            {isAdminPasscodeReset ? (
-              <>
-                <div className="field">
-                  <input
-                    id="admin-reset-passcode"
-                    className="field__input resetModal__passcode"
-                    value={passcode}
-                    onChange={(event) => setPasscode(
-                      event.target.value.replace(/[^0-9]/g, "").slice(0, 6)
-                    )}
-                    placeholder=" "
-                    autoComplete="one-time-code"
-                    inputMode="numeric"
-                    maxLength={6}
-                    autoFocus
-                  />
-                  <label className="field__label" htmlFor="admin-reset-passcode">
-                    Six-digit passcode
-                  </label>
-                </div>
-                <p className="resetModal__copy">
-                  Enter the passcode sent to {email}. Use it before it expires.
-                </p>
-              </>
-            ) : null}
+        {!success && isPasscodeReset && !passcodeStepComplete ? (
+          <form className="resetModal__form" onSubmit={continueFromPasscode}>
+            <div className="field">
+              <input
+                id="reset-passcode"
+                className="field__input resetModal__passcode"
+                value={passcode}
+                onChange={(event) => setPasscode(
+                  event.target.value.replace(/[^0-9]/g, "").slice(0, 6)
+                )}
+                placeholder=" "
+                autoComplete="one-time-code"
+                inputMode="numeric"
+                maxLength={6}
+                autoFocus
+              />
+              <label className="field__label" htmlFor="reset-passcode">
+                Six-digit passcode
+              </label>
+            </div>
+            <p className="resetModal__copy">
+              If an account exists for {email}, enter the passcode we sent to continue.
+            </p>
 
+            {error ? <div className="resetModal__error">{error}</div> : null}
+
+            <div className="resetModal__actions resetModal__actions--bottom">
+              <button
+                className="resetModal__btn resetModal__btn--full"
+                disabled={passcode.length !== 6}
+              >
+                Continue
+              </button>
+            </div>
+          </form>
+        ) : !success ? (
+          <form className="resetModal__form" onSubmit={handleSubmit}>
             <div className="field field--password">
               <input
                 id="reset-new-password"
@@ -202,14 +222,26 @@ export default function ResetPasswordModal() {
             {error ? <div className="resetModal__error">{error}</div> : null}
 
             <div className="resetModal__actions resetModal__actions--bottom">
+              {isPasscodeReset ? (
+                <button
+                  type="button"
+                  className="resetModal__btn resetModal__btn--secondary"
+                  onClick={() => {
+                    setError("");
+                    setPasscodeStepComplete(false);
+                  }}
+                >
+                  Re-enter passcode
+                </button>
+              ) : null}
               <button
-                className="resetModal__btn resetModal__btn--full"
+                className={`resetModal__btn ${isPasscodeReset ? "" : "resetModal__btn--full"}`}
                 disabled={
                   loading
                   || !newPassword
                   || !confirmPassword
-                  || (!token && !isAdminPasscodeReset)
-                  || (isAdminPasscodeReset && passcode.length !== 6)
+                  || (!token && !isPasscodeReset)
+                  || (isPasscodeReset && passcode.length !== 6)
                 }
               >
                 {loading ? "Updating..." : "Update password"}

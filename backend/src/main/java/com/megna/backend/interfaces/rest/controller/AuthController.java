@@ -7,10 +7,10 @@ import com.megna.backend.domain.repository.InvestorRepository;
 import com.megna.backend.domain.repository.SellerRepository;
 import com.megna.backend.infrastructure.security.RefreshTokenCookieService;
 import com.megna.backend.infrastructure.security.SecurityUtils;
-import com.megna.backend.interfaces.rest.dto.auth.AdminPasswordResetRequestDto;
 import com.megna.backend.interfaces.rest.dto.auth.ChangePasswordRequestDto;
 import com.megna.backend.interfaces.rest.dto.auth.ForgotPasswordRequestDto;
 import com.megna.backend.interfaces.rest.dto.auth.LoginRequestDto;
+import com.megna.backend.interfaces.rest.dto.auth.PasswordResetPasscodeRequestDto;
 import com.megna.backend.interfaces.rest.dto.auth.LoginResponseDto;
 import com.megna.backend.interfaces.rest.dto.auth.MeResponseDto;
 import com.megna.backend.interfaces.rest.dto.auth.RegisterRequestDto;
@@ -156,10 +156,10 @@ public class AuthController {
         authService.resetPassword(dto);
     }
 
-    @PostMapping("/password/reset/admin")
+    @PostMapping("/password/reset/passcode")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void resetAdminPassword(@Valid @RequestBody AdminPasswordResetRequestDto dto) {
-        authService.resetAdminPassword(dto);
+    public void resetPasswordWithPasscode(@Valid @RequestBody PasswordResetPasscodeRequestDto dto) {
+        authService.resetPasswordWithPasscode(dto);
     }
 
     @PostMapping("/register")

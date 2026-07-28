@@ -14,7 +14,6 @@ export default function ForgotPasswordModal() {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState(false);
   const { isClosing, close } = useAuthModalClose({
     navigate,
     hasBackground,
@@ -28,8 +27,20 @@ export default function ForgotPasswordModal() {
     setError("");
 
     try {
-      await requestPasswordReset({ email: email.trim() });
-      setSuccess(true);
+      const normalizedEmail = email.trim();
+      await requestPasswordReset({ email: normalizedEmail });
+      const resetUrl = `/reset-password?email=${encodeURIComponent(normalizedEmail)}`;
+      navigate(resetUrl, {
+        replace: true,
+        state: hasBackground
+          ? {
+              modal: true,
+              backgroundLocation: bg,
+              from: location.state?.from || "/app",
+              forceHomeOnClose,
+            }
+          : undefined,
+      });
     } catch (requestError) {
       setError(requestError?.message || "Failed to submit reset request.");
     } finally {
@@ -48,21 +59,6 @@ export default function ForgotPasswordModal() {
 
   function goToLogin() {
     navigate("/login", { replace: true, state: loginLinkState });
-  }
-
-  function enterAdminPasscode() {
-    const resetUrl = `/reset-password?email=${encodeURIComponent(email.trim())}`;
-    navigate(resetUrl, {
-      replace: true,
-      state: hasBackground
-        ? {
-            modal: true,
-            backgroundLocation: bg,
-            from: location.state?.from || "/app",
-            forceHomeOnClose,
-          }
-        : undefined,
-    });
   }
 
   return (
@@ -87,54 +83,35 @@ export default function ForgotPasswordModal() {
           </div>
         </div>
 
-        <form className={`forgotModal__form ${success ? "forgotModal__form--success" : ""}`} onSubmit={handleSubmit}>
-          {!success ? (
-            <>
-              <div className="field">
-                <input
-                  id="forgot-password-email"
-                  className="field__input"
-                  value={email}
-                  onChange={(event) => setEmail(event.target.value)}
-                  placeholder=" "
-                  autoComplete="email"
-                  type="email"
-                />
-                <label className="field__label" htmlFor="forgot-password-email">Email</label>
-              </div>
+        <form className="forgotModal__form" onSubmit={handleSubmit}>
+          <div className="field">
+            <input
+              id="forgot-password-email"
+              className="field__input"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              placeholder=" "
+              autoComplete="email"
+              type="email"
+            />
+            <label className="field__label" htmlFor="forgot-password-email">Email</label>
+          </div>
 
-              <p className="forgotModal__hint">
-                Enter your account email. We'll send secure recovery instructions if it exists.
-              </p>
+          <p className="forgotModal__hint">
+            Enter your account email. We'll send a six-digit password reset passcode if it exists.
+          </p>
 
-              {error ? <div className="forgotModal__error">{error}</div> : null}
+          {error ? <div className="forgotModal__error">{error}</div> : null}
 
-              <div className="forgotModal__actions">
-                <button type="button" className="forgotModal__backBtn" onClick={goToLogin}>
-                  Back to sign in
-                </button>
+          <div className="forgotModal__actions">
+            <button type="button" className="forgotModal__backBtn" onClick={goToLogin}>
+              Back to sign in
+            </button>
 
-                <button className="forgotModal__btn" disabled={loading || !email.trim()}>
-                  {loading ? "Sending..." : "Send instructions"}
-                </button>
-              </div>
-            </>
-          ) : (
-            <div className="forgotModal__success">
-              <p className="forgotModal__successText">
-                If an account exists for {email.trim()}, we sent recovery instructions.
-                Admins receive a six-digit passcode; other users receive a reset link.
-              </p>
-              <div className="forgotModal__actions forgotModal__actions--bottom">
-                <button type="button" className="forgotModal__backBtn" onClick={goToLogin}>
-                  Back to sign in
-                </button>
-                <button type="button" className="forgotModal__btn" onClick={enterAdminPasscode}>
-                  Enter admin passcode
-                </button>
-              </div>
-            </div>
-          )}
+            <button className="forgotModal__btn" disabled={loading || !email.trim()}>
+              {loading ? "Sending..." : "Continue"}
+            </button>
+          </div>
         </form>
       </div>
     </div>

@@ -21,19 +21,11 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
-import java.net.URLDecoder;
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
-import java.util.HexFormat;
 import java.util.Map;
 import java.util.Optional;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -78,7 +70,7 @@ class AuthServicePasswordResetTest {
     private EmailTemplateAssets emailTemplateAssets;
 
     @Test
-    void requestPasswordResetShouldStoreHashedTokenAndSendEmailLink() {
+    void requestPasswordResetShouldStoreHashedPasscodeAndSendTemplateForInvestor() {
         AuthService authService = newAuthService();
         String email = "investor@example.com";
         LocalDateTime startedAt = LocalDateTime.now();
@@ -88,8 +80,10 @@ class AuthServicePasswordResetTest {
         investor.setEmail(email);
 
         when(investorRepository.findByEmail(email)).thenReturn(Optional.of(investor));
-        when(authProperties.getPasswordResetTokenTtlMinutes()).thenReturn(30L);
+        when(authProperties.getPasswordResetCodeTtlMinutes()).thenReturn(10L);
         when(authProperties.getPasswordResetUrlBase()).thenReturn("https://megna.us/reset-password");
+        when(passwordEncoder.encode(any(String.class))).thenAnswer(invocation ->
+                "encoded:" + invocation.getArgument(0, String.class));
         when(passwordResetTokenRepository.save(any(PasswordResetToken.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(transactionalEmailService.sendTransactional(any(TransactionalEmailRequest.class))).thenReturn(true);
 
@@ -102,9 +96,8 @@ class AuthServicePasswordResetTest {
         verify(passwordResetTokenRepository).deleteByPrincipalTypeAndPrincipalIdAndUsedAtIsNull("INVESTOR", 41L);
         assertEquals("INVESTOR", savedToken.getPrincipalType());
         assertEquals(41L, savedToken.getPrincipalId());
-        assertEquals(64, savedToken.getTokenHash().length());
-        assertTrue(savedToken.getExpiresAt().isAfter(startedAt.plusMinutes(29)));
-        assertTrue(savedToken.getExpiresAt().isBefore(startedAt.plusMinutes(31)));
+        assertTrue(savedToken.getExpiresAt().isAfter(startedAt.plusMinutes(9)));
+        assertTrue(savedToken.getExpiresAt().isBefore(startedAt.plusMinutes(11)));
 
         ArgumentCaptor<TransactionalEmailRequest> emailCaptor = ArgumentCaptor.forClass(TransactionalEmailRequest.class);
         verify(transactionalEmailService).sendTransactional(emailCaptor.capture());
@@ -116,15 +109,12 @@ class AuthServicePasswordResetTest {
 
         @SuppressWarnings("unchecked")
         Map<String, Object> templateModel = (Map<String, Object>) request.templateModel();
+        String passcode = templateModel.get("passcode").toString();
+        assertTrue(passcode.matches("[0-9]{6}"));
+        assertEquals("encoded:" + passcode, savedToken.getTokenHash());
+        assertEquals("Your Megna password reset code", templateModel.get("subject"));
         String actionUrl = templateModel.get("action_url").toString();
-        assertTrue(actionUrl.contains("https://megna.us/reset-password?token="));
-
-        Matcher matcher = Pattern.compile("token=([^\\s]+)").matcher(actionUrl);
-        assertTrue(matcher.find());
-        String rawToken = URLDecoder.decode(matcher.group(1), StandardCharsets.UTF_8);
-
-        assertNotEquals(rawToken, savedToken.getTokenHash());
-        assertEquals(sha256(rawToken), savedToken.getTokenHash());
+        assertEquals("https://megna.us/reset-password?email=investor%40example.com", actionUrl);
     }
 
     @Test
@@ -137,8 +127,9 @@ class AuthServicePasswordResetTest {
         investor.setEmail(email);
 
         when(investorRepository.findByEmail(email)).thenReturn(Optional.of(investor));
-        when(authProperties.getPasswordResetTokenTtlMinutes()).thenReturn(30L);
+        when(authProperties.getPasswordResetCodeTtlMinutes()).thenReturn(10L);
         when(authProperties.getPasswordResetUrlBase()).thenReturn("https://megna.us/reset-password");
+        when(passwordEncoder.encode(any(String.class))).thenReturn("encoded-passcode");
         when(passwordResetTokenRepository.save(any(PasswordResetToken.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         authService.requestPasswordReset(new ForgotPasswordRequestDto(email));
@@ -161,7 +152,7 @@ class AuthServicePasswordResetTest {
         admin.setEmail(email);
 
         when(adminRepository.findByEmail(email)).thenReturn(Optional.of(admin));
-        when(authProperties.getAdminPasswordResetCodeTtlMinutes()).thenReturn(10L);
+        when(authProperties.getPasswordResetCodeTtlMinutes()).thenReturn(10L);
         when(authProperties.getPasswordResetUrlBase()).thenReturn("https://megna.us/reset-password");
         when(passwordEncoder.encode(any(String.class))).thenAnswer(invocation ->
                 "encoded:" + invocation.getArgument(0, String.class));
@@ -182,15 +173,17 @@ class AuthServicePasswordResetTest {
                 ArgumentCaptor.forClass(TransactionalEmailRequest.class);
         verify(transactionalEmailService).sendTransactional(emailCaptor.capture());
         TransactionalEmailRequest request = emailCaptor.getValue();
-        Matcher passcodeMatcher = Pattern.compile("one-time passcode is: (\\d{6})")
-                .matcher(request.textBody());
-        assertTrue(passcodeMatcher.find());
-        String passcode = passcodeMatcher.group(1);
+        assertEquals("reset-password-cid-v1", request.templateAlias());
+        @SuppressWarnings("unchecked")
+        Map<String, Object> templateModel = (Map<String, Object>) request.templateModel();
+        String passcode = templateModel.get("passcode").toString();
+        assertTrue(passcode.matches("[0-9]{6}"));
         assertEquals("encoded:" + passcode, savedToken.getTokenHash());
-        assertEquals("Your Megna admin password reset code", request.subject());
-        assertTrue(request.textBody().contains(
-                "https://megna.us/reset-password?email=admin%40example.com"
-        ));
+        assertEquals("Your Megna password reset code", templateModel.get("subject"));
+        assertEquals(
+                "https://megna.us/reset-password?email=admin%40example.com",
+                templateModel.get("action_url")
+        );
     }
 
     private AuthService newAuthService() {
@@ -207,14 +200,5 @@ class AuthServicePasswordResetTest {
                 contactProperties,
                 emailTemplateAssets
         );
-    }
-
-    private String sha256(String value) {
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            return HexFormat.of().formatHex(digest.digest(value.getBytes(StandardCharsets.UTF_8)));
-        } catch (NoSuchAlgorithmException ex) {
-            throw new IllegalStateException("SHA-256 is not available", ex);
-        }
     }
 }
