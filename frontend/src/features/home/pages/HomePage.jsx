@@ -166,6 +166,8 @@ function DealCard({
                         src={leadPhoto}
                         alt={address}
                         className="homeShowcase__image"
+                        loading="lazy"
+                        decoding="async"
                     />
                 ) : (
                     <div className="homeShowcase__imageFallback" aria-hidden="true">
@@ -231,11 +233,11 @@ export default function HomePage({
     const homeRef = useRef(null);
     const sceneFrameRef = useRef(null);
     const showcaseRailRef = useRef(null);
+    const showcaseScrollStepRef = useRef(1);
     const aboutCloseTimerRef = useRef(0);
     const sceneHoverLockedRef = useRef(false);
     const sceneFocusSuppressedRef = useRef(false);
     const [selectedRole, setSelectedRole] = useState(() => getInitialRole(location));
-    const [sceneHovered, setSceneHovered] = useState(false);
     const [aboutPageOpen, setAboutPageOpen] = useState(false);
     const [aboutPageReady, setAboutPageReady] = useState(false);
     const [aboutPageClosing, setAboutPageClosing] = useState(false);
@@ -292,7 +294,6 @@ export default function HomePage({
             carouselLabel: "Recent closings carousel",
         };
     const showShowcaseControls = !closedDealsLoading && !closedDealsError && featuredDeals.length > 1;
-    const hideHomeSections = aboutPageOpen && !aboutPageClosing;
     const showcaseHeadingMotionKey = `proof-heading-${showcaseHeading.eyebrow}-${showcaseHeading.title}-${showcaseHeading.lead || ""}`;
     const processHeadingMotionKey = `process-heading-${roleContent.process.eyebrow}-${roleContent.process.title}-${roleContent.process.lead || ""}`;
     const closingHeadingMotionKey = `closing-heading-${roleContent.closing.eyebrow}-${roleContent.closing.title}-${roleContent.closing.lead || ""}`;
@@ -313,12 +314,7 @@ export default function HomePage({
             return;
         }
 
-        const firstCard = rail.querySelector(".homeShowcase__cardLink, .homeShowcase__card, .homeShowcase__placeholder");
-        const grid = rail.querySelector(".homeShowcase__grid");
-        const gridStyles = grid ? window.getComputedStyle(grid) : null;
-        const gap = parseFloat(gridStyles?.columnGap || gridStyles?.gap || "0") || 0;
-        const cardWidth = firstCard?.getBoundingClientRect().width || rail.clientWidth;
-        const scrollStep = Math.max(cardWidth + gap, 1);
+        const scrollStep = Math.max(showcaseScrollStepRef.current, 1);
         const maxScrollLeft = Math.max(rail.scrollWidth - rail.clientWidth, 0);
         const activeIndex = Math.max(0, Math.min(featuredDeals.length - 1, Math.round(rail.scrollLeft / scrollStep)));
         const next = {
@@ -340,7 +336,7 @@ export default function HomePage({
         });
     });
 
-    const scrollShowcase = (direction) => {
+    const measureShowcaseScrollStep = useCallback(() => {
         const rail = showcaseRailRef.current;
         if (!rail || typeof window === "undefined") return;
 
@@ -348,10 +344,20 @@ export default function HomePage({
         const grid = rail.querySelector(".homeShowcase__grid");
         const gridStyles = grid ? window.getComputedStyle(grid) : null;
         const gap = parseFloat(gridStyles?.columnGap || gridStyles?.gap || "0") || 0;
-        const distance = (firstCard?.getBoundingClientRect().width || rail.clientWidth) + gap;
+        const cardWidth = firstCard?.getBoundingClientRect().width || rail.clientWidth;
+        showcaseScrollStepRef.current = Math.max(cardWidth + gap, 1);
+    }, []);
+
+    const scrollShowcase = (direction) => {
+        const rail = showcaseRailRef.current;
+        if (!rail || typeof window === "undefined") return;
+
+        if (showcaseScrollStepRef.current <= 1) {
+            measureShowcaseScrollStep();
+        }
 
         rail.scrollBy({
-            left: direction * distance,
+            left: direction * showcaseScrollStepRef.current,
             behavior: userPrefersReducedMotion() ? "auto" : "smooth",
         });
     };
@@ -397,9 +403,8 @@ export default function HomePage({
 
         window.clearTimeout(aboutCloseTimerRef.current);
         sceneHoverLockedRef.current = true;
-        setSceneHovered(true);
+        sceneFrameRef.current?.closest(".homeHero")?.classList.add("homeHero--immersed");
         setAboutPageClosing(false);
-        setSceneExpandMetrics();
         window.scrollTo({ top: 0, left: 0, behavior: "auto" });
         setAboutPageOpen(true);
 
@@ -427,7 +432,7 @@ export default function HomePage({
         if (typeof window === "undefined") return;
 
         sceneHoverLockedRef.current = false;
-        setSceneHovered(false);
+        sceneFrameRef.current?.closest(".homeHero")?.classList.remove("homeHero--immersed");
 
         if (userPrefersReducedMotion()) {
             window.clearTimeout(aboutCloseTimerRef.current);
@@ -442,7 +447,6 @@ export default function HomePage({
 
         window.scrollTo({ top: 0, left: 0, behavior: "auto" });
         window.requestAnimationFrame(() => {
-            setSceneExpandMetrics();
             setAboutPageClosing(true);
             setAboutPageReady(false);
         });
@@ -468,12 +472,12 @@ export default function HomePage({
 
     const handleSceneEnter = (event) => {
         if (event?.type === "focus" && sceneFocusSuppressedRef.current) return;
-        setSceneHovered(true);
+        sceneFrameRef.current?.closest(".homeHero")?.classList.add("homeHero--immersed");
     };
 
     const handleSceneLeave = () => {
         if (sceneHoverLockedRef.current) return;
-        setSceneHovered(false);
+        sceneFrameRef.current?.closest(".homeHero")?.classList.remove("homeHero--immersed");
     };
 
     useEffect(() => {
@@ -507,23 +511,33 @@ export default function HomePage({
 
         let frameId = 0;
         let ticking = false;
+        const progress = root.querySelector(".homeProgress");
+        const heroMesh = root.querySelector(".homeHero__mesh");
+        const sceneFrame = root.querySelector(".homeHero__sceneFrame");
+        const lastValues = new WeakMap();
+
+        const setMotionValue = (element, property, value) => {
+            if (!element) return;
+            const elementValues = lastValues.get(element) || new Map();
+            if (elementValues.get(property) === value) return;
+            elementValues.set(property, value);
+            lastValues.set(element, elementValues);
+            element.style.setProperty(property, value);
+        };
 
         const syncMotion = () => {
             ticking = false;
             const scrollY = window.scrollY || 0;
             const viewportHeight = window.innerHeight || 1;
-            const heroProgress = Math.min(scrollY / (viewportHeight * 0.92), 1.2);
             const pageMaxScroll = Math.max((document.documentElement?.scrollHeight || 0) - viewportHeight, 1);
             const pageProgress = Math.min(scrollY / pageMaxScroll, 1);
             const heroScale = 1.04 - Math.min(scrollY / 1800, 0.04);
 
-            root.style.setProperty("--home-scroll-progress", pageProgress.toFixed(4));
-            root.style.setProperty("--hero-shift", `${Math.round(scrollY * 0.22)}px`);
-            root.style.setProperty("--hero-orbit-shift", `${Math.round(scrollY * 0.14)}px`);
-            root.style.setProperty("--hero-scale", heroScale.toFixed(3));
-            root.style.setProperty("--hero-fade", Math.min(heroProgress * 0.78, 0.78).toFixed(3));
-            root.style.setProperty("--header-opacity", (0.34 + Math.min(pageProgress * 0.26, 0.18)).toFixed(3));
-            root.style.setProperty("--header-border-opacity", (0.12 + Math.min(pageProgress * 0.24, 0.16)).toFixed(3));
+            const orbitShift = `${Math.round(scrollY * 0.14)}px`;
+            setMotionValue(progress, "--home-scroll-progress", pageProgress.toFixed(4));
+            setMotionValue(sceneFrame, "--hero-shift", `${Math.round(scrollY * 0.22)}px`);
+            setMotionValue(sceneFrame, "--hero-scale", heroScale.toFixed(3));
+            setMotionValue(heroMesh, "--hero-orbit-shift", orbitShift);
         };
 
         const requestSync = () => {
@@ -547,7 +561,7 @@ export default function HomePage({
         const root = homeRef.current;
         if (!root) return undefined;
 
-        const nodes = Array.from(root.querySelectorAll(".homeReveal"));
+        const nodes = Array.from(root.querySelectorAll(".homeReveal:not(.is-settled)"));
         if (!nodes.length) return undefined;
         const mobileShowcaseNodes = [];
         const standardNodes = [];
@@ -572,6 +586,20 @@ export default function HomePage({
 
             return undefined;
         }
+
+        const settleNode = (event) => {
+            if (event.propertyName !== "transform") return;
+            event.currentTarget.classList.add("is-settled");
+            event.currentTarget.removeEventListener("transitionend", settleNode);
+        };
+
+        nodes.forEach((node) => {
+            if (node.classList.contains("is-visible")) {
+                node.classList.add("is-settled");
+                return;
+            }
+            node.addEventListener("transitionend", settleNode);
+        });
 
         const revealNode = (node) => {
             node.classList.add("is-visible");
@@ -624,8 +652,9 @@ export default function HomePage({
 
         return () => {
             cleanup.forEach((disconnect) => disconnect());
+            nodes.forEach((node) => node.removeEventListener("transitionend", settleNode));
         };
-    }, [selectedRole, closedDeals.length, closedDealsLoading, closedDealsError, aboutPageOpen, isAuthed]);
+    }, [selectedRole, closedDeals.length, closedDealsLoading, closedDealsError, isAuthed]);
 
     useEffect(() => {
         const rail = showcaseRailRef.current;
@@ -635,22 +664,37 @@ export default function HomePage({
         }
 
         let frameId = 0;
+        let ticking = false;
         const requestSync = () => {
+            if (ticking) return;
+            ticking = true;
+            frameId = window.requestAnimationFrame(() => {
+                syncShowcaseScrollState();
+                ticking = false;
+            });
+        };
+        const requestMeasure = () => {
             window.cancelAnimationFrame(frameId);
-            frameId = window.requestAnimationFrame(syncShowcaseScrollState);
+            ticking = true;
+            frameId = window.requestAnimationFrame(() => {
+                measureShowcaseScrollStep();
+                syncShowcaseScrollState();
+                ticking = false;
+            });
         };
 
         rail.scrollTo({ left: 0, behavior: "auto" });
-        requestSync();
+        measureShowcaseScrollStep();
+        syncShowcaseScrollState();
         rail.addEventListener("scroll", requestSync, { passive: true });
-        window.addEventListener("resize", requestSync, { passive: true });
+        window.addEventListener("resize", requestMeasure, { passive: true });
 
         return () => {
             rail.removeEventListener("scroll", requestSync);
-            window.removeEventListener("resize", requestSync);
+            window.removeEventListener("resize", requestMeasure);
             window.cancelAnimationFrame(frameId);
         };
-    }, [closedDealsError, closedDealsLoading, displayRole, featuredDeals.length]);
+    }, [closedDealsError, closedDealsLoading, displayRole, featuredDeals.length, measureShowcaseScrollStep]);
 
     useEffect(() => {
         let alive = true;
@@ -925,7 +969,7 @@ export default function HomePage({
             </header>
 
             <main className="homeMain">
-                <section className={`homeHero ${sceneHovered ? "homeHero--immersed" : ""}`} aria-label="Homepage hero">
+                <section className="homeHero" aria-label="Homepage hero">
                     <div className="homeHero__backdrop" aria-hidden="true" />
                     <div className="homeHero__mesh" aria-hidden="true" />
                     <div className="homeHero__imageWash" aria-hidden="true" />
@@ -983,8 +1027,6 @@ export default function HomePage({
                                 className="homeHero__sceneFrame"
                                 onPointerEnter={handleSceneEnter}
                                 onPointerLeave={handleSceneLeave}
-                                onMouseEnter={handleSceneEnter}
-                                onMouseLeave={handleSceneLeave}
                                 onFocus={handleSceneEnter}
                                 onBlur={handleSceneLeave}
                                 onClick={handleSceneToggle}
@@ -1031,18 +1073,16 @@ export default function HomePage({
                     </div>
                 </section>
 
-                {aboutPageOpen ? (
-                    <HomeAboutPage
-                        id={ABOUT_PAGE_ID}
-                        isVisible={aboutPageReady}
-                        isClosing={aboutPageClosing}
-                        isAuthed={isAuthed}
-                        primaryCtaLabel={isAuthed ? "Open dashboard" : "Join"}
-                        primaryCtaTo={isAuthed ? "/app" : "/signup"}
-                        primaryCtaState={isAuthed ? null : buildModalState(location)}
-                        onClose={closeScene}
-                    />
-                ) : null}
+                <HomeAboutPage
+                    id={ABOUT_PAGE_ID}
+                    isVisible={aboutPageReady}
+                    isClosing={aboutPageClosing}
+                    isAuthed={isAuthed}
+                    primaryCtaLabel={isAuthed ? "Open dashboard" : "Join"}
+                    primaryCtaTo={isAuthed ? "/app" : "/signup"}
+                    primaryCtaState={isAuthed ? null : buildModalState(location)}
+                    onClose={closeScene}
+                />
 
                 {aboutPageOpen ? (
                     <div
@@ -1057,13 +1097,12 @@ export default function HomePage({
                         </div>
                     </div>
                 ) : null}
-                {hideHomeSections ? null : (
-                    <>
-                        <section
-                            id="proof"
-                            className={`homeShowcase ${!isAuthed ? "homeShowcase--closedDeals" : ""}`.trim()}
-                            aria-label={showcaseHeading.carouselLabel}
-                        >
+                <>
+                    <section
+                        id="proof"
+                        className={`homeShowcase ${!isAuthed ? "homeShowcase--closedDeals" : ""}`.trim()}
+                        aria-label={showcaseHeading.carouselLabel}
+                    >
                             <div className="homeShell">
                                 <div className="homeShowcase__header">
                                     <div key={showcaseHeadingMotionKey} className="homeRoleMotion">
@@ -1150,7 +1189,7 @@ export default function HomePage({
                                     </div>
                                 ) : null}
                             </div>
-                        </section>
+                    </section>
 
                         {!isAuthed ? (
                             <section id="flow" className="homeProcess" aria-label="Process">
@@ -1239,8 +1278,7 @@ export default function HomePage({
                                 </div>
                             </section>
                         ) : null}
-                    </>
-                )}
+                </>
             </main>
 
             <PublicSiteFooter />

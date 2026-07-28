@@ -33,7 +33,7 @@ const ABOUT_SECTIONS = [
 function AboutPicture({ image, className = "", loading = "lazy" }) {
     return (
         <figure className={`homeAboutPage__picture ${className}`.trim()}>
-            <img src={image.src} alt={image.alt} loading={loading} />
+            <img src={image.src} alt={image.alt} loading={loading} decoding="async" />
         </figure>
     );
 }
@@ -56,6 +56,8 @@ export default function HomeAboutPage({
             id={id}
             className={`homeAboutPage ${isActive ? "is-visible" : ""} ${isClosing ? "is-closing" : ""}`}
             aria-label="About us page"
+            aria-hidden={!isActive}
+            inert={!isActive}
         >
             <button
                 type="button"

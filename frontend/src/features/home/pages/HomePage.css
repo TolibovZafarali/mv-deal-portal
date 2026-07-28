@@ -87,6 +87,9 @@ html.homeSmoothScroll body::-webkit-scrollbar {
   background: var(--home-scroll-line-color);
   box-shadow: 0 0 18px rgba(214, 187, 146, 0.3);
   pointer-events: none;
+  contain: paint;
+  backface-visibility: hidden;
+  will-change: transform;
   transition:
     transform 420ms var(--home-ease),
     opacity 280ms var(--home-ease);
@@ -102,6 +105,9 @@ html.homeSmoothScroll body::-webkit-scrollbar {
   -webkit-backdrop-filter: blur(12px);
   background: rgba(7, 10, 14, var(--header-opacity));
   border-bottom: 1px solid rgba(246, 241, 232, var(--header-border-opacity));
+  contain: paint;
+  backface-visibility: hidden;
+  will-change: opacity, transform;
   transition:
     opacity 360ms var(--home-ease),
     transform 520ms var(--home-ease),
@@ -407,7 +413,9 @@ button.homeButton {
   background-size: 120px 120px;
   opacity: 0.28;
   mask-image: radial-gradient(circle at 50% 42%, rgba(0, 0, 0, 1) 32%, transparent 88%);
-  transform: translateY(calc(var(--hero-orbit-shift) * -0.16));
+  transform: translate3d(0, calc(var(--hero-orbit-shift) * -0.16), 0);
+  backface-visibility: hidden;
+  will-change: transform;
 }
 
 .homeHero__imageWash {
@@ -680,7 +688,7 @@ button.homeButton {
   border-radius: var(--home-radius-lg);
   overflow: hidden;
   box-shadow: var(--home-shadow);
-  transform: translateY(calc(var(--hero-shift) * -0.16)) scale(var(--hero-scale));
+  transform: translate3d(0, calc(var(--hero-shift) * -0.16), 0) scale(var(--hero-scale));
   transform-origin: center center;
   transition:
     opacity 520ms var(--home-ease),
@@ -853,7 +861,7 @@ button.homeButton {
 
 .home--aboutOpen:not(.home--aboutClosing) .homeHero__sceneFrame {
   opacity: 0;
-  transform: translateY(calc(var(--hero-shift) * -0.1)) scale(0.985);
+  transform: translate3d(0, calc(var(--hero-shift) * -0.1), 0) scale(0.985);
   filter: blur(18px);
   transition-delay: 100ms;
 }
@@ -866,7 +874,7 @@ button.homeButton {
 
 .home--aboutClosing .homeHero__sceneFrame {
   opacity: 1;
-  transform: translateY(calc(var(--hero-shift) * -0.16)) scale(var(--hero-scale));
+  transform: translate3d(0, calc(var(--hero-shift) * -0.16), 0) scale(var(--hero-scale));
   filter: none;
   transition-delay: 100ms;
 }
@@ -949,13 +957,11 @@ button.homeButton {
     var(--scene-origin-left)
     round var(--scene-origin-radius)
   );
-  will-change: clip-path, opacity, filter;
+  will-change: clip-path, opacity;
   backface-visibility: hidden;
   transform: translateZ(0);
-  filter: saturate(0.96);
   transition:
     clip-path 980ms cubic-bezier(0.2, 0.96, 0.24, 1),
-    filter 980ms var(--home-ease),
     opacity 260ms linear;
 }
 
@@ -964,17 +970,13 @@ button.homeButton {
   position: absolute;
   inset: 0;
   opacity: 0;
-  backdrop-filter: blur(0);
-  -webkit-backdrop-filter: blur(0);
-  transition:
-    opacity 760ms var(--home-ease),
-    backdrop-filter 980ms var(--home-ease),
-    -webkit-backdrop-filter 980ms var(--home-ease);
+  background: rgba(9, 12, 16, 0.08);
+  will-change: opacity;
+  transition: opacity 760ms var(--home-ease);
 }
 
 .homeAboutTransition.is-open {
   clip-path: inset(0 round 0px);
-  filter: saturate(1);
 }
 
 .homeAboutTransition.is-open::before {
@@ -985,15 +987,12 @@ button.homeButton {
 
 .homeAboutTransition.is-closing {
   opacity: 0;
-  filter: saturate(0.98);
-  transition-duration: 980ms, 980ms, 420ms;
-  transition-delay: 0ms, 0ms, 40ms;
+  transition-duration: 980ms, 420ms;
+  transition-delay: 0ms, 40ms;
 }
 
 .homeAboutTransition.is-closing::before {
   opacity: 0.18;
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
   transition-delay: 0ms;
 }
 
@@ -1024,24 +1023,46 @@ button.homeButton {
 
 .homeAboutTransition__image {
   inset: -4%;
-  background-image: url("/hero-optimized.jpg");
-  background-size: cover;
-  background-position: center;
-  filter: saturate(0.86) contrast(1.02) brightness(0.76);
+  background: transparent;
   transform: scale(1.18);
-  transition:
-    transform 980ms cubic-bezier(0.18, 0.92, 0.24, 1),
-    filter 980ms var(--home-ease);
+  transition: transform 980ms cubic-bezier(0.18, 0.92, 0.24, 1);
+  will-change: transform;
+}
+
+.homeAboutTransition__image::before,
+.homeAboutTransition__image::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: url("/hero-optimized.jpg") center / cover no-repeat;
+  backface-visibility: hidden;
+}
+
+.homeAboutTransition__image::before {
+  filter: saturate(0.86) contrast(1.02) brightness(0.76);
+}
+
+.homeAboutTransition__image::after {
+  opacity: 0;
+  filter: saturate(0.98) contrast(1.08) brightness(0.92);
+  will-change: opacity;
+  transition: opacity 980ms var(--home-ease);
 }
 
 .homeAboutTransition.is-open .homeAboutTransition__image {
   transform: scale(1.02);
-  filter: saturate(0.98) contrast(1.08) brightness(0.92);
+}
+
+.homeAboutTransition.is-open .homeAboutTransition__image::after {
+  opacity: 1;
 }
 
 .homeAboutTransition.is-closing .homeAboutTransition__image {
   transform: scale(1.08);
-  filter: saturate(0.88) contrast(1.03) brightness(0.8);
+}
+
+.homeAboutTransition.is-closing .homeAboutTransition__image::after {
+  opacity: 0;
 }
 
 .homeAboutTransition.is-closing .homeAboutTransition__panel {
@@ -1493,6 +1514,9 @@ button.homeButton {
 .homeClosing {
   position: relative;
   padding: 44px 0;
+  content-visibility: auto;
+  contain: layout paint style;
+  contain-intrinsic-size: auto 640px;
 }
 
 .homeStory::before,
@@ -1852,6 +1876,8 @@ button.homeButton {
 
 .homeShowcase__image {
   object-fit: cover;
+  backface-visibility: hidden;
+  will-change: transform;
   transition: transform 900ms var(--home-ease), filter 900ms var(--home-ease);
   filter: saturate(0.88) contrast(1.04) brightness(0.84);
 }
@@ -2244,6 +2270,10 @@ button.homeButton {
   opacity: 1;
   filter: blur(0);
   transform: translate3d(0, 0, 0) scale(1);
+}
+
+.homeReveal.is-settled {
+  will-change: auto;
 }
 
 .homeRoleMotion {
