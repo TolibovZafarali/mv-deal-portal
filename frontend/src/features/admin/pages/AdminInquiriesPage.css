@@ -1,5 +1,6 @@
 .adminInqThreads {
   --admin-main-pad: 22px;
+  --admin-inquiries-bg: var(--admin-main-bg, #f2f2f2);
   color: #111111;
   margin: calc(-1 * var(--admin-main-pad));
   height: calc(100% + (var(--admin-main-pad) * 2));
@@ -10,7 +11,7 @@
 .adminInqThreads__shell {
   border: 1px solid #101010;
   border-left: 0;
-  background: #f4f4ef;
+  background: var(--admin-inquiries-bg);
   min-height: 100%;
   height: 100%;
   width: 100%;
@@ -24,7 +25,7 @@
 }
 
 .adminInqThreads__col--investors {
-  background: #f4f4ef;
+  background: var(--admin-inquiries-bg);
   color: #111111;
   display: grid;
   grid-template-rows: auto 1fr;
@@ -45,7 +46,7 @@
 }
 
 .adminInqThreads__col--chat {
-  background: #f4f4ef;
+  background: var(--admin-inquiries-bg);
   color: #111111;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto auto;
@@ -132,7 +133,7 @@
   bottom: 0;
   right: calc(-1 * var(--admin-prop-active-bridge-span));
   width: calc(var(--admin-prop-active-bridge-span) + 1px);
-  background: #f4f4ef;
+  background: var(--admin-inquiries-bg);
   pointer-events: none;
 }
 
