@@ -82,4 +82,18 @@ class PublicEndpointRateLimitInterceptorTest {
         verify(limiter).evaluate(eq("inquiries.create"), keyCaptor.capture(), any(), eq(properties));
         assertEquals("ip:198.51.100.51", keyCaptor.getValue());
     }
+
+    @Test
+    void rateLimitsAdminPasscodeResetByIp() throws Exception {
+        when(request.getMethod()).thenReturn("POST");
+        when(request.getRequestURI()).thenReturn("/api/auth/password/reset/admin");
+        when(request.getContextPath()).thenReturn("");
+        when(request.getHeader("X-Forwarded-For")).thenReturn("203.0.113.25");
+
+        interceptor.preHandle(request, response, new Object());
+
+        ArgumentCaptor<String> keyCaptor = ArgumentCaptor.forClass(String.class);
+        verify(limiter).evaluate(eq("auth.password-reset"), keyCaptor.capture(), any(), eq(properties));
+        assertEquals("ip:203.0.113.25", keyCaptor.getValue());
+    }
 }

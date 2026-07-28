@@ -50,6 +50,21 @@ export default function ForgotPasswordModal() {
     navigate("/login", { replace: true, state: loginLinkState });
   }
 
+  function enterAdminPasscode() {
+    const resetUrl = `/reset-password?email=${encodeURIComponent(email.trim())}`;
+    navigate(resetUrl, {
+      replace: true,
+      state: hasBackground
+        ? {
+            modal: true,
+            backgroundLocation: bg,
+            from: location.state?.from || "/app",
+            forceHomeOnClose,
+          }
+        : undefined,
+    });
+  }
+
   return (
     <div className={`forgotOverlay ${isClosing ? "forgotOverlay--closing" : ""}`} onMouseDown={close}>
       <div
@@ -77,6 +92,7 @@ export default function ForgotPasswordModal() {
             <>
               <div className="field">
                 <input
+                  id="forgot-password-email"
                   className="field__input"
                   value={email}
                   onChange={(event) => setEmail(event.target.value)}
@@ -84,11 +100,11 @@ export default function ForgotPasswordModal() {
                   autoComplete="email"
                   type="email"
                 />
-                <label className="field__label">Email</label>
+                <label className="field__label" htmlFor="forgot-password-email">Email</label>
               </div>
 
               <p className="forgotModal__hint">
-                Enter your account email. If it exists, we'll send a reset link.
+                Enter your account email. We'll send secure recovery instructions if it exists.
               </p>
 
               {error ? <div className="forgotModal__error">{error}</div> : null}
@@ -99,18 +115,22 @@ export default function ForgotPasswordModal() {
                 </button>
 
                 <button className="forgotModal__btn" disabled={loading || !email.trim()}>
-                  {loading ? "Sending..." : "Send reset link"}
+                  {loading ? "Sending..." : "Send instructions"}
                 </button>
               </div>
             </>
           ) : (
             <div className="forgotModal__success">
               <p className="forgotModal__successText">
-                If an account exists for {email.trim()}, we sent a reset link.
+                If an account exists for {email.trim()}, we sent recovery instructions.
+                Admins receive a six-digit passcode; other users receive a reset link.
               </p>
               <div className="forgotModal__actions forgotModal__actions--bottom">
-                <button type="button" className="forgotModal__btn forgotModal__btn--full" onClick={goToLogin}>
+                <button type="button" className="forgotModal__backBtn" onClick={goToLogin}>
                   Back to sign in
+                </button>
+                <button type="button" className="forgotModal__btn" onClick={enterAdminPasscode}>
+                  Enter admin passcode
                 </button>
               </div>
             </div>

@@ -35,6 +35,8 @@ app:
   auth:
     password-reset-url-base: ${APP_AUTH_PASSWORD_RESET_URL_BASE:http://localhost:5173/reset-password}
     password-reset-token-ttl-minutes: ${APP_AUTH_PASSWORD_RESET_TOKEN_TTL_MINUTES:30}
+    admin-password-reset-code-ttl-minutes: ${APP_AUTH_ADMIN_PASSWORD_RESET_CODE_TTL_MINUTES:10}
+    admin-password-reset-max-attempts: ${APP_AUTH_ADMIN_PASSWORD_RESET_MAX_ATTEMPTS:5}
     invitation-url-base: ${APP_AUTH_INVITATION_URL_BASE:http://localhost:5173/invite/accept}
     invitation-ttl-days: ${APP_AUTH_INVITATION_TTL_DAYS:7}
     refresh-token-ttl-minutes: ${APP_AUTH_REFRESH_TOKEN_TTL_MINUTES:20160}

@@ -2,6 +2,7 @@ package com.megna.backend.application.service;
 
 import com.megna.backend.application.service.email.TransactionalEmailRequest;
 import com.megna.backend.application.service.email.TransactionalEmailService;
+import com.megna.backend.domain.entity.Admin;
 import com.megna.backend.domain.entity.Investor;
 import com.megna.backend.domain.entity.PasswordResetToken;
 import com.megna.backend.domain.repository.AdminRepository;
@@ -38,7 +39,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -153,18 +153,44 @@ class AuthServicePasswordResetTest {
     }
 
     @Test
-    void requestPasswordResetShouldIgnoreAdminAccounts() {
+    void requestPasswordResetShouldStoreHashedPasscodeAndEmailAdmin() {
         AuthService authService = newAuthService();
         String email = "admin@example.com";
+        Admin admin = new Admin();
+        admin.setId(7L);
+        admin.setEmail(email);
 
-        when(investorRepository.findByEmail(email)).thenReturn(Optional.empty());
-        when(sellerRepository.findByEmail(email)).thenReturn(Optional.empty());
+        when(adminRepository.findByEmail(email)).thenReturn(Optional.of(admin));
+        when(authProperties.getAdminPasswordResetCodeTtlMinutes()).thenReturn(10L);
+        when(authProperties.getPasswordResetUrlBase()).thenReturn("https://megna.us/reset-password");
+        when(passwordEncoder.encode(any(String.class))).thenAnswer(invocation ->
+                "encoded:" + invocation.getArgument(0, String.class));
+        when(passwordResetTokenRepository.save(any(PasswordResetToken.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(transactionalEmailService.sendTransactional(any(TransactionalEmailRequest.class))).thenReturn(true);
 
         authService.requestPasswordReset(new ForgotPasswordRequestDto(email));
 
-        verify(passwordResetTokenRepository, never()).save(any());
-        verify(transactionalEmailService, never()).sendTransactional(any());
-        verifyNoInteractions(adminRepository);
+        ArgumentCaptor<PasswordResetToken> tokenCaptor = ArgumentCaptor.forClass(PasswordResetToken.class);
+        verify(passwordResetTokenRepository).save(tokenCaptor.capture());
+        PasswordResetToken savedToken = tokenCaptor.getValue();
+        assertEquals("ADMIN", savedToken.getPrincipalType());
+        assertEquals(7L, savedToken.getPrincipalId());
+        assertTrue(savedToken.getExpiresAt().isAfter(LocalDateTime.now().plusMinutes(9)));
+
+        ArgumentCaptor<TransactionalEmailRequest> emailCaptor =
+                ArgumentCaptor.forClass(TransactionalEmailRequest.class);
+        verify(transactionalEmailService).sendTransactional(emailCaptor.capture());
+        TransactionalEmailRequest request = emailCaptor.getValue();
+        Matcher passcodeMatcher = Pattern.compile("one-time passcode is: (\\d{6})")
+                .matcher(request.textBody());
+        assertTrue(passcodeMatcher.find());
+        String passcode = passcodeMatcher.group(1);
+        assertEquals("encoded:" + passcode, savedToken.getTokenHash());
+        assertEquals("Your Megna admin password reset code", request.subject());
+        assertTrue(request.textBody().contains(
+                "https://megna.us/reset-password?email=admin%40example.com"
+        ));
     }
 
     private AuthService newAuthService() {

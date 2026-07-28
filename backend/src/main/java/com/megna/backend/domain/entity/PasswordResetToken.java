@@ -39,6 +39,9 @@ public class PasswordResetToken {
     @Column(name = "used_at")
     private LocalDateTime usedAt;
 
+    @Column(name = "verification_attempts", nullable = false, columnDefinition = "INT DEFAULT 0")
+    private int verificationAttempts;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 

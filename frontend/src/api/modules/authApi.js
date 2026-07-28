@@ -72,12 +72,17 @@ export async function updateAdminCredentials(payload) {
 }
 
 export async function requestPasswordReset(payload) {
-    await apiClient.post(`${AUTH_BASE}/password/forgot`, payload);
+    await apiClient.post(`${AUTH_BASE}/password/forgot`, payload, AUTH_REQUEST_CONFIG);
     return true;
 }
 
 export async function resetPassword(payload) {
-    await apiClient.post(`${AUTH_BASE}/password/reset`, payload);
+    await apiClient.post(`${AUTH_BASE}/password/reset`, payload, AUTH_REQUEST_CONFIG);
+    return true;
+}
+
+export async function resetAdminPassword(payload) {
+    await apiClient.post(`${AUTH_BASE}/password/reset/admin`, payload, AUTH_REQUEST_CONFIG);
     return true;
 }
 

@@ -7,6 +7,7 @@ import com.megna.backend.domain.repository.InvestorRepository;
 import com.megna.backend.domain.repository.SellerRepository;
 import com.megna.backend.infrastructure.security.RefreshTokenCookieService;
 import com.megna.backend.infrastructure.security.SecurityUtils;
+import com.megna.backend.interfaces.rest.dto.auth.AdminPasswordResetRequestDto;
 import com.megna.backend.interfaces.rest.dto.auth.ChangePasswordRequestDto;
 import com.megna.backend.interfaces.rest.dto.auth.ForgotPasswordRequestDto;
 import com.megna.backend.interfaces.rest.dto.auth.LoginRequestDto;
@@ -153,6 +154,12 @@ public class AuthController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void resetPassword(@Valid @RequestBody ResetPasswordRequestDto dto) {
         authService.resetPassword(dto);
+    }
+
+    @PostMapping("/password/reset/admin")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void resetAdminPassword(@Valid @RequestBody AdminPasswordResetRequestDto dto) {
+        authService.resetAdminPassword(dto);
     }
 
     @PostMapping("/register")
